@@ -395,3 +395,33 @@ describe('GameEngine — determinism', () => {
     expect(replayed.stats()).toEqual(live.stats());
   });
 });
+
+describe('GameEngine — identical word sequence for every player (GDD §15.1)', () => {
+  it('two players with the same seed get the same words in the same order, whatever they do', () => {
+    const config = { spawnInterval: 300, maxActiveWords: 5, instabilityPerMiss: 0.5 };
+    const fast = makeEngine(config, 31337, TEST_WORDS.concat(['dragon', 'phoenix', 'raven', 'tower', 'sigil']));
+    const idle = makeEngine(config, 31337, TEST_WORDS.concat(['dragon', 'phoenix', 'raven', 'tower', 'sigil']));
+    const spawned = (e: GameEngine) => {
+      const list: string[] = [];
+      e.events.on('wordSpawned', ({ word }) => list.push(word.text));
+      return list;
+    };
+    const fastWords = spawned(fast);
+    const idleWords = spawned(idle);
+
+    // "fast" destroys every word immediately; "idle" types nothing and lets words fall.
+    for (let t = 0; t < 6000; t++) {
+      fast.step();
+      idle.step();
+      const w = fast.state.words[0];
+      if (w) {
+        type(fast, w.text);
+        fast.submit();
+      }
+      if (idle.status !== 'playing') break;
+    }
+    const n = Math.min(fastWords.length, idleWords.length);
+    expect(n).toBeGreaterThan(10);
+    expect(fastWords.slice(0, n)).toEqual(idleWords.slice(0, n));
+  });
+});

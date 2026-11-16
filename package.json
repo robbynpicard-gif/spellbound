@@ -14,12 +14,18 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run typecheck && npm run test && npm run build"
+    "check": "npm run typecheck && npm run test && npm run build",
+    "server": "tsx watch server/main.ts",
+    "server:start": "tsx server/main.ts"
   },
   "dependencies": {
-    "phaser": "3.90.0"
+    "phaser": "3.90.0",
+    "ws": "8.23.0"
   },
   "devDependencies": {
+    "@types/node": "24.19.2",
+    "@types/ws": "8.18.2",
+    "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vite": "8.3.8",
     "vitest": "5.1.0"

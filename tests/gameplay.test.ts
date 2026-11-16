@@ -63,18 +63,31 @@ describe('WordGenerator', () => {
   it('only produces words within the level length range', () => {
     const gen = new WordGenerator(WORDS, PROTOTYPE_LEVEL, new SeededRandom(5));
     for (let i = 0; i < 500; i++) {
-      const w = gen.next([]);
+      const w = gen.next();
       expect(w.length).toBeGreaterThanOrEqual(PROTOTYPE_LEVEL.minWordLength);
       expect(w.length).toBeLessThanOrEqual(PROTOTYPE_LEVEL.maxWordLength);
     }
   });
 
-  it('avoids duplicate text and shared first letters when possible', () => {
-    const gen = new WordGenerator(WORDS, PROTOTYPE_LEVEL, new SeededRandom(9));
-    const active: { text: string }[] = [];
-    for (let i = 0; i < 6; i++) active.push({ text: gen.next(active) });
-    expect(new Set(active.map((w) => w.text)).size).toBe(6);
-    expect(new Set(active.map((w) => w.text[0])).size).toBe(6);
+  it('consecutive words (one field-full) avoid duplicate text and shared first letters', () => {
+    const window = PROTOTYPE_LEVEL.maxActiveWords; // window of previous words + the new one
+    for (const seed of [9, 10, 11, 12]) {
+      const gen = new WordGenerator(WORDS, PROTOTYPE_LEVEL, new SeededRandom(seed));
+      const seq = Array.from({ length: 60 }, () => gen.next().toLowerCase());
+      for (let i = 0; i + window <= seq.length; i++) {
+        const group = seq.slice(i, i + window);
+        expect(new Set(group).size).toBe(window);
+        expect(new Set(group.map((w) => w[0])).size).toBe(window);
+      }
+    }
+  });
+
+  it('the sequence depends only on the seed (same for every player)', () => {
+    const a = new WordGenerator(WORDS, PROTOTYPE_LEVEL, new SeededRandom(42));
+    const b = new WordGenerator(WORDS, PROTOTYPE_LEVEL, new SeededRandom(42));
+    const seqA = Array.from({ length: 100 }, () => a.next());
+    const seqB = Array.from({ length: 100 }, () => b.next());
+    expect(seqA).toEqual(seqB);
   });
 
   it('respects length weights (zero weight never appears)', () => {
@@ -83,7 +96,7 @@ describe('WordGenerator', () => {
       { minWordLength: 3, maxWordLength: 6, wordLengthWeights: { 3: 1, 6: 1 } },
       new SeededRandom(3),
     );
-    for (let i = 0; i < 300; i++) expect([3, 6]).toContain(gen.next([]).length);
+    for (let i = 0; i < 300; i++) expect([3, 6]).toContain(gen.next().length);
   });
 
   it('throws when no words fit the range', () => {

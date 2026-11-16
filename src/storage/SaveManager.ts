@@ -17,6 +17,8 @@ import {
   type PracticeRecord,
 } from '../modes/PracticeMode';
 
+import { sanitizeName } from '../multiplayer/protocol';
+
 export const SAVE_KEY = 'spellbound.save';
 export const SAVE_VERSION = 3;
 
@@ -33,6 +35,8 @@ export interface SaveData {
   version: typeof SAVE_VERSION;
   campaign: CampaignRecords;
   practice: PracticeData;
+  /** Player profile. Added within v3 (missing in older v3 saves → defaults). */
+  profile: { name: string; duelLevel: number };
 }
 
 /** The subset of the Web Storage API we use (lets tests pass a fake). */
@@ -46,7 +50,12 @@ export function emptyPractice(): PracticeData {
 }
 
 export function emptySave(): SaveData {
-  return { version: SAVE_VERSION, campaign: emptyCampaignRecords(), practice: emptyPractice() };
+  return {
+    version: SAVE_VERSION,
+    campaign: emptyCampaignRecords(),
+    practice: emptyPractice(),
+    profile: { name: '', duelLevel: 1 },
+  };
 }
 
 const num = (v: unknown, fallback = 0): number =>
@@ -101,6 +110,14 @@ function parsePractice(raw: unknown, totalLevels: number): PracticeData {
   return practice;
 }
 
+function parseProfile(raw: unknown, totalLevels: number): SaveData['profile'] {
+  const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+  return {
+    name: typeof r.name === 'string' ? sanitizeName(r.name).slice(0, 16) : '',
+    duelLevel: clampLevel(r.duelLevel, totalLevels),
+  };
+}
+
 /**
  * Turns stored text back into SaveData. Anything unreadable yields a fresh
  * save instead of crashing. Older versions are migrated:
@@ -125,6 +142,7 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
       case SAVE_VERSION:
         save.campaign = parseCampaign(c, totalLevels);
         save.practice = parsePractice(data.practice, totalLevels);
+        save.profile = parseProfile((data as { profile?: unknown }).profile, totalLevels);
         return save;
       default:
         return emptySave();
@@ -198,6 +216,18 @@ export class SaveManager {
   notePracticeChoice(level: number, filter: ModifierFilter): void {
     this.save.practice.lastLevel = Math.min(Math.max(1, level), this.totalLevels);
     this.save.practice.lastFilter = filter;
+    this.write();
+  }
+
+  get profile(): Readonly<SaveData['profile']> {
+    return this.save.profile;
+  }
+
+  setProfile(name: string, duelLevel: number): void {
+    this.save.profile = {
+      name: sanitizeName(name),
+      duelLevel: Math.min(Math.max(1, duelLevel), this.totalLevels),
+    };
     this.write();
   }
 

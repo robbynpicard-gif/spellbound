@@ -397,7 +397,7 @@ export class GameEngine {
 
   private spawn(): void {
     const s = this.s;
-    const text = this.generator.next(s.words);
+    const text = this.generator.next();
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;

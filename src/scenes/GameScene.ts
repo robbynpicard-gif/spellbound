@@ -29,7 +29,27 @@ export interface GameSceneData {
   initialSpells?: SpellCharges;
   /** Run score from earlier levels (shown in the HUD). */
   scoreOffset?: number;
+  /** Present only in a Wizard Duel. */
+  duel?: DuelOptions;
 }
+
+/**
+ * Wizard Duel mode (decisions.md D-024). The game follows a shared clock
+ * instead of frame time, cannot pause, and streams commands to the server.
+ */
+export interface DuelOptions {
+  /** performance.now() at which tick 0 begins (end of the countdown). */
+  startPerf: number;
+  durationMs: number;
+  rivalName: string;
+  /** Called every frame (used to stream commands to the server). */
+  onFrame(engine: GameEngine, now: number): void;
+  /** Esc: open the duel menu. */
+  onMenu(): void;
+}
+
+/** Most ticks a duel catches up in one frame (e.g. after the tab was hidden). */
+const MAX_CATCH_UP_TICKS = 600;
 
 /** Longest real-time gap simulated in one frame (avoids a burst after a stall). */
 const MAX_FRAME_MS = 250;
@@ -60,6 +80,9 @@ export class GameScene extends Phaser.Scene {
   private accumulator = 0;
   private introRemainingMs = 0;
   private paused = false;
+  private duel: DuelOptions | null = null;
+  private duelMenuOpen = false;
+  private countdownText: Phaser.GameObjects.Text | null = null;
 
   constructor() {
     super(GameScene.KEY);
@@ -68,6 +91,9 @@ export class GameScene extends Phaser.Scene {
   init(data: GameSceneData): void {
     this.config = data.config;
     this.hooks = data.hooks;
+    this.duel = data.duel ?? null;
+    this.duelMenuOpen = false;
+    this.countdownText = null;
     this.scoreOffset = data.scoreOffset ?? 0;
     this.engine = new GameEngine({
       config: this.config,
@@ -77,7 +103,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.views.clear();
     this.accumulator = 0;
-    this.introRemainingMs = INTRO_MS;
+    this.introRemainingMs = this.duel ? 0 : INTRO_MS;
     this.paused = false;
   }
 
@@ -88,12 +114,14 @@ export class GameScene extends Phaser.Scene {
     this.spellFx = new SpellEffects(this);
     this.hud = new GameHUD(
       this,
-      `Level ${this.config.level} · ${this.config.name}`,
+      this.duel ? this.duelTitle(this.duel.durationMs) : `Level ${this.config.level} · ${this.config.name}`,
       this.config.requiredWords,
       this.scoreOffset,
+      this.duel?.rivalName,
     );
     this.hud.setSpells(this.engine.state.spells);
-    this.showIntro();
+    if (this.duel) this.showCountdown();
+    else this.showIntro();
 
     this.wireEngineEvents();
 
@@ -119,6 +147,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   override update(_time: number, delta: number): void {
+    if (this.duel) return this.updateDuel(this.duel);
     if (this.paused || this.engine.status !== 'playing') return;
 
     const frame = Math.min(delta, MAX_FRAME_MS);
@@ -141,6 +170,84 @@ export class GameScene extends Phaser.Scene {
   /** Called by the app's Resume button. */
   resumeGame(): void {
     this.setPaused(false);
+  }
+
+  // ───────────────────────── Wizard Duel ─────────────────────────
+
+  /**
+   * Duel time follows the shared clock: the engine is stepped until its tick
+   * matches the time since the start, so both players' games (and the
+   * server's copies) advance at the same rate. If the tab was hidden, the
+   * game catches up rather than pausing — a duel cannot be paused.
+   */
+  private updateDuel(duel: DuelOptions): void {
+    const now = performance.now();
+    const elapsed = now - duel.startPerf;
+    this.updateCountdown(elapsed);
+
+    if (elapsed >= 0 && this.engine.status === 'playing') {
+      const target = Math.floor(elapsed / SIMULATION_STEP_MS);
+      let steps = 0;
+      while (this.engine.state.tick < target && this.engine.status === 'playing' && steps++ < MAX_CATCH_UP_TICKS) {
+        this.engine.step();
+      }
+      const alpha = Phaser.Math.Clamp(elapsed / SIMULATION_STEP_MS - this.engine.state.tick, 0, 1);
+      for (const view of this.views.values()) view.sync(alpha);
+      this.hud.updateStats(this.engine.stats(), this.engine.state.combo);
+      this.hud.setTitle(this.duelTitle(duel.durationMs - elapsed));
+    }
+    duel.onFrame(this.engine, now);
+  }
+
+  private duelTitle(remainingMs: number): string {
+    const s = Math.max(0, Math.ceil(remainingMs / 1000));
+    return `Duel · Level ${this.config.level} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
+
+  private showCountdown(): void {
+    this.countdownText = this.add
+      .text(LAYOUT.width / 2, LAYOUT.spawnY + 230, '', {
+        fontFamily: FONTS.heading,
+        fontSize: '96px',
+        color: hex(PALETTE.gold),
+        align: 'center',
+      })
+      .setOrigin(0.5)
+      .setShadow(0, 0, hex(PALETTE.arcane), 24, false, true)
+      .setDepth(40);
+    this.add
+      .text(LAYOUT.width / 2, LAYOUT.spawnY + 330, `vs ${this.duel!.rivalName}`, {
+        fontFamily: FONTS.heading,
+        fontSize: '28px',
+        color: hex(PALETTE.parchment),
+      })
+      .setOrigin(0.5)
+      .setDepth(40)
+      .setName('rival-banner');
+  }
+
+  private updateCountdown(elapsed: number): void {
+    const text = this.countdownText;
+    if (!text) return;
+    if (elapsed < 0) {
+      text.setText(String(Math.ceil(-elapsed / 1000)));
+    } else if (elapsed < 700) {
+      text.setText('Duel!');
+    } else {
+      text.destroy();
+      this.children.getByName('rival-banner')?.destroy();
+      this.countdownText = null;
+    }
+  }
+
+  /** The app's "Keep fighting" button. */
+  closeDuelMenu(): void {
+    this.duelMenuOpen = false;
+  }
+
+  /** Live rival state from the server. */
+  setRival(score: number, instability: number, alive: boolean): void {
+    this.hud?.setRival(score, instability, alive);
   }
 
   /** Current results, for ending a Practice session from the pause menu. */
@@ -233,6 +340,19 @@ export class GameScene extends Phaser.Scene {
     ev.on('gameOver', ({ result, stats }) => {
       this.hud.updateStats(stats, this.engine.state.combo);
       this.input.keyboard!.disableGlobalCapture();
+      if (this.duel) {
+        // In a duel the server decides the result; wait for it.
+        this.add
+          .text(LAYOUT.width / 2, LAYOUT.spawnY + 250, 'Your wards have fallen…\nwaiting for the referee', {
+            fontFamily: FONTS.heading,
+            fontSize: '34px',
+            color: hex(PALETTE.parchment),
+            align: 'center',
+          })
+          .setOrigin(0.5)
+          .setDepth(40);
+        return;
+      }
       const spells = { ...this.engine.state.spells };
       this.time.delayedCall(RESULTS_DELAY_MS, () => this.hooks.onGameOver(result, stats, spells));
     });
@@ -299,8 +419,17 @@ export class GameScene extends Phaser.Scene {
     if (this.engine.status !== 'playing') return;
     const key = event.key;
 
-    if (key === 'Escape') return this.setPaused(!this.paused);
-    if (this.paused || this.introRemainingMs > 0) return;
+    if (this.duel) {
+      // A duel can't pause: Esc opens the forfeit menu while the game runs on.
+      if (key === 'Escape' && !this.duelMenuOpen) {
+        this.duelMenuOpen = true;
+        this.duel.onMenu();
+      }
+      if (this.duelMenuOpen || performance.now() < this.duel.startPerf) return;
+    } else {
+      if (key === 'Escape') return this.setPaused(!this.paused);
+      if (this.paused || this.introRemainingMs > 0) return;
+    }
 
     if (key === 'Backspace') {
       if (event.ctrlKey || event.altKey || event.metaKey) this.engine.clearInput();
@@ -315,7 +444,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
-    if (this.paused || this.engine.status !== 'playing') return;
+    if (this.paused || this.duelMenuOpen || this.engine.status !== 'playing') return;
     for (const view of this.views.values()) {
       if (view.hitTest(pointer.worldX, pointer.worldY)) {
         this.engine.selectTarget(view.word.id);
@@ -325,6 +454,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onBlur(): void {
+    if (this.duel) return; // duels never pause
     if (this.engine.status === 'playing') this.setPaused(true);
   }
 

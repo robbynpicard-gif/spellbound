@@ -170,6 +170,9 @@ export class GameHUD {
   private lastCharges: SpellCharges | null = null;
   /** Words completed (shown in place of the progress bar in endless Practice). */
   private completed = 0;
+  private readonly levelText: Phaser.GameObjects.Text;
+  /** Wizard Duel: the rival's live score/instability replaces the progress bar. */
+  private rival: { name: string; score: number; instability: number; alive: boolean } | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -177,7 +180,9 @@ export class GameHUD {
     private readonly quota: number | null,
     /** Run score from earlier levels, added to this level's score. */
     private readonly scoreOffset = 0,
+    rivalName?: string,
   ) {
+    if (rivalName) this.rival = { name: rivalName, score: 0, instability: 0, alive: true };
     // Top bar
     const bar = scene.add.graphics().setDepth(30);
     bar.fillStyle(PALETTE.midnight, 0.85);
@@ -190,6 +195,7 @@ export class GameHUD {
       .text(20, y, levelName, { ...label(PALETTE.gold), fontFamily: FONTS.heading, fontSize: '22px' })
       .setOrigin(0, 0.5)
       .setDepth(31);
+    this.levelText = levelText;
     // Fixed columns after the level name, so values changing width don't make the bar jitter.
     const x0 = Math.max(240, levelText.x + levelText.width + 36);
     this.scoreText = scene.add.text(x0, y, '', label()).setOrigin(0, 0.5).setDepth(31);
@@ -214,11 +220,18 @@ export class GameHUD {
       scene,
       40,
       meterY,
-      (v) =>
-        this.quota === null
+      (v) => {
+        const r = this.rival;
+        if (r) {
+          return r.alive
+            ? `RIVAL ${r.name.toUpperCase()}  ·  ${r.score.toLocaleString()}  ·  ${Math.round(r.instability)}%`
+            : `RIVAL ${r.name.toUpperCase()}  ·  WARDS FALLEN`;
+        }
+        return this.quota === null
           ? `ENDLESS PRACTICE  ·  ${this.completed} WORDS`
-          : `LEVEL PROGRESS  ${Math.round((v / 100) * this.quota)} / ${this.quota}`,
-      PALETTE.gold,
+          : `LEVEL PROGRESS  ${Math.round((v / 100) * this.quota)} / ${this.quota}`;
+      },
+      rivalName ? PALETTE.crimson : PALETTE.gold,
     );
     this.instability = new Meter(
       scene,
@@ -253,8 +266,21 @@ export class GameHUD {
     this.scene.tweens.add({ targets: this.comboText, scale: { from: 1.25, to: 1 }, duration: 200 });
   }
 
+  /** Replace the top-left title (e.g. the duel timer). */
+  setTitle(text: string): void {
+    if (this.levelText.text !== text) this.levelText.setText(text);
+  }
+
+  /** Wizard Duel: show the rival's live state on the left meter. */
+  setRival(score: number, instability: number, alive: boolean): void {
+    if (!this.rival) return;
+    Object.assign(this.rival, { score, instability, alive });
+    this.progress.set(alive ? instability : 100);
+  }
+
   setProgress(completed: number): void {
     this.completed = completed;
+    if (this.rival) return;
     if (this.quota === null) return this.progress.refresh();
     this.progress.set(Math.min(100, (completed / this.quota) * 100));
   }
