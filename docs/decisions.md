@@ -256,6 +256,29 @@ exact word it turns gold and shows "↵ Enter". When the text exactly matches a
 word that is also the start of a longer one ("star" / "starlight"), the exact
 word is highlighted and Enter destroys it.
 
+### D-023 — Endless Practice
+_2026-11-16 · Accepted_
+
+- **Levels offered:** every level reached in Campaign (furthest level reached,
+  D-016). Locked ones show "Reach it in Campaign". Campaign itself has no level
+  select (owner, D-016).
+- **Exact difficulty:** `practiceConfig()` copies the campaign level object and
+  changes only `requiredWords` (→ endless) and the specials below. A test checks
+  every difficulty field for every level, and that a practice game with the
+  same seed produces identical words, positions, speeds and tomes.
+- **Specials (GDD "modifier selection"):** "Spell tomes" = the original
+  power-ups as in Campaign; "Pure typing" = no tomes or modifiers; "All
+  specials" = tomes + alchemical modifiers, shown but disabled until Milestone 6.
+- **Ending:** the wards fall, or Pause → "End session and see results". Pause
+  also offers Restart session / Change level (those discard the session).
+  Spell charges start at 0 each session.
+- **Records:** per level *and* specials setting (`"3:original"`), stored in
+  `save.practice`, never touching Campaign. Tracked: best score, most words,
+  longest time, best WPM, best combo, best accuracy and fastest average time
+  per word (the last two need ≥ 10 words in the session). Results mark each
+  stat that set a new best. The last level/specials used are pre-selected.
+- Save format v3; v2 saves migrate with empty practice records.
+
 ### D-009 — Original game is a mechanics reference only
 _2026-11-16 · Accepted_
 

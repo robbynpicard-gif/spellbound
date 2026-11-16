@@ -3,8 +3,15 @@
 A wizard-themed arcade typing game for the browser. Words fall toward your
 tower; type them to cast counterspells before they land.
 
-> **Status:** Milestone 3 — the campaign is a single run through 10 levels,
-> with the four original spells. Endless Practice comes in Milestone 4.
+> **Status:** Milestone 4 — Campaign (a single run through 10 levels, four
+> spells) and Endless Practice. Multiplayer comes in Milestone 5.
+
+### Endless Practice
+
+Pick any level you've reached in Campaign and play it at exactly that
+level's difficulty, forever. Choose **Spell tomes** (as in Campaign) or
+**Pure typing**. Press Esc → "End session" whenever you like; your personal
+bests are kept per level, separately from Campaign.
 
 ## How to play
 

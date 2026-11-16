@@ -180,7 +180,7 @@ describe('SaveManager', () => {
   it('migrates a Milestone 2 (version 1) save', () => {
     const v1 = JSON.stringify({ version: 1, campaign: { highestUnlocked: 4, levels: { 1: { bestScore: 99 } } } });
     const save = parseSave(v1, TOTAL);
-    expect(save.version).toBe(2);
+    expect(save.version).toBe(3);
     expect(save.campaign).toMatchObject({ highestReached: 4, bestRun: null });
   });
 

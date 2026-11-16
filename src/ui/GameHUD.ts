@@ -63,6 +63,11 @@ class Meter {
     });
   }
 
+  /** Redraw the caption without changing the bar. */
+  refresh(): void {
+    this.draw(this.shown);
+  }
+
   private draw(value: number): void {
     this.shown = value;
     const { x, y } = this;
@@ -163,6 +168,8 @@ export class GameHUD {
   private readonly slots: Record<SpellId, SpellSlot>;
   readonly console: TypingConsole;
   private lastCharges: SpellCharges | null = null;
+  /** Words completed (shown in place of the progress bar in endless Practice). */
+  private completed = 0;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -209,7 +216,7 @@ export class GameHUD {
       meterY,
       (v) =>
         this.quota === null
-          ? 'ENDLESS'
+          ? `ENDLESS PRACTICE  ·  ${this.completed} WORDS`
           : `LEVEL PROGRESS  ${Math.round((v / 100) * this.quota)} / ${this.quota}`,
       PALETTE.gold,
     );
@@ -247,7 +254,8 @@ export class GameHUD {
   }
 
   setProgress(completed: number): void {
-    if (this.quota === null) return;
+    this.completed = completed;
+    if (this.quota === null) return this.progress.refresh();
     this.progress.set(Math.min(100, (completed / this.quota) * 100));
   }
 

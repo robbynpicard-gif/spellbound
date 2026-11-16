@@ -143,6 +143,11 @@ export class GameScene extends Phaser.Scene {
     this.setPaused(false);
   }
 
+  /** Current results, for ending a Practice session from the pause menu. */
+  snapshot(): { stats: GameStats; spells: SpellCharges } {
+    return { stats: this.engine.stats(), spells: { ...this.engine.state.spells } };
+  }
+
   // ───────────────────────── engine → screen ─────────────────────────
 
   private wireEngineEvents(): void {
@@ -263,7 +268,10 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setShadow(0, 0, hex(PALETTE.arcane), 18, false, true)
       .setDepth(40);
-    const goal = this.config.requiredWords === null ? 'Survive' : `Complete ${this.config.requiredWords} words`;
+    const goal =
+      this.config.requiredWords === null
+        ? 'Endless practice: survive as long as you can'
+        : `Complete ${this.config.requiredWords} words`;
     const sub = this.add
       .text(cx, cy + 80, goal, { fontFamily: FONTS.gameplay, fontSize: '22px', color: hex(PALETTE.parchment) })
       .setOrigin(0.5)

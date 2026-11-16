@@ -4,6 +4,36 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Milestone 4: Endless Practice
+
+**Done** (D-023)
+- `modes/PracticeMode.ts`: practice config from a campaign level, level
+  availability, specials filter, records and which ones improved.
+- Save v3 with practice records + last choice; v2 migration.
+- Screens: Endless Practice enabled on the main menu; setup screen (specials
+  filter + level cards with pace and best); practice results with all GDD §14
+  stats and per-stat "New best!"; pause menu made configurable per mode.
+- App: practice flow, End session from pause, results over the backdrop.
+- HUD shows "ENDLESS PRACTICE · N WORDS" in place of the progress bar; intro
+  says "survive as long as you can".
+
+**Verified**
+- Typecheck and build clean; 107 unit tests (new: exact difficulty match for
+  every level and filter, identical seeded game, endless never wins,
+  level availability, records/improvements, short-session rule, separate
+  storage + reload, v2 migration, malformed data).
+- In the browser (pane hidden, so the game was driven directly and frames
+  stepped manually): setup showed levels 1–5 open / 6–10 sealed for the
+  owner's save; level 3 practice ran 90 s and 48 words (past the campaign
+  quota of 35) without ending; Pause → End session → results with all stats
+  and "First session" note; saved under "3:original"; Practise again → wards
+  fell → "The Wards Have Fallen", no false "new best", sessions = 2; Campaign
+  records untouched. No console errors; owner's save restored.
+
+**Next:** Milestone 5 — multiplayer (server, rooms, Wizard Duel).
+
+---
+
 ## 2026-11-16 — Milestone 3.2: Words need Enter
 
 Owner chose Enter-to-destroy (D-022). Engine: Enter destroys an exact match

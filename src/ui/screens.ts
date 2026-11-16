@@ -7,7 +7,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.4.2';
+const APP_VERSION = '0.5.0';
 
 const stat = (label: string, value: string | number) =>
   h('div', { class: 'stat' }, h('dt', null, label), h('dd', null, String(value)));
@@ -16,12 +16,12 @@ const stat = (label: string, value: string | number) =>
 
 export interface MainMenuActions {
   onCampaign(): void;
+  onPractice(): void;
   onCredits(): void;
 }
 
 /** Menu entries that exist in the GDD but are built in later milestones. */
 const UPCOMING: [label: string, milestone: string][] = [
-  ['Endless Practice', 'Milestone 4'],
   ['Multiplayer', 'Milestone 5'],
   ['Spellbook', 'Milestone 6'],
   ['Settings', 'Milestone 7'],
@@ -44,6 +44,7 @@ export function mainMenuScreen(
       'nav',
       { class: 'menu-list', attrs: { 'aria-label': 'Main menu' } },
       campaign,
+      h('button', { class: 'menu-button', onClick: actions.onPractice }, 'Endless Practice'),
       ...UPCOMING.map(([label, milestone]) =>
         h(
           'button',
@@ -73,14 +74,14 @@ export function mainMenuScreen(
 
 // ───────────────────────── Pause ─────────────────────────
 
-export interface PauseActions {
-  onResume(): void;
-  onRestartRun(): void;
-  onAbandon(): void;
+export interface PauseOption {
+  label: string;
+  onClick(): void;
 }
 
-export function pauseScreen(label: string, actions: PauseActions): Screen {
-  const resume = h('button', { class: 'menu-button primary', onClick: actions.onResume }, 'Resume');
+/** Pause menu: Resume plus mode-specific options (Campaign: restart/abandon; Practice: end session…). */
+export function pauseScreen(label: string, onResume: () => void, options: PauseOption[], note: string): Screen {
+  const resume = h('button', { class: 'menu-button primary', onClick: onResume }, 'Resume');
   const element = h(
     'section',
     { class: 'screen panel pause', attrs: { role: 'dialog', 'aria-labelledby': 'pause-title' } },
@@ -91,10 +92,9 @@ export function pauseScreen(label: string, actions: PauseActions): Screen {
       'div',
       { class: 'menu-list' },
       resume,
-      h('button', { class: 'menu-button', onClick: actions.onRestartRun }, 'Restart run from level 1'),
-      h('button', { class: 'menu-button', onClick: actions.onAbandon }, 'Abandon run'),
+      ...options.map((o) => h('button', { class: 'menu-button', onClick: o.onClick }, o.label)),
     ),
-    h('p', { class: 'footnote' }, 'Esc resumes · An abandoned run is not recorded'),
+    h('p', { class: 'footnote' }, `Esc resumes · ${note}`),
   );
   // Esc is handled by the game scene (it owns the pause state).
   return { element, focus: resume };

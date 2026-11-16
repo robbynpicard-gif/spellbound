@@ -1,3 +1,4 @@
+import type { GameStats } from '../gameplay/ScoringSystem';
 import {
   applyRunResult,
   emptyCampaignRecords,
@@ -6,13 +7,32 @@ import {
   type RunOutcome,
   type RunSummary,
 } from '../modes/CampaignMode';
+import {
+  applyPracticeResult,
+  emptyPracticeRecord,
+  isModifierFilter,
+  practiceKey,
+  type ModifierFilter,
+  type PracticeOutcome,
+  type PracticeRecord,
+} from '../modes/PracticeMode';
 
 export const SAVE_KEY = 'spellbound.save';
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
+
+/** Practice records live apart from Campaign records (GDD §14). */
+export interface PracticeData {
+  /** Keyed by practiceKey(level, filter), e.g. "3:original". */
+  records: Record<string, PracticeRecord>;
+  /** Last setup used, pre-selected next time. */
+  lastLevel: number;
+  lastFilter: ModifierFilter;
+}
 
 export interface SaveData {
   version: typeof SAVE_VERSION;
   campaign: CampaignRecords;
+  practice: PracticeData;
 }
 
 /** The subset of the Web Storage API we use (lets tests pass a fake). */
@@ -21,8 +41,12 @@ export interface StorageLike {
   setItem(key: string, value: string): void;
 }
 
+export function emptyPractice(): PracticeData {
+  return { records: {}, lastLevel: 1, lastFilter: 'original' };
+}
+
 export function emptySave(): SaveData {
-  return { version: SAVE_VERSION, campaign: emptyCampaignRecords() };
+  return { version: SAVE_VERSION, campaign: emptyCampaignRecords(), practice: emptyPractice() };
 }
 
 const num = (v: unknown, fallback = 0): number =>
@@ -48,30 +72,63 @@ function parseRun(raw: unknown, totalLevels: number): RunSummary | null {
   };
 }
 
+function parseCampaign(c: Record<string, unknown>, totalLevels: number): CampaignRecords {
+  return {
+    highestReached: clampLevel(c.highestReached, totalLevels),
+    bestRun: parseRun(c.bestRun, totalLevels),
+    runsStarted: num(c.runsStarted),
+    runsCompleted: num(c.runsCompleted),
+  };
+}
+
+function parsePractice(raw: unknown, totalLevels: number): PracticeData {
+  const practice = emptyPractice();
+  if (typeof raw !== 'object' || raw === null) return practice;
+  const p = raw as Partial<Record<keyof PracticeData, unknown>>;
+  practice.lastLevel = clampLevel(p.lastLevel, totalLevels);
+  if (isModifierFilter(p.lastFilter)) practice.lastFilter = p.lastFilter;
+  if (typeof p.records === 'object' && p.records !== null) {
+    for (const [key, r] of Object.entries(p.records as Record<string, unknown>)) {
+      if (!/^\d+:(all|original|none)$/.test(key) || typeof r !== 'object' || r === null) continue;
+      const rec = emptyPracticeRecord();
+      for (const field of Object.keys(rec) as (keyof PracticeRecord)[]) {
+        rec[field] = num((r as Record<string, unknown>)[field]);
+      }
+      rec.bestAccuracy = Math.min(rec.bestAccuracy, 1);
+      practice.records[key] = rec;
+    }
+  }
+  return practice;
+}
+
 /**
  * Turns stored text back into SaveData. Anything unreadable yields a fresh
- * save instead of crashing. Version 1 saves (per-level campaign, Milestone 2)
- * are migrated: their highest unlocked level becomes the highest reached.
+ * save instead of crashing. Older versions are migrated:
+ * v1 (per-level campaign) → highest unlocked becomes highest reached;
+ * v2 (campaign runs) → kept, practice starts empty.
  */
 export function parseSave(raw: string | null, totalLevels: number): SaveData {
   if (!raw) return emptySave();
   try {
-    const data = JSON.parse(raw) as { version?: number; campaign?: Record<string, unknown> };
+    const data = JSON.parse(raw) as { version?: number; campaign?: Record<string, unknown>; practice?: unknown };
     const c = data.campaign;
     if (typeof c !== 'object' || c === null) return emptySave();
     const save = emptySave();
 
-    if (data.version === 1) {
-      save.campaign.highestReached = clampLevel(c.highestUnlocked, totalLevels);
-      return save;
+    switch (data.version) {
+      case 1:
+        save.campaign.highestReached = clampLevel(c.highestUnlocked, totalLevels);
+        return save;
+      case 2:
+        save.campaign = parseCampaign(c, totalLevels);
+        return save;
+      case SAVE_VERSION:
+        save.campaign = parseCampaign(c, totalLevels);
+        save.practice = parsePractice(data.practice, totalLevels);
+        return save;
+      default:
+        return emptySave();
     }
-    if (data.version !== SAVE_VERSION) return emptySave();
-
-    save.campaign.highestReached = clampLevel(c.highestReached, totalLevels);
-    save.campaign.bestRun = parseRun(c.bestRun, totalLevels);
-    save.campaign.runsStarted = num(c.runsStarted);
-    save.campaign.runsCompleted = num(c.runsCompleted);
-    return save;
   } catch {
     return emptySave();
   }
@@ -118,6 +175,10 @@ export class SaveManager {
     return this.save.campaign;
   }
 
+  get practice(): Readonly<PracticeData> {
+    return this.save.practice;
+  }
+
   noteRunStarted(): void {
     this.save.campaign.runsStarted++;
     this.write();
@@ -130,6 +191,18 @@ export class SaveManager {
 
   recordRun(summary: RunSummary): RunOutcome {
     const outcome = applyRunResult(this.save.campaign, summary);
+    this.write();
+    return outcome;
+  }
+
+  notePracticeChoice(level: number, filter: ModifierFilter): void {
+    this.save.practice.lastLevel = Math.min(Math.max(1, level), this.totalLevels);
+    this.save.practice.lastFilter = filter;
+    this.write();
+  }
+
+  recordPractice(level: number, filter: ModifierFilter, stats: GameStats): PracticeOutcome {
+    const outcome = applyPracticeResult(this.save.practice.records, practiceKey(level, filter), stats);
     this.write();
     return outcome;
   }

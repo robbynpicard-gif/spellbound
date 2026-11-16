@@ -1,6 +1,6 @@
 # Spellbound — Architecture
 
-_Last updated: 2026-11-16 (Milestone 3.1 — typing console, see decisions D-020)_
+_Last updated: 2026-11-16 (Milestone 4 — Endless Practice, see decisions D-023)_
 
 This document describes how the code is organised and the rules that keep it
 maintainable. The Game Design Document (`docs/GDD.md`) says **what** the game
