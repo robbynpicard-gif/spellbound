@@ -63,8 +63,8 @@ export const PALETTE = {
 
 /** Fonts (loaded from Google Fonts in index.html). Words on scrolls use the clearest one. */
 export const FONTS = {
-  /** Readouts, banners and the HUD: an old terminal face. */
-  heading: '"VT323", "Courier New", monospace',
-  /** Scroll words and the typewriter: a crisp pixel face. */
-  gameplay: '"Pixelify Sans", system-ui, "Segoe UI", Arial, sans-serif',
+  /** Readouts, banners and the HUD: a pixel face. */
+  heading: '"Pixelify Sans", "Courier New", monospace',
+  /** Scroll words and the typewriter: a face built for legibility. */
+  gameplay: '"Atkinson Hyperlegible", system-ui, "Segoe UI", Arial, sans-serif',
 } as const;

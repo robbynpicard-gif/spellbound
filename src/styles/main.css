@@ -10,8 +10,8 @@
   --color-crimson: #b0402c;
   /* Brighter crimson for text, readable on dark panels. */
   --color-crimson-text: #d8644c;
-  --font-heading: 'VT323', 'Courier New', monospace;
-  --font-ui: 'Pixelify Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-heading: 'Pixelify Sans', 'Courier New', monospace;
+  --font-ui: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   color-scheme: dark;
 }
 

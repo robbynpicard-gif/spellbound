@@ -44,9 +44,9 @@ export class BootScene extends Phaser.Scene {
     const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
     if (!fonts) return;
     const load = Promise.all([
-      fonts.load('600 28px "Pixelify Sans"'),
-      fonts.load('700 28px "Pixelify Sans"'),
-      fonts.load('24px "VT323"'),
+      fonts.load('700 24px "Atkinson Hyperlegible"'),
+      fonts.load('400 24px "Atkinson Hyperlegible"'),
+      fonts.load('600 24px "Pixelify Sans"'),
     ]).then(() => undefined);
     const timeout = new Promise<void>((resolve) => setTimeout(resolve, FONT_TIMEOUT_MS));
     try {

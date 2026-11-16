@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 import { FONTS, PALETTE } from '../core/GameConfig';
 import type { WordState } from '../gameplay/Word';
-import { ART_SCALE, hex, screenY, SPELL_COLORS } from './layout';
+import { ART, ART_SCALE, hex, screenY, SPELL_COLORS } from './layout';
+import { SPELL_IDS } from '../gameplay/SpellManager';
 
-const FONT_SIZE = 24;
+const FONT_SIZE = 25;
 /** One art pixel, in screen pixels. */
 const PX = ART_SCALE;
 /** Paper height in art pixels (the text sits in the middle). */
@@ -19,7 +20,7 @@ const ROLL = 0x30211a;
 const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: FONTS.gameplay,
   fontSize: `${FONT_SIZE}px`,
-  fontStyle: '600',
+  fontStyle: '700',
 };
 
 /** Small deterministic random source, so each scroll keeps the same stains. */
@@ -48,6 +49,9 @@ export class WordView extends Phaser.GameObjects.Container {
   private readonly typedText: Phaser.GameObjects.Text;
   private readonly restText: Phaser.GameObjects.Text;
   private readonly restColor: string = hex(PALETTE.ink);
+  /** Spell scrolls: the spell's icon beside the word, and a pulsing glow. */
+  private readonly icon: Phaser.GameObjects.Image | null = null;
+  private readonly glow: Phaser.GameObjects.Graphics | null = null;
   private readonly shake = { offset: 0 };
   private drawnTyped = -1;
   private drawnTarget: boolean | null = null;
@@ -62,7 +66,14 @@ export class WordView extends Phaser.GameObjects.Container {
     this.paper = scene.add.graphics();
     this.typedText = scene.add.text(0, 0, '', { ...TEXT_STYLE, color: hex(PALETTE.rust) }).setOrigin(0, 0.5);
     this.restText = scene.add.text(0, 0, '', { ...TEXT_STYLE, color: this.restColor }).setOrigin(0, 0.5);
+    if (word.spell) {
+      this.glow = scene.add.graphics();
+      this.icon = scene.add.image(0, 0, ART.icons, SPELL_IDS.indexOf(word.spell)).setScale(3).setOrigin(0.5);
+      this.add(this.glow);
+      scene.tweens.add({ targets: this.glow, alpha: { from: 1, to: 0.35 }, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    }
     this.add([this.paper, this.typedText, this.restText]);
+    if (this.icon) this.add(this.icon);
     scene.add.existing(this);
 
     this.setAlpha(0).setScale(0.8);
@@ -122,7 +133,7 @@ export class WordView extends Phaser.GameObjects.Container {
     this.restText.setText(w.text.slice(w.typed));
     const typedWidth = w.typed > 0 ? this.typedText.width : 0;
     const textWidth = typedWidth + this.restText.width;
-    const ribbon = w.spell ? 3 : 0;
+    const ribbon = w.spell ? 9 : 0;
 
     // Paper size in art pixels; the text is centred on the paper (past the ribbon).
     const cols = Math.max(14, Math.ceil(textWidth / PX) + 6 + ribbon);
@@ -131,6 +142,7 @@ export class WordView extends Phaser.GameObjects.Container {
     const y0 = -Math.floor(PAPER_H / 2);
     const y1 = y0 + PAPER_H - 1;
     this.halfWidth = ((cols + 4) * PX) / 2;
+    this.icon?.setPosition((x0 + 5) * PX + 2, PX / 2);
 
     const textLeft = (x0 + ribbon) * PX + ((cols - ribbon) * PX - textWidth) / 2;
     this.typedText.x = Math.round(textLeft);
@@ -190,9 +202,24 @@ export class WordView extends Phaser.GameObjects.Container {
       px(e + 1, y1 + 2, ROLL);
     }
 
-    // Spell scroll: ribbon down the left edge and a wax seal.
+    // Spell scroll: glowing border in the spell's colour, tinted paper,
+    // ribbons at both ends, a wax seal; the icon sits at the left of the paper.
     if (w.spell) {
       const color = SPELL_COLORS[w.spell];
+      if (this.glow) {
+        const gl = this.glow;
+        gl.clear();
+        gl.fillStyle(color, 0.35);
+        gl.fillRect((x0 - 6) * PX, (y0 - 4) * PX, (x1 - x0 + 13) * PX, (y1 - y0 + 9) * PX);
+        gl.fillStyle(color, 0.95);
+        gl.fillRect((x0 - 4) * PX, (y0 - 2) * PX, (x1 - x0 + 9) * PX, PX);
+        gl.fillRect((x0 - 4) * PX, (y1 + 2) * PX, (x1 - x0 + 9) * PX, PX);
+        gl.fillRect((x0 - 4) * PX, (y0 - 2) * PX, PX, (y1 - y0 + 5) * PX);
+        gl.fillRect((x1 + 4) * PX, (y0 - 2) * PX, PX, (y1 - y0 + 5) * PX);
+      }
+      rect(x0, y0, x1, y1, color, 0.18);
+      rect(x0 + 1, y0 + 1, x0 + 8, y1 - 1, darken(color, 0.35), 0.85);
+      rect(x1 - 2, y0, x1 - 1, y1, color);
       rect(x0 + 1, y0, x0 + 2, y1, color);
       const seal = darken(color, 0.75);
       rect(x0 + 1, y1, x0 + 3, y1 + 2, seal);

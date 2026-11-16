@@ -15,9 +15,10 @@ const INSTABILITY_COLORS: Record<InstabilityStage, number> = {
 };
 
 /** HUD readouts: dim amber terminal text. */
-const readout = (color: number = PALETTE.gold, size = 22): Phaser.Types.GameObjects.Text.TextStyle => ({
+const readout = (color: number = PALETTE.gold, size = 18): Phaser.Types.GameObjects.Text.TextStyle => ({
   fontFamily: FONTS.heading,
   fontSize: `${size}px`,
+  fontStyle: '600',
   color: hex(color),
 });
 
@@ -50,7 +51,7 @@ class Gauge {
   ) {
     this.bar = scene.add.graphics().setDepth(30);
     this.text = scene.add
-      .text(x + width + 10, y + PX, '', readout(PALETTE.parchment, 20))
+      .text(x + width + 10, y + PX, '', readout(PALETTE.parchment, 16))
       .setOrigin(0, 0.5)
       .setDepth(31);
     this.draw(0);
@@ -118,10 +119,10 @@ class SpellSlot {
       .setScale(ICON_SCALE)
       .setOrigin(0.5);
     this.word = scene.add
-      .text(0, SLOT_H / 2 - 9, spell, readout(SPELL_COLORS[spell], 16))
+      .text(0, SLOT_H / 2 - 9, spell, readout(SPELL_COLORS[spell], 12))
       .setOrigin(0.5);
     this.count = scene.add
-      .text(SLOT_W / 2 - 4, -SLOT_H / 2 + 2, '', readout(PALETTE.parchment, 18))
+      .text(SLOT_W / 2 - 4, -SLOT_H / 2 + 2, '', readout(PALETTE.parchment, 15))
       .setOrigin(1, 0);
     this.container = scene.add
       .container(x + SLOT_W / 2, y + SLOT_H / 2, [this.frame, this.icon, this.word, this.count])
@@ -204,7 +205,7 @@ export class GameHUD {
     if (rivalName) this.rival = { name: rivalName, score: 0, instability: 0, alive: true };
 
     // Left: level and progress.
-    this.levelText = scene.add.text(16, ROW1, levelName, readout(PALETTE.gold, 26)).setOrigin(0, 0.5).setDepth(31);
+    this.levelText = scene.add.text(16, ROW1, levelName, readout(PALETTE.gold, 22)).setOrigin(0, 0.5).setDepth(31);
     this.progress = new Gauge(
       scene,
       20,
@@ -229,8 +230,8 @@ export class GameHUD {
 
     // Middle: score, combo, ward gauge, spell pool.
     const mx = 470;
-    this.scoreText = scene.add.text(mx, ROW1, '', readout(PALETTE.parchment, 22)).setOrigin(0, 0.5).setDepth(31);
-    this.comboText = scene.add.text(mx + 150, ROW1, '', readout(PALETTE.parchment, 22)).setOrigin(0, 0.5).setDepth(31);
+    this.scoreText = scene.add.text(mx, ROW1, '', readout(PALETTE.parchment, 15)).setOrigin(0, 0.5).setDepth(31);
+    this.comboText = scene.add.text(mx + 150, ROW1, '', readout(PALETTE.parchment, 15)).setOrigin(0, 0.5).setDepth(31);
     this.instability = new Gauge(scene, mx + 4, ROW2 - PX, 100, (v) => `WARD ${Math.round(v)}%`, INSTABILITY_COLORS[0]);
 
     // Right: spell slots. Only spells this run has unlocked get a slot; all share one pool.
@@ -241,7 +242,7 @@ export class GameHUD {
       this.slots[id] = new SpellSlot(scene, id, slotX + i * (SLOT_W + SLOT_GAP), (LAYOUT.hudHeight - SLOT_H) / 2);
     });
     this.poolText = scene.add
-      .text(Math.min(slotX - 10, 756), ROW2, '', readout(PALETTE.parchment, 20))
+      .text(Math.min(slotX - 10, 756), ROW2, '', readout(PALETTE.parchment, 16))
       .setOrigin(1, 0.5)
       .setAlpha(shown.length > 0 ? 0.9 : 0)
       .setDepth(31);
@@ -252,12 +253,12 @@ export class GameHUD {
 
     // Desk plaque: accuracy and WPM, and Arcane Shield blocks under it.
     this.accuracyText = scene.add
-      .text(LAYOUT.plaque.x, LAYOUT.plaque.y, '', readout(PALETTE.parchment, 20))
+      .text(LAYOUT.plaque.x, LAYOUT.plaque.y, '', readout(PALETTE.parchment, 16))
       .setOrigin(0.5)
       .setAlpha(0.85)
       .setDepth(31);
     this.shieldText = scene.add
-      .text(LAYOUT.plaque.x, LAYOUT.plaque.y + 24, '', readout(PALETTE.shield, 20))
+      .text(LAYOUT.plaque.x, LAYOUT.plaque.y + 24, '', readout(PALETTE.shield, 16))
       .setOrigin(0.5)
       .setDepth(31);
 

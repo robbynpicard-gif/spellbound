@@ -51,13 +51,13 @@ export class TypingConsole {
     this.placeholder = scene.add
       .text(-W / 2 + PAD, -8, 'type a word, then Enter', {
         fontFamily: FONTS.heading,
-        fontSize: '20px',
+        fontSize: '17px',
         color: hex(PALETTE.ink),
       })
       .setOrigin(0, 0.5)
       .setAlpha(0.45);
     this.hint = scene.add
-      .text(W / 2 - PAD, H / 2 - 12, '', { fontFamily: FONTS.heading, fontSize: '18px' })
+      .text(W / 2 - PAD, H / 2 - 12, '', { fontFamily: FONTS.heading, fontSize: '15px', fontStyle: '600' })
       .setOrigin(1, 0.5);
     scene.tweens.add({ targets: this.caret, alpha: 0, duration: 500, yoyo: true, repeat: -1, ease: 'Stepped' });
 

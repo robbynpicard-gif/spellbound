@@ -68,14 +68,14 @@
 .flavour {
   margin: 8px 0 28px;
   font-family: var(--font-heading);
-  font-size: 26px;
+  font-size: 22px;
 }
 
 .screen-title {
   margin: 0;
   font-family: var(--font-heading);
   font-weight: 400;
-  font-size: 48px;
+  font-size: 40px;
   color: var(--color-gold);
   text-shadow: 4px 4px 0 var(--color-midnight);
 }

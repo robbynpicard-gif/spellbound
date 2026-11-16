@@ -467,7 +467,7 @@ export class GameScene extends Phaser.Scene {
     const title = this.add
       .text(cx, cy, `LEVEL ${this.config.level}\n${this.config.name.toUpperCase()}`, {
         fontFamily: FONTS.heading,
-        fontSize: '60px',
+        fontSize: '48px',
         color: hex(PALETTE.gold),
         align: 'center',
         lineSpacing: 2,
@@ -481,7 +481,7 @@ export class GameScene extends Phaser.Scene {
         ? 'Endless practice: survive as long as you can'
         : `Complete ${this.config.requiredWords} words`;
     const sub = this.add
-      .text(cx, cy + 86, goal, { fontFamily: FONTS.heading, fontSize: '30px', color: hex(PALETTE.parchment) })
+      .text(cx, cy + 86, goal, { fontFamily: FONTS.gameplay, fontSize: '26px', fontStyle: '700', color: hex(PALETTE.parchment) })
       .setShadow(3, 3, hex(PALETTE.midnight), 0, false, true)
       .setOrigin(0.5)
       .setDepth(40);

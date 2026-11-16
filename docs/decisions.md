@@ -391,3 +391,13 @@ Design canvas: "Spellbound — pixel art direction" (claude.ai artifact).
   waits up to 3 s for them, then falls back to system fonts.
 - Not done yet: boss creatures, animation (wizard, typewriter keys,
   flasks), audio.
+
+### D-029 — Legible fonts; louder spell scrolls
+_2026-11-16 · Accepted (project owner) · amends D-028_
+
+- Fonts: **Atkinson Hyperlegible** (bold) for scroll words, the typewriter
+  and menu text; **Pixelify Sans** for HUD readouts and banners. VT323 is
+  dropped (hard to read at small sizes). Both are SIL Open Font License.
+- Spell scrolls: a pulsing border and glow in the spell's colour, tinted
+  paper, ribbons at both ends, a wax seal, and the spell's pixel icon at
+  the left of the scroll.
