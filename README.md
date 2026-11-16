@@ -13,8 +13,8 @@ level until the wards fall or you clear all 10. Type the falling words before
 they reach the glowing ward line. Fill the **Level Progress** bar to clear a
 level; don't let **Ward Instability** reach 100%.
 
-Everything you type appears in the **typing console** at the bottom. When it
-matches a falling word exactly, that word is destroyed. Capitals don't matter.
+Everything you type appears in the **typing console** at the bottom. Type a
+falling word and press **Enter** to destroy it. Capitals don't matter.
 
 Words with a small coloured book are **spell tomes** — complete one to gain a
 charge (up to 3 of each). Charges carry through the whole run. To cast, type
@@ -25,7 +25,7 @@ the spell's name and press **Enter**.
 | Letters | Type into the console |
 | Backspace | Delete one letter |
 | Ctrl+Backspace or Delete | Clear the console |
-| Enter | Cast a spell you've typed — or submit an unfinished word (that word speeds up) |
+| Enter | Destroy the word you typed, or cast the spell you typed. If it's unfinished or misspelled, that word speeds up instead |
 | Mouse click | Aim at one specific word |
 | Esc | Pause / resume |
 

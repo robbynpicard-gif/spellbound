@@ -217,10 +217,10 @@ _2026-11-16 · Accepted (project owner)_
 - The console text is matched against falling words, **ignoring case**. The
   most urgent matching word is highlighted with the matched letters in gold.
   If the text stops matching, the extra letters show red in the console.
-- **A word is destroyed the moment the console text equals it** — no Enter
-  needed (Claude's call; switchable if the owner wants Enter for every word).
-- **Enter**: if the text is a spell name (`fire`, `ice`, `slow`, `wind`), cast
-  it; otherwise it's an incomplete or misspelled submission — the game guesses
+- **Every word needs Enter** (owner's choice, D-022). Enter checks, in order:
+  1. the text is exactly a falling word → destroy it (the most urgent if
+  several); 2. the text is a spell name (`fire`, `ice`, `slow`, `wind`) → cast
+  it; 3. otherwise it's an incomplete or misspelled submission — the game guesses
   the intended word (closest by edit distance to the start of each word, ties
   to the longer shared prefix, then the most urgent word; no guess for
   unrelated text) and that word speeds up. The console then clears.
@@ -247,6 +247,14 @@ Warner Bros./Harry Potter, Christopher Paolini/Eragon). That's fine for a
 personal or hobby game; before any commercial release, set
 `INCLUDE_REFERENCES = false` in `src/data/wordList.ts` (one switch) or review
 the list.
+
+### D-022 — Words need Enter
+_2026-11-16 · Accepted (project owner; supersedes "destroyed as soon as typed" in D-020)_
+
+A fully typed word stays on the field until Enter. While the console holds an
+exact word it turns gold and shows "↵ Enter". When the text exactly matches a
+word that is also the start of a longer one ("star" / "starlight"), the exact
+word is highlighted and Enter destroys it.
 
 ### D-009 — Original game is a mechanics reference only
 _2026-11-16 · Accepted_

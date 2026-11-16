@@ -4,6 +4,17 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Milestone 3.2: Words need Enter
+
+Owner chose Enter-to-destroy (D-022). Engine: Enter destroys an exact match
+first, then casts spells, then treats the text as a missed submission; the
+highlight prefers an exact match. The console turns gold with "↵ Enter" when
+a word is ready. 85 unit tests (new: a word that starts another word).
+Browser: "cask" stayed after typing, showed "↵ Enter", and was destroyed on
+Enter with no errors; save backed up and restored; no console errors.
+
+---
+
 ## 2026-11-16 — Milestone 3.1: Typing console, harder start, bigger word pool
 
 **Owner requests:** instability resets every level (already so — confirmed);
