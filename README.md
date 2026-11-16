@@ -1,7 +1,13 @@
-# Spellbound
+# 🧙 Spellbound
 
 A wizard-themed arcade typing game for the browser. Words fall toward your
 tower; type them to cast counterspells before they land.
+
+**▶ Play it:** https://robbynpicard-gif.github.io/spellbound/
+
+Every push to `main` is tested, built and published automatically
+(`.github/workflows/deploy.yml`). The multiplayer server isn't hosted yet,
+so online duels only work when you run `npm run server` locally.
 
 > **Status:** Milestone 4 — Campaign (a single run through 10 levels, four
 > spells) and Endless Practice. Multiplayer comes in Milestone 5.
