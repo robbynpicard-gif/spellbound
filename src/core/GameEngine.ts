@@ -52,9 +52,9 @@ export const MAX_INPUT_LENGTH = 24;
  *
  * Typing model (decisions.md D-020): the player edits a typing console.
  * Whatever is typed is matched (case-insensitively) against the falling
- * words; a word is destroyed the moment the console matches it exactly.
- * Enter submits the console: a spell name casts that spell; anything else
- * counts as a missed submission against the word the game guesses was meant.
+ * words. Enter submits the console: an exact word is destroyed; a spell name
+ * casts that spell; anything else counts as a missed submission against the
+ * word the game guesses was meant.
  */
 export class GameEngine {
   readonly events = new EventBus<GameEvents>();
@@ -113,6 +113,11 @@ export class GameEngine {
   /** True when the console text still matches a word (or a spell name). */
   get inputValid(): boolean {
     return this.isValid(this.s.input);
+  }
+
+  /** True when pressing Enter now would destroy a word. */
+  get inputIsCompleteWord(): boolean {
+    return this.exactMatch(this.s.input) !== null;
   }
 
   /** How many leading console characters still match something (the rest is shown as wrong). */
@@ -232,7 +237,6 @@ export class GameEngine {
     if (this.isValid(s.input)) {
       s.correctChars++;
       const target = this.target;
-      if (target && target.match === s.input) return this.complete(target);
       if (target) this.events.emit('wordProgress', { word: target });
       return this.emitInput();
     }
@@ -256,12 +260,21 @@ export class GameEngine {
     const input = s.input;
     const pinned = this.pinned;
 
+    // 1. The console text is exactly a falling word: destroy it.
+    const exact = this.exactMatch(input);
+    if (exact) {
+      this.complete(exact);
+      if (s.input !== '') this.resetInput(true);
+      return;
+    }
+
+    // 2. A spell name: cast it.
     if (isSpellId(input)) {
       this.resetInput(true);
       return this.castSpell(input);
     }
 
-    // Not a complete word (complete words are destroyed as soon as typed):
+    // 3. Anything else is an incomplete or misspelled word:
     // guess what the player meant and treat it as a missed submission.
     // A word already penalised for a typo in this same entry isn't penalised again.
     const guess = pinned ?? guessIntendedWord(s.words, input);
@@ -308,6 +321,12 @@ export class GameEngine {
     return wordsMatching(this.s.words, input);
   }
 
+  /** The word Enter would destroy right now: an exact match (most urgent if several). */
+  private exactMatch(input: string): WordState | null {
+    if (input === '') return null;
+    return mostUrgent(this.candidates(input).filter((w) => w.match === input));
+  }
+
   private isValid(input: string): boolean {
     if (input === '') return true;
     return this.candidates(input).length > 0 || SPELL_IDS.some((id) => id.startsWith(input));
@@ -326,7 +345,9 @@ export class GameEngine {
     if (input === '') target = pinned;
     else {
       const matches = this.candidates(input);
-      if (matches.length > 0) target = pinned ?? mostUrgent(matches);
+      // An exact match wins, so the highlighted word is the one Enter destroys
+      // ("star" beats a lower "starlight" once "star" is fully typed).
+      if (matches.length > 0) target = pinned ?? this.exactMatch(input) ?? mostUrgent(matches);
       // Typing a spell name: no word is being aimed at.
       else if (SPELL_IDS.some((id) => id.startsWith(input))) target = pinned;
       // Plain mistake: keep showing the word that was being attempted.

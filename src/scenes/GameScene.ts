@@ -235,7 +235,7 @@ export class GameScene extends Phaser.Scene {
 
   private refreshConsole(): void {
     const s = this.engine.state;
-    this.hud.console.update(s.input, this.engine.validPrefixLength, s.spells);
+    this.hud.console.update(s.input, this.engine.validPrefixLength, s.spells, this.engine.inputIsCompleteWord);
   }
 
   private viewPosition(id: number, fieldX: number, fieldY: number): { x: number; y: number } {

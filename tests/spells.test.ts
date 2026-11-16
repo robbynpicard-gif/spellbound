@@ -40,6 +40,12 @@ function type(engine: GameEngine, text: string): void {
   for (const ch of text) engine.typeChar(ch);
 }
 
+/** Type a word and press Enter (the only way to destroy it). */
+function typeWord(engine: GameEngine, text: string): void {
+  type(engine, text);
+  engine.submit();
+}
+
 /** Cast the way a player does: empty the console, type the spell's name, press Enter. */
 function cast(engine: GameEngine, spell: string): void {
   engine.clearInput();
@@ -79,7 +85,7 @@ describe('spell tomes', () => {
     stepUntilWords(engine, 1);
     const word = engine.state.words[0]!;
     expect(word.spell).toBe('fire');
-    type(engine, word.text);
+    typeWord(engine, word.text);
     expect(engine.state.spells.fire).toBe(1);
     expect(collected).toHaveBeenCalledWith(expect.objectContaining({ spell: 'fire', stored: true }));
   });
@@ -95,7 +101,7 @@ describe('spell tomes', () => {
     const collected = vi.fn();
     engine.events.on('spellCollected', collected);
     stepUntilWords(engine, 1);
-    type(engine, engine.state.words[0]!.text);
+    typeWord(engine, engine.state.words[0]!.text);
     expect(engine.state.spells.ice).toBe(3);
     expect(engine.state.score).toBeGreaterThan(0);
     expect(collected).toHaveBeenCalledWith(expect.objectContaining({ stored: false }));
@@ -127,7 +133,7 @@ describe('casting', () => {
     );
     stepUntilWords(engine, 3);
     const first = engine.state.words[0]!;
-    type(engine, first.text); // combo 1
+    typeWord(engine, first.text); // combo 1
     stepUntilWords(engine, 3);
     const words = [...engine.state.words];
     const scoreBefore = engine.state.score;
@@ -177,7 +183,7 @@ describe('casting', () => {
     const engine = makeEngine({}, { initialSpells: { ice: 1 } });
     stepUntilWords(engine, 1);
     cast(engine, 'ice');
-    type(engine, engine.state.words[0]!.text);
+    typeWord(engine, engine.state.words[0]!.text);
     expect(engine.state.completed).toBe(1);
   });
 
@@ -224,7 +230,8 @@ describe('casting', () => {
       live.step();
       if (t % 25 === 0 && live.state.words.length > 0) {
         const target = live.target ?? live.state.words[0]!;
-        if (live.inputValid) live.typeChar(target.match[target.typed]!);
+        if (live.inputIsCompleteWord) live.submit();
+        else if (live.inputValid) live.typeChar(target.match[target.typed]!);
         else live.clearInput();
       }
       if (t === 400) cast(live, 'ice');

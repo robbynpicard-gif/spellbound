@@ -39,6 +39,12 @@ function type(engine: GameEngine, text: string): void {
   for (const ch of text) engine.typeChar(ch);
 }
 
+/** Type a word and press Enter (the only way to destroy it). */
+function typeWord(engine: GameEngine, text: string): void {
+  type(engine, text);
+  engine.submit();
+}
+
 function firstWord(engine: GameEngine): WordState {
   stepUntilWords(engine, 1);
   return engine.state.words[0]!;
@@ -78,13 +84,16 @@ describe('GameEngine — spawning and movement', () => {
 });
 
 describe('GameEngine — typing console', () => {
-  it('destroys a word as soon as the console matches it, then clears the console', () => {
+  it('destroys a word when Enter is pressed on its exact text, then clears the console', () => {
     const engine = makeEngine();
     const completed = vi.fn();
     engine.events.on('wordCompleted', completed);
     const word = firstWord(engine);
 
     type(engine, word.text);
+    expect(engine.state.words).toContain(word); // fully typed but not yet submitted
+    expect(engine.inputIsCompleteWord).toBe(true);
+    engine.submit();
 
     expect(engine.state.words).not.toContain(word);
     expect(engine.state.completed).toBe(1);
@@ -100,7 +109,7 @@ describe('GameEngine — typing console', () => {
     expect(word.match).toBe(word.text.toLowerCase());
     type(engine, word.text.toUpperCase().slice(0, 2));
     expect(engine.state.input).toBe(word.match.slice(0, 2));
-    type(engine, word.text.slice(2).toLowerCase());
+    typeWord(engine, word.text.slice(2).toLowerCase());
     expect(engine.state.completed).toBe(1);
   });
 
@@ -150,7 +159,7 @@ describe('GameEngine — typing console', () => {
     engine.backspace();
     expect(engine.state.input).toBe(word.match[0]);
     expect(engine.inputValid).toBe(true);
-    type(engine, word.text.slice(1));
+    typeWord(engine, word.text.slice(1));
     expect(engine.state.completed).toBe(1);
     expect(engine.state.errors).toBe(1);
   });
@@ -215,7 +224,7 @@ describe('GameEngine — typing console', () => {
     engine.selectTarget(b.id);
     engine.typeChar('m');
     expect(engine.state.targetId).toBe(b.id);
-    type(engine, 'ist');
+    typeWord(engine, 'ist');
     expect(engine.state.words).not.toContain(b);
     expect(engine.state.pinnedId).toBeNull();
   });
@@ -224,7 +233,7 @@ describe('GameEngine — typing console', () => {
     const engine = makeEngine({ spawnInterval: 10 });
     stepUntilWords(engine, 3);
     const words = [...engine.state.words];
-    for (const w of words) type(engine, w.text);
+    for (const w of words) typeWord(engine, w.text);
     expect(engine.state.combo).toBe(3);
     const expected = words.reduce((sum, w, i) => sum + Math.round(w.text.length * 10 * (1 + i * 0.05)), 0);
     expect(engine.state.score).toBe(expected);
@@ -240,6 +249,25 @@ describe('GameEngine — typing console', () => {
 });
 
 describe('GameEngine — Enter (submit)', () => {
+  it('a word that starts another word: Enter destroys the exact one', () => {
+    const engine = makeEngine();
+    stepUntilWords(engine, 2);
+    const [short, long] = engine.state.words as [WordState, WordState];
+    setText(short, 'star');
+    setText(long, 'starlight');
+    short.y = 50;
+    long.y = 300; // the longer word is more urgent
+
+    type(engine, 'sta');
+    expect(engine.state.targetId).toBe(long.id);
+    engine.typeChar('r'); // now "star" is complete → it becomes the target
+    expect(engine.state.targetId).toBe(short.id);
+    engine.submit();
+    expect(engine.state.words).not.toContain(short);
+    expect(engine.state.words).toContain(long);
+    expect(engine.state.errors).toBe(0);
+  });
+
   it('Enter on an incomplete word penalises that word and clears the console', () => {
     const engine = makeEngine();
     const word = firstWord(engine);
@@ -328,7 +356,7 @@ describe('GameEngine — instability and game end', () => {
   it('wins when the word quota is reached', () => {
     const engine = makeEngine({ requiredWords: 2, spawnInterval: 10 });
     stepUntilWords(engine, 2);
-    for (const w of [...engine.state.words]) type(engine, w.text);
+    for (const w of [...engine.state.words]) typeWord(engine, w.text);
     expect(engine.status).toBe('won');
   });
 });
@@ -354,7 +382,8 @@ describe('GameEngine — determinism', () => {
         if (!live.inputValid) live.backspace();
         else {
           const target = live.target ?? live.state.words[0]!;
-          live.typeChar(t % 140 === 0 ? 'z' : target.match[target.typed]!);
+          if (live.inputIsCompleteWord) live.submit();
+          else live.typeChar(t % 140 === 0 ? 'z' : target.match[target.typed]!);
         }
       }
       if (t === 1500) live.clearInput();

@@ -39,7 +39,7 @@ export class TypingConsole {
     this.okText = scene.add.text(-W / 2 + PAD, 0, '', { ...style, color: hex(PALETTE.parchment) }).setOrigin(0, 0.5);
     this.badText = scene.add.text(0, 0, '', { ...style, color: '#ff7a6b' }).setOrigin(0, 0.5);
     this.placeholder = scene.add
-      .text(-W / 2 + PAD, 0, 'type here · Enter casts spells · Esc pauses', {
+      .text(-W / 2 + PAD, 0, 'type a word, then Enter · Esc pauses', {
         fontFamily: FONTS.gameplay,
         fontSize: '16px',
         color: hex(PALETTE.parchment),
@@ -58,8 +58,11 @@ export class TypingConsole {
     this.drawBox();
   }
 
-  /** Redraw for new console text. `validLength` = leading characters that still match. */
-  update(input: string, validLength: number, charges: SpellCharges): void {
+  /**
+   * Redraw for new console text. `validLength` = leading characters that
+   * still match; `completeWord` = Enter would destroy a word now.
+   */
+  update(input: string, validLength: number, charges: SpellCharges, completeWord = false): void {
     const ok = input.slice(0, validLength);
     const bad = input.slice(validLength);
     this.okText.setText(ok);
@@ -68,7 +71,10 @@ export class TypingConsole {
     this.caret.x = this.badText.x + (bad ? this.badText.width : 0) + 2;
     this.placeholder.setVisible(input.length === 0);
 
-    if (isSpellId(input)) {
+    if (completeWord) {
+      this.hint.setText('↵ Enter').setColor(hex(PALETTE.gold));
+      this.okText.setColor(hex(PALETTE.gold));
+    } else if (isSpellId(input)) {
       const has = charges[input] > 0;
       this.hint
         .setText(has ? `↵ cast ${SPELLS[input].name}` : `no ${SPELLS[input].book} charges`)

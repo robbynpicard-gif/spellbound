@@ -7,7 +7,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.4.1';
+const APP_VERSION = '0.4.2';
 
 const stat = (label: string, value: string | number) =>
   h('div', { class: 'stat' }, h('dt', null, label), h('dd', null, String(value)));
