@@ -35,12 +35,35 @@ export interface DifficultyConfig {
    */
   errorAcceleration: number;
   /**
-   * Spells whose tomes can appear on this level. Charges already held can
+   * Spells whose scrolls can appear on this level. Charges already held can
    * always be cast; this only controls what can be found.
    */
   availableSpells: readonly SpellId[];
-  /** Chance (0–1) that a newly spawned word carries a spell tome. */
+  /** Chance (0–1) that a newly spawned word carries a spell scroll. */
   spellDropChance: number;
+  /** Campaign chapter (1–4). Display only. */
+  chapter?: number;
+  /**
+   * The spell this level introduces: the Campaign shows a pop-up about it
+   * before the level starts, and its scrolls drop more often here.
+   */
+  introducesSpell?: SpellId | null;
+  /**
+   * Boss (survival) level: survive this long to clear it. Such levels have
+   * no word quota (requiredWords is null).
+   */
+  survivalMs?: number | null;
+  /**
+   * Boss levels only: the pace reached by the end of the survival timer.
+   * Fall speed, spawn interval and words on screen move smoothly from the
+   * level's base values to these.
+   */
+  ramp?: Readonly<{ initialFallSpeed: number; spawnInterval: number; maxActiveWords: number }> | null;
+}
+
+/** True for a boss level (survive a timer instead of reaching a quota). */
+export function isSurvival(config: DifficultyConfig): boolean {
+  return typeof config.survivalMs === 'number' && config.survivalMs > 0;
 }
 
 /** Weighted average word length a level produces (a rough difficulty measure). */
@@ -107,6 +130,22 @@ export function validateLevels(data: unknown): DifficultyConfig[] {
     else for (const id of raw.availableSpells) if (!isSpellId(id)) fail(`unknown spell "${String(id)}"`);
     if (!isNum(raw.spellDropChance) || raw.spellDropChance < 0 || raw.spellDropChance > 1)
       fail('spellDropChance must be between 0 and 1');
+    if (raw.introducesSpell !== undefined && raw.introducesSpell !== null) {
+      if (!isSpellId(raw.introducesSpell)) fail(`unknown introduced spell "${String(raw.introducesSpell)}"`);
+      else if (Array.isArray(raw.availableSpells) && !raw.availableSpells.includes(raw.introducesSpell))
+        fail('introducesSpell must be one of availableSpells');
+    }
+    if (raw.survivalMs !== undefined && raw.survivalMs !== null) {
+      if (!isNum(raw.survivalMs) || raw.survivalMs <= 0) fail('survivalMs must be a positive number');
+      if (raw.requiredWords !== null) fail('a survival level must have requiredWords: null');
+    }
+    if (raw.ramp !== undefined && raw.ramp !== null) {
+      const ramp = raw.ramp as Record<string, unknown>;
+      if (typeof ramp !== 'object') fail('ramp must be an object');
+      else
+        for (const key of ['initialFallSpeed', 'spawnInterval', 'maxActiveWords'] as const)
+          if (!isNum(ramp[key]) || (ramp[key] as number) <= 0) fail(`ramp.${key} must be a positive number`);
+    }
   });
 
   if (problems.length > 0) throw new Error(`Invalid level data:\n${problems.join('\n')}`);

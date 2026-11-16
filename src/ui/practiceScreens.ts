@@ -13,9 +13,9 @@ import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
 export const FILTER_LABELS: Record<ModifierFilter, { title: string; detail: string }> = {
-  all: { title: 'All specials', detail: 'Spell tomes + alchemical modifiers (coming in Milestone 6)' },
-  original: { title: 'Spell tomes', detail: 'Fire, Ice, Slow and Wind tomes, as in Campaign' },
-  none: { title: 'Pure typing', detail: 'No tomes, no specials' },
+  all: { title: 'All specials', detail: 'Spell scrolls + alchemical modifiers (coming soon)' },
+  original: { title: 'Spell scrolls', detail: "The level's spell scrolls, as in Campaign" },
+  none: { title: 'Pure typing', detail: 'No scrolls, no specials' },
 };
 
 // ───────────────────────── Setup ─────────────────────────

@@ -3,24 +3,21 @@ import { isSpellId, SPELL_IDS, type SpellId } from '../gameplay/SpellManager';
 import type { SpellContext, SpellData, SpellDefinition } from './BaseSpell';
 
 /**
- * Spell effects (GDD §10). Descriptions, keys and timings live in
- * src/data/spells.json; only the behaviour is code.
- *
- * Sources for the original's behaviour are fan guides, not the game file
- * (original-game-research.md #9–12), so these are documented adaptations.
+ * Spell effects (docs/plans/spells-v2.md). Descriptions, drop weights and
+ * timings live in src/data/spells.json; only the behaviour is code.
  */
 const EFFECTS: Record<SpellId, (ctx: SpellContext, data: SpellData) => void> = {
-  // Fire Book: "burn all words".
-  fire: (ctx) => ctx.burnAllWords(),
-  // Ice Book: "freeze all words".
+  slow: (ctx, data) => ctx.slow(ctx.ticks(data.durationMs ?? 8000), data.speedFactor ?? 0.6),
   ice: (ctx, data) => ctx.freeze(ctx.ticks(data.durationMs ?? 5000)),
-  // Slow Book: "slow them".
-  slow: (ctx, data) => ctx.slow(ctx.ticks(data.durationMs ?? 8000), data.speedFactor ?? 0.5),
-  // Wind Book: "renew your life", reset the danger bar, "erase incorrectly typed words".
-  wind: (ctx) => {
-    ctx.resetInstability();
+  barrier: (ctx, data) => ctx.addBarrier(data.blocks ?? 2),
+  shock: (ctx, data) => ctx.chainLightning(data.arcs ?? 3),
+  alter: (ctx, data) => ctx.transmute(data.minLength ?? 6),
+  fire: (ctx) => ctx.burnAllWords(),
+  wind: (ctx, data) => {
+    ctx.purgeInstability(data.hardcoreHeal ?? 0.5);
     ctx.resetWordSpeeds();
   },
+  harvest: (ctx) => ctx.harvestAll(),
 };
 
 function loadSpells(raw: unknown): Record<SpellId, SpellDefinition> {
@@ -29,6 +26,8 @@ function loadSpells(raw: unknown): Record<SpellId, SpellDefinition> {
   for (const entry of raw as SpellData[]) {
     if (!isSpellId(entry.id)) throw new Error(`Unknown spell id "${String(entry.id)}"`);
     if (!entry.name || !entry.book) throw new Error(`Spell "${entry.id}" is missing fields`);
+    if (typeof entry.dropWeight !== 'number' || !(entry.dropWeight > 0))
+      throw new Error(`Spell "${entry.id}" needs a positive dropWeight`);
     byId.set(entry.id, entry);
   }
   const registry = {} as Record<SpellId, SpellDefinition>;
@@ -43,6 +42,19 @@ function loadSpells(raw: unknown): Record<SpellId, SpellDefinition> {
 
 /**
  * Central spell registry (GDD §6). A spell is cast by typing its id
- * ("fire", "ice", "slow", "wind") in the typing console and pressing Enter.
+ * (e.g. "shock") in the typing console and pressing Enter.
  */
 export const SPELLS: Readonly<Record<SpellId, SpellDefinition>> = loadSpells(spellsData);
+
+/** Drop weight multiplier for the spell a level introduces. */
+export const INTRO_DROP_BOOST = 3;
+
+/** Relative drop weights for a level's scrolls (the introduced spell is boosted). */
+export function dropWeights(
+  available: readonly SpellId[],
+  introduced: SpellId | null | undefined,
+): Partial<Record<SpellId, number>> {
+  const weights: Partial<Record<SpellId, number>> = {};
+  for (const id of available) weights[id] = SPELLS[id].dropWeight * (id === introduced ? INTRO_DROP_BOOST : 1);
+  return weights;
+}

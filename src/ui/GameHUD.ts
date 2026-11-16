@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { FONTS, PALETTE } from '../core/GameConfig';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
-import { MAX_SPELL_CHARGES, SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
+import { SPELL_IDS, SPELL_POOL_SIZE, totalCharges, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { hex, LAYOUT, SPELL_COLORS } from '../render/layout';
 import { SPELLS } from '../spells/SpellRegistry';
 import { TypingConsole } from './TypingConsole';
@@ -23,9 +23,9 @@ const label = (color: number = PALETTE.parchment): Phaser.Types.GameObjects.Text
 
 const BAR_WIDTH = 360;
 const BAR_HEIGHT = 14;
-const SLOT_W = 70;
+const SLOT_W = 66;
 const SLOT_H = 42;
-const SLOT_GAP = 8;
+const SLOT_GAP = 6;
 
 /** A labelled horizontal meter that animates to new values. */
 class Meter {
@@ -85,10 +85,10 @@ class Meter {
   }
 }
 
-/** One spell inventory slot: the word to type (e.g. "fire") and charge pips. */
+/** One spell inventory slot: the word to type (e.g. "shock") and how many charges are held. */
 class SpellSlot {
   private readonly frame: Phaser.GameObjects.Graphics;
-  private readonly pips: Phaser.GameObjects.Graphics;
+  private readonly count: Phaser.GameObjects.Text;
   private readonly container: Phaser.GameObjects.Container;
   private readonly color: number;
 
@@ -101,12 +101,12 @@ class SpellSlot {
     this.color = SPELL_COLORS[spell];
     const def = SPELLS[spell];
     this.frame = scene.add.graphics();
-    this.pips = scene.add.graphics();
     const name = scene.add
-      .text(0, -7, def.id, { ...label(this.color), fontSize: '16px', fontStyle: '700' })
+      .text(0, -8, def.id, { ...label(this.color), fontSize: def.id.length > 5 ? '13px' : '15px', fontStyle: '700' })
       .setOrigin(0.5);
+    this.count = scene.add.text(0, 10, '', { ...label(), fontSize: '13px', fontStyle: '600' }).setOrigin(0.5);
     this.container = scene.add
-      .container(x + SLOT_W / 2, y + SLOT_H / 2, [this.frame, this.pips, name])
+      .container(x + SLOT_W / 2, y + SLOT_H / 2, [this.frame, name, this.count])
       .setDepth(31);
     this.set(0);
   }
@@ -119,18 +119,7 @@ class SpellSlot {
     this.frame.lineStyle(active ? 2 : 1, active ? this.color : PALETTE.parchment, active ? 0.95 : 0.25);
     this.frame.strokeRoundedRect(-SLOT_W / 2, -SLOT_H / 2, SLOT_W, SLOT_H, 10);
     this.container.setAlpha(active ? 1 : 0.55);
-
-    this.pips.clear();
-    for (let i = 0; i < MAX_SPELL_CHARGES; i++) {
-      const px = (i - (MAX_SPELL_CHARGES - 1) / 2) * 14;
-      if (i < charges) {
-        this.pips.fillStyle(this.color, 1);
-        this.pips.fillCircle(px, 11, 4);
-      } else {
-        this.pips.lineStyle(1, PALETTE.parchment, 0.5);
-        this.pips.strokeCircle(px, 11, 3.5);
-      }
-    }
+    this.count.setText(active ? `×${charges}` : '–');
   }
 
   /** Bright pulse when cast or collected. */
@@ -165,7 +154,12 @@ export class GameHUD {
   private readonly accuracyText: Phaser.GameObjects.Text;
   private readonly progress: Meter;
   private readonly instability: Meter;
-  private readonly slots: Record<SpellId, SpellSlot>;
+  private readonly slots: Partial<Record<SpellId, SpellSlot>> = {};
+  private readonly poolText: Phaser.GameObjects.Text;
+  private readonly shieldText: Phaser.GameObjects.Text;
+  /** Boss level: total survival time, shown on the progress meter. */
+  private survivalMs: number | null = null;
+  private survivalLeftMs = 0;
   readonly console: TypingConsole;
   private lastCharges: SpellCharges | null = null;
   /** Words completed (shown in place of the progress bar in endless Practice). */
@@ -181,6 +175,8 @@ export class GameHUD {
     /** Run score from earlier levels, added to this level's score. */
     private readonly scoreOffset = 0,
     rivalName?: string,
+    /** Spells to show slots for (those this run has unlocked), in power order. */
+    knownSpells: readonly SpellId[] = SPELL_IDS,
   ) {
     if (rivalName) this.rival = { name: rivalName, score: 0, instability: 0, alive: true };
     // Top bar
@@ -202,12 +198,18 @@ export class GameHUD {
     this.comboText = scene.add.text(x0 + 190, y, '', label()).setOrigin(0, 0.5).setDepth(31);
 
     // Spell slots, top right. Each shows the word to type to cast it.
-    const slotsWidth = SPELL_IDS.length * SLOT_W + (SPELL_IDS.length - 1) * SLOT_GAP;
+    // Only spells this run has unlocked get a slot; all share one pool of charges.
+    const shown = SPELL_IDS.filter((id) => knownSpells.includes(id));
+    const slotsWidth = shown.length * SLOT_W + Math.max(0, shown.length - 1) * SLOT_GAP;
     const slotX = LAYOUT.width - 20 - slotsWidth;
-    this.slots = {} as Record<SpellId, SpellSlot>;
-    SPELL_IDS.forEach((id, i) => {
+    shown.forEach((id, i) => {
       this.slots[id] = new SpellSlot(scene, id, slotX + i * (SLOT_W + SLOT_GAP), (LAYOUT.hudHeight - SLOT_H) / 2);
     });
+    this.poolText = scene.add
+      .text(slotX - 12, y, '', { ...label(), fontSize: '13px' })
+      .setOrigin(1, 0.5)
+      .setAlpha(shown.length > 0 ? 0.8 : 0)
+      .setDepth(31);
 
     // Bottom panel
     const panelY = LAYOUT.panelY;
@@ -226,6 +228,10 @@ export class GameHUD {
           return r.alive
             ? `RIVAL ${r.name.toUpperCase()}  ·  ${r.score.toLocaleString()}  ·  ${Math.round(r.instability)}%`
             : `RIVAL ${r.name.toUpperCase()}  ·  WARDS FALLEN`;
+        }
+        if (this.survivalMs !== null) {
+          const s = Math.ceil(this.survivalLeftMs / 1000);
+          return `SURVIVE  ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
         }
         return this.quota === null
           ? `ENDLESS PRACTICE  ·  ${this.completed} WORDS`
@@ -247,8 +253,28 @@ export class GameHUD {
       .setOrigin(0.5)
       .setAlpha(0.7)
       .setDepth(31);
+    this.shieldText = scene.add
+      .text(LAYOUT.width - 40 - BAR_WIDTH / 2, meterY + 28, '', { ...label(PALETTE.shield), fontSize: '13px', fontStyle: '600' })
+      .setOrigin(0.5)
+      .setDepth(31);
 
     this.updateStats(null);
+  }
+
+  /** Boss level: show the survival timer on the progress meter (fills as time passes). */
+  setSurvival(totalMs: number, leftMs: number): void {
+    const first = this.survivalMs === null;
+    this.survivalMs = totalMs;
+    const shownSecond = Math.ceil(this.survivalLeftMs / 1000);
+    this.survivalLeftMs = leftMs;
+    if (first || Math.ceil(leftMs / 1000) !== shownSecond) {
+      this.progress.set(Math.min(100, ((totalMs - leftMs) / totalMs) * 100));
+    }
+  }
+
+  /** Arcane Shield blocks left (0 hides the label). */
+  setShield(remaining: number): void {
+    this.shieldText.setText(remaining > 0 ? `ARCANE SHIELD  ·  ${remaining} BLOCK${remaining === 1 ? '' : 'S'}` : '');
   }
 
   updateStats(stats: GameStats | null, combo = 0): void {
@@ -291,14 +317,20 @@ export class GameHUD {
 
   setSpells(charges: SpellCharges, pulse?: SpellId): void {
     for (const id of SPELL_IDS) {
-      if (!this.lastCharges || this.lastCharges[id] !== charges[id]) this.slots[id].set(charges[id]);
+      if (!this.lastCharges || this.lastCharges[id] !== charges[id]) this.slots[id]?.set(charges[id]);
     }
     this.lastCharges = { ...charges };
-    if (pulse) this.slots[pulse].pulse();
+    const total = totalCharges(charges);
+    this.poolText
+      .setText(`SPELLS ${total}/${SPELL_POOL_SIZE}`)
+      .setColor(hex(total >= SPELL_POOL_SIZE ? PALETTE.gold : PALETTE.parchment));
+    if (pulse) this.slots[pulse]?.pulse();
   }
 
   denySpell(spell: SpellId): void {
-    this.slots[spell].deny();
-    this.scene.time.delayedCall(260, () => this.slots[spell].set(this.lastCharges?.[spell] ?? 0));
+    const slot = this.slots[spell];
+    if (!slot) return;
+    slot.deny();
+    this.scene.time.delayedCall(260, () => slot.set(this.lastCharges?.[spell] ?? 0));
   }
 }

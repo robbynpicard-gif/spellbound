@@ -1,13 +1,33 @@
 import { GAME_TITLE } from '../core/GameConfig';
-import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
+import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import type { GameStats } from '../gameplay/ScoringSystem';
-import { SPELL_IDS, type SpellCharges } from '../gameplay/SpellManager';
-import type { CampaignRecords, CampaignRun, RunOutcome, RunSummary } from '../modes/CampaignMode';
+import {
+  poolFull,
+  SPELL_IDS,
+  SPELL_POOL_SIZE,
+  totalCharges,
+  type SpellCharges,
+  type SpellId,
+} from '../gameplay/SpellManager';
+import {
+  HARDCORE_BOSS_HEAL,
+  type CampaignMode,
+  type CampaignRecords,
+  type CampaignRun,
+  type RunOutcome,
+  type RunSummary,
+} from '../modes/CampaignMode';
+import { hex, SPELL_COLORS } from '../render/layout';
 import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.6.0';
+
+const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
+
+/** Inline colour for a spell's name in HTML screens. */
+const spellStyle = (id: SpellId) => ({ style: `--spell-color: ${hex(SPELL_COLORS[id])}` });
 
 const stat = (label: string, value: string | number) =>
   h('div', { class: 'stat' }, h('dt', null, label), h('dd', null, String(value)));
@@ -100,6 +120,93 @@ export function pauseScreen(label: string, onResume: () => void, options: PauseO
   return { element, focus: resume };
 }
 
+// ───────────────────────── Campaign mode choice ─────────────────────────
+
+export interface ModeSelectActions {
+  onStart(mode: CampaignMode): void;
+  onBack(): void;
+}
+
+function bestLine(records: Readonly<CampaignRecords>): string {
+  const best = records.bestRun;
+  if (!best) return 'No runs recorded yet';
+  return `Best: ${best.score.toLocaleString()} · ${best.victory ? 'all levels cleared' : `reached level ${best.reachedLevel}`}`;
+}
+
+/** Campaign → choose Normal or Hardcore. */
+export function campaignModeScreen(
+  normal: Readonly<CampaignRecords>,
+  hardcore: Readonly<CampaignRecords>,
+  totalLevels: number,
+  actions: ModeSelectActions,
+): Screen {
+  const card = (mode: CampaignMode, detail: string, records: Readonly<CampaignRecords>) =>
+    h(
+      'button',
+      { class: `menu-button mode-card ${mode}${mode === 'normal' ? ' primary' : ''}`, onClick: () => actions.onStart(mode) },
+      h('span', { class: 'mode-title' }, MODE_TITLES[mode]),
+      h('span', { class: 'mode-detail' }, detail),
+      h('span', { class: 'mode-best' }, bestLine(records)),
+    );
+  const normalCard = card('normal', 'Wards are restored at the start of every level.', normal);
+  const element = h(
+    'section',
+    { class: 'screen panel mode-select', attrs: { role: 'dialog', 'aria-labelledby': 'mode-title' } },
+    h('h2', { class: 'screen-title', attrs: { id: 'mode-title' } }, 'Campaign'),
+    h(
+      'p',
+      { class: 'screen-subtitle' },
+      `${totalLevels} levels in 4 chapters · a boss ends each chapter · fall and the run starts over`,
+    ),
+    h(
+      'div',
+      { class: 'mode-list' },
+      normalCard,
+      card(
+        'hardcore',
+        `Ward damage carries through the whole run. Each boss heals ${HARDCORE_BOSS_HEAL}%; Wind only halves it.`,
+        hardcore,
+      ),
+    ),
+    h('div', { class: 'button-row' }, h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back')),
+  );
+  return {
+    element,
+    focus: normalCard,
+    onKey: (event) => {
+      if (event.key === 'Escape') actions.onBack();
+    },
+  };
+}
+
+// ───────────────────────── New spell ─────────────────────────
+
+/** Pop-up before a level that introduces a spell. The level waits until "Begin". */
+export function spellIntroScreen(spell: SpellId, level: DifficultyConfig, onBegin: () => void): Screen {
+  const def = SPELLS[spell];
+  const begin = h('button', { class: 'menu-button primary', onClick: onBegin }, `Begin level ${level.level}`);
+  const element = h(
+    'section',
+    {
+      class: 'screen panel spell-intro',
+      attrs: { role: 'dialog', 'aria-labelledby': 'spell-intro-title', ...spellStyle(spell) },
+    },
+    h('p', { class: 'score-label' }, 'New spell'),
+    h('h2', { class: 'screen-title spell-name', attrs: { id: 'spell-intro-title' } }, def.name),
+    h('p', { class: 'spell-effect' }, def.description),
+    h(
+      'ol',
+      { class: 'spell-steps' },
+      h('li', null, 'Words marked with a ', h('span', { class: 'spell-mark' }, 'coloured scroll'), ' carry this spell.'),
+      h('li', null, 'Type that word and press Enter to collect a charge.'),
+      h('li', null, 'To cast, type ', h('kbd', { class: 'spell-word' }, def.id), ' and press Enter.'),
+    ),
+    h('p', { class: 'footnote' }, `All spells share one pool of ${SPELL_POOL_SIZE} charges.`),
+    h('div', { class: 'button-row' }, begin),
+  );
+  return { element, focus: begin };
+}
+
 // ───────────────────────── Between levels ─────────────────────────
 
 function spellSummary(charges: SpellCharges): HTMLElement {
@@ -108,9 +215,74 @@ function spellSummary(charges: SpellCharges): HTMLElement {
     'p',
     { class: 'spell-summary' },
     held.length === 0
-      ? 'No spell tomes carried.'
-      : `Carrying: ${held.map((id) => `${SPELLS[id].book} ×${charges[id]}`).join(' · ')}`,
+      ? 'No spells carried.'
+      : `Carrying ${totalCharges(charges)}/${SPELL_POOL_SIZE}: ${held.map((id) => `${SPELLS[id].book} ×${charges[id]}`).join(' · ')}`,
   );
+}
+
+/** A boss reward still to be chosen. */
+export interface BossReward {
+  choices: SpellId[];
+  /** Take a spell; with a full pool, `discard` is the spell given up for it. */
+  onClaim(spell: SpellId, discard?: SpellId): void;
+}
+
+function rewardPicker(run: Readonly<CampaignRun>, reward: BossReward, rerender: () => void): HTMLElement {
+  const full = poolFull(run.spellCharges);
+  let picked: SpellId | null = null;
+  const box = h('div', { class: 'boss-reward' });
+
+  const draw = () => {
+    box.replaceChildren();
+    if (picked && full) {
+      box.append(
+        h('p', { class: 'reward' }, `Your spell pool is full. Give up one charge for ${SPELLS[picked].name}:`),
+        h(
+          'div',
+          { class: 'reward-choices' },
+          ...SPELL_IDS.filter((id) => run.spellCharges[id] > 0).map((id) =>
+            h(
+              'button',
+              { class: 'menu-button spell-choice', attrs: spellStyle(id), onClick: () => (reward.onClaim(picked!, id), rerender()) },
+              `${SPELLS[id].book} ×${run.spellCharges[id]}`,
+            ),
+          ),
+        ),
+        h('div', { class: 'button-row' }, h('button', { class: 'menu-button', onClick: () => ((picked = null), draw()) }, 'Back')),
+      );
+      return;
+    }
+    box.append(
+      h('p', { class: 'reward' }, 'Boss defeated! Choose one spell charge:'),
+      h(
+        'div',
+        { class: 'reward-choices' },
+        ...reward.choices.map((id) =>
+          h(
+            'button',
+            {
+              class: 'menu-button spell-choice',
+              attrs: { ...spellStyle(id), title: SPELLS[id].description },
+              onClick: () => {
+                if (full) {
+                  picked = id;
+                  draw();
+                } else {
+                  reward.onClaim(id);
+                  rerender();
+                }
+              },
+            },
+            h('span', { class: 'spell-name' }, SPELLS[id].name),
+            h('span', { class: 'mode-detail' }, `type ${id}`),
+          ),
+        ),
+      ),
+    );
+    box.querySelector('button')?.focus({ preventScroll: true });
+  };
+  draw();
+  return box;
 }
 
 export function levelClearScreen(
@@ -119,13 +291,17 @@ export function levelClearScreen(
   stats: GameStats,
   run: Readonly<CampaignRun>,
   onContinue: () => void,
+  reward?: BossReward | null,
+  rerender?: () => void,
 ): Screen {
-  const button = h('button', { class: 'menu-button primary', onClick: onContinue }, `Continue to level ${next.level}`);
+  const button = h('button', { class: 'menu-button primary', onClick: onContinue }, reward ? 'Skip reward and continue' : `Continue to level ${next.level}`);
+  if (reward) button.classList.remove('primary');
+  const boss = isSurvival(cleared);
   const element = h(
     'section',
     { class: 'screen panel results won', attrs: { role: 'dialog', 'aria-labelledby': 'clear-title' } },
-    h('h2', { class: 'screen-title', attrs: { id: 'clear-title' } }, `Level ${cleared.level} Cleared`),
-    h('p', { class: 'screen-subtitle' }, cleared.name),
+    h('h2', { class: 'screen-title', attrs: { id: 'clear-title' } }, boss ? `Boss Survived · Level ${cleared.level}` : `Level ${cleared.level} Cleared`),
+    h('p', { class: 'screen-subtitle' }, `${cleared.name}${run.mode === 'hardcore' ? ' · Hardcore' : ''}`),
     h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Run score'), run.score.toLocaleString()),
     h(
       'dl',
@@ -137,11 +313,19 @@ export function levelClearScreen(
       stat('Best combo', `×${stats.maxCombo}`),
       stat('Time', formatTime(stats.elapsedMs)),
     ),
+    run.mode === 'hardcore' &&
+      h(
+        'p',
+        { class: 'spell-summary' },
+        `Ward instability carried: ${Math.round(run.instability)}%${boss ? ` (healed ${HARDCORE_BOSS_HEAL}% for surviving the boss)` : ''}`,
+      ),
     spellSummary(run.spellCharges),
-    h('p', { class: 'next-up' }, `Next: Level ${next.level} · ${next.name}`),
+    reward && rerender ? rewardPicker(run, reward, rerender) : null,
+    h('p', { class: 'next-up' }, `Next: Level ${next.level} · ${next.name}${isSurvival(next) ? ' · Boss' : ''}`),
     h('div', { class: 'button-row' }, button),
   );
-  return { element, focus: button };
+  const focus = reward ? (element.querySelector<HTMLElement>('.boss-reward button') ?? button) : button;
+  return { element, focus };
 }
 
 // ───────────────────────── End of run ─────────────────────────
@@ -149,6 +333,7 @@ export function levelClearScreen(
 export interface RunOverActions {
   onNewRun(): void;
   onMenu(): void;
+  mode?: CampaignMode;
 }
 
 export function runOverScreen(
@@ -160,9 +345,10 @@ export function runOverScreen(
 ): Screen {
   const won = summary.victory;
   const title = won ? 'The Tower Stands' : 'The Wards Have Fallen';
+  const mode = MODE_TITLES[actions.mode ?? 'normal'];
   const subtitle = won
-    ? `All ${totalLevels} levels cleared`
-    : `Fell on level ${summary.reachedLevel} · ${lastLevel.name} · ${summary.levelsCleared} cleared`;
+    ? `${mode} · All ${totalLevels} levels cleared`
+    : `${mode} · Fell on level ${summary.reachedLevel} · ${lastLevel.name} · ${summary.levelsCleared} cleared`;
 
   const bestLine =
     outcome.previousBest === null

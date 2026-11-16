@@ -1,4 +1,4 @@
-import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
+import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { InstabilityManager } from '../gameplay/InstabilityManager';
 import { accuracyOf, wordPoints, wpmOf, type GameStats } from '../gameplay/ScoringSystem';
 import {
@@ -14,7 +14,7 @@ import { commonPrefixLength, guessIntendedWord, mostUrgent, wordsMatching } from
 import { lengthClassOf, type WordState } from '../gameplay/Word';
 import { WordGenerator } from '../gameplay/WordGenerator';
 import type { SpellContext } from '../spells/BaseSpell';
-import { SPELLS } from '../spells/SpellRegistry';
+import { dropWeights, SPELLS } from '../spells/SpellRegistry';
 import { EventBus } from './EventBus';
 import type { GameEvents, GameResult } from './GameEvents';
 import { FIELD, SIMULATION_STEP_MS, type FieldConfig } from './GameConfig';
@@ -40,7 +40,22 @@ export interface EngineOptions {
   field?: FieldConfig;
   /** Spell charges carried in (e.g. from the previous campaign level). */
   initialSpells?: Partial<SpellCharges>;
+  /** Hardcore campaign: instability carries over and Arcane Purge only halves it. */
+  hardcore?: boolean;
+  /** Instability to start with (Hardcore carries it from level to level). */
+  initialInstability?: number;
 }
+
+/** The pace a level is running at right now (boss levels speed up over time). */
+export interface Pace {
+  fallSpeed: number;
+  spawnInterval: number;
+  maxActiveWords: number;
+}
+
+/** Transmutation turns long words into words of these lengths. */
+const SHORT_WORD_MIN = 3;
+const SHORT_WORD_MAX = 4;
 
 const LETTER = /^[a-z]$/i;
 /** Longest text the typing console accepts. */
@@ -64,7 +79,10 @@ export class GameEngine {
   private readonly field: FieldConfig;
   private readonly rng: SeededRandom;
   private readonly generator: WordGenerator;
-  private readonly instability = new InstabilityManager();
+  private readonly instability: InstabilityManager;
+  private readonly hardcore: boolean;
+  /** 3–4 letter words Transmutation can turn long words into. */
+  private readonly shortWords: readonly string[];
   private readonly log: Command[] = [];
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
@@ -75,7 +93,10 @@ export class GameEngine {
     this.field = options.field ?? FIELD;
     this.rng = new SeededRandom(options.seed);
     this.generator = new WordGenerator(options.words, options.config, this.rng);
-    this.s = createInitialState(sanitizeCharges(options.initialSpells));
+    this.hardcore = options.hardcore === true;
+    this.instability = new InstabilityManager(options.initialInstability ?? 0);
+    this.shortWords = options.words.filter((w) => w.length >= SHORT_WORD_MIN && w.length <= SHORT_WORD_MAX);
+    this.s = createInitialState(sanitizeCharges(options.initialSpells), this.instability.value);
     this.spellContext = this.createSpellContext();
   }
 
@@ -100,6 +121,33 @@ export class GameEngine {
 
   get status(): GameStatus {
     return this.s.status;
+  }
+
+  /** Simulated time since the level started. */
+  get elapsedMs(): number {
+    return this.s.tick * SIMULATION_STEP_MS;
+  }
+
+  /** Boss levels: time left to survive (null on quota levels). */
+  get survivalRemainingMs(): number | null {
+    return isSurvival(this.config) ? Math.max(0, this.config.survivalMs! - this.elapsedMs) : null;
+  }
+
+  /**
+   * Current pace. Normal levels use their fixed values; a boss level moves
+   * smoothly from its base values to its `ramp` values over the timer.
+   */
+  get pace(): Pace {
+    const c = this.config;
+    const base = { fallSpeed: c.initialFallSpeed, spawnInterval: c.spawnInterval, maxActiveWords: c.maxActiveWords };
+    if (!isSurvival(c) || !c.ramp) return base;
+    const t = Math.min(1, this.elapsedMs / c.survivalMs!);
+    const lerp = (a: number, b: number) => a + (b - a) * t;
+    return {
+      fallSpeed: lerp(base.fallSpeed, c.ramp.initialFallSpeed),
+      spawnInterval: lerp(base.spawnInterval, c.ramp.spawnInterval),
+      maxActiveWords: Math.round(lerp(base.maxActiveWords, c.ramp.maxActiveWords)),
+    };
   }
 
   get commands(): readonly Command[] {
@@ -135,19 +183,26 @@ export class GameEngine {
     if (s.status !== 'playing') return;
     s.tick++;
 
-    // Frostbinding: nothing moves and nothing spawns.
+    // Boss level: surviving the whole timer clears it.
+    const remaining = this.survivalRemainingMs;
+    if (remaining !== null && remaining <= 0) return this.end('won');
+
+    // Frostbinding: nothing moves and nothing spawns (slow stacks wait too).
     if (s.freezeTicks > 0) {
       for (const word of s.words) word.prevY = word.y;
       if (--s.freezeTicks === 0) this.events.emit('spellEnded', { spell: 'ice' });
       return;
     }
 
+    // Temporal Distortion: each stack multiplies the slow-down and has its own timer.
     let factor = 1;
-    if (s.slowTicks > 0) {
-      factor = s.slowFactor;
-      if (--s.slowTicks === 0) {
-        s.slowFactor = 1;
-        this.events.emit('spellEnded', { spell: 'slow' });
+    if (s.slowStacks.length > 0) {
+      factor = Math.pow(s.slowFactor, s.slowStacks.length);
+      const before = s.slowStacks.length;
+      s.slowStacks = s.slowStacks.map((t) => t - 1).filter((t) => t > 0);
+      if (s.slowStacks.length !== before) {
+        this.events.emit('slowChanged', { stacks: s.slowStacks.length, factor: this.slowMultiplier });
+        if (s.slowStacks.length === 0) this.events.emit('spellEnded', { spell: 'slow' });
       }
     }
 
@@ -165,10 +220,16 @@ export class GameEngine {
     }
 
     s.spawnTimerMs = Math.max(0, s.spawnTimerMs - SIMULATION_STEP_MS);
-    if (s.spawnTimerMs === 0 && s.words.length < this.config.maxActiveWords) {
-      this.spawn();
-      s.spawnTimerMs = this.config.spawnInterval;
+    const pace = this.pace;
+    if (s.spawnTimerMs === 0 && s.words.length < pace.maxActiveWords) {
+      this.spawn(pace.fallSpeed);
+      s.spawnTimerMs = pace.spawnInterval;
     }
+  }
+
+  /** Current fall-speed multiplier from Temporal Distortion (1 = normal). */
+  get slowMultiplier(): number {
+    return Math.pow(this.s.slowFactor, this.s.slowStacks.length);
   }
 
   // ───────────────────────── player commands ─────────────────────────
@@ -395,7 +456,7 @@ export class GameEngine {
 
   // ───────────────────────── rules ─────────────────────────
 
-  private spawn(): void {
+  private spawn(fallSpeed: number): void {
     const s = this.s;
     const text = this.generator.next();
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
@@ -404,8 +465,11 @@ export class GameEngine {
     const x = Math.round(minX < maxX ? this.rng.range(minX, maxX) : this.field.width / 2);
 
     const available = this.config.availableSpells;
+    // Scrolls: whether one drops, then which spell (rarer spells have lower weights).
     const spell =
-      available.length > 0 && this.rng.chance(this.config.spellDropChance) ? this.rng.pick(available) : null;
+      available.length > 0 && this.rng.chance(this.config.spellDropChance)
+        ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
+        : null;
 
     const word: WordState = {
       id: s.nextWordId++,
@@ -414,7 +478,7 @@ export class GameEngine {
       x,
       y: 0,
       prevY: 0,
-      speed: this.config.initialFallSpeed,
+      speed: fallSpeed,
       typed: 0,
       isTarget: false,
       lengthClass: lengthClassOf(text.length),
@@ -457,6 +521,16 @@ export class GameEngine {
   private miss(word: WordState): void {
     const s = this.s;
     this.removeWord(word);
+
+    // Arcane Shield: the word does no harm.
+    if (s.barrier > 0) {
+      s.barrier--;
+      s.blocked++;
+      this.events.emit('wordBlocked', { word, barrierLeft: s.barrier });
+      this.events.emit('barrierChanged', { remaining: s.barrier });
+      return;
+    }
+
     s.missed++;
     s.combo = 0;
     s.instability = this.instability.add(this.config.instabilityPerMiss);
@@ -508,45 +582,134 @@ export class GameEngine {
     return {
       burnAllWords: () => this.burnAllWords(),
       freeze: (ticks) => {
-        this.s.freezeTicks = Math.max(this.s.freezeTicks, ticks);
+        this.s.freezeTicks += ticks;
+        this.events.emit('freezeChanged', { ticks: this.s.freezeTicks });
       },
       slow: (ticks, factor) => {
-        this.s.slowTicks = Math.max(this.s.slowTicks, ticks);
         this.s.slowFactor = factor;
+        this.s.slowStacks.push(ticks);
+        this.events.emit('slowChanged', { stacks: this.s.slowStacks.length, factor: this.slowMultiplier });
       },
-      resetInstability: () => {
+      addBarrier: (count) => {
+        this.s.barrier += count;
+        this.events.emit('barrierChanged', { remaining: this.s.barrier });
+      },
+      chainLightning: (arcs) => this.chainLightning(arcs),
+      transmute: (minLength) => this.transmute(minLength),
+      harvestAll: () => this.harvestAll(),
+      purgeInstability: (hardcoreFraction) => {
         const s = this.s;
-        s.instability = this.instability.add(-this.instability.value);
+        const value = this.instability.value;
+        s.instability = this.instability.add(this.hardcore ? -value * hardcoreFraction : -value);
         this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
       },
       resetWordSpeeds: () => {
-        for (const word of this.s.words) word.speed = this.config.initialFallSpeed;
+        const speed = this.pace.fallSpeed;
+        for (const word of this.s.words) word.speed = Math.min(word.speed, speed);
       },
       ticks: (ms) => Math.max(1, Math.round(ms / SIMULATION_STEP_MS)),
     };
   }
 
-  /**
-   * Incineration: every word on the field is destroyed. Each scores its base
-   * points (no combo bonus, combo unchanged), counts toward the quota, and
-   * any tome it carried is collected.
-   */
+  /** Incineration: a bailout. Every word is destroyed, for no points and no progress; scrolls are lost. */
   private burnAllWords(): void {
-    const s = this.s;
-    const burned = [...s.words];
+    const burned = [...this.s.words];
     if (burned.length === 0) return;
+    for (const word of burned) this.removeWord(word);
+    this.events.emit('wordsBurned', { words: burned });
+  }
+
+  /**
+   * Destroys words by a spell (not typing): each counts toward the quota and
+   * scores `pointsFor` it; the combo is kept. Scrolls they carried are collected.
+   */
+  private claimWords(words: WordState[], pointsFor: (word: WordState) => number): number {
+    const s = this.s;
     let points = 0;
-    for (const word of burned) {
+    for (const word of words) {
       this.removeWord(word);
       s.completed++;
-      points += wordPoints(word.text.length, 1);
+      points += pointsFor(word);
     }
     s.score += points;
-    this.events.emit('wordsBurned', { words: burned, points });
-    this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
+    return points;
+  }
+
+  private afterClaim(words: WordState[]): void {
+    this.events.emit('scoreChanged', { score: this.s.score, combo: this.s.combo });
     this.emitProgress();
-    for (const word of burned) if (word.spell) this.collect(word.spell);
+    for (const word of words) if (word.spell) this.collect(word.spell);
     this.checkQuota();
+  }
+
+  /** Chain Lightning: the most urgent word, then the `arcs` words nearest it. Base points each. */
+  private chainLightning(arcs: number): void {
+    const first = mostUrgent(this.s.words);
+    if (!first) return;
+    const dist = (w: WordState) => Math.hypot(w.x - first.x, w.y - first.y);
+    const rest = this.s.words
+      .filter((w) => w !== first)
+      .sort((a, b) => dist(a) - dist(b) || a.id - b.id)
+      .slice(0, arcs);
+    const struck = [first, ...rest];
+    const points = this.claimWords(struck, (w) => wordPoints(w.text.length, 1));
+    this.events.emit('wordsShocked', { words: struck, points });
+    this.afterClaim(struck);
+  }
+
+  /** Harvest: every word counts toward the quota, at half its base points. */
+  private harvestAll(): void {
+    const words = [...this.s.words];
+    if (words.length === 0) return;
+    const points = this.claimWords(words, (w) => Math.floor(wordPoints(w.text.length, 1) / 2));
+    this.events.emit('wordsHarvested', { words, points });
+    this.afterClaim(words);
+  }
+
+  /**
+   * Transmutation: words of `minLength`+ letters become 3–4 letter words, in
+   * place and at the same speed. The new words avoid any text already on the
+   * field and prefer unused first letters. Uses its own random stream (seeded
+   * from the game seed and tick) so the spawn sequence is unaffected.
+   */
+  private transmute(minLength: number): void {
+    const s = this.s;
+    const long = s.words.filter((w) => w.text.length >= minLength);
+    if (long.length === 0 || this.shortWords.length === 0) return;
+    const rng = new SeededRandom((this.seed ^ Math.imul(s.tick + 1, 0x9e3779b1)) >>> 0);
+    const onField = new Set(s.words.map((w) => w.match));
+    const firstLetters = new Set(s.words.filter((w) => !long.includes(w)).map((w) => w.match[0]));
+    const aimed = long.some((w) => w.id === s.targetId || w.id === s.pinnedId);
+    const changed: WordState[] = [];
+
+    for (const word of long) {
+      let pick: string | null = null;
+      let fallback: string | null = null;
+      for (let attempt = 0; attempt < 24 && !pick; attempt++) {
+        const candidate = rng.pick(this.shortWords);
+        const lower = candidate.toLowerCase();
+        if (onField.has(lower)) continue;
+        if (!firstLetters.has(lower[0])) pick = candidate;
+        else fallback ??= candidate;
+      }
+      const text = pick ?? fallback;
+      if (!text) continue;
+      onField.add(text.toLowerCase());
+      firstLetters.add(text.toLowerCase()[0]);
+      word.text = text;
+      word.match = text.toLowerCase();
+      word.lengthClass = lengthClassOf(text.length);
+      word.typed = 0;
+      changed.push(word);
+    }
+    if (changed.length === 0) return;
+    // The console text was aimed at a word that just changed: start that entry again.
+    if (aimed) this.resetInput(true);
+    else if (s.input !== '') {
+      this.retarget();
+      this.emitInput();
+    }
+    this.events.emit('wordsTransmuted', { words: changed });
   }
 
   // ───────────────────────── stats ─────────────────────────

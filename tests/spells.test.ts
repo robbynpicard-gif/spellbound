@@ -1,11 +1,21 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GameEngine, type EngineOptions } from '../src/core/GameEngine';
 import type { DifficultyConfig } from '../src/difficulty/DifficultyConfig';
-import { addCharge, consumeCharge, emptyCharges, MAX_SPELL_CHARGES, sanitizeCharges } from '../src/gameplay/SpellManager';
+import {
+  addCharge,
+  consumeCharge,
+  emptyCharges,
+  poolFull,
+  sanitizeCharges,
+  SPELL_IDS,
+  SPELL_POOL_SIZE,
+  totalCharges,
+} from '../src/gameplay/SpellManager';
+import { CORE_WORDS, clashesWithCastWord, REFERENCE_WORDS, WORDS } from '../src/data/wordList';
 import type { WordState } from '../src/gameplay/Word';
-import { SPELLS } from '../src/spells/SpellRegistry';
+import { dropWeights, INTRO_DROP_BOOST, SPELLS } from '../src/spells/SpellRegistry';
 
-const TEST_WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist'];
+const TEST_WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist', 'labyrinth', 'phantasmal', 'yew', 'orb', 'elk'];
 
 const CONFIG: DifficultyConfig = {
   level: 0,
@@ -53,31 +63,69 @@ function cast(engine: GameEngine, spell: string): void {
   engine.submit();
 }
 
-describe('spell inventory', () => {
-  it('caps charges at three and never goes below zero', () => {
+describe('spell pool', () => {
+  it('shares one pool of 8 charges across all spells, with no per-spell cap', () => {
     const c = emptyCharges();
-    for (let i = 0; i < MAX_SPELL_CHARGES; i++) expect(addCharge(c, 'fire')).toBe(true);
-    expect(addCharge(c, 'fire')).toBe(false);
-    expect(c.fire).toBe(3);
-    expect(consumeCharge(c, 'ice')).toBe(false);
-    expect(c.ice).toBe(0);
+    for (let i = 0; i < 6; i++) expect(addCharge(c, 'fire')).toBe(true);
+    expect(addCharge(c, 'ice')).toBe(true);
+    expect(addCharge(c, 'harvest')).toBe(true);
+    expect(totalCharges(c)).toBe(SPELL_POOL_SIZE);
+    expect(poolFull(c)).toBe(true);
+    expect(addCharge(c, 'slow')).toBe(false);
+    expect(c.slow).toBe(0);
+    expect(consumeCharge(c, 'wind')).toBe(false);
+    expect(consumeCharge(c, 'fire')).toBe(true);
+    expect(addCharge(c, 'slow')).toBe(true);
   });
 
-  it('sanitises carried-in charges', () => {
-    expect(sanitizeCharges({ fire: 9, ice: -2, slow: 1.7, wind: Number.NaN, bogus: 4 } as never)).toEqual({
-      fire: 3,
-      ice: 0,
+  it('sanitises carried-in charges and trims them to the pool (strongest first)', () => {
+    expect(sanitizeCharges({ fire: 2, ice: -2, slow: 1.7, wind: Number.NaN, bogus: 4 } as never)).toEqual({
+      ...emptyCharges(),
+      fire: 2,
       slow: 1,
-      wind: 0,
     });
+    const trimmed = sanitizeCharges({ slow: 5, harvest: 5 });
+    expect(trimmed).toEqual({ ...emptyCharges(), slow: 5, harvest: 3 });
   });
 
-  it('registry has all four original spells', () => {
-    expect(Object.keys(SPELLS).sort()).toEqual(['fire', 'ice', 'slow', 'wind']);
+  it('registry has all eight spells, in power order, each with a drop weight', () => {
+    expect(SPELL_IDS).toEqual(['slow', 'ice', 'barrier', 'shock', 'alter', 'fire', 'wind', 'harvest']);
+    expect(Object.keys(SPELLS).sort()).toEqual([...SPELL_IDS].sort());
+    for (const id of SPELL_IDS) expect(SPELLS[id].dropWeight).toBeGreaterThan(0);
+    // Stronger spells drop less often.
+    for (let i = 1; i < SPELL_IDS.length; i++) {
+      expect(SPELLS[SPELL_IDS[i]!].dropWeight).toBeLessThanOrEqual(SPELLS[SPELL_IDS[i - 1]!].dropWeight);
+    }
+  });
+
+  it('boosts the drop weight of the spell a level introduces', () => {
+    const w = dropWeights(['slow', 'ice'], 'ice');
+    expect(w.slow).toBe(SPELLS.slow.dropWeight);
+    expect(w.ice).toBe(SPELLS.ice.dropWeight * INTRO_DROP_BOOST);
+    expect(dropWeights(['slow'], null)).toEqual({ slow: SPELLS.slow.dropWeight });
   });
 });
 
-describe('spell tomes', () => {
+describe('cast words', () => {
+  it('no falling word equals a cast word, starts with one or is the start of one', () => {
+    const clashes = [...CORE_WORDS, ...REFERENCE_WORDS].filter(clashesWithCastWord);
+    expect(clashes).toEqual([]);
+    expect(WORDS.some(clashesWithCastWord)).toBe(false);
+  });
+
+  it('no cast word starts with another', () => {
+    for (const a of SPELL_IDS) for (const b of SPELL_IDS) if (a !== b) expect(a.startsWith(b), `${a}/${b}`).toBe(false);
+  });
+
+  it('detects clashes in both directions', () => {
+    expect(clashesWithCastWord('Fireball')).toBe(true);
+    expect(clashesWithCastWord('fir')).toBe(true);
+    expect(clashesWithCastWord('shocking')).toBe(true);
+    expect(clashesWithCastWord('ember')).toBe(false);
+  });
+});
+
+describe('spell scrolls', () => {
   it('spawn on levels that allow them and grant a charge when completed', () => {
     const engine = makeEngine({ availableSpells: ['fire'], spellDropChance: 1 });
     const collected = vi.fn();
@@ -96,15 +144,32 @@ describe('spell tomes', () => {
     expect(engine.state.words.every((w) => w.spell === null)).toBe(true);
   });
 
-  it('are wasted (but still score) when that spell is full', () => {
-    const engine = makeEngine({ availableSpells: ['ice'], spellDropChance: 1 }, { initialSpells: { ice: 3 } });
+  it('are wasted (but still score) when the pool is full', () => {
+    const engine = makeEngine({ availableSpells: ['ice'], spellDropChance: 1 }, { initialSpells: { slow: 8 } });
     const collected = vi.fn();
     engine.events.on('spellCollected', collected);
     stepUntilWords(engine, 1);
     typeWord(engine, engine.state.words[0]!.text);
-    expect(engine.state.spells.ice).toBe(3);
+    expect(engine.state.spells.ice).toBe(0);
     expect(engine.state.score).toBeGreaterThan(0);
     expect(collected).toHaveBeenCalledWith(expect.objectContaining({ stored: false }));
+  });
+
+  it('drop rarer spells less often', () => {
+    const engine = makeEngine({
+      spawnInterval: 1,
+      maxActiveWords: 1000,
+      availableSpells: ['slow', 'harvest'],
+      spellDropChance: 1,
+    });
+    const seen = { slow: 0, harvest: 0 };
+    engine.events.on('wordSpawned', ({ word }) => {
+      if (word.spell === 'slow' || word.spell === 'harvest') seen[word.spell]++;
+    });
+    for (let i = 0; i < 800; i++) engine.step();
+    expect(seen.slow + seen.harvest).toBeGreaterThan(300);
+    // Weights 5 : 1, so slow should be far more common.
+    expect(seen.slow).toBeGreaterThan(seen.harvest * 3);
   });
 });
 
@@ -126,36 +191,35 @@ describe('casting', () => {
     expect(engine.state.spellsCast.slow).toBe(1);
   });
 
-  it('Fire burns every word: base points, counts toward quota, collects tomes, keeps combo', () => {
+  it('Fire is a bailout: clears the board for no points or progress, scrolls lost, combo kept', () => {
     const engine = makeEngine(
       { requiredWords: 100, spawnInterval: 10, availableSpells: ['wind'], spellDropChance: 1 },
       { initialSpells: { fire: 1 } },
     );
     stepUntilWords(engine, 3);
-    const first = engine.state.words[0]!;
-    typeWord(engine, first.text); // combo 1
+    typeWord(engine, engine.state.words[0]!.text); // combo 1, +1 wind
     stepUntilWords(engine, 3);
     const words = [...engine.state.words];
-    const scoreBefore = engine.state.score;
+    const before = { score: engine.state.score, completed: engine.state.completed, wind: engine.state.spells.wind };
     const burned = vi.fn();
     engine.events.on('wordsBurned', burned);
 
     cast(engine, 'fire');
 
-    const expected = words.reduce((sum, w) => sum + w.text.length * 10, 0);
     expect(engine.state.words).toHaveLength(0);
-    expect(engine.state.score - scoreBefore).toBe(expected);
-    expect(engine.state.completed).toBe(1 + words.length);
+    expect(engine.state.score).toBe(before.score);
+    expect(engine.state.completed).toBe(before.completed);
+    expect(engine.state.spells.wind).toBe(before.wind);
     expect(engine.state.combo).toBe(1);
-    expect(engine.state.spells.wind).toBe(Math.min(3, 1 + words.length));
-    expect(burned).toHaveBeenCalledWith({ words, points: expected });
+    expect(engine.state.missed).toBe(0);
+    expect(burned).toHaveBeenCalledWith({ words });
   });
 
-  it('Fire can finish the level', () => {
+  it('Fire cannot finish a level', () => {
     const engine = makeEngine({ requiredWords: 2, spawnInterval: 10 }, { initialSpells: { fire: 1 } });
     stepUntilWords(engine, 2);
     cast(engine, 'fire');
-    expect(engine.status).toBe('won');
+    expect(engine.status).toBe('playing');
   });
 
   it('Ice stops movement and spawning for 5 seconds, then everything resumes', () => {
@@ -179,6 +243,22 @@ describe('casting', () => {
     expect(word.y).toBeGreaterThan(y);
   });
 
+  it('Ice stacks: each cast adds 5 more seconds', () => {
+    const engine = makeEngine({ spawnInterval: 100 }, { initialSpells: { ice: 2 } });
+    stepUntilWords(engine, 1);
+    const word = engine.state.words[0]!;
+    cast(engine, 'ice');
+    for (let i = 0; i < 120; i++) engine.step(); // 2 s in
+    cast(engine, 'ice');
+    expect(engine.state.freezeTicks).toBe(480); // 3 s left + 5 s
+    const y = word.y;
+    for (let i = 0; i < 479; i++) engine.step();
+    expect(word.y).toBe(y);
+    engine.step();
+    engine.step();
+    expect(word.y).toBeGreaterThan(y);
+  });
+
   it('typing still works while frozen', () => {
     const engine = makeEngine({}, { initialSpells: { ice: 1 } });
     stepUntilWords(engine, 1);
@@ -187,18 +267,128 @@ describe('casting', () => {
     expect(engine.state.completed).toBe(1);
   });
 
-  it('Slow halves fall speed for 8 seconds', () => {
+  it('Slow: words fall at ×0.6 for 8 seconds', () => {
     const engine = makeEngine({ spawnInterval: 100_000 }, { initialSpells: { slow: 1 } });
     stepUntilWords(engine, 1);
     const word = engine.state.words[0]!;
     cast(engine, 'slow');
     let y = word.y;
     engine.step();
-    expect(word.y - y).toBeCloseTo(0.5); // 60 px/s × ½ = 0.5 px per tick
+    expect(word.y - y).toBeCloseTo(0.6); // 60 px/s × 0.6 = 0.6 px per tick
     for (let i = 0; i < 479; i++) engine.step();
     y = word.y;
     engine.step();
     expect(word.y - y).toBeCloseTo(1);
+  });
+
+  it('Slow stacks multiply, each with its own timer (the owner’s example)', () => {
+    // Cast at 0 s and again at 4 s: 0–4 s ×0.6, 4–8 s ×0.36, 8–12 s ×0.6, then normal.
+    const engine = makeEngine({ spawnInterval: 100_000 }, { initialSpells: { slow: 2 } });
+    stepUntilWords(engine, 1);
+    const word = engine.state.words[0]!;
+    const perTick = () => {
+      const y = word.y;
+      engine.step();
+      return word.y - y;
+    };
+    cast(engine, 'slow');
+    expect(perTick()).toBeCloseTo(0.6);
+    for (let i = 0; i < 239; i++) engine.step(); // now 4 s in
+    cast(engine, 'slow');
+    expect(perTick()).toBeCloseTo(0.36);
+    for (let i = 0; i < 238; i++) engine.step();
+    expect(perTick()).toBeCloseTo(0.36); // last tick of the overlap (8 s)
+    expect(perTick()).toBeCloseTo(0.6); // first stack has worn off
+    for (let i = 0; i < 238; i++) engine.step();
+    expect(perTick()).toBeCloseTo(0.6); // 12 s: second stack's last tick
+    expect(perTick()).toBeCloseTo(1);
+  });
+
+  it('Slow timers pause while frozen', () => {
+    const engine = makeEngine({ spawnInterval: 100_000 }, { initialSpells: { slow: 1, ice: 1 } });
+    stepUntilWords(engine, 1);
+    cast(engine, 'slow');
+    for (let i = 0; i < 60; i++) engine.step();
+    cast(engine, 'ice');
+    for (let i = 0; i < 300; i++) engine.step();
+    expect(engine.state.slowStacks).toEqual([420]); // 8 s − 1 s, untouched by 5 s of frost
+  });
+
+  it('Arcane Shield blocks the next 2 misses, and stacks', () => {
+    const engine = makeEngine({ initialFallSpeed: 600, spawnInterval: 300 }, { initialSpells: { barrier: 2 } });
+    const blocked = vi.fn();
+    engine.events.on('wordBlocked', blocked);
+    cast(engine, 'barrier');
+    cast(engine, 'barrier');
+    expect(engine.state.barrier).toBe(4);
+    for (let i = 0; i < 5000 && engine.state.blocked < 4; i++) engine.step();
+    expect(engine.state.blocked).toBe(4);
+    expect(engine.state.instability).toBe(0);
+    expect(engine.state.missed).toBe(0);
+    expect(blocked).toHaveBeenCalledTimes(4);
+    for (let i = 0; i < 5000 && engine.state.missed < 1; i++) engine.step();
+    expect(engine.state.instability).toBe(25);
+  });
+
+  it('Chain Lightning destroys the lowest word and the 3 nearest it, scoring them', () => {
+    const engine = makeEngine(
+      { requiredWords: 100, spawnInterval: 10, maxActiveWords: 6 },
+      { initialSpells: { shock: 1 } },
+    );
+    stepUntilWords(engine, 6);
+    const words = [...engine.state.words];
+    const first = words.reduce((a, b) => (b.y > a.y ? b : a));
+    const dist = (w: WordState) => Math.hypot(w.x - first.x, w.y - first.y);
+    const nearest = words.filter((w) => w !== first).sort((a, b) => dist(a) - dist(b)).slice(0, 3);
+    const shocked = vi.fn();
+    engine.events.on('wordsShocked', shocked);
+
+    cast(engine, 'shock');
+
+    const struck = [first, ...nearest];
+    const points = struck.reduce((sum, w) => sum + w.text.length * 10, 0);
+    expect(engine.state.words).toHaveLength(2);
+    expect(engine.state.completed).toBe(4);
+    expect(engine.state.score).toBe(points);
+    expect(shocked).toHaveBeenCalledWith({ words: struck, points });
+  });
+
+  it('Transmutation turns 6+ letter words into 3–4 letter words, in place', () => {
+    const engine = makeEngine(
+      { spawnInterval: 10, maxActiveWords: 8, minWordLength: 3, maxWordLength: 10 },
+      { initialSpells: { alter: 1 } },
+    );
+    stepUntilWords(engine, 8);
+    const long = engine.state.words.filter((w) => w.text.length >= 6);
+    expect(long.length).toBeGreaterThan(0);
+    const before = long.map((w) => ({ id: w.id, x: w.x, y: w.y, speed: w.speed }));
+    cast(engine, 'alter');
+    for (const b of before) {
+      const w = engine.state.words.find((x) => x.id === b.id)!;
+      expect(w.text.length).toBeGreaterThanOrEqual(3);
+      expect(w.text.length).toBeLessThanOrEqual(4);
+      expect(w.match).toBe(w.text.toLowerCase());
+      expect({ x: w.x, y: w.y, speed: w.speed }).toEqual({ x: b.x, y: b.y, speed: b.speed });
+    }
+    const texts = engine.state.words.map((w) => w.match);
+    expect(new Set(texts).size).toBe(texts.length);
+    // The new word can be typed and destroyed.
+    typeWord(engine, engine.state.words.find((w) => w.id === before[0]!.id)!.text);
+    expect(engine.state.completed).toBe(1);
+  });
+
+  it('Transmutation does not change the word sequence that spawns next', () => {
+    const opts = makeOptions({ spawnInterval: 10, maxActiveWords: 30, minWordLength: 3, maxWordLength: 10 });
+    const a = new GameEngine({ ...opts, initialSpells: { alter: 1 } });
+    const b = new GameEngine(opts);
+    const seqA: string[] = [];
+    const seqB: string[] = [];
+    a.events.on('wordSpawned', ({ word }) => seqA.push(word.text));
+    b.events.on('wordSpawned', ({ word }) => seqB.push(word.text));
+    for (let i = 0; i < 200; i++) a.step(), b.step();
+    cast(a, 'alter');
+    for (let i = 0; i < 400; i++) a.step(), b.step();
+    expect(seqA).toEqual(seqB);
   });
 
   it('Wind resets instability and removes mistake speed-ups', () => {
@@ -220,12 +410,44 @@ describe('casting', () => {
     expect(changed).toHaveBeenCalledWith({ value: 0, stage: 0 });
   });
 
+  it('Wind only halves instability in Hardcore', () => {
+    const engine = makeEngine({}, { initialSpells: { wind: 1 }, hardcore: true, initialInstability: 60 });
+    expect(engine.state.instability).toBe(60);
+    cast(engine, 'wind');
+    expect(engine.state.instability).toBe(30);
+  });
+
+  it('Harvest claims every word toward the quota at half points', () => {
+    const engine = makeEngine(
+      { requiredWords: 100, spawnInterval: 10, maxActiveWords: 5, availableSpells: ['ice'], spellDropChance: 1 },
+      { initialSpells: { harvest: 1 } },
+    );
+    stepUntilWords(engine, 5);
+    const words = [...engine.state.words];
+    const points = words.reduce((sum, w) => sum + Math.floor((w.text.length * 10) / 2), 0);
+    cast(engine, 'harvest');
+    expect(engine.state.words).toHaveLength(0);
+    expect(engine.state.completed).toBe(5);
+    expect(engine.state.score).toBe(points);
+    expect(engine.state.spells.ice).toBe(5); // scrolls are claimed too
+  });
+
+  it('Harvest can finish the level', () => {
+    const engine = makeEngine({ requiredWords: 3, spawnInterval: 10 }, { initialSpells: { harvest: 1 } });
+    stepUntilWords(engine, 3);
+    cast(engine, 'harvest');
+    expect(engine.status).toBe('won');
+  });
+
   it('casts are recorded and replay identically', () => {
     const options = makeOptions(
-      { spawnInterval: 500, availableSpells: ['fire', 'ice', 'slow', 'wind'], spellDropChance: 0.3 },
-      { initialSpells: { fire: 1, ice: 1, slow: 1, wind: 1 } },
+      { spawnInterval: 500, availableSpells: [...SPELL_IDS], spellDropChance: 0.3, maxWordLength: 10 },
+      { initialSpells: { slow: 1, ice: 1, barrier: 1, shock: 1, alter: 1, fire: 1, wind: 1, harvest: 1 } },
     );
     const live = new GameEngine(options);
+    const plan: Record<number, string> = {
+      300: 'ice', 600: 'slow', 900: 'barrier', 1200: 'shock', 1500: 'alter', 1900: 'fire', 2500: 'wind', 3000: 'harvest',
+    };
     for (let t = 0; t < 4000 && live.status === 'playing'; t++) {
       live.step();
       if (t % 25 === 0 && live.state.words.length > 0) {
@@ -234,13 +456,40 @@ describe('casting', () => {
         else if (live.inputValid) live.typeChar(target.match[target.typed]!);
         else live.clearInput();
       }
-      if (t === 400) cast(live, 'ice');
-      if (t === 900) cast(live, 'slow');
-      if (t === 1500) cast(live, 'fire');
-      if (t === 2500) cast(live, 'wind');
+      if (plan[t]) cast(live, plan[t]!);
     }
-    expect(live.state.spellsCast).toEqual({ fire: 1, ice: 1, slow: 1, wind: 1 });
+    for (const id of SPELL_IDS) expect(live.state.spellsCast[id], id).toBe(1);
     const replayed = GameEngine.replay(options, live.commands, live.state.tick);
     expect(replayed.state).toEqual(live.state);
+  });
+});
+
+describe('boss (survival) levels', () => {
+  const boss = { requiredWords: null, survivalMs: 10_000, ramp: { initialFallSpeed: 120, spawnInterval: 500, maxActiveWords: 9 } };
+
+  it('are won by surviving the timer', () => {
+    const engine = makeEngine({ ...boss, initialFallSpeed: 5, instabilityPerMiss: 1 });
+    for (let i = 0; i < 599; i++) engine.step();
+    expect(engine.status).toBe('playing');
+    expect(engine.survivalRemainingMs).toBeCloseTo(16.7, 0);
+    engine.step();
+    engine.step();
+    expect(engine.status).toBe('won');
+  });
+
+  it('speed up smoothly over the timer', () => {
+    const engine = makeEngine(boss);
+    expect(engine.pace).toEqual({ fallSpeed: 60, spawnInterval: 1000, maxActiveWords: 5 });
+    for (let i = 0; i < 300; i++) engine.step(); // halfway
+    expect(engine.pace.fallSpeed).toBeCloseTo(90);
+    expect(engine.pace.spawnInterval).toBeCloseTo(750);
+    expect(engine.pace.maxActiveWords).toBe(7);
+  });
+
+  it('normal levels keep a fixed pace and have no timer', () => {
+    const engine = makeEngine({ requiredWords: 10 });
+    for (let i = 0; i < 300; i++) engine.step();
+    expect(engine.pace).toEqual({ fallSpeed: 60, spawnInterval: 1000, maxActiveWords: 5 });
+    expect(engine.survivalRemainingMs).toBeNull();
   });
 });

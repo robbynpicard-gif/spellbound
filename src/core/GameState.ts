@@ -36,18 +36,26 @@ export interface GameState {
   spells: SpellCharges;
   /** Times each spell was cast this game (for statistics). */
   spellsCast: SpellCharges;
-  /** Ticks left of Frostbinding (no movement, no spawning). */
+  /** Ticks left of Frostbinding (no movement, no spawning). Each cast adds more. */
   freezeTicks: number;
-  /** Ticks left of Temporal Distortion. */
-  slowTicks: number;
-  /** Fall-speed multiplier while slowed. */
+  /**
+   * Active Temporal Distortion stacks: ticks left on each. Every stack has its
+   * own timer, and fall speed is multiplied by the slow factor once per
+   * stack. Stacks don't tick down while frozen.
+   */
+  slowStacks: number[];
+  /** Fall-speed multiplier of one slow stack. */
   slowFactor: number;
+  /** Arcane Shield: misses still to be blocked this level. */
+  barrier: number;
+  /** Words stopped by Arcane Shield (they did no harm). */
+  blocked: number;
 }
 
 /** Delay before the very first word appears, so the player can get ready. */
 export const FIRST_SPAWN_DELAY_MS = 600;
 
-export function createInitialState(spells: SpellCharges = emptyCharges()): GameState {
+export function createInitialState(spells: SpellCharges = emptyCharges(), instability = 0): GameState {
   return {
     tick: 0,
     status: 'playing',
@@ -65,12 +73,14 @@ export function createInitialState(spells: SpellCharges = emptyCharges()): GameS
     missed: 0,
     correctChars: 0,
     errors: 0,
-    instability: 0,
+    instability,
     completionTicksTotal: 0,
     spells,
     spellsCast: emptyCharges(),
     freezeTicks: 0,
-    slowTicks: 0,
+    slowStacks: [],
     slowFactor: 1,
+    barrier: 0,
+    blocked: 0,
   };
 }

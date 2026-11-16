@@ -286,3 +286,59 @@ Research into the archived Typing Maniac SWF is limited to understanding
 gameplay rules (speeds, penalties, spell effects). No art, audio, text,
 branding or code from it is copied into Spellbound. See
 `docs/original-game-research.md`.
+
+### D-025 — Campaign v2: 20 levels, 4 chapters, survival bosses, Normal/Hardcore
+_2026-11-16 · Accepted (project owner) · supersedes the 10-level list in D-014 and the instability rule in D-016_
+
+Full design: [`plans/campaign-v2.md`](plans/campaign-v2.md).
+
+- 20 levels in 4 chapters (`chapter` in levels.json). Levels 5, 10, 15 and 20
+  are **survival bosses**: `survivalMs` (60/75/90/120 s) instead of a word
+  quota. A boss starts at the previous level's pace and moves smoothly to its
+  `ramp` values by the end of the timer (`GameEngine.pace`).
+- The run is still one go from level 1, and losing ends it. A full run is
+  about 20 minutes. Today's old level 10 pace is the new level 19/20.
+- **Normal**: instability resets every level. **Hardcore**: instability
+  carries through the run (`EngineOptions.initialInstability`); surviving a
+  boss heals 25%; Arcane Purge only halves it. Hardcore has its own records
+  (save v4, `SaveData.hardcore`); Practice unlocks follow the furthest level
+  in either mode.
+- **Boss reward:** surviving a boss offers 3 different unlocked spells,
+  picked by drop weight; the player takes one charge (with a full pool they
+  give one up, or skip). Uses `Math.random` — it's a menu choice, not
+  simulation, so replays are unaffected.
+- **New-spell pop-up:** a level with `introducesSpell` waits for an HTML
+  pop-up (cast word, what it does, how scrolls work) before it starts.
+- Practice and Wizard Duels play boss levels as endless at their starting
+  pace (no timer, no ramp).
+
+### D-026 — Spell system v2: eight spells, one shared pool, drop weights
+_2026-11-16 · Accepted (project owner) · supersedes D-017_
+
+Full design: [`plans/spells-v2.md`](plans/spells-v2.md).
+
+- Eight spells, in power order (also the order the Campaign introduces
+  them): `slow`, `ice`, `barrier`, `shock`, `alter`, `fire`, `wind`,
+  `harvest`. The id is the cast word.
+- One **shared pool of 8 charges**, no per-spell cap. Rarity comes only from
+  `dropWeight` in spells.json (5 / 4 / 4 / 3 / 3 / 2 / 1.5 / 1). The spell a
+  level introduces drops ×3 as often there.
+- "Tomes" are now **scrolls**: a falling word with the spell's colour and
+  marker; type it to collect a charge.
+- Changes to the original four: **Fire** is a bailout (clears the board,
+  no points, no progress, scrolls lost). **Ice** stacks (+5 s per cast).
+  **Slow** stacks: each cast is its own 8 s timer and the factor (×0.6) is
+  applied once per active stack; stacks pause while frozen. **Wind** halves
+  instability in Hardcore.
+- New: **Barrier** (Arcane Shield) blocks the next 2 misses, +2 per cast,
+  until the level ends. **Shock** (Chain Lightning) destroys the most urgent
+  word and the 3 nearest, scoring them. **Alter** (Transmutation) turns 6+
+  letter words into 3–4 letter words in place — it uses its own random
+  stream so the spawn sequence (and duels) stay identical. **Harvest**
+  claims every word toward the quota at half points.
+- **Cast words are reserved:** no falling word may equal a cast word, start
+  with one, or be the start of one (`clashesWithCastWord`, checked by a test
+  and filtered in `WORDS`). Removed from words.json for this: fir, fireball,
+  firebolt, firebrand, firestorm.
+- Meteor was considered and removed for now; Alchemical Cleansing waits for
+  Cursed words; Rejuvenation was dropped (overlaps Wind).

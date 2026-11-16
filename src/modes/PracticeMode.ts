@@ -11,8 +11,8 @@ import type { GameStats } from '../gameplay/ScoringSystem';
 
 /**
  * GDD §14 modifier options:
- * - 'all'      — spell tomes + alchemical modifiers (modifiers arrive in Milestone 6)
- * - 'original' — the original power-ups only: Fire/Ice/Slow/Wind tomes
+ * - 'all'      — spell scrolls + alchemical modifiers (modifiers arrive in Milestone 6)
+ * - 'original' — spell scrolls only (the level's spells), no modifiers
  * - 'none'     — no specials at all: pure typing
  */
 export type ModifierFilter = 'all' | 'original' | 'none';
@@ -29,10 +29,11 @@ export function isModifierFilter(value: unknown): value is ModifierFilter {
  * The practice version of a campaign level. Everything that sets difficulty
  * (speed, spawn rate, words on screen, word lengths, penalties) is copied
  * unchanged — practice never applies its own multiplier (GDD §14). Only the
- * quota is removed (endless) and specials are filtered.
+ * quota (or a boss level's survival timer) is removed and specials are filtered.
  */
 export function practiceConfig(level: DifficultyConfig, filter: ModifierFilter): DifficultyConfig {
-  const config: DifficultyConfig = { ...level, requiredWords: null };
+  // Boss levels become endless at their starting pace (no timer, no ramp).
+  const config: DifficultyConfig = { ...level, requiredWords: null, survivalMs: null, ramp: null };
   if (filter === 'original') {
     config.modifierProbabilities = {};
   } else if (filter === 'none') {

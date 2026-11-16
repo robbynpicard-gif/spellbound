@@ -16,8 +16,8 @@ const BASE_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
 
 /**
  * Draws one falling word: typed letters in gold, the rest in parchment (or
- * the tome's spell colour), a glowing plate behind the current target, a
- * small book marker on spell tomes and a frost rim while frozen. Reads
+ * the scroll's spell colour), a glowing plate behind the current target, a
+ * small marker on spell scrolls and a frost rim while frozen. Reads
  * WordState; never changes it.
  */
 export class WordView extends Phaser.GameObjects.Container {
@@ -61,6 +61,13 @@ export class WordView extends Phaser.GameObjects.Container {
   /** Approximate on-screen bounds, for mouse clicks. */
   hitTest(x: number, y: number): boolean {
     return Math.abs(x - this.x) <= this.halfWidth + 12 && Math.abs(y - this.y) <= FONT_SIZE;
+  }
+
+  /** Redraw after the word's text changed (Transmutation), with a little pop. */
+  refreshText(): void {
+    this.drawnTyped = -1;
+    this.redraw();
+    this.scene.tweens.add({ targets: this, scale: { from: 1.3, to: 1 }, duration: 260, ease: 'Back.Out' });
   }
 
   setFrozen(frozen: boolean): void {

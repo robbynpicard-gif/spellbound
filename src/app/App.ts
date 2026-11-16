@@ -2,19 +2,39 @@ import type Phaser from 'phaser';
 import type { GameResult } from '../core/GameEvents';
 import type { LevelManager } from '../difficulty/LevelManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
-import type { SpellCharges } from '../gameplay/SpellManager';
-import { recordLevel, startRun, summarizeRun, type CampaignRun } from '../modes/CampaignMode';
+import { isSurvival } from '../difficulty/DifficultyConfig';
+import { SPELL_IDS, type SpellCharges } from '../gameplay/SpellManager';
+import {
+  bossRewardChoices,
+  claimBossReward,
+  knownSpellsAt,
+  recordLevel,
+  startRun,
+  summarizeRun,
+  type CampaignMode,
+  type CampaignRun,
+} from '../modes/CampaignMode';
 import { practiceConfig, practiceLevels, type ModifierFilter } from '../modes/PracticeMode';
 import { BackdropScene } from '../scenes/BackdropScene';
 import { GameScene, type GameSceneData } from '../scenes/GameScene';
 import type { SaveManager } from '../storage/SaveManager';
 import { FILTER_LABELS, practiceResultsScreen, practiceSetupScreen } from '../ui/practiceScreens';
-import { creditsScreen, levelClearScreen, mainMenuScreen, pauseScreen, runOverScreen } from '../ui/screens';
+import {
+  campaignModeScreen,
+  creditsScreen,
+  levelClearScreen,
+  mainMenuScreen,
+  pauseScreen,
+  runOverScreen,
+  spellIntroScreen,
+  type BossReward,
+} from '../ui/screens';
 import type { UIRoot } from '../ui/UIRoot';
 
 /**
  * Top-level flow between screens.
- * - Campaign is a single run (D-016): Level 1 → Level cleared → … → Run over.
+ * - Campaign is a single run (D-016, docs/plans/campaign-v2.md), in Normal or
+ *   Hardcore: Level 1 → Level cleared (boss: choose a reward) → … → Run over.
  * - Endless Practice (D-023): choose a level → play until the wards fall or
  *   you end the session → results with personal bests.
  * Game rules stay in the engine; saving stays in SaveManager.
@@ -35,7 +55,7 @@ export class App {
     this.ui.show(
       mainMenuScreen(
         {
-          onCampaign: () => this.startNewRun(),
+          onCampaign: () => this.showCampaignModes(),
           onPractice: () => this.showPracticeSetup(),
           onCredits: () => this.showCredits(),
         },
@@ -52,9 +72,20 @@ export class App {
 
   // ───────────────────────── Campaign ─────────────────────────
 
-  startNewRun(): void {
-    this.run = startRun();
-    this.save.noteRunStarted();
+  showCampaignModes(): void {
+    this.run = null;
+    this.showBackdrop();
+    this.ui.show(
+      campaignModeScreen(this.save.records('normal'), this.save.records('hardcore'), this.campaign.count, {
+        onStart: (mode) => this.startNewRun(mode),
+        onBack: () => this.showMainMenu(),
+      }),
+    );
+  }
+
+  startNewRun(mode: CampaignMode = 'normal'): void {
+    this.run = startRun(mode);
+    this.save.noteRunStarted(mode);
     this.playCurrentLevel();
   }
 
@@ -62,44 +93,80 @@ export class App {
     const run = this.run;
     if (!run) return;
     const config = this.campaign.get(run.level);
-    this.save.noteLevelReached(run.level);
-    const label = `Level ${config.level} of ${this.campaign.count} · ${config.name}`;
+    this.save.noteLevelReached(run.level, run.mode);
+    const modeLabel = run.mode === 'hardcore' ? ' · Hardcore' : '';
+    const label = `Level ${config.level} of ${this.campaign.count} · ${config.name}${modeLabel}`;
+    const held = SPELL_IDS.filter((id) => run.spellCharges[id] > 0);
+    const known = knownSpellsAt(this.campaign.all, run.level);
 
     this.startScene({
       config,
       initialSpells: run.spellCharges,
       scoreOffset: run.score,
+      hardcore: run.mode === 'hardcore',
+      initialInstability: run.instability,
+      knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
+      spellIntro: config.introducesSpell ?? null,
       hooks: {
         onPauseChanged: (paused) =>
           this.onPause(paused, label, [
-            { label: 'Restart run from level 1', onClick: () => this.startNewRun() },
+            { label: 'Restart run from level 1', onClick: () => this.startNewRun(run.mode) },
             { label: 'Abandon run', onClick: () => this.showMainMenu() },
           ], 'An abandoned run is not recorded'),
-        onGameOver: (result, stats, spells) => this.onLevelEnd(result, stats, spells),
+        onGameOver: (result, stats, spells, instability) => this.onLevelEnd(result, stats, spells, instability),
+        onSpellIntro: (spell, begin) =>
+          this.ui.show(
+            spellIntroScreen(spell, config, () => {
+              this.ui.clear();
+              begin();
+            }),
+          ),
       },
     });
   }
 
-  private onLevelEnd(result: GameResult, stats: GameStats, spells: SpellCharges): void {
+  private onLevelEnd(result: GameResult, stats: GameStats, spells: SpellCharges, instability: number): void {
     const run = this.run;
     if (!run) return;
     const clearedLevel = this.campaign.get(run.level);
-    const { runOver, victory } = recordLevel(run, result, stats, spells, this.campaign.count);
+    const { runOver, victory } = recordLevel(
+      run,
+      result,
+      stats,
+      spells,
+      this.campaign.count,
+      instability,
+      clearedLevel,
+    );
 
     if (!runOver) {
-      this.ui.show(
-        levelClearScreen(clearedLevel, this.campaign.get(run.level), stats, run, () => this.playCurrentLevel()),
-      );
+      // Surviving a boss: choose 1 of 3 spells (picked by rarity) as a free charge.
+      let reward: BossReward | null = null;
+      if (isSurvival(clearedLevel)) {
+        reward = {
+          choices: bossRewardChoices(knownSpellsAt(this.campaign.all, clearedLevel.level), Math.random),
+          onClaim: (spell, discard) => {
+            claimBossReward(run, spell, discard);
+            reward = null;
+          },
+        };
+      }
+      const show = () =>
+        this.ui.show(
+          levelClearScreen(clearedLevel, this.campaign.get(run.level), stats, run, () => this.playCurrentLevel(), reward, show),
+        );
+      show();
       return;
     }
 
     const summary = summarizeRun(run, victory);
-    const outcome = this.save.recordRun(summary);
+    const outcome = this.save.recordRun(summary, run.mode);
     this.run = null;
     this.ui.show(
       runOverScreen(summary, outcome, clearedLevel, this.campaign.count, {
-        onNewRun: () => this.startNewRun(),
+        onNewRun: () => this.startNewRun(run.mode),
         onMenu: () => this.showMainMenu(),
+        mode: run.mode,
       }),
     );
   }
@@ -110,7 +177,7 @@ export class App {
     this.run = null;
     this.showBackdrop();
     const p = this.save.practice;
-    const reachable = practiceLevels(this.save.campaign.highestReached, this.campaign.count);
+    const reachable = practiceLevels(this.save.highestReached, this.campaign.count);
     const level = reachable.includes(p.lastLevel) ? p.lastLevel : reachable.at(-1)!;
     this.ui.show(
       practiceSetupScreen(
@@ -127,7 +194,7 @@ export class App {
   }
 
   startPractice(level: number, filter: ModifierFilter): void {
-    const reachable = practiceLevels(this.save.campaign.highestReached, this.campaign.count);
+    const reachable = practiceLevels(this.save.highestReached, this.campaign.count);
     if (!reachable.includes(level)) return this.showPracticeSetup();
     this.save.notePracticeChoice(level, filter);
     const base = this.campaign.get(level);

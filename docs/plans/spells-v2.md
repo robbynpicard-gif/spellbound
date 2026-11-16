@@ -1,6 +1,6 @@
-# Spellbound — Spell system v2 plan (DRAFT, planning only, not in code)
+# Spellbound — Spell system v2 plan (implemented)
 
-_Agreed with the project owner, 2026-11-16. Pairs with [campaign-v2.md](campaign-v2.md). Supersedes D-017 once implemented._
+_Agreed with the project owner and implemented, 2026-11-16 (decisions.md D-025/D-026). Pairs with [campaign-v2.md](campaign-v2.md). Supersedes D-017 once implemented._
 
 ## Rules for all spells
 - **Collecting:** scroll words (renamed from "tomes") fall at about 6–8% of spawns. Each scroll shows **a random word plus the spell's icon and colour**. Type that word + Enter to gain a charge. A pop-up pauses the round the first time a spell's scroll can appear, and it teaches the cast word.

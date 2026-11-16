@@ -1,12 +1,623 @@
 [
-  {"level": 1, "name": "The First Ward", "requiredWords": 25, "initialFallSpeed": 45, "spawnInterval": 2200, "maxActiveWords": 5, "minWordLength": 3, "maxWordLength": 7, "wordLengthWeights": {"3": 1, "4": 3, "5": 3, "6": 2, "7": 1}, "modifierProbabilities": {}, "instabilityPerMiss": 10, "errorAcceleration": 12, "availableSpells": ["fire"], "spellDropChance": 0.08},
-  {"level": 2, "name": "Candlelight Study", "requiredWords": 30, "initialFallSpeed": 50, "spawnInterval": 2000, "maxActiveWords": 6, "minWordLength": 4, "maxWordLength": 7, "wordLengthWeights": {"4": 2, "5": 3, "6": 3, "7": 2}, "modifierProbabilities": {}, "instabilityPerMiss": 10, "errorAcceleration": 12, "availableSpells": ["fire", "ice"], "spellDropChance": 0.08},
-  {"level": 3, "name": "Whispering Stacks", "requiredWords": 35, "initialFallSpeed": 56, "spawnInterval": 1850, "maxActiveWords": 6, "minWordLength": 4, "maxWordLength": 8, "wordLengthWeights": {"4": 1, "5": 3, "6": 3, "7": 2, "8": 1}, "modifierProbabilities": {}, "instabilityPerMiss": 12.5, "errorAcceleration": 14, "availableSpells": ["fire", "ice", "slow"], "spellDropChance": 0.08},
-  {"level": 4, "name": "The Alchemy Cellar", "requiredWords": 40, "initialFallSpeed": 62, "spawnInterval": 1700, "maxActiveWords": 7, "minWordLength": 4, "maxWordLength": 9, "wordLengthWeights": {"4": 1, "5": 2, "6": 3, "7": 3, "8": 2, "9": 1}, "modifierProbabilities": {}, "instabilityPerMiss": 12.5, "errorAcceleration": 14, "availableSpells": ["fire", "ice", "slow", "wind"], "spellDropChance": 0.07},
-  {"level": 5, "name": "Storm Over the Spire", "requiredWords": 45, "initialFallSpeed": 68, "spawnInterval": 1550, "maxActiveWords": 7, "minWordLength": 5, "maxWordLength": 9, "wordLengthWeights": {"5": 2, "6": 3, "7": 3, "8": 2, "9": 1}, "modifierProbabilities": {}, "instabilityPerMiss": 12.5, "errorAcceleration": 16, "availableSpells": ["fire", "ice", "slow", "wind"], "spellDropChance": 0.07},
-  {"level": 6, "name": "The Gilded Archive", "requiredWords": 50, "initialFallSpeed": 75, "spawnInterval": 1400, "maxActiveWords": 8, "minWordLength": 5, "maxWordLength": 10, "wordLengthWeights": {"5": 1, "6": 2, "7": 3, "8": 3, "9": 2, "10": 1}, "modifierProbabilities": {}, "instabilityPerMiss": 12.5, "errorAcceleration": 16, "availableSpells": ["fire", "ice", "slow", "wind"], "spellDropChance": 0.07},
-  {"level": 7, "name": "Midnight Conjuring", "requiredWords": 55, "initialFallSpeed": 82, "spawnInterval": 1300, "maxActiveWords": 8, "minWordLength": 5, "maxWordLength": 11, "wordLengthWeights": {"5": 1, "6": 2, "7": 3, "8": 3, "9": 2, "10": 2, "11": 1}, "modifierProbabilities": {}, "instabilityPerMiss": 15, "errorAcceleration": 18, "availableSpells": ["fire", "ice", "slow", "wind"], "spellDropChance": 0.06},
-  {"level": 8, "name": "The Ember Gate", "requiredWords": 60, "initialFallSpeed": 90, "spawnInterval": 1200, "maxActiveWords": 9, "minWordLength": 6, "maxWordLength": 12, "wordLengthWeights": {"6": 2, "7": 3, "8": 3, "9": 3, "10": 2, "11": 2, "12": 1}, "modifierProbabilities": {}, "instabilityPerMiss": 15, "errorAcceleration": 20, "availableSpells": ["fire", "ice", "slow", "wind"], "spellDropChance": 0.06},
-  {"level": 9, "name": "The Shattered Observatory", "requiredWords": 65, "initialFallSpeed": 99, "spawnInterval": 1100, "maxActiveWords": 9, "minWordLength": 6, "maxWordLength": 12, "wordLengthWeights": {"6": 2, "7": 3, "8": 3, "9": 3, "10": 2, "11": 2, "12": 1}, "modifierProbabilities": {}, "instabilityPerMiss": 15, "errorAcceleration": 22, "availableSpells": ["fire", "ice", "slow", "wind"], "spellDropChance": 0.06},
-  {"level": 10, "name": "The Archmage's Trial", "requiredWords": 70, "initialFallSpeed": 108, "spawnInterval": 1000, "maxActiveWords": 10, "minWordLength": 6, "maxWordLength": 12, "wordLengthWeights": {"6": 1, "7": 2, "8": 3, "9": 3, "10": 3, "11": 2, "12": 2}, "modifierProbabilities": {}, "instabilityPerMiss": 15, "errorAcceleration": 24, "availableSpells": ["fire", "ice", "slow", "wind"], "spellDropChance": 0.06}
+  {
+    "level": 1,
+    "name": "The First Ward",
+    "chapter": 1,
+    "requiredWords": 15,
+    "initialFallSpeed": 45,
+    "spawnInterval": 2200,
+    "maxActiveWords": 5,
+    "minWordLength": 3,
+    "maxWordLength": 7,
+    "wordLengthWeights": {
+      "3": 1,
+      "4": 3,
+      "5": 3,
+      "6": 2,
+      "7": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 10.0,
+    "errorAcceleration": 12,
+    "availableSpells": [
+      "slow"
+    ],
+    "spellDropChance": 0.08,
+    "introducesSpell": "slow"
+  },
+  {
+    "level": 2,
+    "name": "Candlelight Study",
+    "chapter": 1,
+    "requiredWords": 16,
+    "initialFallSpeed": 49,
+    "spawnInterval": 2120,
+    "maxActiveWords": 5,
+    "minWordLength": 4,
+    "maxWordLength": 7,
+    "wordLengthWeights": {
+      "4": 2,
+      "5": 3,
+      "6": 3,
+      "7": 2
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 10.5,
+    "errorAcceleration": 13,
+    "availableSpells": [
+      "slow"
+    ],
+    "spellDropChance": 0.079
+  },
+  {
+    "level": 3,
+    "name": "Whispering Stacks",
+    "chapter": 1,
+    "requiredWords": 18,
+    "initialFallSpeed": 53,
+    "spawnInterval": 2040,
+    "maxActiveWords": 6,
+    "minWordLength": 4,
+    "maxWordLength": 7,
+    "wordLengthWeights": {
+      "4": 2,
+      "5": 3,
+      "6": 3,
+      "7": 2
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 10.5,
+    "errorAcceleration": 14,
+    "availableSpells": [
+      "slow",
+      "ice"
+    ],
+    "spellDropChance": 0.077,
+    "introducesSpell": "ice"
+  },
+  {
+    "level": 4,
+    "name": "The Spiral Stair",
+    "chapter": 1,
+    "requiredWords": 19,
+    "initialFallSpeed": 58,
+    "spawnInterval": 1960,
+    "maxActiveWords": 6,
+    "minWordLength": 4,
+    "maxWordLength": 8,
+    "wordLengthWeights": {
+      "4": 1,
+      "5": 3,
+      "6": 3,
+      "7": 2,
+      "8": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 11.0,
+    "errorAcceleration": 14,
+    "availableSpells": [
+      "slow",
+      "ice"
+    ],
+    "spellDropChance": 0.076
+  },
+  {
+    "level": 5,
+    "name": "The Bell Tower",
+    "chapter": 1,
+    "requiredWords": null,
+    "initialFallSpeed": 58,
+    "spawnInterval": 1960,
+    "maxActiveWords": 6,
+    "minWordLength": 4,
+    "maxWordLength": 8,
+    "wordLengthWeights": {
+      "4": 1,
+      "5": 3,
+      "6": 3,
+      "7": 2,
+      "8": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 11.0,
+    "errorAcceleration": 14,
+    "availableSpells": [
+      "slow",
+      "ice"
+    ],
+    "spellDropChance": 0.08,
+    "survivalMs": 60000,
+    "ramp": {
+      "initialFallSpeed": 66,
+      "spawnInterval": 1800,
+      "maxActiveWords": 7
+    }
+  },
+  {
+    "level": 6,
+    "name": "The Sunken Gate",
+    "chapter": 2,
+    "requiredWords": 20,
+    "initialFallSpeed": 62,
+    "spawnInterval": 1880,
+    "maxActiveWords": 6,
+    "minWordLength": 4,
+    "maxWordLength": 8,
+    "wordLengthWeights": {
+      "4": 1,
+      "5": 3,
+      "6": 3,
+      "7": 2,
+      "8": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 11.5,
+    "errorAcceleration": 15,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier"
+    ],
+    "spellDropChance": 0.075,
+    "introducesSpell": "barrier"
+  },
+  {
+    "level": 7,
+    "name": "Drowned Archive",
+    "chapter": 2,
+    "requiredWords": 22,
+    "initialFallSpeed": 66,
+    "spawnInterval": 1800,
+    "maxActiveWords": 7,
+    "minWordLength": 4,
+    "maxWordLength": 9,
+    "wordLengthWeights": {
+      "4": 1,
+      "5": 2,
+      "6": 3,
+      "7": 3,
+      "8": 2,
+      "9": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 11.5,
+    "errorAcceleration": 16,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier"
+    ],
+    "spellDropChance": 0.073
+  },
+  {
+    "level": 8,
+    "name": "The Ink Grotto",
+    "chapter": 2,
+    "requiredWords": 23,
+    "initialFallSpeed": 70,
+    "spawnInterval": 1720,
+    "maxActiveWords": 7,
+    "minWordLength": 5,
+    "maxWordLength": 9,
+    "wordLengthWeights": {
+      "5": 2,
+      "6": 3,
+      "7": 3,
+      "8": 2,
+      "9": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 12.0,
+    "errorAcceleration": 17,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock"
+    ],
+    "spellDropChance": 0.072,
+    "introducesSpell": "shock"
+  },
+  {
+    "level": 9,
+    "name": "Lantern Depths",
+    "chapter": 2,
+    "requiredWords": 24,
+    "initialFallSpeed": 74,
+    "spawnInterval": 1640,
+    "maxActiveWords": 7,
+    "minWordLength": 5,
+    "maxWordLength": 9,
+    "wordLengthWeights": {
+      "5": 2,
+      "6": 3,
+      "7": 3,
+      "8": 2,
+      "9": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 12.5,
+    "errorAcceleration": 18,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock"
+    ],
+    "spellDropChance": 0.071
+  },
+  {
+    "level": 10,
+    "name": "Tidewrath",
+    "chapter": 2,
+    "requiredWords": null,
+    "initialFallSpeed": 74,
+    "spawnInterval": 1640,
+    "maxActiveWords": 7,
+    "minWordLength": 5,
+    "maxWordLength": 9,
+    "wordLengthWeights": {
+      "5": 2,
+      "6": 3,
+      "7": 3,
+      "8": 2,
+      "9": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 12.5,
+    "errorAcceleration": 18,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock"
+    ],
+    "spellDropChance": 0.08,
+    "survivalMs": 75000,
+    "ramp": {
+      "initialFallSpeed": 83,
+      "spawnInterval": 1480,
+      "maxActiveWords": 8
+    }
+  },
+  {
+    "level": 11,
+    "name": "The Alchemy Cellar",
+    "chapter": 3,
+    "requiredWords": 26,
+    "initialFallSpeed": 79,
+    "spawnInterval": 1560,
+    "maxActiveWords": 8,
+    "minWordLength": 5,
+    "maxWordLength": 10,
+    "wordLengthWeights": {
+      "5": 1,
+      "6": 2,
+      "7": 3,
+      "8": 3,
+      "9": 2,
+      "10": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 12.5,
+    "errorAcceleration": 18,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter"
+    ],
+    "spellDropChance": 0.069,
+    "introducesSpell": "alter"
+  },
+  {
+    "level": 12,
+    "name": "Hall of Flasks",
+    "chapter": 3,
+    "requiredWords": 27,
+    "initialFallSpeed": 83,
+    "spawnInterval": 1480,
+    "maxActiveWords": 8,
+    "minWordLength": 5,
+    "maxWordLength": 10,
+    "wordLengthWeights": {
+      "5": 1,
+      "6": 2,
+      "7": 3,
+      "8": 3,
+      "9": 2,
+      "10": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 13.0,
+    "errorAcceleration": 19,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter"
+    ],
+    "spellDropChance": 0.068
+  },
+  {
+    "level": 13,
+    "name": "Quicksilver Vault",
+    "chapter": 3,
+    "requiredWords": 28,
+    "initialFallSpeed": 87,
+    "spawnInterval": 1400,
+    "maxActiveWords": 8,
+    "minWordLength": 5,
+    "maxWordLength": 11,
+    "wordLengthWeights": {
+      "5": 1,
+      "6": 2,
+      "7": 3,
+      "8": 3,
+      "9": 2,
+      "10": 2,
+      "11": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 13.5,
+    "errorAcceleration": 20,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter",
+      "fire"
+    ],
+    "spellDropChance": 0.067,
+    "introducesSpell": "fire"
+  },
+  {
+    "level": 14,
+    "name": "The Ember Gate",
+    "chapter": 3,
+    "requiredWords": 30,
+    "initialFallSpeed": 91,
+    "spawnInterval": 1320,
+    "maxActiveWords": 9,
+    "minWordLength": 6,
+    "maxWordLength": 12,
+    "wordLengthWeights": {
+      "6": 2,
+      "7": 3,
+      "8": 3,
+      "9": 3,
+      "10": 2,
+      "11": 2,
+      "12": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 13.5,
+    "errorAcceleration": 21,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter",
+      "fire"
+    ],
+    "spellDropChance": 0.065
+  },
+  {
+    "level": 15,
+    "name": "The Crucible",
+    "chapter": 3,
+    "requiredWords": null,
+    "initialFallSpeed": 91,
+    "spawnInterval": 1320,
+    "maxActiveWords": 9,
+    "minWordLength": 6,
+    "maxWordLength": 12,
+    "wordLengthWeights": {
+      "6": 2,
+      "7": 3,
+      "8": 3,
+      "9": 3,
+      "10": 2,
+      "11": 2,
+      "12": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 13.5,
+    "errorAcceleration": 21,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter",
+      "fire"
+    ],
+    "spellDropChance": 0.08,
+    "survivalMs": 90000,
+    "ramp": {
+      "initialFallSpeed": 100,
+      "spawnInterval": 1160,
+      "maxActiveWords": 10
+    }
+  },
+  {
+    "level": 16,
+    "name": "Storm Over the Spire",
+    "chapter": 4,
+    "requiredWords": 31,
+    "initialFallSpeed": 95,
+    "spawnInterval": 1240,
+    "maxActiveWords": 9,
+    "minWordLength": 6,
+    "maxWordLength": 12,
+    "wordLengthWeights": {
+      "6": 2,
+      "7": 3,
+      "8": 3,
+      "9": 3,
+      "10": 2,
+      "11": 2,
+      "12": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 14.0,
+    "errorAcceleration": 22,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter",
+      "fire",
+      "wind"
+    ],
+    "spellDropChance": 0.064,
+    "introducesSpell": "wind"
+  },
+  {
+    "level": 17,
+    "name": "Midnight Conjuring",
+    "chapter": 4,
+    "requiredWords": 32,
+    "initialFallSpeed": 100,
+    "spawnInterval": 1160,
+    "maxActiveWords": 9,
+    "minWordLength": 6,
+    "maxWordLength": 12,
+    "wordLengthWeights": {
+      "6": 2,
+      "7": 3,
+      "8": 3,
+      "9": 3,
+      "10": 2,
+      "11": 2,
+      "12": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 14.5,
+    "errorAcceleration": 22,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter",
+      "fire",
+      "wind"
+    ],
+    "spellDropChance": 0.063
+  },
+  {
+    "level": 18,
+    "name": "Shattered Sky",
+    "chapter": 4,
+    "requiredWords": 34,
+    "initialFallSpeed": 104,
+    "spawnInterval": 1080,
+    "maxActiveWords": 10,
+    "minWordLength": 6,
+    "maxWordLength": 12,
+    "wordLengthWeights": {
+      "6": 2,
+      "7": 3,
+      "8": 3,
+      "9": 3,
+      "10": 2,
+      "11": 2,
+      "12": 1
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 14.5,
+    "errorAcceleration": 23,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter",
+      "fire",
+      "wind",
+      "harvest"
+    ],
+    "spellDropChance": 0.061,
+    "introducesSpell": "harvest"
+  },
+  {
+    "level": 19,
+    "name": "Thunder Steps",
+    "chapter": 4,
+    "requiredWords": 35,
+    "initialFallSpeed": 108,
+    "spawnInterval": 1000,
+    "maxActiveWords": 10,
+    "minWordLength": 6,
+    "maxWordLength": 12,
+    "wordLengthWeights": {
+      "6": 1,
+      "7": 2,
+      "8": 3,
+      "9": 3,
+      "10": 3,
+      "11": 2,
+      "12": 2
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 15.0,
+    "errorAcceleration": 24,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter",
+      "fire",
+      "wind",
+      "harvest"
+    ],
+    "spellDropChance": 0.06
+  },
+  {
+    "level": 20,
+    "name": "The Archmage's Trial",
+    "chapter": 4,
+    "requiredWords": null,
+    "initialFallSpeed": 108,
+    "spawnInterval": 1000,
+    "maxActiveWords": 10,
+    "minWordLength": 6,
+    "maxWordLength": 12,
+    "wordLengthWeights": {
+      "6": 1,
+      "7": 2,
+      "8": 3,
+      "9": 3,
+      "10": 3,
+      "11": 2,
+      "12": 2
+    },
+    "modifierProbabilities": {},
+    "instabilityPerMiss": 15.0,
+    "errorAcceleration": 24,
+    "availableSpells": [
+      "slow",
+      "ice",
+      "barrier",
+      "shock",
+      "alter",
+      "fire",
+      "wind",
+      "harvest"
+    ],
+    "spellDropChance": 0.08,
+    "survivalMs": 120000,
+    "ramp": {
+      "initialFallSpeed": 118,
+      "spawnInterval": 900,
+      "maxActiveWords": 11
+    }
+  }
 ]

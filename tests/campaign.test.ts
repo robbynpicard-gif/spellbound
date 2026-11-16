@@ -2,17 +2,24 @@ import { describe, expect, it } from 'vitest';
 import levelsData from '../src/data/levels.json';
 import {
   averageWordLength,
+  isSurvival,
   letterArrivalRate,
   validateLevels,
   type DifficultyConfig,
 } from '../src/difficulty/DifficultyConfig';
 import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
 import { WORDS } from '../src/data/wordList';
+import { GameEngine } from '../src/core/GameEngine';
 import type { GameStats } from '../src/gameplay/ScoringSystem';
-import { emptyCharges, SPELL_IDS } from '../src/gameplay/SpellManager';
+import { emptyCharges, SPELL_IDS, totalCharges } from '../src/gameplay/SpellManager';
+import { SeededRandom } from '../src/core/Random';
 import {
   applyRunResult,
+  bossRewardChoices,
+  claimBossReward,
   emptyCampaignRecords,
+  HARDCORE_BOSS_HEAL,
+  knownSpellsAt,
   recordLevel,
   startRun,
   summarizeRun,
@@ -49,9 +56,43 @@ class MemoryStorage implements StorageLike {
 }
 
 describe('campaign level data', () => {
-  it('has at least 10 valid, consecutively numbered levels', () => {
-    expect(levels.length).toBeGreaterThanOrEqual(10);
-    levels.forEach((l, i) => expect(l.level).toBe(i + 1));
+  it('has 20 valid, consecutively numbered levels in 4 chapters', () => {
+    expect(levels.length).toBe(20);
+    levels.forEach((l, i) => {
+      expect(l.level).toBe(i + 1);
+      expect(l.chapter).toBe(Math.floor(i / 5) + 1);
+    });
+  });
+
+  it('ends every chapter with a survival boss (60/75/90/120 s), and only there', () => {
+    expect(levels.filter(isSurvival).map((l) => [l.level, l.survivalMs])).toEqual([
+      [5, 60_000],
+      [10, 75_000],
+      [15, 90_000],
+      [20, 120_000],
+    ]);
+    for (const boss of levels.filter(isSurvival)) {
+      expect(boss.requiredWords).toBeNull();
+      expect(boss.introducesSpell ?? null).toBeNull();
+      // The boss starts at the previous level's pace and ramps up from there.
+      const prev = levels[boss.level - 2]!;
+      expect(boss.initialFallSpeed).toBe(prev.initialFallSpeed);
+      expect(boss.ramp!.initialFallSpeed).toBeGreaterThan(boss.initialFallSpeed);
+      expect(boss.ramp!.spawnInterval).toBeLessThan(boss.spawnInterval);
+      expect(boss.ramp!.maxActiveWords).toBeGreaterThan(boss.maxActiveWords);
+    }
+  });
+
+  it('keeps a full run near 20 minutes', () => {
+    let ms = 0;
+    for (const l of levels) ms += isSurvival(l) ? l.survivalMs! : l.requiredWords! * l.spawnInterval + 4000;
+    expect(ms / 60_000).toBeGreaterThan(14);
+    expect(ms / 60_000).toBeLessThan(24);
+  });
+
+  it("ends at the old level 10's difficulty", () => {
+    const last = levels.filter((l) => !isSurvival(l)).at(-1)!;
+    expect(last).toMatchObject({ initialFallSpeed: 108, spawnInterval: 1000, maxActiveWords: 10 });
   });
 
   it('converts JSON length-weight keys to numbers', () => {
@@ -67,10 +108,11 @@ describe('campaign level data', () => {
 
   // Progressive difficulty (GDD §9): each level is at least as hard as the
   // previous one on every axis, and strictly harder overall.
-  it('gets progressively harder', () => {
-    for (let i = 1; i < levels.length; i++) {
-      const prev = levels[i - 1]!;
-      const cur = levels[i]!;
+  it('gets progressively harder (normal levels)', () => {
+    const normal = levels.filter((l) => !isSurvival(l));
+    for (let i = 1; i < normal.length; i++) {
+      const prev = normal[i - 1]!;
+      const cur = normal[i]!;
       const at = `level ${cur.level}`;
       expect(cur.initialFallSpeed, at).toBeGreaterThan(prev.initialFallSpeed);
       expect(cur.spawnInterval, at).toBeLessThan(prev.spawnInterval);
@@ -84,12 +126,31 @@ describe('campaign level data', () => {
     }
   });
 
-  it('introduces spells progressively and never removes one', () => {
-    expect(levels[0]!.availableSpells).toEqual(['fire']);
+  it('introduces spells from least to most powerful, one level at a time, never removing one', () => {
+    expect(levels[0]!.availableSpells).toEqual(['slow']);
+    const intros = levels.filter((l) => l.introducesSpell).map((l) => [l.level, l.introducesSpell]);
+    expect(intros).toEqual([
+      [1, 'slow'],
+      [3, 'ice'],
+      [6, 'barrier'],
+      [8, 'shock'],
+      [11, 'alter'],
+      [13, 'fire'],
+      [16, 'wind'],
+      [18, 'harvest'],
+    ]);
     for (let i = 1; i < levels.length; i++) {
       for (const id of levels[i - 1]!.availableSpells) expect(levels[i]!.availableSpells).toContain(id);
+      const added = levels[i]!.availableSpells.filter((id) => !levels[i - 1]!.availableSpells.includes(id));
+      expect(added).toEqual(levels[i]!.introducesSpell ? [levels[i]!.introducesSpell] : []);
     }
     expect([...levels.at(-1)!.availableSpells].sort()).toEqual([...SPELL_IDS].sort());
+  });
+
+  it('knows which spells are unlocked at each level', () => {
+    expect(knownSpellsAt(levels, 1)).toEqual(['slow']);
+    expect(knownSpellsAt(levels, 7)).toEqual(['slow', 'ice', 'barrier']);
+    expect(knownSpellsAt(levels, 20)).toEqual([...SPELL_IDS]);
   });
 
   it('rejects broken level data with a helpful message', () => {
@@ -162,7 +223,105 @@ describe('campaign run', () => {
   });
 });
 
+describe('Normal and Hardcore', () => {
+  it('Normal resets instability every level', () => {
+    const run = startRun('normal');
+    recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 70, levels[0]);
+    expect(run.instability).toBe(0);
+  });
+
+  it('Hardcore carries instability from level to level', () => {
+    const run = startRun('hardcore');
+    recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 30, levels[0]);
+    expect(run.instability).toBe(30);
+    recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 55, levels[1]);
+    expect(run.instability).toBe(55);
+  });
+
+  it(`Hardcore heals ${HARDCORE_BOSS_HEAL}% after surviving a boss`, () => {
+    const run = startRun('hardcore');
+    for (let i = 0; i < 4; i++) recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 40, levels[i]);
+    expect(run.level).toBe(5);
+    recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 60, levels[4]);
+    expect(run.instability).toBe(60 - HARDCORE_BOSS_HEAL);
+    const low = startRun('hardcore');
+    recordLevel(low, 'won', stats(10), emptyCharges(), TOTAL, 10, levels[4]);
+    expect(low.instability).toBe(0);
+  });
+
+  it('a Hardcore run passes its instability into the engine', () => {
+    const engine = new GameEngine({ config: levels[0]!, seed: 1, words: WORDS, hardcore: true, initialInstability: 45 });
+    expect(engine.state.instability).toBe(45);
+  });
+});
+
+describe('boss rewards', () => {
+  it('offer 3 different spells from those unlocked', () => {
+    const rng = new SeededRandom(4);
+    for (let i = 0; i < 50; i++) {
+      const known = knownSpellsAt(levels, 10);
+      const choices = bossRewardChoices(known, () => rng.next());
+      expect(choices).toHaveLength(3);
+      expect(new Set(choices).size).toBe(3);
+      for (const id of choices) expect(known).toContain(id);
+    }
+    expect(bossRewardChoices(['slow', 'ice'], Math.random)).toEqual(['slow', 'ice']);
+  });
+
+  it('offer rare spells less often', () => {
+    const rng = new SeededRandom(8);
+    const seen: Record<string, number> = {};
+    for (let i = 0; i < 2000; i++)
+      for (const id of bossRewardChoices([...SPELL_IDS], () => rng.next())) seen[id] = (seen[id] ?? 0) + 1;
+    expect(seen.slow!).toBeGreaterThan(seen.harvest! * 1.5);
+  });
+
+  it('add a charge, or with a full pool swap one out (or can’t be taken)', () => {
+    const run = startRun();
+    expect(claimBossReward(run, 'shock')).toBe(true);
+    expect(run.spellCharges.shock).toBe(1);
+
+    run.spellCharges = { ...emptyCharges(), slow: 8 };
+    expect(claimBossReward(run, 'fire')).toBe(false);
+    expect(run.spellCharges.fire).toBe(0);
+    expect(claimBossReward(run, 'fire', 'ice')).toBe(false); // nothing to give up
+    expect(claimBossReward(run, 'fire', 'slow')).toBe(true);
+    expect(run.spellCharges).toMatchObject({ slow: 7, fire: 1 });
+    expect(totalCharges(run.spellCharges)).toBe(8);
+  });
+});
+
 describe('SaveManager', () => {
+  it('keeps Hardcore records apart from Normal', () => {
+    const storage = new MemoryStorage();
+    const save = new SaveManager(storage, TOTAL);
+    save.noteRunStarted('hardcore');
+    save.noteLevelReached(7, 'hardcore');
+    const run = startRun('hardcore');
+    recordLevel(run, 'lost', stats(400), emptyCharges(), TOTAL);
+    save.recordRun(summarizeRun(run, false), 'hardcore');
+
+    const reloaded = new SaveManager(storage, TOTAL);
+    expect(reloaded.hardcore).toMatchObject({ highestReached: 7, runsStarted: 1 });
+    expect(reloaded.hardcore.bestRun!.score).toBe(400);
+    expect(reloaded.campaign).toMatchObject({ highestReached: 1, runsStarted: 0, bestRun: null });
+    // Practice unlocks follow the furthest level in either mode.
+    expect(reloaded.highestReached).toBe(7);
+  });
+
+  it('migrates a version 3 save (Hardcore starts empty)', () => {
+    const v3 = JSON.stringify({
+      version: 3,
+      campaign: { highestReached: 6, bestRun: null, runsStarted: 2, runsCompleted: 0 },
+      practice: { records: {}, lastLevel: 2, lastFilter: 'none' },
+    });
+    const save = parseSave(v3, TOTAL);
+    expect(save.version).toBe(4);
+    expect(save.campaign).toMatchObject({ highestReached: 6, runsStarted: 2 });
+    expect(save.hardcore).toEqual(emptyCampaignRecords());
+    expect(save.practice.lastFilter).toBe('none');
+  });
+
   it('persists records and reloads them (survives a page refresh)', () => {
     const storage = new MemoryStorage();
     const first = new SaveManager(storage, TOTAL);
@@ -180,7 +339,7 @@ describe('SaveManager', () => {
   it('migrates a Milestone 2 (version 1) save', () => {
     const v1 = JSON.stringify({ version: 1, campaign: { highestUnlocked: 4, levels: { 1: { bestScore: 99 } } } });
     const save = parseSave(v1, TOTAL);
-    expect(save.version).toBe(3);
+    expect(save.version).toBe(4);
     expect(save.campaign).toMatchObject({ highestReached: 4, bestRun: null });
   });
 

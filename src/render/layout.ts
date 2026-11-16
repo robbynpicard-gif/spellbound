@@ -19,10 +19,14 @@ export const LAYOUT = {
 } as const;
 
 export const SPELL_COLORS: Record<SpellId, number> = {
-  fire: PALETTE.fire,
-  ice: PALETTE.ice,
   slow: PALETTE.arcane,
+  ice: PALETTE.ice,
+  barrier: PALETTE.shield,
+  shock: PALETTE.lightning,
+  alter: PALETTE.transmute,
+  fire: PALETTE.fire,
   wind: PALETTE.wind,
+  harvest: PALETTE.harvest,
 };
 
 export const hex = (color: number): string => `#${color.toString(16).padStart(6, '0')}`;

@@ -65,7 +65,7 @@ describe('practice difficulty matches campaign exactly (GDD §14)', () => {
     });
   }
 
-  it('"original" keeps spell tomes exactly as in Campaign; "none" removes all specials', () => {
+  it('"original" keeps spell scrolls exactly as in Campaign; "none" removes all specials', () => {
     const level = CAMPAIGN_LEVELS.get(5);
     const original = practiceConfig(level, 'original');
     expect(original.availableSpells).toEqual(level.availableSpells);
@@ -74,6 +74,17 @@ describe('practice difficulty matches campaign exactly (GDD §14)', () => {
     expect(none.availableSpells).toEqual([]);
     expect(none.spellDropChance).toBe(0);
     expect(none.modifierProbabilities).toEqual({});
+  });
+
+  it('boss levels become endless at their starting pace (no timer, no ramp)', () => {
+    const boss = CAMPAIGN_LEVELS.get(5);
+    const practice = practiceConfig(boss, 'original');
+    expect(practice.survivalMs).toBeNull();
+    expect(practice.ramp).toBeNull();
+    const engine = new GameEngine({ config: practice, seed: 2, words: WORDS });
+    for (let i = 0; i < 5000; i++) engine.step();
+    expect(engine.pace.fallSpeed).toBe(boss.initialFallSpeed);
+    expect(engine.status).not.toBe('won');
   });
 
   it('never changes the campaign level object', () => {
@@ -109,7 +120,7 @@ describe('practice difficulty matches campaign exactly (GDD §14)', () => {
         engine.submit();
       }
     }
-    expect(engine.state.completed).toBeGreaterThan(CAMPAIGN_LEVELS.get(10).requiredWords!);
+    expect(engine.state.completed).toBeGreaterThan(CAMPAIGN_LEVELS.get(19).requiredWords!);
     expect(engine.status).toBe('playing');
   });
 });
@@ -170,7 +181,7 @@ describe('practice records', () => {
       campaign: { highestReached: 5, bestRun: null, runsStarted: 6, runsCompleted: 0 },
     });
     const save = parseSave(v2, TOTAL);
-    expect(save.version).toBe(3);
+    expect(save.version).toBe(4);
     expect(save.campaign).toMatchObject({ highestReached: 5, runsStarted: 6 });
     expect(save.practice.records).toEqual({});
   });

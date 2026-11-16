@@ -198,7 +198,7 @@ export function roomScreen(
       !full && h('li', { class: 'empty-seat' }, h('span', null, 'Empty seat…')),
     ),
     settings,
-    h('p', { class: 'footnote' }, `${level.initialFallSpeed} px/s · a word every ${(level.spawnInterval / 1000).toFixed(1)} s · spell tomes on · 4-minute limit`),
+    h('p', { class: 'footnote' }, `${level.initialFallSpeed} px/s · a word every ${(level.spawnInterval / 1000).toFixed(1)} s · spell scrolls on · 4-minute limit`),
     h(
       'div',
       { class: 'button-row' },

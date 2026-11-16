@@ -9,29 +9,43 @@ Every push to `main` is tested, built and published automatically
 (`.github/workflows/deploy.yml`). The multiplayer server isn't hosted yet,
 so online duels only work when you run `npm run server` locally.
 
-> **Status:** Milestone 4 — Campaign (a single run through 10 levels, four
-> spells) and Endless Practice. Multiplayer comes in Milestone 5.
+> **Status:** Milestone 6 (in progress) — a 20-level Campaign in Normal or
+> Hardcore, eight spells, and Endless Practice. Multiplayer code exists but
+> isn't hosted yet.
+
+### Campaign
+
+A run always starts at level 1 and goes through **4 chapters of 5 levels**.
+Each chapter ends with a **boss**: survive the timer (60, 75, 90, then 120
+seconds) while the pace keeps rising. Survive a boss and you choose one of
+three spells as a free charge. Lose and the run starts over. A full run takes
+about 20 minutes.
+
+- **Normal:** your wards are restored at the start of every level.
+- **Hardcore:** ward damage carries through the whole run. Each boss you
+  survive heals 25%, and Wind only halves the damage.
 
 ### Endless Practice
 
 Pick any level you've reached in Campaign and play it at exactly that
-level's difficulty, forever. Choose **Spell tomes** (as in Campaign) or
+level's difficulty, forever. Choose **Spell scrolls** (as in Campaign) or
 **Pure typing**. Press Esc → "End session" whenever you like; your personal
 bests are kept per level, separately from Campaign.
 
 ## How to play
 
-Choose **Campaign**. A run always starts at level 1 and continues level by
-level until the wards fall or you clear all 10. Type the falling words before
-they reach the glowing ward line. Fill the **Level Progress** bar to clear a
-level; don't let **Ward Instability** reach 100%.
+Type the falling words before they reach the glowing ward line. Fill the
+**Level Progress** bar to clear a level (or, on a boss, last until the timer
+runs out); don't let **Ward Instability** reach 100%.
 
 Everything you type appears in the **typing console** at the bottom. Type a
 falling word and press **Enter** to destroy it. Capitals don't matter.
 
-Words with a small coloured book are **spell tomes** — complete one to gain a
-charge (up to 3 of each). Charges carry through the whole run. To cast, type
-the spell's name and press **Enter**.
+Words with a small coloured marker are **spell scrolls** — type one to gain a
+charge of that spell. All spells share **one pool of 8 charges**; rarer,
+stronger spells drop less often. Charges carry through the whole run. To
+cast, type the spell's word and press **Enter**. New spells are introduced
+one at a time, with a pop-up the first level they can appear.
 
 | Key | Action |
 |---|---|
@@ -42,12 +56,16 @@ the spell's name and press **Enter**.
 | Mouse click | Aim at one specific word |
 | Esc | Pause / resume |
 
-| Type + Enter | Spell |
-|---|---|
-| `fire` | Incineration — burn every word on the field |
-| `ice` | Frostbinding — freeze everything for 5 s |
-| `slow` | Temporal Distortion — half speed for 8 s |
-| `wind` | Arcane Purge — instability back to 0% |
+| Type + Enter | Spell | Unlocked | What it does |
+|---|---|---|---|
+| `slow` | Temporal Distortion | Level 1 | Words fall at ×0.6 for 8 s. Casts stack: each has its own timer and makes words slower still |
+| `ice` | Frostbinding | Level 3 | Freezes everything and stops new words for 5 s; each extra cast adds 5 s |
+| `barrier` | Arcane Shield | Level 6 | The next 2 words that reach the ward line do no harm (+2 per cast) |
+| `shock` | Chain Lightning | Level 8 | Destroys the lowest word and the 3 nearest it — they score and count |
+| `alter` | Transmutation | Level 11 | Every word of 6+ letters becomes a short 3–4 letter word |
+| `fire` | Incineration | Level 13 | Last resort: burns every word, for no points and no progress |
+| `wind` | Arcane Purge | Level 16 | Instability back to 0% (Hardcore: halved); removes mistake speed-ups |
+| `harvest` | Harvest | Level 18 | Claims every word on the field toward the level, at half points |
 
 A wrong letter makes the word you were typing fall faster and breaks your combo.
 

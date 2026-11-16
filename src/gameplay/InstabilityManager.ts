@@ -16,7 +16,11 @@ export function instabilityStage(value: number): InstabilityStage {
 
 /** Tracks the tower's instability, clamped to 0–100. */
 export class InstabilityManager {
-  private current = 0;
+  private current: number;
+
+  constructor(initial = 0) {
+    this.current = Math.min(INSTABILITY_MAX, Math.max(0, initial));
+  }
 
   get value(): number {
     return this.current;

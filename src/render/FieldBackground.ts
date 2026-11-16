@@ -22,6 +22,8 @@ const WARD_COLORS: Record<InstabilityStage, number> = {
 export class FieldBackground {
   private readonly ward: Phaser.GameObjects.Graphics;
   private readonly danger: Phaser.GameObjects.Graphics;
+  private readonly shield: Phaser.GameObjects.Graphics;
+  private shieldPulse?: Phaser.Tweens.Tween;
   private pulse?: Phaser.Tweens.Tween;
   private stage: InstabilityStage = 0;
 
@@ -57,7 +59,36 @@ export class FieldBackground {
     this.danger.fillRect(0, LAYOUT.wardY - 140, width, 140);
 
     this.ward = scene.add.graphics().setDepth(-7);
+
+    // Arcane Shield: a pale wall of light just above the ward line.
+    this.shield = scene.add.graphics().setDepth(-6).setVisible(false);
+    this.shield.fillGradientStyle(PALETTE.shield, PALETTE.shield, PALETTE.shield, PALETTE.shield, 0, 0, 0.4, 0.4);
+    this.shield.fillRect(0, LAYOUT.wardY - 36, width, 36);
+    this.shield.lineStyle(3, PALETTE.shield, 0.95);
+    this.shield.lineBetween(0, LAYOUT.wardY - 2, width, LAYOUT.wardY - 2);
     this.setStage(0);
+  }
+
+  /** Show or hide the Arcane Shield glow. */
+  setShield(active: boolean): void {
+    if (this.shield.visible === active) return;
+    this.shieldPulse?.stop();
+    this.shield.setVisible(active).setAlpha(1);
+    if (active) {
+      this.shieldPulse = this.scene.tweens.add({
+        targets: this.shield,
+        alpha: { from: 1, to: 0.55 },
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.InOut',
+      });
+    }
+  }
+
+  /** A word stopped by the shield: a soft flare instead of a shake. */
+  flashBlocked(): void {
+    this.scene.cameras.main.flash(120, 169, 184, 255, false);
   }
 
   setStage(stage: InstabilityStage): void {

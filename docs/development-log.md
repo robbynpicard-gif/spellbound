@@ -4,17 +4,46 @@ Newest entries at the top.
 
 ---
 
-## 2026-11-16 — Planning: Campaign v2 and Spell system v2 (no code changes)
+## 2026-11-16 — Milestone 6 (part 1): Campaign v2 and Spell system v2
 
-Design decisions agreed with the owner for Milestone 6, recorded as drafts:
-- [`docs/plans/campaign-v2.md`](plans/campaign-v2.md): 20 levels in 4 chapters,
-  survival bosses, Normal/Hardcore modes, about 20-minute runs, draft level table.
-- [`docs/plans/spells-v2.md`](plans/spells-v2.md): 8 spells in power order,
-  shared pool of 8, drop weights, stacking Ice/Slow, Fire as a bailout,
-  unique cast words.
+**Done** (D-025, D-026; designs in [`plans/`](plans/))
+- Campaign: 20 levels in 4 chapters; levels 5/10/15/20 are survival bosses
+  (60/75/90/120 s) whose pace ramps up over the timer. A run is about 20 min.
+  Old level 10's pace is the new end point.
+- Normal and Hardcore modes (mode choice screen). Hardcore carries
+  instability through the run, heals 25% after each boss, has its own
+  records. Save format v4 (v3 saves migrate).
+- Boss reward: choose 1 of 3 unlocked spells (weighted by rarity) as a free
+  charge; with a full pool, swap one out or skip.
+- Spells: eight in power order (slow, ice, barrier, shock, alter, fire,
+  wind, harvest), one shared pool of 8, drop weights, ×3 drops on a spell's
+  intro level, and a pop-up before that level. Ice and Slow stack; Fire is
+  a no-reward bailout; Wind halves in Hardcore; Barrier, Shock, Alter and
+  Harvest are new. "Tomes" renamed to "scrolls".
+- Cast words reserved: removed fir/fireball/firebolt/firebrand/firestorm;
+  `WORDS` filters any clash; a test guards it.
+- HUD: one slot per unlocked spell with a count, pool total, shield
+  counter, boss timer on the progress bar. New visuals for shield, lightning,
+  transmutation and harvest.
+- Practice and duels play boss levels as endless at their starting pace.
 
-**Next:** settle the remaining open questions (Shock targeting, Harvest name),
-then plan special word types. Implementation waits for owner approval.
+**Verified**
+- 151 unit tests pass (new: pool, drop weights, cast-word clashes, every
+  spell incl. the Slow-stack example, stacking Ice, Slow paused by Ice,
+  Transmutation leaving the spawn sequence unchanged, replay with all eight
+  spells, survival win and ramp, Hardcore carry and boss heal, boss
+  rewards, save v4 migration). Typecheck clean.
+- Bots played all 20 levels with the real word list: no errors; a perfect
+  fast typist clears the run in ~16 min; slower bots fall around levels
+  12–15.
+- Tested in a cloud workspace where packages couldn't be installed: tests
+  ran on Node's built-in TypeScript support with a small stand-in for
+  Vitest, and the type check used stand-in Phaser types. The GitHub build
+  (real Vitest, real build) is the final check. Not yet play-tested in a
+  browser by a human.
+
+**Next:** play-test and tune; then special word types (Volatile, Cursed,
+Shielded, Conduit, Illusion).
 
 ---
 

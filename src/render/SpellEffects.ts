@@ -16,6 +16,7 @@ export class SpellEffects {
   private readonly temporal: Phaser.GameObjects.Rectangle;
   private readonly fire: Phaser.GameObjects.Particles.ParticleEmitter;
   private readonly wind: Phaser.GameObjects.Particles.ParticleEmitter;
+  private readonly spark: Phaser.GameObjects.Particles.ParticleEmitter;
   private temporalPulse?: Phaser.Tweens.Tween;
 
   constructor(private readonly scene: Phaser.Scene) {
@@ -58,11 +59,57 @@ export class SpellEffects {
         emitting: false,
       })
       .setDepth(22);
+
+    // Shared burst for Chain Lightning, Transmutation and Harvest (tinted per use).
+    this.spark = scene.add
+      .particles(0, 0, SPARK_TEXTURE, {
+        speed: { min: 60, max: 260 },
+        angle: { min: 0, max: 360 },
+        lifespan: { min: 300, max: 700 },
+        scale: { start: 1.1, end: 0 },
+        alpha: { start: 1, end: 0 },
+        blendMode: Phaser.BlendModes.ADD,
+        emitting: false,
+      })
+      .setDepth(22);
   }
 
   /** A word engulfed by Incineration. */
   burnWord(x: number, y: number): void {
     this.fire.explode(28, x, y);
+  }
+
+  /** Chain Lightning: jagged bolts joining the struck words, in order. */
+  lightning(points: readonly { x: number; y: number }[]): void {
+    if (points.length === 0) return;
+    const g = this.scene.add.graphics().setDepth(23);
+    const bolt = (ax: number, ay: number, bx: number, by: number, width: number, alpha: number) => {
+      g.lineStyle(width, PALETTE.lightning, alpha);
+      g.beginPath();
+      g.moveTo(ax, ay);
+      const steps = 6;
+      for (let i = 1; i < steps; i++) {
+        const t = i / steps;
+        g.lineTo(ax + (bx - ax) * t + Phaser.Math.Between(-14, 14), ay + (by - ay) * t + Phaser.Math.Between(-14, 14));
+      }
+      g.lineTo(bx, by);
+      g.strokePath();
+    };
+    const first = points[0]!;
+    bolt(first.x, LAYOUT.hudHeight, first.x, first.y, 4, 0.95);
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1]!;
+      const b = points[i]!;
+      bolt(a.x, a.y, b.x, b.y, 3, 0.9);
+    }
+    for (const p of points) this.burst(p.x, p.y, PALETTE.lightning, 22);
+    this.scene.tweens.add({ targets: g, alpha: 0, duration: 450, ease: 'Cubic.In', onComplete: () => g.destroy() });
+  }
+
+  /** A coloured burst of sparks at a point. */
+  burst(x: number, y: number, color: number, count = 18): void {
+    this.spark.setParticleTint(color);
+    this.spark.explode(count, x, y);
   }
 
   cast(spell: SpellId): void {
@@ -90,7 +137,16 @@ export class SpellEffects {
       case 'wind':
         this.wind.explode(160);
         break;
+      default:
+        // Arcane Shield, Chain Lightning, Transmutation and Harvest draw their
+        // effects where they act (see GameScene).
+        break;
     }
+  }
+
+  /** Temporal Distortion stacks changed: deeper stacks make the overlay stronger. */
+  setSlowStacks(stacks: number): void {
+    if (stacks > 0) this.temporal.setFillStyle(PALETTE.arcane, Math.min(0.28, 0.1 * stacks));
   }
 
   /**

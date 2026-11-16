@@ -4,9 +4,9 @@ import type { GameResult } from '../core/GameEvents';
 import { FONTS, PALETTE, SIMULATION_STEP_MS } from '../core/GameConfig';
 import { createSeed } from '../core/Random';
 import { WORDS } from '../data/wordList';
-import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
+import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import type { GameStats } from '../gameplay/ScoringSystem';
-import type { SpellCharges } from '../gameplay/SpellManager';
+import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { Effects } from '../render/Effects';
 import { FieldBackground } from '../render/FieldBackground';
 import { hex, LAYOUT, SPELL_COLORS } from '../render/layout';
@@ -14,11 +14,18 @@ import { SpellEffects } from '../render/SpellEffects';
 import { WordView } from '../render/WordView';
 import { SPELLS } from '../spells/SpellRegistry';
 import { GameHUD } from '../ui/GameHUD';
+import { instabilityStage } from '../gameplay/InstabilityManager';
 
 /** How the scene reports back to the app (menus are HTML, outside Phaser). */
 export interface GameSceneHooks {
   onPauseChanged(paused: boolean): void;
-  onGameOver(result: GameResult, stats: GameStats, spells: SpellCharges): void;
+  /** `instability` is the final value (Hardcore carries it to the next level). */
+  onGameOver(result: GameResult, stats: GameStats, spells: SpellCharges, instability: number): void;
+  /**
+   * Campaign: show the pop-up introducing a new spell. The level waits
+   * until `begin` is called.
+   */
+  onSpellIntro?(spell: SpellId, begin: () => void): void;
 }
 
 export interface GameSceneData {
@@ -29,6 +36,14 @@ export interface GameSceneData {
   initialSpells?: SpellCharges;
   /** Run score from earlier levels (shown in the HUD). */
   scoreOffset?: number;
+  /** Hardcore campaign (instability carries over; Arcane Purge halves it). */
+  hardcore?: boolean;
+  /** Instability carried in (Hardcore). */
+  initialInstability?: number;
+  /** Spells to show in the HUD (default: those this level can drop, plus any held). */
+  knownSpells?: readonly SpellId[];
+  /** Campaign: introduce this spell with a pop-up before the level starts. */
+  spellIntro?: SpellId | null;
   /** Present only in a Wizard Duel. */
   duel?: DuelOptions;
 }
@@ -80,6 +95,10 @@ export class GameScene extends Phaser.Scene {
   private accumulator = 0;
   private introRemainingMs = 0;
   private paused = false;
+  /** Waiting for the player to dismiss the new-spell pop-up. */
+  private awaitingIntro = false;
+  private spellIntro: SpellId | null = null;
+  private knownSpells: readonly SpellId[] = SPELL_IDS;
   private duel: DuelOptions | null = null;
   private duelMenuOpen = false;
   private countdownText: Phaser.GameObjects.Text | null = null;
@@ -100,11 +119,18 @@ export class GameScene extends Phaser.Scene {
       seed: data.seed ?? createSeed(),
       words: WORDS,
       initialSpells: data.initialSpells,
+      hardcore: data.hardcore,
+      initialInstability: data.initialInstability,
     });
     this.views.clear();
     this.accumulator = 0;
     this.introRemainingMs = this.duel ? 0 : INTRO_MS;
     this.paused = false;
+    this.spellIntro = this.duel ? null : (data.spellIntro ?? null);
+    this.awaitingIntro = false;
+    const held = SPELL_IDS.filter((id) => (data.initialSpells?.[id] ?? 0) > 0);
+    this.knownSpells =
+      data.knownSpells ?? SPELL_IDS.filter((id) => this.config.availableSpells.includes(id) || held.includes(id));
   }
 
   create(): void {
@@ -114,14 +140,30 @@ export class GameScene extends Phaser.Scene {
     this.spellFx = new SpellEffects(this);
     this.hud = new GameHUD(
       this,
-      this.duel ? this.duelTitle(this.duel.durationMs) : `Level ${this.config.level} · ${this.config.name}`,
+      this.duel ? this.duelTitle(this.duel.durationMs) : `Level ${this.config.level}`,
       this.config.requiredWords,
       this.scoreOffset,
       this.duel?.rivalName,
+      this.knownSpells,
     );
     this.hud.setSpells(this.engine.state.spells);
+    const startInstability = this.engine.state.instability;
+    if (startInstability > 0) {
+      const stage = instabilityStage(startInstability);
+      this.hud.setInstability(startInstability, stage);
+      this.background.setStage(stage);
+    }
+    if (isSurvival(this.config)) this.hud.setSurvival(this.config.survivalMs!, this.config.survivalMs!);
     if (this.duel) this.showCountdown();
-    else this.showIntro();
+    else if (this.spellIntro && this.hooks.onSpellIntro) {
+      this.awaitingIntro = true;
+      this.hooks.onSpellIntro(this.spellIntro, () => {
+        if (!this.awaitingIntro || !this.scene.isActive()) return;
+        this.awaitingIntro = false;
+        this.input.keyboard?.enableGlobalCapture();
+        this.showIntro();
+      });
+    } else this.showIntro();
 
     this.wireEngineEvents();
 
@@ -129,6 +171,8 @@ export class GameScene extends Phaser.Scene {
     keyboard.on('keydown', this.onKeyDown, this);
     keyboard.addCapture(CAPTURED_KEYS);
     keyboard.enableGlobalCapture();
+    // Let Enter/Space reach the pop-up's HTML button until it is dismissed.
+    if (this.awaitingIntro) keyboard.disableGlobalCapture();
     this.input.on('pointerdown', this.onPointerDown, this);
     this.game.events.on(Phaser.Core.Events.BLUR, this.onBlur, this);
 
@@ -148,7 +192,7 @@ export class GameScene extends Phaser.Scene {
 
   override update(_time: number, delta: number): void {
     if (this.duel) return this.updateDuel(this.duel);
-    if (this.paused || this.engine.status !== 'playing') return;
+    if (this.paused || this.awaitingIntro || this.engine.status !== 'playing') return;
 
     const frame = Math.min(delta, MAX_FRAME_MS);
     if (this.introRemainingMs > 0) {
@@ -165,6 +209,8 @@ export class GameScene extends Phaser.Scene {
     const alpha = this.accumulator / SIMULATION_STEP_MS;
     for (const view of this.views.values()) view.sync(alpha);
     this.hud.updateStats(this.engine.stats(), this.engine.state.combo);
+    const left = this.engine.survivalRemainingMs;
+    if (left !== null) this.hud.setSurvival(this.config.survivalMs!, left);
   }
 
   /** Called by the app's Resume button. */
@@ -272,14 +318,51 @@ export class GameScene extends Phaser.Scene {
       if (combo > 1) this.hud.pulseCombo();
     });
 
-    ev.on('wordsBurned', ({ words, points }) => {
+    ev.on('wordsBurned', ({ words }) => {
       for (const word of words) {
         const { x, y } = this.viewPosition(word.id, word.x, word.y);
         this.removeView(word.id);
         this.spellFx.burnWord(x, y);
       }
-      this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 300, `+${points}`, PALETTE.fire, 30);
     });
+
+    ev.on('wordsShocked', ({ words, points }) => {
+      const at = words.map((w) => this.viewPosition(w.id, w.x, w.y));
+      for (const word of words) this.removeView(word.id);
+      this.spellFx.lightning(at);
+      if (points > 0) this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 300, `+${points}`, PALETTE.lightning, 30);
+    });
+
+    ev.on('wordsHarvested', ({ words, points }) => {
+      for (const word of words) {
+        const { x, y } = this.viewPosition(word.id, word.x, word.y);
+        this.removeView(word.id);
+        this.spellFx.burst(x, y, PALETTE.harvest, 24);
+      }
+      if (points > 0) this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 300, `+${points}`, PALETTE.harvest, 30);
+    });
+
+    ev.on('wordsTransmuted', ({ words }) => {
+      for (const word of words) {
+        const view = this.views.get(word.id);
+        if (!view) continue;
+        view.refreshText();
+        this.spellFx.burst(view.x, view.y, PALETTE.transmute, 14);
+      }
+    });
+
+    ev.on('wordBlocked', ({ word }) => {
+      this.removeView(word.id);
+      this.spellFx.burst(word.x, LAYOUT.wardY - 10, PALETTE.shield, 26);
+      this.background.flashBlocked();
+    });
+
+    ev.on('barrierChanged', ({ remaining }) => {
+      this.background.setShield(remaining > 0);
+      this.hud.setShield(remaining);
+    });
+
+    ev.on('slowChanged', ({ stacks }) => this.spellFx.setSlowStacks(stacks));
 
     ev.on('wordMissed', ({ word }) => {
       this.removeView(word.id);
@@ -311,7 +394,7 @@ export class GameScene extends Phaser.Scene {
       this.effects.floatText(
         LAYOUT.width / 2,
         LAYOUT.panelY - 24,
-        stored ? `+1 ${book} tome` : `${book} tomes full`,
+        stored ? `+1 ${book} scroll` : 'Spell pool full',
         stored ? SPELL_COLORS[spell] : PALETTE.parchment,
         20,
       );
@@ -354,7 +437,8 @@ export class GameScene extends Phaser.Scene {
         return;
       }
       const spells = { ...this.engine.state.spells };
-      this.time.delayedCall(RESULTS_DELAY_MS, () => this.hooks.onGameOver(result, stats, spells));
+      const instability = this.engine.state.instability;
+      this.time.delayedCall(RESULTS_DELAY_MS, () => this.hooks.onGameOver(result, stats, spells, instability));
     });
   }
 
@@ -388,8 +472,9 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setShadow(0, 0, hex(PALETTE.arcane), 18, false, true)
       .setDepth(40);
-    const goal =
-      this.config.requiredWords === null
+    const goal = isSurvival(this.config)
+      ? `Boss · Survive for ${Math.round(this.config.survivalMs! / 1000)} seconds`
+      : this.config.requiredWords === null
         ? 'Endless practice: survive as long as you can'
         : `Complete ${this.config.requiredWords} words`;
     const sub = this.add
@@ -427,6 +512,8 @@ export class GameScene extends Phaser.Scene {
       }
       if (this.duelMenuOpen || performance.now() < this.duel.startPerf) return;
     } else {
+      // The new-spell pop-up (HTML) has the keyboard until it is dismissed.
+      if (this.awaitingIntro) return;
       if (key === 'Escape') return this.setPaused(!this.paused);
       if (this.paused || this.introRemainingMs > 0) return;
     }
@@ -444,7 +531,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {
-    if (this.paused || this.duelMenuOpen || this.engine.status !== 'playing') return;
+    if (this.paused || this.awaitingIntro || this.duelMenuOpen || this.engine.status !== 'playing') return;
     for (const view of this.views.values()) {
       if (view.hitTest(pointer.worldX, pointer.worldY)) {
         this.engine.selectTarget(view.word.id);
@@ -454,7 +541,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private onBlur(): void {
-    if (this.duel) return; // duels never pause
+    if (this.duel || this.awaitingIntro) return; // duels never pause; the pop-up already waits
     if (this.engine.status === 'playing') this.setPaused(true);
   }
 

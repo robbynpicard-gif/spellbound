@@ -48,6 +48,10 @@ export const PALETTE = {
   wind: 0x6fd6b3,
   crimson: 0xc0392b,
   positive: 0x9be08a,
+  shield: 0xa9b8ff,
+  lightning: 0xf5e26b,
+  transmute: 0xf08fb8,
+  harvest: 0xe8bf62,
 } as const;
 
 /** Fonts. Gameplay words always use the most legible stack. */

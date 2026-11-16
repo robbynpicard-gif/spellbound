@@ -12,8 +12,22 @@ export interface GameEvents {
   wordProgress: { word: WordState };
   wordCompleted: { word: WordState; points: number; combo: number };
   wordMissed: { word: WordState; instability: number };
-  /** Words destroyed by Incineration (not typed). */
-  wordsBurned: { words: WordState[]; points: number };
+  /** Words destroyed by Incineration (not typed; no points, no progress). */
+  wordsBurned: { words: WordState[] };
+  /** Words destroyed by Chain Lightning, in strike order (first = the most urgent). */
+  wordsShocked: { words: WordState[]; points: number };
+  /** Words claimed by Harvest. */
+  wordsHarvested: { words: WordState[]; points: number };
+  /** Words changed by Transmutation (their text is already the new text). */
+  wordsTransmuted: { words: WordState[] };
+  /** A word reached the ward line but Arcane Shield stopped it. */
+  wordBlocked: { word: WordState; barrierLeft: number };
+  /** Arcane Shield blocks left changed (cast or used). */
+  barrierChanged: { remaining: number };
+  /** Temporal Distortion stacks changed (cast, or one wore off). */
+  slowChanged: { stacks: number; factor: number };
+  /** Frostbinding time left changed by a cast. */
+  freezeChanged: { ticks: number };
   /**
    * A keystroke that made the console text match nothing. wordId is the word
    * that was being attempted (it speeds up), or null if none.
@@ -31,12 +45,12 @@ export interface GameEvents {
   /** Fired whenever completed-word progress changes. */
   progressChanged: { completed: number; required: number | null };
   scoreChanged: { score: number; combo: number };
-  /** A tome was completed. `stored` is false when that spell was already full. */
+  /** A scroll was completed. `stored` is false when the spell pool was already full. */
   spellCollected: { spell: SpellId; stored: boolean; charges: SpellCharges };
   spellCast: { spell: SpellId; charges: SpellCharges };
   /** Tried to cast with no charges left. */
   spellFizzled: { spell: SpellId };
-  /** A timed spell (Frostbinding, Temporal Distortion) wore off. */
+  /** A timed spell (Frostbinding, or the last Temporal Distortion stack) wore off. */
   spellEnded: { spell: SpellId };
   gameOver: { result: GameResult; stats: GameStats };
 }

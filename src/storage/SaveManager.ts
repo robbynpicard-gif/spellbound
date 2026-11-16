@@ -3,6 +3,7 @@ import {
   applyRunResult,
   emptyCampaignRecords,
   noteLevelReached,
+  type CampaignMode,
   type CampaignRecords,
   type RunOutcome,
   type RunSummary,
@@ -20,7 +21,7 @@ import {
 import { sanitizeName } from '../multiplayer/protocol';
 
 export const SAVE_KEY = 'spellbound.save';
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 
 /** Practice records live apart from Campaign records (GDD §14). */
 export interface PracticeData {
@@ -33,7 +34,10 @@ export interface PracticeData {
 
 export interface SaveData {
   version: typeof SAVE_VERSION;
+  /** Normal-mode campaign records. */
   campaign: CampaignRecords;
+  /** Hardcore campaign records, kept apart from Normal. */
+  hardcore: CampaignRecords;
   practice: PracticeData;
   /** Player profile. Added within v3 (missing in older v3 saves → defaults). */
   profile: { name: string; duelLevel: number };
@@ -53,6 +57,7 @@ export function emptySave(): SaveData {
   return {
     version: SAVE_VERSION,
     campaign: emptyCampaignRecords(),
+    hardcore: emptyCampaignRecords(),
     practice: emptyPractice(),
     profile: { name: '', duelLevel: 1 },
   };
@@ -122,12 +127,18 @@ function parseProfile(raw: unknown, totalLevels: number): SaveData['profile'] {
  * Turns stored text back into SaveData. Anything unreadable yields a fresh
  * save instead of crashing. Older versions are migrated:
  * v1 (per-level campaign) → highest unlocked becomes highest reached;
- * v2 (campaign runs) → kept, practice starts empty.
+ * v2 (campaign runs) → kept, practice starts empty;
+ * v3 → kept, Hardcore records start empty (v4 added Hardcore).
  */
 export function parseSave(raw: string | null, totalLevels: number): SaveData {
   if (!raw) return emptySave();
   try {
-    const data = JSON.parse(raw) as { version?: number; campaign?: Record<string, unknown>; practice?: unknown };
+    const data = JSON.parse(raw) as {
+      version?: number;
+      campaign?: Record<string, unknown>;
+      hardcore?: unknown;
+      practice?: unknown;
+    };
     const c = data.campaign;
     if (typeof c !== 'object' || c === null) return emptySave();
     const save = emptySave();
@@ -139,8 +150,11 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
       case 2:
         save.campaign = parseCampaign(c, totalLevels);
         return save;
+      case 3:
       case SAVE_VERSION:
         save.campaign = parseCampaign(c, totalLevels);
+        if (data.version === SAVE_VERSION && typeof data.hardcore === 'object' && data.hardcore !== null)
+          save.hardcore = parseCampaign(data.hardcore as Record<string, unknown>, totalLevels);
         save.practice = parsePractice(data.practice, totalLevels);
         save.profile = parseProfile((data as { profile?: unknown }).profile, totalLevels);
         return save;
@@ -189,26 +203,44 @@ export class SaveManager {
     return this.storage !== null;
   }
 
+  /** Normal-mode campaign records. */
   get campaign(): Readonly<CampaignRecords> {
     return this.save.campaign;
+  }
+
+  get hardcore(): Readonly<CampaignRecords> {
+    return this.save.hardcore;
+  }
+
+  records(mode: CampaignMode): Readonly<CampaignRecords> {
+    return mode === 'hardcore' ? this.save.hardcore : this.save.campaign;
+  }
+
+  /** Furthest level reached in either mode (decides which levels Practice offers). */
+  get highestReached(): number {
+    return Math.max(this.save.campaign.highestReached, this.save.hardcore.highestReached);
   }
 
   get practice(): Readonly<PracticeData> {
     return this.save.practice;
   }
 
-  noteRunStarted(): void {
-    this.save.campaign.runsStarted++;
+  private mutable(mode: CampaignMode): CampaignRecords {
+    return mode === 'hardcore' ? this.save.hardcore : this.save.campaign;
+  }
+
+  noteRunStarted(mode: CampaignMode = 'normal'): void {
+    this.mutable(mode).runsStarted++;
     this.write();
   }
 
-  noteLevelReached(level: number): void {
-    noteLevelReached(this.save.campaign, Math.min(level, this.totalLevels));
+  noteLevelReached(level: number, mode: CampaignMode = 'normal'): void {
+    noteLevelReached(this.mutable(mode), Math.min(level, this.totalLevels));
     this.write();
   }
 
-  recordRun(summary: RunSummary): RunOutcome {
-    const outcome = applyRunResult(this.save.campaign, summary);
+  recordRun(summary: RunSummary, mode: CampaignMode = 'normal'): RunOutcome {
+    const outcome = applyRunResult(this.mutable(mode), summary);
     this.write();
     return outcome;
   }

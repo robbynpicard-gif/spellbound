@@ -13,10 +13,10 @@ export type LengthClass = 'short' | 'medium' | 'long';
  */
 export interface WordState {
   readonly id: number;
-  /** Text as displayed (may contain capitals, e.g. "Frodo"). */
-  readonly text: string;
+  /** Text as displayed (may contain capitals, e.g. "Frodo"). Transmutation can change it. */
+  text: string;
   /** Lowercase text used for all matching (the game is case-insensitive). */
-  readonly match: string;
+  match: string;
   x: number;
   y: number;
   /** y on the previous tick — lets the renderer interpolate smooth motion. */
@@ -26,10 +26,10 @@ export interface WordState {
   /** How many leading characters of this word the console input currently matches. */
   typed: number;
   isTarget: boolean;
-  readonly lengthClass: LengthClass;
+  lengthClass: LengthClass;
   /** Special modifier id (volatile, cursed…). Always null until Milestone 6. */
   readonly modifier: string | null;
-  /** Spell tome carried by this word: completing (or burning) it grants a charge. */
+  /** Spell scroll carried by this word: completing it grants a charge. */
   readonly spell: SpellId | null;
   readonly spawnTick: number;
   /** Wrong keystrokes made while this word was the target. */

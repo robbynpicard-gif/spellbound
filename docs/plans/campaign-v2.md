@@ -1,6 +1,6 @@
-# Spellbound — Campaign v2 plan (DRAFT, planning only, not in code)
+# Spellbound — Campaign v2 plan (implemented)
 
-_Agreed with the project owner, 2026-11-16. Replaces the 10-level campaign (D-014/D-016) once approved for implementation. Spell details: [spells-v2.md](spells-v2.md)._
+_Agreed with the project owner and implemented, 2026-11-16 (decisions.md D-025/D-026). Replaces the 10-level campaign (D-014/D-016) once approved for implementation. Spell details: [spells-v2.md](spells-v2.md)._
 
 ## Structure
 - 20 levels in 4 chapters. Each chapter has 4 normal levels plus a boss level (5, 10, 15, 20).
