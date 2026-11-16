@@ -1,6 +1,6 @@
 # Spellbound — Architecture
 
-_Last updated: 2026-11-16 (Milestone 1)_
+_Last updated: 2026-11-16 (Milestone 2)_
 
 This document describes how the code is organised and the rules that keep it
 maintainable. The Game Design Document (`docs/GDD.md`) says **what** the game
@@ -86,11 +86,31 @@ sent — not raw keystrokes or rendered state.
 - Spells and modifiers register themselves in central registries, so adding
   one means adding a file + data entry, not editing the engine.
 
-### 3.5 Menus
-The GDD lists both HTML/CSS and Phaser scenes for UI. Current proposal (to be
-confirmed before Milestone 2 — see decisions.md D-008): the playing field and
-in-game HUD are drawn in Phaser; full-screen menus that need text entry
-(room codes, settings) may use DOM elements over the canvas.
+### 3.5 Menus and app flow (Milestone 2)
+The playing field and in-game HUD are drawn in Phaser. All menus are HTML
+over the canvas (decisions.md D-008):
+
+```
+main.ts ─▶ App (src/app/App.ts) ─┬─▶ UIRoot shows one HTML Screen (src/ui/screens.ts)
+                                 ├─▶ Phaser: BackdropScene (menus) or GameScene (play)
+                                 └─▶ SaveManager ◀─ CampaignMode rules
+GameScene ── hooks.onPauseChanged / hooks.onGameOver ──▶ App
+```
+
+Flow: Main menu → Campaign (level select) → GameScene (intro banner, play)
+→ Results (Next / Retry / Level select / Main menu). Esc pauses; the pause
+screen is HTML, but the scene owns the pause state.
+
+| File | Responsibility |
+|---|---|
+| `app/App.ts` | Screen flow; starts/stops scenes; records results |
+| `ui/UIRoot.ts`, `ui/dom.ts`, `ui/screens.ts` | HTML layer, element helper, all menu screens |
+| `styles/menu.css` | Menu styling (responsive, visible focus rings, reduced-motion aware) |
+| `data/levels.json` | 10 campaign levels |
+| `difficulty/LevelManager.ts` | Level lookup; `CAMPAIGN_LEVELS` in `LevelDefinitions.ts` |
+| `modes/CampaignMode.ts` | Unlock and personal-best rules (pure) |
+| `storage/SaveManager.ts` | Versioned localStorage save, tolerant loading |
+| `scenes/BackdropScene.ts` | Animated sky behind menus |
 
 ### 3.6 What exists so far (Milestone 1)
 

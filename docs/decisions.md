@@ -65,7 +65,12 @@ _2026-11-16 · Accepted_
 with how the server shares code from `src/` (likely an npm workspace).
 
 ### D-008 — Where menus live (Phaser vs. HTML/CSS)
-_2026-11-16 · Proposed — needs owner input before Milestone 2_
+_2026-11-16 · **Accepted: Option B** (project owner, before Milestone 2)_
+
+Implemented in Milestone 2: `src/ui/UIRoot.ts` + `src/ui/screens.ts` render
+the main menu, level select, pause, results and credits as HTML over the
+canvas; `src/app/App.ts` switches between them and the Phaser scenes. The
+Phaser `MainMenuScene` was replaced by `BackdropScene` (animated sky only).
 
 Option A: everything in Phaser (one rendering system, consistent look; text
 fields like room codes are more work).
@@ -116,6 +121,26 @@ Every player action is recorded as a small command stamped with its tick
 reproduces the exact game; a unit test checks this. This is what the
 multiplayer server will use to validate results (GDD §6), and is all that
 needs to travel over the network.
+
+### D-014 — Campaign levels as validated JSON
+_2026-11-16 · Accepted_
+
+Levels live in `src/data/levels.json` (GDD §6: configuration files, not
+hard-coded). `validateLevels()` checks every field at start-up and lists all
+problems at once. A unit test enforces progressive difficulty: every level
+must be faster, spawn more often, need more words and produce at least as
+long words as the one before.
+
+### D-015 — Campaign progression and saving
+_2026-11-16 · Accepted_
+
+- Winning level N unlocks N+1. Losing unlocks nothing but counts as an attempt.
+- Personal bests (score, WPM, accuracy, combo) only come from completed runs,
+  so a long losing run can't outrank a real clear.
+- Progress is stored in the browser (`localStorage`, one key
+  `spellbound.save`, versioned). Corrupt or tampered data falls back to a
+  fresh save; if storage is blocked the game still runs and the main menu
+  says progress can't be saved.
 
 ### D-009 — Original game is a mechanics reference only
 _2026-11-16 · Accepted_

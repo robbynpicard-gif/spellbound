@@ -2,8 +2,8 @@
  * Everything that makes one level harder or easier than another.
  *
  * Campaign, Practice and multiplayer all read these same objects; no mode
- * calculates its own difficulty. Milestone 2 adds the full set of levels and
- * the remaining fields the GDD lists (available spells, etc.).
+ * calculates its own difficulty. Campaign levels live in src/data/levels.json
+ * and are checked by validateLevels() when the game loads.
  */
 export interface DifficultyConfig {
   level: number;
@@ -32,4 +32,83 @@ export interface DifficultyConfig {
    * Based on reports of the original game; see original-game-research.md #4–5.
    */
   errorAcceleration: number;
+  /** Spell ids the player may use on this level. Empty until Milestone 3. */
+  availableSpells: readonly string[];
+}
+
+/** Weighted average word length a level produces (a rough difficulty measure). */
+export function averageWordLength(config: DifficultyConfig): number {
+  let total = 0;
+  let weightSum = 0;
+  for (let len = config.minWordLength; len <= config.maxWordLength; len++) {
+    const weight = config.wordLengthWeights ? (config.wordLengthWeights[len] ?? 0) : 1;
+    total += len * weight;
+    weightSum += weight;
+  }
+  return weightSum === 0 ? 0 : total / weightSum;
+}
+
+/**
+ * Peak typing demand in characters per second if the field is kept full:
+ * how fast letters arrive (spawn rate × average length).
+ */
+export function letterArrivalRate(config: DifficultyConfig): number {
+  return averageWordLength(config) / (config.spawnInterval / 1000);
+}
+
+const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/**
+ * Checks raw level data (e.g. parsed JSON) and returns typed configs, or
+ * throws an Error listing every problem found. Levels must be numbered
+ * 1, 2, 3… in order.
+ */
+export function validateLevels(data: unknown): DifficultyConfig[] {
+  if (!Array.isArray(data) || data.length === 0) throw new Error('Levels must be a non-empty array');
+  const problems: string[] = [];
+
+  data.forEach((raw: Record<string, unknown>, index) => {
+    const at = `level[${index}]`;
+    const fail = (msg: string) => problems.push(`${at}: ${msg}`);
+    if (typeof raw !== 'object' || raw === null) return fail('not an object');
+
+    if (raw.level !== index + 1) fail(`level must be ${index + 1}`);
+    if (typeof raw.name !== 'string' || raw.name.trim() === '') fail('name missing');
+    if (!(raw.requiredWords === null || (isNum(raw.requiredWords) && raw.requiredWords > 0)))
+      fail('requiredWords must be a positive number or null');
+    for (const key of ['initialFallSpeed', 'spawnInterval', 'maxActiveWords', 'errorAcceleration'] as const) {
+      if (!isNum(raw[key]) || (raw[key] as number) < 0) fail(`${key} must be a non-negative number`);
+    }
+    if (!isNum(raw.instabilityPerMiss) || raw.instabilityPerMiss <= 0 || raw.instabilityPerMiss > 100)
+      fail('instabilityPerMiss must be in (0, 100]');
+    if (!isNum(raw.minWordLength) || !isNum(raw.maxWordLength) || raw.minWordLength > raw.maxWordLength)
+      fail('minWordLength/maxWordLength invalid');
+    if (raw.wordLengthWeights !== undefined) {
+      const weights = raw.wordLengthWeights as Record<string, unknown>;
+      if (typeof weights !== 'object' || weights === null) fail('wordLengthWeights must be an object');
+      else
+        for (const [len, w] of Object.entries(weights)) {
+          const n = Number(len);
+          if (!isNum(w) || w < 0) fail(`weight for length ${len} invalid`);
+          if (isNum(raw.minWordLength) && isNum(raw.maxWordLength) && (n < raw.minWordLength || n > raw.maxWordLength))
+            fail(`weight for length ${len} is outside min/max word length`);
+        }
+    }
+    if (typeof raw.modifierProbabilities !== 'object' || raw.modifierProbabilities === null)
+      fail('modifierProbabilities must be an object');
+    if (!Array.isArray(raw.availableSpells)) fail('availableSpells must be an array');
+  });
+
+  if (problems.length > 0) throw new Error(`Invalid level data:\n${problems.join('\n')}`);
+
+  // JSON object keys are strings; convert length weights back to numeric keys.
+  return (data as Record<string, unknown>[]).map((raw) => {
+    const config = { ...raw } as unknown as DifficultyConfig;
+    if (raw.wordLengthWeights) {
+      config.wordLengthWeights = Object.fromEntries(
+        Object.entries(raw.wordLengthWeights as Record<string, number>).map(([k, v]) => [Number(k), v]),
+      );
+    }
+    return config;
+  });
 }

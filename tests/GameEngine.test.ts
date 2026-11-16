@@ -17,6 +17,7 @@ const BASE_CONFIG: DifficultyConfig = {
   modifierProbabilities: {},
   instabilityPerMiss: 25,
   errorAcceleration: 30,
+  availableSpells: [],
 };
 
 function makeOptions(overrides: Partial<DifficultyConfig> = {}, seed = 1): EngineOptions {

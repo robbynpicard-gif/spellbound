@@ -3,14 +3,14 @@
 A wizard-themed arcade typing game for the browser. Words fall toward your
 tower; type them to cast counterspells before they land.
 
-> **Status:** Milestone 1 — playable prototype. One level, falling words,
-> typing, scoring and the ward-instability meter. Campaign levels come in
-> Milestone 2.
+> **Status:** Milestone 2 — a 10-level campaign with saved progress,
+> level select and results screens. Spells come in Milestone 3.
 
 ## How to play
 
-Press **Enter** on the title screen. Type the falling words before they reach
-the glowing ward line at the bottom.
+Choose **Campaign**, then a level. Type the falling words before they reach
+the glowing ward line at the bottom. Complete the level's word quota to
+unlock the next one. Progress is saved in your browser.
 
 | Key | Action |
 |---|---|

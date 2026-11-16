@@ -4,7 +4,9 @@ import { WORDS } from '../src/data/wordList';
 import { instabilityStage, InstabilityManager } from '../src/gameplay/InstabilityManager';
 import { accuracyOf, wordPoints, wpmOf } from '../src/gameplay/ScoringSystem';
 import { WordGenerator } from '../src/gameplay/WordGenerator';
-import { PROTOTYPE_LEVEL } from '../src/difficulty/LevelDefinitions';
+import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
+
+const PROTOTYPE_LEVEL = CAMPAIGN_LEVELS.get(3); // lengths 3–7
 
 describe('word list', () => {
   it('contains only lowercase a–z words of 3–12 letters, without duplicates', () => {

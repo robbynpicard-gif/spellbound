@@ -44,14 +44,16 @@ export class GameHUD {
     bar.lineBetween(0, LAYOUT.hudHeight, LAYOUT.width, LAYOUT.hudHeight);
 
     const y = LAYOUT.hudHeight / 2;
-    scene.add
+    const levelText = scene.add
       .text(20, y, levelName, { ...label(PALETTE.gold), fontFamily: FONTS.heading, fontSize: '22px' })
       .setOrigin(0, 0.5)
       .setDepth(31);
-    this.scoreText = scene.add.text(240, y, '', label()).setOrigin(0, 0.5).setDepth(31);
-    this.comboText = scene.add.text(440, y, '', label()).setOrigin(0, 0.5).setDepth(31);
-    this.wordsText = scene.add.text(600, y, '', label()).setOrigin(0, 0.5).setDepth(31);
-    this.accuracyText = scene.add.text(800, y, '', label()).setOrigin(0, 0.5).setDepth(31);
+    // Fixed columns after the level name, so values changing width don't make the bar jitter.
+    const x0 = Math.max(240, levelText.x + levelText.width + 36);
+    this.scoreText = scene.add.text(x0, y, '', label()).setOrigin(0, 0.5).setDepth(31);
+    this.comboText = scene.add.text(x0 + 170, y, '', label()).setOrigin(0, 0.5).setDepth(31);
+    this.wordsText = scene.add.text(x0 + 300, y, '', label()).setOrigin(0, 0.5).setDepth(31);
+    this.accuracyText = scene.add.text(x0 + 470, y, '', label()).setOrigin(0, 0.5).setDepth(31);
     scene.add
       .text(LAYOUT.width - 20, y, 'Esc  Pause', { ...label(), fontSize: '16px' })
       .setOrigin(1, 0.5)

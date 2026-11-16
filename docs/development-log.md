@@ -4,6 +4,46 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Milestone 2: Campaign and difficulty
+
+**Decision:** project owner chose HTML menus (D-008 → accepted).
+
+**Done**
+- 10 campaign levels in `data/levels.json` with validation (D-014):
+  fall speed 35→90 px/s, spawn 2.6→1.2 s, 4→9 words on screen, words
+  3–5 → 6–12 letters, quota 25→70, misses allowed 10→7, wrong-key
+  acceleration 10→20.
+- `availableSpells` added to `DifficultyConfig` (empty until Milestone 3).
+- Campaign rules (`CampaignMode`) and versioned browser save (`SaveManager`), D-015.
+- HTML menu layer: main menu (unbuilt modes shown disabled with "Coming
+  soon"), level select (locked/cleared/best score), pause, results (score,
+  accuracy, WPM, words, missed, best combo, time, personal best, unlocks),
+  credits. Keyboard friendly: primary button auto-focused, Enter activates,
+  Esc goes back.
+- `App` controller for screen flow; GameScene reports via hooks and shows a
+  level-intro banner; `BackdropScene` replaces the Phaser title scene.
+- HUD columns now start after the level name (fixed an overlap with long names).
+
+**Verified**
+- Typecheck and build clean; 50 unit tests pass (new: level validation,
+  progressive-difficulty check, unlock rules, personal bests, save/reload,
+  corrupt/blocked storage).
+- In the browser: menu → level select (only level 1 open) → intro banner →
+  auto-typed clear of level 1 → results with "Level 2 unsealed" → page
+  reload → level 1 shows best score, level 2 unlocked. Pause menu freezes the
+  game and resumes. Losing level 2 shows the failure results and records an
+  attempt without unlocking. No console errors. Test save data was erased
+  afterwards.
+
+**Temporary / placeholder**
+- No rewards beyond unlocking yet (spell rewards come with Milestone 3).
+- Level tuning is a first pass; needs human play-testing, especially 7–10.
+
+**Next:** Milestone 3 — the four original spells. Research the original's
+Fire/Ice/Slow/Wind behaviour first (research #9–13).
+
+---
+
 ## 2026-11-16 — Milestone 1: Core gameplay prototype
 
 **Done**

@@ -1,9 +1,14 @@
 import Phaser from 'phaser';
 import './styles/main.css';
+import './styles/menu.css';
+import { App } from './app/App';
 import { GAME_HEIGHT, GAME_WIDTH, PALETTE } from './core/GameConfig';
-import { BootScene } from './scenes/BootScene';
+import { CAMPAIGN_LEVELS } from './difficulty/LevelDefinitions';
+import { BackdropScene } from './scenes/BackdropScene';
+import { BOOT_COMPLETE, BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
-import { MainMenuScene } from './scenes/MainMenuScene';
+import { browserStorage, SaveManager } from './storage/SaveManager';
+import { UIRoot } from './ui/UIRoot';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -15,10 +20,18 @@ const game = new Phaser.Game({
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
-  scene: [BootScene, MainMenuScene, GameScene],
+  scene: [BootScene, BackdropScene, GameScene],
 });
+
+const app = new App(
+  game,
+  new UIRoot(document.getElementById('ui-root')!),
+  new SaveManager(browserStorage(), CAMPAIGN_LEVELS.count),
+  CAMPAIGN_LEVELS,
+);
+game.events.once(BOOT_COMPLETE, () => app.showMainMenu());
 
 // Handy for debugging in the browser console during development only.
 if (import.meta.env.DEV) {
-  (window as unknown as { spellbound: Phaser.Game }).spellbound = game;
+  Object.assign(window, { spellbound: game, spellboundApp: app });
 }
