@@ -27,9 +27,9 @@ Legend: ✅ Verified · 📜 Historical description only · ❓ Unknown
 | # | Topic | Status | Finding | Spellbound adaptation |
 |---|---|---|---|---|
 | 1 | Word movement | 📜 | Words fall from top | — |
-| 2 | Word targeting | ❓ | | Auto-target + click to select (GDD §7) |
-| 3 | Keyboard input behaviour | ❓ | | |
-| 4 | Incorrect typing penalties | 📜 | Mistakes reportedly speed words up | Configurable `errorAcceleration` |
+| 2 | Word targeting | ❓ | | Implemented (M1): auto-target lowest word by first letter, locked until done; click to select (decisions D-010) |
+| 3 | Keyboard input behaviour | ❓ | | Implemented (M1): letters only, Backspace abandons, no key repeat (D-011) |
+| 4 | Incorrect typing penalties | 📜 | Mistakes reportedly speed words up | Implemented (M1) as configurable `errorAcceleration` on the target word — **verify value and scope** |
 | 5 | Word acceleration | ❓ | | |
 | 6 | Level completion | 📜 | Progressive levels | Word quota per level |
 | 7 | Difficulty scaling | ❓ | | |

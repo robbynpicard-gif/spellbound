@@ -4,6 +4,46 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Milestone 1: Core gameplay prototype
+
+**Done**
+- Simulation (no Phaser): `GameEngine`, `GameState`, `GameEvents`,
+  `WordGenerator`, `TargetManager`, `ScoringSystem`, `InstabilityManager`,
+  `DifficultyConfig` + one `PROTOTYPE_LEVEL`, 427-word list.
+- Presentation: `GameScene` (fixed-step loop with smooth interpolation),
+  `WordView` (gold typed letters, target plate, red error flash + shake),
+  `Effects` (spark bursts, floating points), `FieldBackground` (ward line and
+  danger glow that change with instability stage), `GameHUD` (score, combo,
+  words/quota, accuracy, WPM, instability meter), `OverlayPanel` (pause and
+  end-of-game summary).
+- Title screen now starts the game (Enter or click).
+- Decisions D-010 to D-013 recorded.
+
+**Verified**
+- Typecheck, production build: clean.
+- 35 unit tests pass, including: completion, auto-target choice, wrong-key
+  acceleration, stray keys, Backspace, click targeting, combo scoring, miss →
+  instability, loss at 100%, win at quota, max-words cap, and exact replay
+  from the command log.
+- In the browser: words spawn and fall; typing highlights letters and destroys
+  words with effects; wrong keys flash red and speed the word up; Backspace
+  and click targeting work; Esc pauses (simulation frozen); 10 misses end the
+  game with the summary panel; Enter restarts. No console errors.
+- Fixed during testing: small gap between typed and untyped letters (text
+  outline width).
+
+**Temporary / placeholder**
+- Art is drawn with shapes; no audio yet.
+- End-of-game panel stands in for the Milestone 2 Results screen.
+- Scoring values are provisional (D-012).
+
+**Not yet verified against the original:** wrong-key acceleration amount
+and scope (research #4–5).
+
+**Next:** Milestone 2 — campaign levels and difficulty. Needs decision D-008.
+
+---
+
 ## 2026-11-16 — Milestone 0: Project foundation
 
 **Environment found**

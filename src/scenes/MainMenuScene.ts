@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { FONTS, GAME_HEIGHT, GAME_TITLE, GAME_WIDTH, PALETTE } from '../core/GameConfig';
+import { GameScene } from './GameScene';
 
 const hex = (color: number): string => `#${color.toString(16).padStart(6, '0')}`;
 
@@ -40,14 +41,25 @@ export class MainMenuScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    const start = this.add
+      .text(cx, GAME_HEIGHT * 0.68, 'Press Enter to begin', {
+        fontFamily: FONTS.gameplay,
+        fontSize: '26px',
+        color: hex(PALETTE.gold),
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+    this.tweens.add({ targets: start, alpha: 0.45, duration: 900, yoyo: true, repeat: -1 });
+
     this.add
       .text(
         cx,
         GAME_HEIGHT * 0.86,
-        `Project foundation ready · Phaser ${Phaser.VERSION}\nGameplay arrives in Milestone 1`,
+        'Type the falling words before they reach the ward line.\n' +
+          'Backspace drops your current word · click a word to target it · Esc pauses',
         {
           fontFamily: FONTS.gameplay,
-          fontSize: '18px',
+          fontSize: '17px',
           color: hex(PALETTE.parchment),
           align: 'center',
           lineSpacing: 6,
@@ -55,6 +67,11 @@ export class MainMenuScene extends Phaser.Scene {
       )
       .setOrigin(0.5)
       .setAlpha(0.6);
+
+    // Temporary: the full menu (Campaign, Practice, Multiplayer…) comes later.
+    const begin = () => this.scene.start(GameScene.KEY);
+    start.on('pointerdown', begin);
+    this.input.keyboard!.once('keydown-ENTER', begin);
   }
 
   /** Slow golden motes of light: a quick check that the update loop runs. */

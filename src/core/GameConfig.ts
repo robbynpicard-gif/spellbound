@@ -10,6 +10,24 @@ export const GAME_TITLE = 'Spellbound';
 export const GAME_WIDTH = 1280;
 export const GAME_HEIGHT = 720;
 
+/** Size of the playing field in simulation units (used by game rules). */
+export interface FieldConfig {
+  width: number;
+  /** Distance a word falls from the spawn line to the ward line. */
+  height: number;
+  /** Words never spawn closer than this to the left/right edge. */
+  sideMargin: number;
+  /** Approximate width of one gameplay character, used to keep words on screen. */
+  approxCharWidth: number;
+}
+
+export const FIELD: FieldConfig = {
+  width: GAME_WIDTH,
+  height: 600,
+  sideMargin: 32,
+  approxCharWidth: 17,
+};
+
 /**
  * Fixed simulation rate. Gameplay logic advances in fixed steps so that the
  * same seed + inputs always produce the same result (needed for multiplayer

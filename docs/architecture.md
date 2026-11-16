@@ -1,6 +1,6 @@
 # Spellbound — Architecture
 
-_Last updated: 2026-11-16 (Milestone 0)_
+_Last updated: 2026-11-16 (Milestone 1)_
 
 This document describes how the code is organised and the rules that keep it
 maintainable. The Game Design Document (`docs/GDD.md`) says **what** the game
@@ -91,6 +91,33 @@ The GDD lists both HTML/CSS and Phaser scenes for UI. Current proposal (to be
 confirmed before Milestone 2 — see decisions.md D-008): the playing field and
 in-game HUD are drawn in Phaser; full-screen menus that need text entry
 (room codes, settings) may use DOM elements over the canvas.
+
+### 3.6 What exists so far (Milestone 1)
+
+```
+GameScene (Phaser)                         GameEngine (pure TS)
+ ├─ keyboard/mouse ── typeChar / abandon / selectTarget ──▶ records Command, applies rules
+ ├─ update(): fixed-step loop ── step() ──▶ move words, detect misses, spawn
+ ├─ WordView per word   ◀── wordSpawned / wordProgress / wordCompleted / wordMissed
+ ├─ Effects, FieldBackground ◀── typingError / instabilityChanged
+ ├─ GameHUD             ◀── stats() each frame, instabilityChanged
+ └─ OverlayPanel        ◀── gameOver (and pause)
+```
+
+| File | Responsibility |
+|---|---|
+| `core/GameEngine.ts` | Orchestrates one player's game; command log; `replay()` |
+| `core/GameState.ts` | Serialisable state shape and initial values |
+| `core/GameEvents.ts` | Typed event list |
+| `gameplay/Word.ts` | Word data shape |
+| `gameplay/WordGenerator.ts` | Seeded word choice by length weights, avoids duplicate text / first letters |
+| `gameplay/TargetManager.ts` | Auto-target rule |
+| `gameplay/ScoringSystem.ts` | Points, combo bonus, accuracy, WPM, `GameStats` |
+| `gameplay/InstabilityManager.ts` | 0–100 meter and visual stages |
+| `difficulty/DifficultyConfig.ts`, `LevelDefinitions.ts` | Level parameters (one prototype level for now) |
+| `data/words.json`, `wordList.ts` | 427-word pool |
+| `render/WordView.ts`, `Effects.ts`, `FieldBackground.ts`, `layout.ts` | Drawing |
+| `ui/GameHUD.ts`, `OverlayPanel.ts` | HUD, pause and end panels |
 
 ## 4. Tooling
 

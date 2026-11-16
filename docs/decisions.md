@@ -74,6 +74,49 @@ overlays (easier forms and accessibility; two styling systems).
 Recommendation: **B**. Not needed for Milestone 1, which only has a playing
 field and HUD.
 
+### D-010 — Targeting rules
+_2026-11-16 · Accepted_
+
+- No target: the first letter typed picks the word starting with that letter
+  that is closest to the ward line (ties → oldest word).
+- Once chosen, the target is locked. Keys that don't match it are errors;
+  they never switch to another word (GDD §7: "avoid accidental target
+  switching").
+- Clicking a word targets it explicitly; the previous target's progress resets.
+- To make the first keystroke unambiguous, the word generator avoids spawning
+  a word whose first letter is already used on the field, falling back only
+  when it can't find one.
+
+### D-011 — Error handling and controls
+_2026-11-16 · Accepted (wrong-key acceleration pending verification)_
+
+| Situation (GDD §7) | Consequence |
+|---|---|
+| Wrong key on the target | Counts as an error, breaks the combo, target falls faster by `errorAcceleration` (based on reports of the original; not yet verified) |
+| Key that matches no word | Counts as an error, breaks the combo, nothing else |
+| Abandoned word (Backspace) | Progress on that word resets; no other penalty |
+| Incorrect word submission | Not applicable: words complete automatically on their last correct letter; there is no Enter-to-submit |
+| Missed word | Instability `+instabilityPerMiss`, combo breaks |
+
+Controls: letters type, Backspace drops the current word, Esc pauses (and the
+game auto-pauses when the window loses focus), mouse click targets a word.
+Holding a key doesn't repeat it.
+
+### D-012 — Provisional scoring
+_2026-11-16 · Proposed — to be revisited after research #8_
+
+10 points per letter × combo bonus (+5% per consecutive clean word, max
++100%). The combo resets on any error or miss.
+
+### D-013 — Command log and replay
+_2026-11-16 · Accepted_
+
+Every player action is recorded as a small command stamped with its tick
+(`char`, `abandon`, `select`). `GameEngine.replay(seed, config, commands)`
+reproduces the exact game; a unit test checks this. This is what the
+multiplayer server will use to validate results (GDD §6), and is all that
+needs to travel over the network.
+
 ### D-009 — Original game is a mechanics reference only
 _2026-11-16 · Accepted_
 

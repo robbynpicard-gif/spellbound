@@ -3,8 +3,24 @@
 A wizard-themed arcade typing game for the browser. Words fall toward your
 tower; type them to cast counterspells before they land.
 
-> **Status:** Milestone 0 — project foundation. A title screen proves the
-> engine runs. Gameplay arrives in Milestone 1.
+> **Status:** Milestone 1 — playable prototype. One level, falling words,
+> typing, scoring and the ward-instability meter. Campaign levels come in
+> Milestone 2.
+
+## How to play
+
+Press **Enter** on the title screen. Type the falling words before they reach
+the glowing ward line at the bottom.
+
+| Key | Action |
+|---|---|
+| Letters | Type. The first letter picks a word; it stays selected until finished. |
+| Backspace | Drop the current word (its progress resets) |
+| Mouse click | Select a specific word |
+| Esc | Pause / resume |
+
+Wrong keys make your current word fall faster and break your combo. Each word
+that breaks through adds 10% instability; at 100% the wards fall.
 
 ## What you need
 
