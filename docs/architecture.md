@@ -1,6 +1,6 @@
 # Spellbound — Architecture
 
-_Last updated: 2026-11-16 (Milestone 3)_
+_Last updated: 2026-11-16 (Milestone 3.1 — typing console, see decisions D-020)_
 
 This document describes how the code is organised and the rules that keep it
 maintainable. The Game Design Document (`docs/GDD.md`) says **what** the game
@@ -107,7 +107,7 @@ screen is HTML, but the scene owns the pause state.
 
 ```
 data/spells.json ─▶ spells/SpellRegistry.ts (SPELLS: data + effect per id)
-GameEngine.castSpell(id) ─▶ 'cast' command ─▶ SPELLS[id].cast(SpellContext)
+console "fire" + Enter ─▶ submit command ─▶ SPELLS[id].cast(SpellContext)
 SpellContext = burnAllWords · freeze · slow · resetInstability · resetWordSpeeds
 ```
 

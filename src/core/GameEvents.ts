@@ -14,8 +14,18 @@ export interface GameEvents {
   wordMissed: { word: WordState; instability: number };
   /** Words destroyed by Incineration (not typed). */
   wordsBurned: { words: WordState[]; points: number };
-  /** A wrong key. wordId is null when no word could be targeted at all. */
+  /**
+   * A keystroke that made the console text match nothing. wordId is the word
+   * that was being attempted (it speeds up), or null if none.
+   */
   typingError: { wordId: number | null; char: string };
+  /** The typing console text changed. `valid` = it still matches a word or spell. */
+  inputChanged: { input: string; valid: boolean; targetId: number | null };
+  /**
+   * Enter on text that isn't a complete word or spell. wordId is the word the
+   * game guessed was intended (it speeds up), or null if no guess was possible.
+   */
+  submitMissed: { input: string; wordId: number | null };
   targetChanged: { previousId: number | null; currentId: number | null };
   instabilityChanged: { value: number; stage: InstabilityStage };
   /** Fired whenever completed-word progress changes. */

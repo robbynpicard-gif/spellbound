@@ -55,7 +55,7 @@ describe('campaign level data', () => {
   });
 
   it('converts JSON length-weight keys to numbers', () => {
-    expect(levels[0]!.wordLengthWeights![3]).toBe(3);
+    expect(levels[0]!.wordLengthWeights![4]).toBe(3);
   });
 
   it('has enough words for every level’s length range', () => {

@@ -39,7 +39,7 @@ Legend: ✅ Verified · 📜 Historical description only · ❓ Unknown
 | 11 | Slow Book | 📜 | Slows words [1] | Temporal Distortion: 8 s at 50% |
 | 12 | Wind Book | 📜 | "Renew your life", resets danger bar to 0%, erases mistyped words [1]; fan remake also resets the danger bar [2] | Arcane Purge: instability → 0%, mistake speed-ups removed |
 | 13 | Spell inventory limits | ❓ | | Max 3 per spell (GDD §10) |
-| — | How books are used | 📜 | Typed as words: FIRE / ICE / SLOW / WIND [1] | Keys 1–4 instead (avoids clashing with auto-targeting; D-017) |
+| — | How books are used | 📜 | Typed as words: FIRE / ICE / SLOW / WIND [1] | Typed in the console + Enter, as in the original (D-020; the earlier 1–4 keys were removed) |
 | — | Durations | ❓ | A fan remake uses 5 s for Ice and Slow [2] — not authoritative | Ice 5 s, Slow 8 s (data file, easy to tune) |
 | 14 | Special word types | ❓ | | |
 | 15 | Audio/visual effects | ❓ | | Original assets only |

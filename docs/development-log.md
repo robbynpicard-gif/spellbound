@@ -4,6 +4,45 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Milestone 3.1: Typing console, harder start, bigger word pool
+
+**Owner requests:** instability resets every level (already so — confirmed);
+raise the level-1 floor keeping per-level steps; widen themed words incl.
+fantasy references; an editable typing console where Enter on an incomplete
+word affects the intended word; spells cast by typing their names; not case
+sensitive.
+
+**Done**
+- Levels shifted up two steps and extended (D-019).
+- Words: 875 core + 148 reference names; case kept for display only (D-021).
+  Spell words reserved.
+- Engine typing model rewritten around a console (D-020): char / backspace /
+  clear / submit / select commands, live matching against all words,
+  Enter = spell or guessed missed submission, one penalty per slip.
+- `TargetManager`: most-urgent match, edit distance, intended-word guess.
+- UI: `ui/TypingConsole.ts` (valid text, red wrong part, caret, placeholder,
+  "↵ cast" / "no charges" hint, flashes); spell slots in the top bar
+  labelled with the word to type; accuracy/WPM under the console.
+- Spell number keys removed.
+
+**Verified**
+- Typecheck and build clean; 84 unit tests (new: console editing, case
+  insensitivity, spell-prefix validity, clear, click-aim, word falling while
+  typed, Enter on partial / typo / gibberish / empty, single penalty per
+  slip, guess function, word-list rules, replay with all command types).
+- In the browser with exact key events: level 1 at 45 px/s; "LAZq" showed
+  the q in red; Backspace + "uli" destroyed "lazuli"; "ar"+Enter sped up
+  "Arya"; "mdgard"+Enter sped up "Midgard"; "Fire"+Enter burned all 4 words;
+  "slow" with no charges showed "no Slow charges". Fixed during testing: a
+  word sharing a spell's first letter stayed highlighted while typing the
+  spell. No console errors; the owner's save was backed up and restored.
+
+**Note for testers:** the browser automation tool sometimes sends a key
+twice in quick sequences; real keyboards don't. Use dispatched key events
+for precise checks.
+
+---
+
 ## 2026-11-16 — Milestone 3: Original spells (+ campaign as a run, progress bar)
 
 **Owner requests this milestone:** campaign must be a run from level 1 with

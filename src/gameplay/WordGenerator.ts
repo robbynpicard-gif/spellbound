@@ -44,15 +44,17 @@ export class WordGenerator {
   }
 
   next(active: readonly { text: string }[]): string {
-    const usedText = new Set(active.map((w) => w.text));
-    const usedFirst = new Set(active.map((w) => w.text[0]));
+    // All comparisons ignore case ("Frodo" and "frodo" are the same word).
+    const usedText = new Set(active.map((w) => w.text.toLowerCase()));
+    const usedFirst = new Set(active.map((w) => w.text[0]!.toLowerCase()));
     let fallback: string | null = null;
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       const length = Number(this.rng.weighted(this.lengthWeights));
       const word = this.rng.pick(this.byLength.get(length)!);
-      if (usedText.has(word)) continue;
-      if (!usedFirst.has(word[0])) return word;
+      const lower = word.toLowerCase();
+      if (usedText.has(lower)) continue;
+      if (!usedFirst.has(lower[0]!)) return word;
       fallback ??= word;
     }
     // Field is crowded with first letters: accept a shared first letter.

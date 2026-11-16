@@ -12,7 +12,7 @@ import { FieldBackground } from '../render/FieldBackground';
 import { hex, LAYOUT, SPELL_COLORS } from '../render/layout';
 import { SpellEffects } from '../render/SpellEffects';
 import { WordView } from '../render/WordView';
-import { SPELLS, spellForKey } from '../spells/SpellRegistry';
+import { SPELLS } from '../spells/SpellRegistry';
 import { GameHUD } from '../ui/GameHUD';
 
 /** How the scene reports back to the app (menus are HTML, outside Phaser). */
@@ -38,7 +38,7 @@ const INTRO_MS = 1400;
 /** Pause after the last word so the final effect is seen before results. */
 const RESULTS_DELAY_MS = 700;
 /** Keys the game uses that the browser would otherwise act on. */
-const CAPTURED_KEYS = 'BACKSPACE,SPACE';
+const CAPTURED_KEYS = 'BACKSPACE,SPACE,ENTER,DELETE';
 
 /**
  * Connects the GameEngine (rules) to the screen and keyboard. The scene owns
@@ -156,6 +156,7 @@ export class GameScene extends Phaser.Scene {
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
       this.removeView(word.id);
       this.effects.wordDestroyed(x, y, word.text.length, points);
+      this.hud.console.flash(PALETTE.gold);
       if (combo > 1) this.hud.pulseCombo();
     });
 
@@ -176,7 +177,13 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('typingError', ({ wordId }) => {
       if (wordId !== null) this.views.get(wordId)?.flashError();
-      else this.cameras.main.shake(60, 0.0015);
+    });
+
+    ev.on('inputChanged', () => this.refreshConsole());
+
+    ev.on('submitMissed', ({ wordId }) => {
+      this.hud.console.reject();
+      if (wordId !== null) this.views.get(wordId)?.flashError();
     });
 
     ev.on('instabilityChanged', ({ value, stage }) => {
@@ -200,6 +207,7 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('spellCast', ({ spell, charges }) => {
       this.hud.setSpells(charges, spell);
+      this.hud.console.flash(SPELL_COLORS[spell]);
       this.spellFx.cast(spell);
       if (spell === 'ice') for (const view of this.views.values()) view.setFrozen(true);
     });
@@ -209,7 +217,13 @@ export class GameScene extends Phaser.Scene {
       if (spell === 'ice') for (const view of this.views.values()) view.setFrozen(false);
     });
 
-    ev.on('spellFizzled', ({ spell }) => this.hud.denySpell(spell));
+    ev.on('spellFizzled', ({ spell }) => {
+      this.hud.denySpell(spell);
+      this.hud.console.reject();
+    });
+
+    // Charges change the console's "↵ cast" hint.
+    ev.on('spellCollected', () => this.refreshConsole());
 
     ev.on('gameOver', ({ result, stats }) => {
       this.hud.updateStats(stats, this.engine.state.combo);
@@ -217,6 +231,11 @@ export class GameScene extends Phaser.Scene {
       const spells = { ...this.engine.state.spells };
       this.time.delayedCall(RESULTS_DELAY_MS, () => this.hooks.onGameOver(result, stats, spells));
     });
+  }
+
+  private refreshConsole(): void {
+    const s = this.engine.state;
+    this.hud.console.update(s.input, this.engine.validPrefixLength, s.spells);
   }
 
   private viewPosition(id: number, fieldX: number, fieldY: number): { x: number; y: number } {
@@ -263,21 +282,27 @@ export class GameScene extends Phaser.Scene {
 
   // ───────────────────────── input → engine ─────────────────────────
 
+  /**
+   * Keyboard → typing console. Letters type (any case), Backspace deletes
+   * one character (held down it repeats, like a normal text box),
+   * Ctrl+Backspace or Delete clears, Enter submits, Esc pauses.
+   */
   private onKeyDown(event: KeyboardEvent): void {
     if (this.engine.status !== 'playing') return;
-    if (event.ctrlKey || event.metaKey || event.altKey) return;
     const key = event.key;
 
     if (key === 'Escape') return this.setPaused(!this.paused);
     if (this.paused || this.introRemainingMs > 0) return;
 
-    if (event.repeat) return; // holding a key down should not type or cast repeatedly
-    if (key === 'Backspace') return this.engine.abandon();
-    const spell = spellForKey(key);
-    if (spell) {
-      this.engine.castSpell(spell);
+    if (key === 'Backspace') {
+      if (event.ctrlKey || event.altKey || event.metaKey) this.engine.clearInput();
+      else this.engine.backspace();
       return;
     }
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (key === 'Delete') return this.engine.clearInput();
+    if (event.repeat) return; // holding a letter or Enter should not repeat it
+    if (key === 'Enter') return this.engine.submit();
     if (key.length === 1) this.engine.typeChar(key);
   }
 

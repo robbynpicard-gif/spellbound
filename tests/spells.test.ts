@@ -3,7 +3,7 @@ import { GameEngine, type EngineOptions } from '../src/core/GameEngine';
 import type { DifficultyConfig } from '../src/difficulty/DifficultyConfig';
 import { addCharge, consumeCharge, emptyCharges, MAX_SPELL_CHARGES, sanitizeCharges } from '../src/gameplay/SpellManager';
 import type { WordState } from '../src/gameplay/Word';
-import { SPELLS, spellForKey } from '../src/spells/SpellRegistry';
+import { SPELLS } from '../src/spells/SpellRegistry';
 
 const TEST_WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist'];
 
@@ -40,6 +40,13 @@ function type(engine: GameEngine, text: string): void {
   for (const ch of text) engine.typeChar(ch);
 }
 
+/** Cast the way a player does: empty the console, type the spell's name, press Enter. */
+function cast(engine: GameEngine, spell: string): void {
+  engine.clearInput();
+  type(engine, spell);
+  engine.submit();
+}
+
 describe('spell inventory', () => {
   it('caps charges at three and never goes below zero', () => {
     const c = emptyCharges();
@@ -59,10 +66,8 @@ describe('spell inventory', () => {
     });
   });
 
-  it('registry has all four original spells with distinct keys 1–4', () => {
+  it('registry has all four original spells', () => {
     expect(Object.keys(SPELLS).sort()).toEqual(['fire', 'ice', 'slow', 'wind']);
-    expect(['1', '2', '3', '4'].map(spellForKey)).toEqual(['fire', 'ice', 'slow', 'wind']);
-    expect(spellForKey('a')).toBeNull();
   });
 });
 
@@ -102,14 +107,15 @@ describe('casting', () => {
     const engine = makeEngine();
     const fizzled = vi.fn();
     engine.events.on('spellFizzled', fizzled);
-    expect(engine.castSpell('fire')).toBe(false);
+    cast(engine, 'fire');
     expect(fizzled).toHaveBeenCalledWith({ spell: 'fire' });
-    expect(engine.commands).toHaveLength(0);
+    expect(engine.state.spellsCast.fire).toBe(0);
+    expect(engine.state.input).toBe('');
   });
 
   it('uses one charge per cast and counts usage', () => {
     const engine = makeEngine({}, { initialSpells: { slow: 2 } });
-    engine.castSpell('slow');
+    cast(engine, 'slow');
     expect(engine.state.spells.slow).toBe(1);
     expect(engine.state.spellsCast.slow).toBe(1);
   });
@@ -128,7 +134,7 @@ describe('casting', () => {
     const burned = vi.fn();
     engine.events.on('wordsBurned', burned);
 
-    engine.castSpell('fire');
+    cast(engine, 'fire');
 
     const expected = words.reduce((sum, w) => sum + w.text.length * 10, 0);
     expect(engine.state.words).toHaveLength(0);
@@ -142,7 +148,7 @@ describe('casting', () => {
   it('Fire can finish the level', () => {
     const engine = makeEngine({ requiredWords: 2, spawnInterval: 10 }, { initialSpells: { fire: 1 } });
     stepUntilWords(engine, 2);
-    engine.castSpell('fire');
+    cast(engine, 'fire');
     expect(engine.status).toBe('won');
   });
 
@@ -154,7 +160,7 @@ describe('casting', () => {
     const ended = vi.fn();
     engine.events.on('spellEnded', ended);
 
-    engine.castSpell('ice');
+    cast(engine, 'ice');
     const y = word.y;
     for (let i = 0; i < 299; i++) engine.step();
     expect(word.y).toBe(y);
@@ -170,7 +176,7 @@ describe('casting', () => {
   it('typing still works while frozen', () => {
     const engine = makeEngine({}, { initialSpells: { ice: 1 } });
     stepUntilWords(engine, 1);
-    engine.castSpell('ice');
+    cast(engine, 'ice');
     type(engine, engine.state.words[0]!.text);
     expect(engine.state.completed).toBe(1);
   });
@@ -179,7 +185,7 @@ describe('casting', () => {
     const engine = makeEngine({ spawnInterval: 100_000 }, { initialSpells: { slow: 1 } });
     stepUntilWords(engine, 1);
     const word = engine.state.words[0]!;
-    engine.castSpell('slow');
+    cast(engine, 'slow');
     let y = word.y;
     engine.step();
     expect(word.y - y).toBeCloseTo(0.5); // 60 px/s × ½ = 0.5 px per tick
@@ -197,11 +203,12 @@ describe('casting', () => {
     const word: WordState = engine.state.words[0]!;
     engine.typeChar(word.text[0]!);
     engine.typeChar('z');
+    engine.clearInput();
     expect(word.speed).toBe(630);
 
     const changed = vi.fn();
     engine.events.on('instabilityChanged', changed);
-    engine.castSpell('wind');
+    cast(engine, 'wind');
     expect(engine.state.instability).toBe(0);
     expect(word.speed).toBe(600);
     expect(changed).toHaveBeenCalledWith({ value: 0, stage: 0 });
@@ -217,14 +224,15 @@ describe('casting', () => {
       live.step();
       if (t % 25 === 0 && live.state.words.length > 0) {
         const target = live.target ?? live.state.words[0]!;
-        live.typeChar(target.text[target.typed]!);
+        if (live.inputValid) live.typeChar(target.match[target.typed]!);
+        else live.clearInput();
       }
-      if (t === 400) live.castSpell('ice');
-      if (t === 900) live.castSpell('slow');
-      if (t === 1500) live.castSpell('fire');
-      if (t === 2500) live.castSpell('wind');
+      if (t === 400) cast(live, 'ice');
+      if (t === 900) cast(live, 'slow');
+      if (t === 1500) cast(live, 'fire');
+      if (t === 2500) cast(live, 'wind');
     }
-    expect(live.commands.filter((c) => c.type === 'cast')).toHaveLength(4);
+    expect(live.state.spellsCast).toEqual({ fire: 1, ice: 1, slow: 1, wind: 1 });
     const replayed = GameEngine.replay(options, live.commands, live.state.tick);
     expect(replayed.state).toEqual(live.state);
   });

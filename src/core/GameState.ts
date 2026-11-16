@@ -8,7 +8,17 @@ export interface GameState {
   tick: number;
   status: GameStatus;
   words: WordState[];
+  /** Text in the typing console (lowercase). */
+  input: string;
+  /** Word the console input is currently aimed at (or was last aimed at). */
   targetId: number | null;
+  /** Word the player clicked: input is matched only against it until cleared. */
+  pinnedId: number | null;
+  /**
+   * Word already penalised during the current console entry, so a typo
+   * followed by Enter costs one speed-up, not two.
+   */
+  penalizedId: number | null;
   nextWordId: number;
   /** Time until the next spawn is allowed. */
   spawnTimerMs: number;
@@ -42,7 +52,10 @@ export function createInitialState(spells: SpellCharges = emptyCharges()): GameS
     tick: 0,
     status: 'playing',
     words: [],
+    input: '',
     targetId: null,
+    pinnedId: null,
+    penalizedId: null,
     nextWordId: 1,
     spawnTimerMs: FIRST_SPAWN_DELAY_MS,
     score: 0,

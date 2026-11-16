@@ -5,10 +5,8 @@ export interface SpellData {
   id: SpellId;
   /** Spellbound name, e.g. "Incineration". */
   name: string;
-  /** Short book name shown in the HUD, e.g. "Fire". */
+  /** Short book name, e.g. "Fire". The incantation typed to cast it is the id ("fire"). */
   book: string;
-  /** Keyboard shortcut. */
-  key: string;
   description: string;
   durationMs?: number;
   speedFactor?: number;

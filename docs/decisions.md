@@ -198,6 +198,56 @@ through at the same speed. Spell casts use a soft colour wash
 (≤25% opacity) instead of a full-screen flash, for comfort and
 photosensitivity.
 
+### D-019 — Higher difficulty floor
+_2026-11-16 · Accepted (project owner)_
+
+Level N now uses the old level N+2's parameters (level 1 = old level 3:
+45 px/s, a word every 2.2 s, 5 on screen, 3–7 letters). Levels 9–10 continue
+the same per-level steps (+9 px/s, −100 ms spawn, +1 max word every other
+level, +2 error acceleration), up to 108 px/s and a word per second. Word
+quotas (25→70), spell availability and tome rates stay per level number.
+Instability still resets every level (D-016, confirmed by the owner).
+
+### D-020 — Typing console (supersedes the targeting/controls parts of D-010 and D-011)
+_2026-11-16 · Accepted (project owner)_
+
+- The player types into a visible console (bottom centre) and can edit it:
+  letters add, Backspace deletes one character (holding it repeats),
+  Ctrl+Backspace or Delete clears it.
+- The console text is matched against falling words, **ignoring case**. The
+  most urgent matching word is highlighted with the matched letters in gold.
+  If the text stops matching, the extra letters show red in the console.
+- **A word is destroyed the moment the console text equals it** — no Enter
+  needed (Claude's call; switchable if the owner wants Enter for every word).
+- **Enter**: if the text is a spell name (`fire`, `ice`, `slow`, `wind`), cast
+  it; otherwise it's an incomplete or misspelled submission — the game guesses
+  the intended word (closest by edit distance to the start of each word, ties
+  to the longer shared prefix, then the most urgent word; no guess for
+  unrelated text) and that word speeds up. The console then clears.
+- Errors: the keystroke that breaks the match is one error and speeds up the
+  word being attempted. Further letters typed after it aren't extra errors.
+  Enter on the same word in the same entry doesn't add a second speed-up.
+- Spell names are always valid console text (typing "s-l" won't count as a
+  mistake even if no word starts with "sl"), and the four spell words never
+  fall as words. If a falling word shares the start ("firebolt"), Enter on
+  "fire" casts the spell.
+- Clicking a word aims the console only at that word until it's done or
+  cleared.
+- The spell slots moved to the top bar and show the word to type.
+  Accuracy/WPM sit under the console.
+
+### D-021 — Wider word pool, including fantasy references
+_2026-11-16 · Accepted (project owner)_
+
+`words.json`: 875 themed words (was 427). `words-references.json`: 148 names
+from fantasy fiction and mythology (Frodo, Gandalf, Eragon, Saphira, Hogwarts,
+Merlin, Odin, Medusa…), shown with their capitals but typed in any case.
+Some of these names are trademarks of their owners (e.g. the Tolkien Estate,
+Warner Bros./Harry Potter, Christopher Paolini/Eragon). That's fine for a
+personal or hobby game; before any commercial release, set
+`INCLUDE_REFERENCES = false` in `src/data/wordList.ts` (one switch) or review
+the list.
+
 ### D-009 — Original game is a mechanics reference only
 _2026-11-16 · Accepted_
 

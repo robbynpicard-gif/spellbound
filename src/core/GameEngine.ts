@@ -6,10 +6,11 @@ import {
   consumeCharge,
   isSpellId,
   sanitizeCharges,
+  SPELL_IDS,
   type SpellCharges,
   type SpellId,
 } from '../gameplay/SpellManager';
-import { findAutoTarget } from '../gameplay/TargetManager';
+import { commonPrefixLength, guessIntendedWord, mostUrgent, wordsMatching } from '../gameplay/TargetManager';
 import { lengthClassOf, type WordState } from '../gameplay/Word';
 import { WordGenerator } from '../gameplay/WordGenerator';
 import type { SpellContext } from '../spells/BaseSpell';
@@ -27,9 +28,10 @@ import { SeededRandom } from './Random';
  */
 export type Command =
   | { tick: number; type: 'char'; char: string }
-  | { tick: number; type: 'abandon' }
-  | { tick: number; type: 'select'; wordId: number }
-  | { tick: number; type: 'cast'; spell: SpellId };
+  | { tick: number; type: 'backspace' }
+  | { tick: number; type: 'clear' }
+  | { tick: number; type: 'submit' }
+  | { tick: number; type: 'select'; wordId: number };
 
 export interface EngineOptions {
   config: DifficultyConfig;
@@ -40,11 +42,19 @@ export interface EngineOptions {
   initialSpells?: Partial<SpellCharges>;
 }
 
-const LETTER = /^[a-z]$/;
+const LETTER = /^[a-z]$/i;
+/** Longest text the typing console accepts. */
+export const MAX_INPUT_LENGTH = 24;
 
 /**
  * Runs one player's game. Pure TypeScript: no Phaser, no DOM, no clocks.
  * Time only moves when step() is called (one fixed tick each call).
+ *
+ * Typing model (decisions.md D-020): the player edits a typing console.
+ * Whatever is typed is matched (case-insensitively) against the falling
+ * words; a word is destroyed the moment the console matches it exactly.
+ * Enter submits the console: a spell name casts that spell; anything else
+ * counts as a missed submission against the word the game guesses was meant.
  */
 export class GameEngine {
   readonly events = new EventBus<GameEvents>();
@@ -100,6 +110,18 @@ export class GameEngine {
     return this.s.targetId === null ? null : (this.findWord(this.s.targetId) ?? null);
   }
 
+  /** True when the console text still matches a word (or a spell name). */
+  get inputValid(): boolean {
+    return this.isValid(this.s.input);
+  }
+
+  /** How many leading console characters still match something (the rest is shown as wrong). */
+  get validPrefixLength(): number {
+    const input = this.s.input;
+    for (let k = input.length; k > 0; k--) if (this.isValid(input.slice(0, k))) return k;
+    return 0;
+  }
+
   // ───────────────────────── time ─────────────────────────
 
   /** Advance the simulation by one fixed tick. */
@@ -146,35 +168,37 @@ export class GameEngine {
 
   // ───────────────────────── player commands ─────────────────────────
 
-  /** A letter key. Non-letters are ignored. Returns true if the key was accepted. */
+  /** A letter key (any case). Returns true if it was added to the console. */
   typeChar(rawChar: string): boolean {
-    const char = rawChar.toLowerCase();
-    if (!LETTER.test(char) || this.s.status !== 'playing') return false;
-    this.record({ tick: this.s.tick, type: 'char', char });
+    if (this.s.status !== 'playing' || !LETTER.test(rawChar)) return false;
+    if (this.s.input.length >= MAX_INPUT_LENGTH) return false;
+    this.record({ tick: this.s.tick, type: 'char', char: rawChar.toLowerCase() });
     return true;
   }
 
-  /** Give up on the current target (Backspace). Its progress is reset; no other penalty. */
-  abandon(): void {
-    if (this.s.status !== 'playing' || this.s.targetId === null) return;
-    this.record({ tick: this.s.tick, type: 'abandon' });
+  /** Delete the last console character. No penalty. */
+  backspace(): boolean {
+    if (this.s.status !== 'playing' || this.s.input.length === 0) return false;
+    this.record({ tick: this.s.tick, type: 'backspace' });
+    return true;
   }
 
-  /** Explicitly target a word (mouse click). */
+  /** Empty the console and release any clicked word. No penalty. */
+  clearInput(): void {
+    if (this.s.status !== 'playing' || (this.s.input === '' && this.s.pinnedId === null)) return;
+    this.record({ tick: this.s.tick, type: 'clear' });
+  }
+
+  /** Enter: cast a spell by name, or submit an incomplete word. */
+  submit(): void {
+    if (this.s.status !== 'playing' || this.s.input === '') return;
+    this.record({ tick: this.s.tick, type: 'submit' });
+  }
+
+  /** Mouse click on a word: aim the console only at that word. */
   selectTarget(wordId: number): void {
     if (this.s.status !== 'playing' || !this.findWord(wordId)) return;
     this.record({ tick: this.s.tick, type: 'select', wordId });
-  }
-
-  /** Cast a spell. Returns false (and emits spellFizzled) when no charge is held. */
-  castSpell(spell: SpellId): boolean {
-    if (this.s.status !== 'playing' || !isSpellId(spell)) return false;
-    if (this.s.spells[spell] <= 0) {
-      this.events.emit('spellFizzled', { spell });
-      return false;
-    }
-    this.record({ tick: this.s.tick, type: 'cast', spell });
-    return true;
   }
 
   private record(command: Command): void {
@@ -186,38 +210,166 @@ export class GameEngine {
     switch (command.type) {
       case 'char':
         return this.applyChar(command.char);
-      case 'abandon':
-        return this.setTarget(null);
+      case 'backspace':
+        this.s.input = this.s.input.slice(0, -1);
+        this.retarget();
+        return this.emitInput();
+      case 'clear':
+        return this.resetInput(true);
+      case 'submit':
+        return this.applySubmit();
       case 'select':
-        return this.setTarget(command.wordId);
-      case 'cast':
-        return this.applyCast(command.spell);
+        return this.applySelect(command.wordId);
     }
   }
 
   private applyChar(char: string): void {
-    let target = this.target;
-    if (!target) {
-      const candidate = findAutoTarget(this.s.words, char);
-      if (!candidate) return this.error(null, char);
-      this.setTarget(candidate.id);
-      target = candidate;
+    const s = this.s;
+    const wasValid = this.isValid(s.input);
+    s.input += char;
+    this.retarget();
+
+    if (this.isValid(s.input)) {
+      s.correctChars++;
+      const target = this.target;
+      if (target && target.match === s.input) return this.complete(target);
+      if (target) this.events.emit('wordProgress', { word: target });
+      return this.emitInput();
     }
 
-    if (target.text[target.typed] !== char) return this.error(target, char);
-
-    target.typed++;
-    this.s.correctChars++;
-    if (target.typed >= target.text.length) this.complete(target);
-    else this.events.emit('wordProgress', { word: target });
+    // The console no longer matches anything. Only the keystroke that broke
+    // the match is an error (one slip = one error, as in typing tests);
+    // further letters typed after it are neither correct nor extra errors.
+    const attempted = wasValid ? this.target : null;
+    if (wasValid) {
+      s.errors++;
+      s.combo = 0;
+      if (attempted) this.penalize(attempted);
+    }
+    this.events.emit('typingError', { wordId: attempted?.id ?? this.s.targetId, char });
+    this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
+    this.emitInput();
   }
 
-  private applyCast(spell: SpellId): void {
+  private applySubmit(): void {
     const s = this.s;
-    if (!consumeCharge(s.spells, spell)) return;
+    const input = s.input;
+    const pinned = this.pinned;
+
+    if (isSpellId(input)) {
+      this.resetInput(true);
+      return this.castSpell(input);
+    }
+
+    // Not a complete word (complete words are destroyed as soon as typed):
+    // guess what the player meant and treat it as a missed submission.
+    // A word already penalised for a typo in this same entry isn't penalised again.
+    const guess = pinned ?? guessIntendedWord(s.words, input);
+    s.combo = 0;
+    if (!guess) s.errors++;
+    else if (guess.id !== s.penalizedId) {
+      s.errors++;
+      this.penalize(guess);
+    }
+    this.resetInput(true);
+    this.events.emit('submitMissed', { input, wordId: guess?.id ?? null });
+    this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
+  }
+
+  private applySelect(wordId: number): void {
+    const word = this.findWord(wordId);
+    if (!word) return;
+    this.s.pinnedId = word.id;
+    this.s.input = '';
+    this.retarget();
+    this.emitInput();
+  }
+
+  private castSpell(spell: SpellId): void {
+    const s = this.s;
+    if (!consumeCharge(s.spells, spell)) {
+      this.events.emit('spellFizzled', { spell });
+      return;
+    }
     s.spellsCast[spell]++;
     this.events.emit('spellCast', { spell, charges: { ...s.spells } });
     SPELLS[spell].cast(this.spellContext);
+  }
+
+  // ───────────────────────── console matching ─────────────────────────
+
+  private get pinned(): WordState | null {
+    return this.s.pinnedId === null ? null : (this.findWord(this.s.pinnedId) ?? null);
+  }
+
+  private candidates(input: string): WordState[] {
+    const pinned = this.pinned;
+    if (pinned) return pinned.match.startsWith(input) ? [pinned] : [];
+    return wordsMatching(this.s.words, input);
+  }
+
+  private isValid(input: string): boolean {
+    if (input === '') return true;
+    return this.candidates(input).length > 0 || SPELL_IDS.some((id) => id.startsWith(input));
+  }
+
+  /**
+   * Re-aim at the word the console text matches (the most urgent one if
+   * several do). If nothing matches, keep the last attempted word, showing
+   * how much of it was typed correctly.
+   */
+  private retarget(): void {
+    const s = this.s;
+    const input = s.input;
+    const pinned = this.pinned;
+    let target: WordState | null;
+    if (input === '') target = pinned;
+    else {
+      const matches = this.candidates(input);
+      if (matches.length > 0) target = pinned ?? mostUrgent(matches);
+      // Typing a spell name: no word is being aimed at.
+      else if (SPELL_IDS.some((id) => id.startsWith(input))) target = pinned;
+      // Plain mistake: keep showing the word that was being attempted.
+      else target = this.target;
+    }
+    this.setTarget(target?.id ?? null);
+    if (target) target.typed = commonPrefixLength(target.match, input);
+  }
+
+  private setTarget(wordId: number | null): void {
+    const s = this.s;
+    const previous = this.target;
+    if (s.targetId === wordId) return;
+    if (previous) {
+      previous.typed = 0;
+      previous.isTarget = false;
+    }
+    const next = wordId === null ? undefined : this.findWord(wordId);
+    if (next) next.isTarget = true;
+    s.targetId = next ? next.id : null;
+    this.events.emit('targetChanged', { previousId: previous?.id ?? null, currentId: s.targetId });
+  }
+
+  /** Error consequence for a word (GDD §7): it falls faster. */
+  private penalize(word: WordState): void {
+    word.errors++;
+    word.speed += this.config.errorAcceleration;
+    this.s.penalizedId = word.id;
+  }
+
+  private resetInput(unpin: boolean): void {
+    const s = this.s;
+    s.input = '';
+    s.penalizedId = null;
+    if (unpin) s.pinnedId = null;
+    const target = this.target;
+    if (target) target.typed = 0;
+    this.setTarget(this.pinned?.id ?? null);
+    this.emitInput();
+  }
+
+  private emitInput(): void {
+    this.events.emit('inputChanged', { input: this.s.input, valid: this.inputValid, targetId: this.s.targetId });
   }
 
   // ───────────────────────── rules ─────────────────────────
@@ -237,6 +389,7 @@ export class GameEngine {
     const word: WordState = {
       id: s.nextWordId++,
       text,
+      match: text.toLowerCase(),
       x,
       y: 0,
       prevY: 0,
@@ -251,32 +404,11 @@ export class GameEngine {
     };
     s.words.push(word);
     this.events.emit('wordSpawned', { word });
-  }
-
-  private setTarget(wordId: number | null): void {
-    const s = this.s;
-    if (s.targetId === wordId) return;
-    const previous = this.target;
-    if (previous) {
-      previous.typed = 0;
-      previous.isTarget = false;
+    // A new word may match what is already typed.
+    if (s.input !== '' && s.pinnedId === null) {
+      this.retarget();
+      this.emitInput();
     }
-    const next = wordId === null ? undefined : this.findWord(wordId);
-    if (next) next.isTarget = true;
-    s.targetId = next ? next.id : null;
-    this.events.emit('targetChanged', { previousId: previous?.id ?? null, currentId: s.targetId });
-  }
-
-  private error(word: WordState | null, char: string): void {
-    const s = this.s;
-    s.errors++;
-    s.combo = 0;
-    if (word) {
-      word.errors++;
-      word.speed += this.config.errorAcceleration;
-    }
-    this.events.emit('typingError', { wordId: word?.id ?? null, char });
-    this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
   }
 
   private complete(word: WordState): void {
@@ -315,14 +447,20 @@ export class GameEngine {
     if (this.instability.collapsed) this.end('lost');
   }
 
+  /**
+   * Removes a word from the field. If it was the word being typed (or the
+   * clicked word), the console is emptied, since its text now aims at nothing.
+   */
   private removeWord(word: WordState): void {
     const s = this.s;
     s.words.splice(s.words.indexOf(word), 1);
+    const wasAimed = s.targetId === word.id || s.pinnedId === word.id;
     if (s.targetId === word.id) {
       s.targetId = null;
       word.isTarget = false;
       this.events.emit('targetChanged', { previousId: word.id, currentId: null });
     }
+    if (wasAimed) this.resetInput(true);
   }
 
   private emitProgress(): void {

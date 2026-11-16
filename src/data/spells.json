@@ -3,14 +3,12 @@
     "id": "fire",
     "name": "Incineration",
     "book": "Fire",
-    "key": "1",
     "description": "Burns away every word on the field. Burned words count toward the level and score their base points (no combo bonus)."
   },
   {
     "id": "ice",
     "name": "Frostbinding",
     "book": "Ice",
-    "key": "2",
     "description": "Freezes every word in place, and stops new words appearing, for 5 seconds. You can keep typing.",
     "durationMs": 5000
   },
@@ -18,7 +16,6 @@
     "id": "slow",
     "name": "Temporal Distortion",
     "book": "Slow",
-    "key": "3",
     "description": "Words fall at half speed for 8 seconds.",
     "durationMs": 8000,
     "speedFactor": 0.5
@@ -27,7 +24,6 @@
     "id": "wind",
     "name": "Arcane Purge",
     "book": "Wind",
-    "key": "4",
     "description": "Restores the wards: instability returns to 0% and every word loses the extra speed your mistakes gave it."
   }
 ]

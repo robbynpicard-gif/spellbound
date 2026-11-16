@@ -13,21 +13,30 @@ level until the wards fall or you clear all 10. Type the falling words before
 they reach the glowing ward line. Fill the **Level Progress** bar to clear a
 level; don't let **Ward Instability** reach 100%.
 
+Everything you type appears in the **typing console** at the bottom. When it
+matches a falling word exactly, that word is destroyed. Capitals don't matter.
+
 Words with a small coloured book are **spell tomes** — complete one to gain a
-charge (up to 3 of each). Charges carry through the whole run.
+charge (up to 3 of each). Charges carry through the whole run. To cast, type
+the spell's name and press **Enter**.
 
 | Key | Action |
 |---|---|
-| Letters | Type. The first letter picks a word; it stays selected until finished. |
-| Backspace | Drop the current word (its progress resets) |
-| Mouse click | Select a specific word |
-| **1** Fire | Incineration — burn every word on the field |
-| **2** Ice | Frostbinding — freeze everything for 5 s |
-| **3** Slow | Temporal Distortion — half speed for 8 s |
-| **4** Wind | Arcane Purge — instability back to 0% |
+| Letters | Type into the console |
+| Backspace | Delete one letter |
+| Ctrl+Backspace or Delete | Clear the console |
+| Enter | Cast a spell you've typed — or submit an unfinished word (that word speeds up) |
+| Mouse click | Aim at one specific word |
 | Esc | Pause / resume |
 
-Wrong keys make your current word fall faster and break your combo.
+| Type + Enter | Spell |
+|---|---|
+| `fire` | Incineration — burn every word on the field |
+| `ice` | Frostbinding — freeze everything for 5 s |
+| `slow` | Temporal Distortion — half speed for 8 s |
+| `wind` | Arcane Purge — instability back to 0% |
+
+A wrong letter makes the word you were typing fall faster and breaks your combo.
 
 ## What you need
 

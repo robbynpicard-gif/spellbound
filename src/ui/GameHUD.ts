@@ -5,6 +5,7 @@ import type { GameStats } from '../gameplay/ScoringSystem';
 import { MAX_SPELL_CHARGES, SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { hex, LAYOUT, SPELL_COLORS } from '../render/layout';
 import { SPELLS } from '../spells/SpellRegistry';
+import { TypingConsole } from './TypingConsole';
 
 const INSTABILITY_COLORS: Record<InstabilityStage, number> = {
   0: PALETTE.arcane,
@@ -20,11 +21,11 @@ const label = (color: number = PALETTE.parchment): Phaser.Types.GameObjects.Text
   color: hex(color),
 });
 
-const BAR_WIDTH = 380;
+const BAR_WIDTH = 360;
 const BAR_HEIGHT = 14;
-const SLOT_W = 78;
-const SLOT_H = 58;
-const SLOT_GAP = 10;
+const SLOT_W = 70;
+const SLOT_H = 42;
+const SLOT_GAP = 8;
 
 /** A labelled horizontal meter that animates to new values. */
 class Meter {
@@ -79,7 +80,7 @@ class Meter {
   }
 }
 
-/** One spell inventory slot: key, book name and charge pips. */
+/** One spell inventory slot: the word to type (e.g. "fire") and charge pips. */
 class SpellSlot {
   private readonly frame: Phaser.GameObjects.Graphics;
   private readonly pips: Phaser.GameObjects.Graphics;
@@ -96,16 +97,11 @@ class SpellSlot {
     const def = SPELLS[spell];
     this.frame = scene.add.graphics();
     this.pips = scene.add.graphics();
-    const key = scene.add.text(-SLOT_W / 2 + 7, -SLOT_H / 2 + 4, def.key, {
-      ...label(),
-      fontSize: '13px',
-      fontStyle: '700',
-    });
     const name = scene.add
-      .text(0, -4, def.book, { ...label(this.color), fontSize: '16px', fontStyle: '700' })
+      .text(0, -7, def.id, { ...label(this.color), fontSize: '16px', fontStyle: '700' })
       .setOrigin(0.5);
     this.container = scene.add
-      .container(x + SLOT_W / 2, y + SLOT_H / 2, [this.frame, this.pips, key, name])
+      .container(x + SLOT_W / 2, y + SLOT_H / 2, [this.frame, this.pips, name])
       .setDepth(31);
     this.set(0);
   }
@@ -124,10 +120,10 @@ class SpellSlot {
       const px = (i - (MAX_SPELL_CHARGES - 1) / 2) * 14;
       if (i < charges) {
         this.pips.fillStyle(this.color, 1);
-        this.pips.fillCircle(px, 16, 4.5);
+        this.pips.fillCircle(px, 11, 4);
       } else {
         this.pips.lineStyle(1, PALETTE.parchment, 0.5);
-        this.pips.strokeCircle(px, 16, 4);
+        this.pips.strokeCircle(px, 11, 3.5);
       }
     }
   }
@@ -155,8 +151,8 @@ class SpellSlot {
 
 /**
  * Heads-up display.
- * Top bar: level, run score, combo, accuracy/WPM, pause hint.
- * Bottom panel: level progress meter · spell slots · ward instability meter.
+ * Top bar: level, run score, combo, spell slots (type the word shown to cast).
+ * Bottom panel: level progress meter · typing console (+ accuracy/WPM) · ward instability meter.
  */
 export class GameHUD {
   private readonly scoreText: Phaser.GameObjects.Text;
@@ -165,6 +161,7 @@ export class GameHUD {
   private readonly progress: Meter;
   private readonly instability: Meter;
   private readonly slots: Record<SpellId, SpellSlot>;
+  readonly console: TypingConsole;
   private lastCharges: SpellCharges | null = null;
 
   constructor(
@@ -190,12 +187,14 @@ export class GameHUD {
     const x0 = Math.max(240, levelText.x + levelText.width + 36);
     this.scoreText = scene.add.text(x0, y, '', label()).setOrigin(0, 0.5).setDepth(31);
     this.comboText = scene.add.text(x0 + 190, y, '', label()).setOrigin(0, 0.5).setDepth(31);
-    this.accuracyText = scene.add.text(x0 + 320, y, '', label()).setOrigin(0, 0.5).setDepth(31);
-    scene.add
-      .text(LAYOUT.width - 20, y, 'Esc  Pause', { ...label(), fontSize: '16px' })
-      .setOrigin(1, 0.5)
-      .setAlpha(0.6)
-      .setDepth(31);
+
+    // Spell slots, top right. Each shows the word to type to cast it.
+    const slotsWidth = SPELL_IDS.length * SLOT_W + (SPELL_IDS.length - 1) * SLOT_GAP;
+    const slotX = LAYOUT.width - 20 - slotsWidth;
+    this.slots = {} as Record<SpellId, SpellSlot>;
+    SPELL_IDS.forEach((id, i) => {
+      this.slots[id] = new SpellSlot(scene, id, slotX + i * (SLOT_W + SLOT_GAP), (LAYOUT.hudHeight - SLOT_H) / 2);
+    });
 
     // Bottom panel
     const panelY = LAYOUT.panelY;
@@ -203,10 +202,10 @@ export class GameHUD {
     panel.fillStyle(PALETTE.midnight, 0.85);
     panel.fillRect(0, panelY - 4, LAYOUT.width, LAYOUT.height - panelY + 4);
 
-    const meterY = panelY + 38;
+    const meterY = panelY + 34;
     this.progress = new Meter(
       scene,
-      50,
+      40,
       meterY,
       (v) =>
         this.quota === null
@@ -216,18 +215,18 @@ export class GameHUD {
     );
     this.instability = new Meter(
       scene,
-      LAYOUT.width - 50 - BAR_WIDTH,
+      LAYOUT.width - 40 - BAR_WIDTH,
       meterY,
       (v) => `WARD INSTABILITY  ${Math.round(v)}%`,
       INSTABILITY_COLORS[0],
     );
 
-    const slotsWidth = SPELL_IDS.length * SLOT_W + (SPELL_IDS.length - 1) * SLOT_GAP;
-    const slotX = (LAYOUT.width - slotsWidth) / 2;
-    this.slots = {} as Record<SpellId, SpellSlot>;
-    SPELL_IDS.forEach((id, i) => {
-      this.slots[id] = new SpellSlot(scene, id, slotX + i * (SLOT_W + SLOT_GAP), panelY + 2);
-    });
+    this.console = new TypingConsole(scene, LAYOUT.width / 2, panelY + 26);
+    this.accuracyText = scene.add
+      .text(LAYOUT.width / 2, panelY + 61, '', { ...label(), fontSize: '13px' })
+      .setOrigin(0.5)
+      .setAlpha(0.7)
+      .setDepth(31);
 
     this.updateStats(null);
   }
@@ -240,7 +239,7 @@ export class GameHUD {
       .setColor(hex(combo >= 5 ? PALETTE.gold : PALETTE.parchment));
     const acc = s ? Math.round(s.accuracy * 100) : 100;
     const wpm = s ? Math.round(s.wpm) : 0;
-    this.accuracyText.setText(`Accuracy  ${acc}%    WPM  ${wpm}`);
+    this.accuracyText.setText(`Accuracy ${acc}%  ·  ${wpm} WPM`);
   }
 
   pulseCombo(): void {

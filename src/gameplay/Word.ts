@@ -13,14 +13,17 @@ export type LengthClass = 'short' | 'medium' | 'long';
  */
 export interface WordState {
   readonly id: number;
+  /** Text as displayed (may contain capitals, e.g. "Frodo"). */
   readonly text: string;
+  /** Lowercase text used for all matching (the game is case-insensitive). */
+  readonly match: string;
   x: number;
   y: number;
   /** y on the previous tick — lets the renderer interpolate smooth motion. */
   prevY: number;
   /** Current fall speed in field pixels per second. */
   speed: number;
-  /** How many leading characters have been typed correctly. */
+  /** How many leading characters of this word the console input currently matches. */
   typed: number;
   isTarget: boolean;
   readonly lengthClass: LengthClass;

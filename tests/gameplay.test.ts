@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { SeededRandom } from '../src/core/Random';
-import { WORDS } from '../src/data/wordList';
+import { CORE_WORDS, REFERENCE_WORDS, WORDS } from '../src/data/wordList';
+import { editDistance, guessIntendedWord } from '../src/gameplay/TargetManager';
+import type { WordState } from '../src/gameplay/Word';
 import { instabilityStage, InstabilityManager } from '../src/gameplay/InstabilityManager';
 import { accuracyOf, wordPoints, wpmOf } from '../src/gameplay/ScoringSystem';
 import { WordGenerator } from '../src/gameplay/WordGenerator';
@@ -8,11 +10,52 @@ import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
 
 const PROTOTYPE_LEVEL = CAMPAIGN_LEVELS.get(3); // lengths 3–7
 
-describe('word list', () => {
-  it('contains only lowercase a–z words of 3–12 letters, without duplicates', () => {
-    expect(WORDS.length).toBeGreaterThan(300);
-    for (const w of WORDS) expect(w).toMatch(/^[a-z]{3,12}$/);
-    expect(new Set(WORDS).size).toBe(WORDS.length);
+describe('word lists', () => {
+  it('core words: lowercase a–z, 3–12 letters, no duplicates', () => {
+    expect(CORE_WORDS.length).toBeGreaterThan(800);
+    for (const w of CORE_WORDS) expect(w).toMatch(/^[a-z]{3,12}$/);
+    expect(new Set(CORE_WORDS).size).toBe(CORE_WORDS.length);
+  });
+
+  it('reference words: letters only (capitals allowed), 3–12 letters', () => {
+    expect(REFERENCE_WORDS.length).toBeGreaterThan(100);
+    for (const w of REFERENCE_WORDS) expect(w).toMatch(/^[A-Za-z]{3,12}$/);
+    expect(REFERENCE_WORDS).toEqual(expect.arrayContaining(['Frodo', 'Eragon']));
+  });
+
+  it('no duplicates across lists, ignoring case', () => {
+    const lower = WORDS.map((w) => w.toLowerCase());
+    expect(new Set(lower).size).toBe(WORDS.length);
+  });
+
+  it('never contains a spell incantation', () => {
+    const lower = new Set(WORDS.map((w) => w.toLowerCase()));
+    for (const spell of ['fire', 'ice', 'slow', 'wind']) expect(lower.has(spell)).toBe(false);
+  });
+});
+
+describe('guessing the intended word on Enter', () => {
+  const word = (id: number, text: string, y = 0) => ({ id, text, match: text.toLowerCase(), y }) as WordState;
+  const field = [word(1, 'dragon', 100), word(2, 'drake', 200), word(3, 'Gandalf', 50)];
+
+  it('edit distance basics', () => {
+    expect(editDistance('kitten', 'sitting')).toBe(3);
+    expect(editDistance('', 'abc')).toBe(3);
+  });
+
+  it('prefers an exact prefix, then the more urgent word', () => {
+    expect(guessIntendedWord(field, 'drag')!.id).toBe(1);
+    expect(guessIntendedWord(field, 'dra')!.id).toBe(2); // both match; drake is lower
+  });
+
+  it('forgives typos', () => {
+    expect(guessIntendedWord(field, 'dargon')!.id).toBe(1);
+    expect(guessIntendedWord(field, 'gandlf')!.id).toBe(3);
+  });
+
+  it('refuses to guess for unrelated text', () => {
+    expect(guessIntendedWord(field, 'qqqq')).toBeNull();
+    expect(guessIntendedWord(field, '')).toBeNull();
   });
 });
 

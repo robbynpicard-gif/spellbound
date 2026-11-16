@@ -28,7 +28,7 @@ function loadSpells(raw: unknown): Record<SpellId, SpellDefinition> {
   const byId = new Map<SpellId, SpellData>();
   for (const entry of raw as SpellData[]) {
     if (!isSpellId(entry.id)) throw new Error(`Unknown spell id "${String(entry.id)}"`);
-    if (!entry.name || !entry.book || !entry.key) throw new Error(`Spell "${entry.id}" is missing fields`);
+    if (!entry.name || !entry.book) throw new Error(`Spell "${entry.id}" is missing fields`);
     byId.set(entry.id, entry);
   }
   const registry = {} as Record<SpellId, SpellDefinition>;
@@ -41,10 +41,8 @@ function loadSpells(raw: unknown): Record<SpellId, SpellDefinition> {
   return registry;
 }
 
-/** Central spell registry (GDD §6). */
+/**
+ * Central spell registry (GDD §6). A spell is cast by typing its id
+ * ("fire", "ice", "slow", "wind") in the typing console and pressing Enter.
+ */
 export const SPELLS: Readonly<Record<SpellId, SpellDefinition>> = loadSpells(spellsData);
-
-/** Looks up the spell bound to a keyboard key, if any. */
-export function spellForKey(key: string): SpellId | null {
-  return SPELL_IDS.find((id) => SPELLS[id].key === key) ?? null;
-}
