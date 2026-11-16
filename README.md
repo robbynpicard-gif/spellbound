@@ -100,6 +100,7 @@ Full details: [`docs/architecture.md`](docs/architecture.md).
 - [`docs/decisions.md`](docs/decisions.md) — why things are built the way they are
 - [`docs/original-game-research.md`](docs/original-game-research.md) — notes on the original game's mechanics
 - [`docs/development-log.md`](docs/development-log.md) — what was done, when
+- [`docs/plans/`](docs/plans/) — draft plans for upcoming work (not yet built)
 
 ## Tech stack
 

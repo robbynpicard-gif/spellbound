@@ -4,6 +4,20 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Planning: Campaign v2 and Spell system v2 (no code changes)
+
+Design decisions agreed with the owner for Milestone 6, recorded as drafts:
+- [`docs/plans/campaign-v2.md`](plans/campaign-v2.md): 20 levels in 4 chapters,
+  survival bosses, Normal/Hardcore modes, about 20-minute runs, draft level table.
+- [`docs/plans/spells-v2.md`](plans/spells-v2.md): 8 spells in power order,
+  shared pool of 8, drop weights, stacking Ice/Slow, Fire as a bailout,
+  unique cast words.
+
+**Next:** settle the remaining open questions (Shock targeting, Harvest name),
+then plan special word types. Implementation waits for owner approval.
+
+---
+
 ## 2026-11-16 — Milestone 4: Endless Practice
 
 **Done** (D-023)
