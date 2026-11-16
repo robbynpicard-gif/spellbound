@@ -52,7 +52,7 @@ export class WordGenerator {
   }
 
   next(): string {
-    // All comparisons ignore case ("Frodo" and "frodo" are the same word).
+    // All comparisons ignore case ("Merlin" and "merlin" are the same word).
     const usedText = new Set(this.recent);
     const usedFirst = new Set(this.recent.map((w) => w[0]));
     let chosen: string | null = null;

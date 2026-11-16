@@ -44,6 +44,8 @@ export interface GameSceneData {
   knownSpells?: readonly SpellId[];
   /** Campaign: introduce this spell with a pop-up before the level starts. */
   spellIntro?: SpellId | null;
+  /** Words to play with (the player's chosen banks). Duels always use the default list. */
+  words?: readonly string[];
   /** Present only in a Wizard Duel. */
   duel?: DuelOptions;
 }
@@ -117,7 +119,8 @@ export class GameScene extends Phaser.Scene {
     this.engine = new GameEngine({
       config: this.config,
       seed: data.seed ?? createSeed(),
-      words: WORDS,
+      // A duel must use the shared default list so the server can check it.
+      words: data.duel ? WORDS : (data.words ?? WORDS),
       initialSpells: data.initialSpells,
       hardcore: data.hardcore,
       initialInstability: data.initialInstability,

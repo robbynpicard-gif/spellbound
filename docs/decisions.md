@@ -342,3 +342,22 @@ Full design: [`plans/spells-v2.md`](plans/spells-v2.md).
   firebolt, firebrand, firestorm.
 - Meteor was considered and removed for now; Alchemical Cleansing waits for
   Cursed words; Rejuvenation was dropped (overlaps Wind).
+
+### D-027 — Two word banks (Fantasy, Modern), chosen in Options; no modern-fiction names
+_2026-11-16 · Accepted (project owner) · supersedes D-021_
+
+- `words-references.json` (names from Tolkien, Harry Potter, Eragon, The
+  Witcher, Narnia, Discworld…) is **removed**: trademark/copyright risk.
+- **Fantasy dictionary** (`words-fantasy.json`, ~1,500 words): medieval
+  life, castles, creatures, wizardry, magic and alchemy, plus names from
+  **public-domain** myth, folklore, Arthurian legend and Shakespeare
+  (Merlin, Camelot, Odin, Athena, Oberon…). Obscure words, invented
+  compounds and duplicate spellings (sabre/saber…) were pruned.
+- **Modern dictionary** (`words-modern.json`, ~1,450 words): everyday
+  words (home, school, food, sport, travel, nature). No brand names.
+- **Options** screen (main menu): each dictionary is a switch; at least
+  one stays on. Saved in `SaveData.settings.wordBanks` (added within v4).
+  Default: Fantasy only. Campaign and Practice use the chosen banks.
+- **Wizard Duels always use the Fantasy dictionary** (`WORDS`), because the
+  server replays both players' games and must have the same list.
+- Every bank alone has 800+ words for every level's length range (tested).

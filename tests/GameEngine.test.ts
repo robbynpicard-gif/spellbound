@@ -104,7 +104,7 @@ describe('GameEngine — typing console', () => {
   });
 
   it('is case-insensitive in both directions', () => {
-    const engine = makeEngine({}, 1, ['Frodo', 'Eragon', 'Gandalf']);
+    const engine = makeEngine({}, 1, ['Merlin', 'Odin', 'Arthur']);
     const word = firstWord(engine);
     expect(word.match).toBe(word.text.toLowerCase());
     type(engine, word.text.toUpperCase().slice(0, 2));

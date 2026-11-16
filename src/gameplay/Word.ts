@@ -13,7 +13,7 @@ export type LengthClass = 'short' | 'medium' | 'long';
  */
 export interface WordState {
   readonly id: number;
-  /** Text as displayed (may contain capitals, e.g. "Frodo"). Transmutation can change it. */
+  /** Text as displayed (may contain capitals, e.g. "Merlin"). Transmutation can change it. */
   text: string;
   /** Lowercase text used for all matching (the game is case-insensitive). */
   match: string;

@@ -150,7 +150,7 @@ GameScene (Phaser)                         GameEngine (pure TS)
 | `gameplay/ScoringSystem.ts` | Points, combo bonus, accuracy, WPM, `GameStats` |
 | `gameplay/InstabilityManager.ts` | 0–100 meter and visual stages |
 | `difficulty/DifficultyConfig.ts`, `LevelDefinitions.ts` | Level parameters (one prototype level for now) |
-| `data/words.json`, `wordList.ts` | 427-word pool |
+| `data/words-fantasy.json`, `data/words-modern.json`, `wordList.ts` | Word banks (fantasy, modern), chosen in Options |
 | `render/WordView.ts`, `Effects.ts`, `FieldBackground.ts`, `layout.ts` | Drawing |
 | `ui/GameHUD.ts`, `OverlayPanel.ts` | HUD, pause and end panels |
 

@@ -309,6 +309,18 @@ describe('SaveManager', () => {
     expect(reloaded.highestReached).toBe(7);
   });
 
+  it('saves the word-bank choice and never allows both banks off', () => {
+    const storage = new MemoryStorage();
+    const save = new SaveManager(storage, TOTAL);
+    expect(save.wordBanks).toEqual({ fantasy: true, modern: false });
+    save.setWordBanks({ modern: true });
+    save.setWordBanks({ fantasy: false });
+    expect(new SaveManager(storage, TOTAL).wordBanks).toEqual({ fantasy: false, modern: true });
+    expect(save.setWordBanks({ modern: false })).toEqual({ fantasy: true, modern: false });
+    const tampered = parseSave(JSON.stringify({ version: 4, campaign: {}, settings: { wordBanks: { fantasy: false, modern: 'x' } } }), TOTAL);
+    expect(tampered.settings.wordBanks).toEqual({ fantasy: true, modern: false });
+  });
+
   it('migrates a version 3 save (Hardcore starts empty)', () => {
     const v3 = JSON.stringify({
       version: 3,

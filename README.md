@@ -25,6 +25,12 @@ about 20 minutes.
 - **Hardcore:** ward damage carries through the whole run. Each boss you
   survive heals 25%, and Wind only halves the damage.
 
+### Options: word banks
+
+Choose which words fall: the **Fantasy dictionary** (castles, creatures,
+wizardry, alchemy, legends of old) and/or the **Modern dictionary**
+(everyday words). At least one stays on. Wizard Duels always use Fantasy.
+
 ### Endless Practice
 
 Pick any level you've reached in Campaign and play it at exactly that

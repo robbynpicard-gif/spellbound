@@ -4,6 +4,26 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Milestone 6 (part 2): Word banks and Options
+
+**Done** (D-027)
+- Removed all names from modern fiction (Tolkien, Harry Potter, Eragon,
+  Witcher, Narnia, Discworld…). Kept public-domain legend names.
+- Fantasy dictionary rebuilt and expanded: 870 → ~1,500 words (medieval
+  life, creatures, magic, alchemy, legends); pruned obscure words and
+  duplicate spellings.
+- New Modern dictionary: ~1,450 everyday words, no brands.
+- Options screen on the main menu with a switch for each dictionary (one
+  must stay on). Saved in the browser. Duels keep the Fantasy list.
+
+**Verified**
+- 155 unit tests pass (new: list format, no modern-fiction names, banks
+  combine without duplicates, at least one bank on, enough words per level
+  for every combination, saved setting survives reload and tampering).
+- Bot played all 20 levels with both dictionaries on: no errors.
+
+---
+
 ## 2026-11-16 — Milestone 6 (part 1): Campaign v2 and Spell system v2
 
 **Done** (D-025, D-026; designs in [`plans/`](plans/))

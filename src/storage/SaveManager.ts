@@ -1,3 +1,4 @@
+import { normalizeWordBanks, type WordBankSettings } from '../data/wordList';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
   applyRunResult,
@@ -41,6 +42,8 @@ export interface SaveData {
   practice: PracticeData;
   /** Player profile. Added within v3 (missing in older v3 saves → defaults). */
   profile: { name: string; duelLevel: number };
+  /** Options. Added within v4 (missing → defaults). */
+  settings: { wordBanks: WordBankSettings };
 }
 
 /** The subset of the Web Storage API we use (lets tests pass a fake). */
@@ -60,6 +63,7 @@ export function emptySave(): SaveData {
     hardcore: emptyCampaignRecords(),
     practice: emptyPractice(),
     profile: { name: '', duelLevel: 1 },
+    settings: { wordBanks: normalizeWordBanks() },
   };
 }
 
@@ -123,6 +127,12 @@ function parseProfile(raw: unknown, totalLevels: number): SaveData['profile'] {
   };
 }
 
+function parseSettings(raw: unknown): SaveData['settings'] {
+  const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+  const banks = typeof r.wordBanks === 'object' && r.wordBanks !== null ? (r.wordBanks as Record<string, unknown>) : null;
+  return { wordBanks: normalizeWordBanks(banks) };
+}
+
 /**
  * Turns stored text back into SaveData. Anything unreadable yields a fresh
  * save instead of crashing. Older versions are migrated:
@@ -157,6 +167,7 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
           save.hardcore = parseCampaign(data.hardcore as Record<string, unknown>, totalLevels);
         save.practice = parsePractice(data.practice, totalLevels);
         save.profile = parseProfile((data as { profile?: unknown }).profile, totalLevels);
+        save.settings = parseSettings((data as { settings?: unknown }).settings);
         return save;
       default:
         return emptySave();
@@ -249,6 +260,18 @@ export class SaveManager {
     this.save.practice.lastLevel = Math.min(Math.max(1, level), this.totalLevels);
     this.save.practice.lastFilter = filter;
     this.write();
+  }
+
+  /** Which word banks Campaign and Practice use. */
+  get wordBanks(): Readonly<WordBankSettings> {
+    return this.save.settings.wordBanks;
+  }
+
+  /** Change the word banks (at least one always stays on). Returns the settings now in force. */
+  setWordBanks(banks: Partial<WordBankSettings>): Readonly<WordBankSettings> {
+    this.save.settings.wordBanks = normalizeWordBanks({ ...this.save.settings.wordBanks, ...banks });
+    this.write();
+    return this.save.settings.wordBanks;
   }
 
   get profile(): Readonly<SaveData['profile']> {

@@ -2,6 +2,7 @@ import type Phaser from 'phaser';
 import type { GameResult } from '../core/GameEvents';
 import type { LevelManager } from '../difficulty/LevelManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
+import { wordPool } from '../data/wordList';
 import { isSurvival } from '../difficulty/DifficultyConfig';
 import { SPELL_IDS, type SpellCharges } from '../gameplay/SpellManager';
 import {
@@ -22,6 +23,7 @@ import { FILTER_LABELS, practiceResultsScreen, practiceSetupScreen } from '../ui
 import {
   campaignModeScreen,
   creditsScreen,
+  optionsScreen,
   levelClearScreen,
   mainMenuScreen,
   pauseScreen,
@@ -58,11 +60,32 @@ export class App {
           onCampaign: () => this.showCampaignModes(),
           onPractice: () => this.showPracticeSetup(),
           onCredits: () => this.showCredits(),
+          onOptions: () => this.showOptions(),
         },
         this.save.campaign,
         this.save.persistent,
       ),
     );
+  }
+
+  showOptions(): void {
+    this.showBackdrop();
+    const render = () =>
+      this.ui.show(
+        optionsScreen(this.save.wordBanks, {
+          onToggle: (bank, on) => {
+            this.save.setWordBanks({ [bank]: on });
+            render();
+          },
+          onBack: () => this.showMainMenu(),
+        }),
+      );
+    render();
+  }
+
+  /** Words for Campaign and Practice, from the player's chosen banks. */
+  private get words(): string[] {
+    return wordPool(this.save.wordBanks);
   }
 
   showCredits(): void {
@@ -107,6 +130,7 @@ export class App {
       initialInstability: run.instability,
       knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
       spellIntro: config.introducesSpell ?? null,
+      words: this.words,
       hooks: {
         onPauseChanged: (paused) =>
           this.onPause(paused, label, [
@@ -202,6 +226,7 @@ export class App {
 
     this.startScene({
       config: practiceConfig(base, filter),
+      words: this.words,
       hooks: {
         onPauseChanged: (paused) =>
           this.onPause(paused, label, [
