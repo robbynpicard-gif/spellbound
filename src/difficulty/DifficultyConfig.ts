@@ -41,6 +41,20 @@ export interface DifficultyConfig {
   availableSpells: readonly SpellId[];
   /** Chance (0–1) that a newly spawned word carries a spell scroll. */
   spellDropChance: number;
+  /**
+   * Highest word complexity allowed (see wordComplexity: rare letters,
+   * consonant clusters, names). Omit for no limit. Early levels keep this low.
+   */
+  maxComplexity?: number | null;
+  /** Per-word speed variation, as a fraction (default 0.25 = ±25%). */
+  speedVariance?: number;
+  /** Average speed rises from ×(1−this) to ×(1+this) over the level's words (default 0.15). */
+  speedRamp?: number;
+  /**
+   * Words over which the speed ramp runs when there is no quota (Practice keeps
+   * the Campaign level's quota here so speeds match exactly).
+   */
+  rampWords?: number | null;
   /** Campaign chapter (1–4). Display only. */
   chapter?: number;
   /**
@@ -130,6 +144,8 @@ export function validateLevels(data: unknown): DifficultyConfig[] {
     else for (const id of raw.availableSpells) if (!isSpellId(id)) fail(`unknown spell "${String(id)}"`);
     if (!isNum(raw.spellDropChance) || raw.spellDropChance < 0 || raw.spellDropChance > 1)
       fail('spellDropChance must be between 0 and 1');
+    if (raw.maxComplexity !== undefined && raw.maxComplexity !== null && (!isNum(raw.maxComplexity) || raw.maxComplexity < 0))
+      fail('maxComplexity must be a number ≥ 0');
     if (raw.introducesSpell !== undefined && raw.introducesSpell !== null) {
       if (!isSpellId(raw.introducesSpell)) fail(`unknown introduced spell "${String(raw.introducesSpell)}"`);
       else if (Array.isArray(raw.availableSpells) && !raw.availableSpells.includes(raw.introducesSpell))

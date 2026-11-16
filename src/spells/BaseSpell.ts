@@ -3,10 +3,13 @@ import type { SpellId } from '../gameplay/SpellManager';
 /** Display and tuning data for a spell, loaded from src/data/spells.json. */
 export interface SpellData {
   id: SpellId;
-  /** Spellbound name, e.g. "Incineration". */
+  /** Wizzy Type name, e.g. "Incineration". */
   name: string;
   /** Short book name, e.g. "Fire". The word typed to cast it is the id ("fire"). */
   book: string;
+  /** One short line, shown in game (pop-ups, boss rewards). */
+  summary: string;
+  /** The full explanation, for the spellbook. */
   description: string;
   /** How often this spell's scroll drops, relative to the other spells on the level. */
   dropWeight: number;

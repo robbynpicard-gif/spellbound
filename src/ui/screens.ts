@@ -202,15 +202,14 @@ export function spellIntroScreen(spell: SpellId, level: DifficultyConfig, onBegi
     },
     h('p', { class: 'score-label' }, 'New spell'),
     h('h2', { class: 'screen-title spell-name', attrs: { id: 'spell-intro-title' } }, def.name),
-    h('p', { class: 'spell-effect' }, def.description),
+    h('p', { class: 'spell-effect' }, def.summary),
     h(
       'ol',
       { class: 'spell-steps' },
-      h('li', null, 'Words marked with a ', h('span', { class: 'spell-mark' }, 'coloured scroll'), ' carry this spell.'),
-      h('li', null, 'Type that word and press Enter to collect a charge.'),
-      h('li', null, 'To cast, type ', h('kbd', { class: 'spell-word' }, def.id), ' and press Enter.'),
+      h('li', null, 'Type a ', h('span', { class: 'spell-mark' }, 'coloured scroll'), ' to collect it.'),
+      h('li', null, 'Type ', h('kbd', { class: 'spell-word' }, def.id), ' + Enter to cast.'),
     ),
-    h('p', { class: 'footnote' }, `All spells share one pool of ${SPELL_POOL_SIZE} charges.`),
+    h('p', { class: 'footnote' }, `Spells share a pool of ${SPELL_POOL_SIZE} charges.`),
     h('div', { class: 'button-row' }, begin),
   );
   return { element, focus: begin };
@@ -271,7 +270,7 @@ function rewardPicker(run: Readonly<CampaignRun>, reward: BossReward, rerender: 
             'button',
             {
               class: 'menu-button spell-choice',
-              attrs: { ...spellStyle(id), title: SPELLS[id].description },
+              attrs: { ...spellStyle(id), title: SPELLS[id].summary },
               onClick: () => {
                 if (full) {
                   picked = id;

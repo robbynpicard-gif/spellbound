@@ -1,4 +1,4 @@
-# Spellbound — Architecture
+# Wizzy Type — Architecture
 
 _Last updated: 2026-11-16 (Milestone 4 — Endless Practice, see decisions D-023)_
 

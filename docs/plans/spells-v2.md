@@ -1,4 +1,4 @@
-# Spellbound — Spell system v2 plan (implemented)
+# Wizzy Type — Spell system v2 plan (implemented)
 
 _Agreed with the project owner and implemented, 2026-11-16 (decisions.md D-025/D-026). Pairs with [campaign-v2.md](campaign-v2.md). Supersedes D-017 once implemented._
 

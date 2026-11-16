@@ -1,4 +1,4 @@
-# 🧙 Spellbound
+# 🧙 Wizzy Type
 
 A wizard-themed arcade typing game for the browser. Words fall toward your
 tower; type them to cast counterspells before they land.
@@ -64,12 +64,12 @@ one at a time, with a pop-up the first level they can appear.
 
 | Type + Enter | Spell | Unlocked | What it does |
 |---|---|---|---|
-| `slow` | Temporal Distortion | Level 1 | Words fall at ×0.6 for 8 s. Casts stack: each has its own timer and makes words slower still |
-| `ice` | Frostbinding | Level 3 | Freezes everything and stops new words for 5 s; each extra cast adds 5 s |
-| `barrier` | Arcane Shield | Level 6 | The next 2 words that reach the ward line do no harm (+2 per cast) |
-| `shock` | Chain Lightning | Level 8 | Destroys the lowest word and the 3 nearest it — they score and count |
-| `alter` | Transmutation | Level 11 | Every word of 6+ letters becomes a short 3–4 letter word |
-| `fire` | Incineration | Level 13 | Last resort: burns every word, for no points and no progress |
+| `slow` | Temporal Distortion | Level 3 | Words fall at ×0.6 for 8 s. Casts stack: each has its own timer and makes words slower still |
+| `ice` | Frostbinding | Level 6 | Freezes everything and stops new words for 5 s; each extra cast adds 5 s |
+| `barrier` | Arcane Shield | Level 8 | The next 2 words that reach the ward line do no harm (+2 per cast) |
+| `shock` | Chain Lightning | Level 11 | Destroys the lowest word and the 3 nearest it — they score and count |
+| `alter` | Transmutation | Level 13 | Every word of 6+ letters becomes a short 3–4 letter word |
+| `fire` | Incineration | Level 1 | Last resort: burns every word, for no points and no progress |
 | `wind` | Arcane Purge | Level 16 | Instability back to 0% (Hardcore: halved); removes mistake speed-ups |
 | `harvest` | Harvest | Level 18 | Claims every word on the field toward the level, at half points |
 

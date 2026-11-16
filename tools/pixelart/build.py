@@ -1,4 +1,4 @@
-"""Builds Spellbound's pixel-art PNGs into public/assets/ (1x; the game scales them 4x).
+"""Builds Wizzy Type's pixel-art PNGs into public/assets/ (1x; the game scales them 4x).
 
     python3 tools/pixelart/build.py
 """

@@ -18,6 +18,9 @@ import { dropWeights, INTRO_DROP_BOOST, SPELLS } from '../src/spells/SpellRegist
 const TEST_WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist', 'labyrinth', 'phantasmal', 'yew', 'orb', 'elk'];
 
 const CONFIG: DifficultyConfig = {
+  // Exact speeds in these tests: no per-word variation or in-level ramp.
+  speedVariance: 0,
+  speedRamp: 0,
   level: 0,
   name: 'Test',
   requiredWords: null,
@@ -91,7 +94,11 @@ describe('spell pool', () => {
   it('registry has all eight spells, in power order, each with a drop weight', () => {
     expect(SPELL_IDS).toEqual(['slow', 'ice', 'barrier', 'shock', 'alter', 'fire', 'wind', 'harvest']);
     expect(Object.keys(SPELLS).sort()).toEqual([...SPELL_IDS].sort());
-    for (const id of SPELL_IDS) expect(SPELLS[id].dropWeight).toBeGreaterThan(0);
+    for (const id of SPELL_IDS) {
+      expect(SPELLS[id].dropWeight).toBeGreaterThan(0);
+      // In-game text stays short; the full description is for the spellbook.
+      expect(SPELLS[id].summary.split(' ').length, id).toBeLessThanOrEqual(8);
+    }
     // Stronger spells drop less often.
     for (let i = 1; i < SPELL_IDS.length; i++) {
       expect(SPELLS[SPELL_IDS[i]!].dropWeight).toBeLessThanOrEqual(SPELLS[SPELL_IDS[i - 1]!].dropWeight);
@@ -491,5 +498,55 @@ describe('boss (survival) levels', () => {
     for (let i = 0; i < 300; i++) engine.step();
     expect(engine.pace).toEqual({ fallSpeed: 60, spawnInterval: 1000, maxActiveWords: 5 });
     expect(engine.survivalRemainingMs).toBeNull();
+  });
+});
+
+describe('fall speeds', () => {
+  const speedsOf = (overrides: Partial<DifficultyConfig>, steps: number, onStep?: (e: GameEngine) => void) => {
+    const engine = new GameEngine(makeOptions({ spawnInterval: 20, maxActiveWords: 500, initialFallSpeed: 100, ...overrides }));
+    const speeds: number[] = [];
+    engine.events.on('wordSpawned', ({ word }) => speeds.push(word.speed));
+    for (let i = 0; i < steps; i++) {
+      engine.step();
+      onStep?.(engine);
+    }
+    return speeds;
+  };
+
+  it('vary from word to word around the level pace', () => {
+    const speeds = speedsOf({ speedVariance: 0.25, speedRamp: 0, requiredWords: null }, 3000);
+    expect(Math.min(...speeds)).toBeGreaterThanOrEqual(75);
+    expect(Math.max(...speeds)).toBeLessThanOrEqual(125);
+    expect(Math.max(...speeds) - Math.min(...speeds)).toBeGreaterThan(30);
+    const mean = speeds.reduce((a, b) => a + b, 0) / speeds.length;
+    expect(mean).toBeGreaterThan(95);
+    expect(mean).toBeLessThan(105);
+  });
+
+  it('start slower and rise on average as the level progresses', () => {
+    // No per-word variation here, so each speed shows the ramp exactly: ×0.85 at the start, ×1.15 at the quota.
+    const engine = new GameEngine(makeOptions({ spawnInterval: 20, maxActiveWords: 1, initialFallSpeed: 100, requiredWords: 40, speedVariance: 0, speedRamp: 0.15 }));
+    const seen: { completed: number; speed: number }[] = [];
+    engine.events.on('wordSpawned', ({ word }) => seen.push({ completed: engine.state.completed, speed: word.speed }));
+    for (let i = 0; i < 20000 && engine.status === 'playing'; i++) {
+      engine.step();
+      if (engine.state.words.length > 0) typeWord(engine, engine.state.words[0]!.text);
+    }
+    expect(engine.status).toBe('won');
+    for (const { completed, speed } of seen) expect(speed).toBeCloseTo(100 * (0.85 + 0.3 * Math.min(1, completed / 40)));
+    expect(seen[0]!.speed).toBeCloseTo(85);
+    expect(seen.at(-1)!.speed).toBeGreaterThan(110);
+  });
+
+  it('Arcane Purge returns each word to its own starting speed', () => {
+    const engine = new GameEngine(makeOptions({ speedVariance: 0.25 }, { initialSpells: { wind: 1 } }));
+    stepUntilWords(engine, 1);
+    const word = engine.state.words[0]!;
+    engine.typeChar(word.text[0]!);
+    engine.typeChar('z');
+    engine.clearInput();
+    expect(word.speed).toBeGreaterThan(word.baseSpeed);
+    cast(engine, 'wind');
+    expect(word.speed).toBe(word.baseSpeed);
   });
 });

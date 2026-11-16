@@ -23,6 +23,8 @@ export interface WordState {
   prevY: number;
   /** Current fall speed in field pixels per second. */
   speed: number;
+  /** Speed it was spawned with (mistakes add to `speed`; Arcane Purge returns it here). */
+  baseSpeed: number;
   /** How many leading characters of this word the console input currently matches. */
   typed: number;
   isTarget: boolean;

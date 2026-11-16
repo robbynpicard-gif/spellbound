@@ -15,6 +15,6 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',')
   .filter(Boolean);
 
 startServer({ port, allowedOrigins }).catch((error: Error) => {
-  console.error(`[spellbound] could not start: ${error.message}`);
+  console.error(`[wizzy-type] could not start: ${error.message}`);
   process.exit(1);
 });

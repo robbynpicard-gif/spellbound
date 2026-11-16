@@ -25,7 +25,7 @@ function loadSpells(raw: unknown): Record<SpellId, SpellDefinition> {
   const byId = new Map<SpellId, SpellData>();
   for (const entry of raw as SpellData[]) {
     if (!isSpellId(entry.id)) throw new Error(`Unknown spell id "${String(entry.id)}"`);
-    if (!entry.name || !entry.book) throw new Error(`Spell "${entry.id}" is missing fields`);
+    if (!entry.name || !entry.book || !entry.summary) throw new Error(`Spell "${entry.id}" is missing fields`);
     if (typeof entry.dropWeight !== 'number' || !(entry.dropWeight > 0))
       throw new Error(`Spell "${entry.id}" needs a positive dropWeight`);
     byId.set(entry.id, entry);

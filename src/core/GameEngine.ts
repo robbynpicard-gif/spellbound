@@ -53,6 +53,11 @@ export interface Pace {
   maxActiveWords: number;
 }
 
+/** Each word's speed varies by up to this fraction around the level's pace. */
+export const SPEED_VARIANCE = 0.25;
+/** Quota levels: average speed runs from ×(1−this) at the start to ×(1+this) at the quota. */
+export const LEVEL_SPEED_RAMP = 0.15;
+
 /** Transmutation turns long words into words of these lengths. */
 const SHORT_WORD_MIN = 3;
 const SHORT_WORD_MAX = 4;
@@ -81,6 +86,8 @@ export class GameEngine {
   private readonly generator: WordGenerator;
   private readonly instability: InstabilityManager;
   private readonly hardcore: boolean;
+  /** Separate random stream for word speeds, so the word sequence is unaffected. */
+  private readonly speedRng: SeededRandom;
   /** 3–4 letter words Transmutation can turn long words into. */
   private readonly shortWords: readonly string[];
   private readonly log: Command[] = [];
@@ -94,6 +101,7 @@ export class GameEngine {
     this.rng = new SeededRandom(options.seed);
     this.generator = new WordGenerator(options.words, options.config, this.rng);
     this.hardcore = options.hardcore === true;
+    this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
     this.instability = new InstabilityManager(options.initialInstability ?? 0);
     this.shortWords = options.words.filter((w) => w.length >= SHORT_WORD_MIN && w.length <= SHORT_WORD_MAX);
     this.s = createInitialState(sanitizeCharges(options.initialSpells), this.instability.value);
@@ -456,6 +464,21 @@ export class GameEngine {
 
   // ───────────────────────── rules ─────────────────────────
 
+  /**
+   * Fall speed for a new word: the level's pace, varied per word (±SPEED_VARIANCE)
+   * and, on quota levels, rising with progress (from ×(1−LEVEL_SPEED_RAMP) to
+   * ×(1+LEVEL_SPEED_RAMP) at the quota) so each level starts slow on average.
+   */
+  private spawnSpeed(fallSpeed: number): number {
+    const variance = this.config.speedVariance ?? SPEED_VARIANCE;
+    const rampSize = this.config.speedRamp ?? LEVEL_SPEED_RAMP;
+    const vary = 1 + (this.speedRng.next() * 2 - 1) * variance;
+    const quota = this.config.requiredWords ?? this.config.rampWords ?? null;
+    const progress = quota ? Math.min(1, this.s.completed / quota) : 0.5;
+    const ramp = 1 - rampSize + 2 * rampSize * progress;
+    return fallSpeed * vary * ramp;
+  }
+
   private spawn(fallSpeed: number): void {
     const s = this.s;
     const text = this.generator.next();
@@ -478,7 +501,8 @@ export class GameEngine {
       x,
       y: 0,
       prevY: 0,
-      speed: fallSpeed,
+      speed: this.spawnSpeed(fallSpeed),
+      baseSpeed: 0,
       typed: 0,
       isTarget: false,
       lengthClass: lengthClassOf(text.length),
@@ -487,6 +511,7 @@ export class GameEngine {
       spawnTick: s.tick,
       errors: 0,
     };
+    word.baseSpeed = word.speed;
     s.words.push(word);
     this.events.emit('wordSpawned', { word });
     // A new word may match what is already typed.
@@ -605,7 +630,8 @@ export class GameEngine {
       },
       resetWordSpeeds: () => {
         const speed = this.pace.fallSpeed;
-        for (const word of this.s.words) word.speed = Math.min(word.speed, speed);
+        const cap = speed * (1 + (this.config.speedVariance ?? SPEED_VARIANCE));
+        for (const word of this.s.words) word.speed = Math.min(word.speed, word.baseSpeed, cap);
       },
       ticks: (ms) => Math.max(1, Math.round(ms / SIMULATION_STEP_MS)),
     };

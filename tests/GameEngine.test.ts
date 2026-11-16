@@ -6,6 +6,9 @@ import type { WordState } from '../src/gameplay/Word';
 const TEST_WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist'];
 
 const BASE_CONFIG: DifficultyConfig = {
+  // Exact speeds in these tests: no per-word variation or in-level ramp.
+  speedVariance: 0,
+  speedRamp: 0,
   level: 0,
   name: 'Test',
   requiredWords: null,

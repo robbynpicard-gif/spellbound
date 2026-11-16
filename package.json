@@ -1,8 +1,8 @@
 {
-  "name": "spellbound",
+  "name": "wizzy-type",
   "version": "0.7.0",
   "private": true,
-  "description": "Spellbound — a wizard-themed arcade typing game.",
+  "description": "Wizzy Type — a wizard-themed arcade typing game.",
   "type": "module",
   "engines": {
     "node": ">=20.19"

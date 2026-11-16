@@ -9,6 +9,7 @@ import {
 } from '../src/difficulty/DifficultyConfig';
 import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
 import { WORDS } from '../src/data/wordList';
+import { wordComplexity } from '../src/gameplay/WordGenerator';
 import { GameEngine } from '../src/core/GameEngine';
 import type { GameStats } from '../src/gameplay/ScoringSystem';
 import { emptyCharges, SPELL_IDS, totalCharges } from '../src/gameplay/SpellManager';
@@ -96,7 +97,29 @@ describe('campaign level data', () => {
   });
 
   it('converts JSON length-weight keys to numbers', () => {
-    expect(levels[0]!.wordLengthWeights![4]).toBe(3);
+    expect(levels[0]!.wordLengthWeights![4]).toBe(11);
+  });
+
+  it('uses short, simple words early and longer, harder words later', () => {
+    const normal = levels.filter((l) => !isSurvival(l));
+    for (let i = 1; i < normal.length; i++) {
+      expect(normal[i]!.minWordLength).toBeGreaterThanOrEqual(normal[i - 1]!.minWordLength);
+      expect(normal[i]!.maxWordLength).toBeGreaterThanOrEqual(normal[i - 1]!.maxWordLength);
+      const cap = (l: DifficultyConfig) => l.maxComplexity ?? Infinity;
+      expect(cap(normal[i]!)).toBeGreaterThanOrEqual(cap(normal[i - 1]!));
+    }
+    expect(levels[0]).toMatchObject({ minWordLength: 3, maxWordLength: 5, maxComplexity: 0.5 });
+    expect(levels[19]).toMatchObject({ minWordLength: 6, maxWordLength: 12 });
+    // Level 1 only ever spawns short words without rare letters, clusters or names.
+    const engine = new GameEngine({ config: { ...levels[0]!, spawnInterval: 50, maxActiveWords: 200 }, seed: 3, words: WORDS });
+    const seen: string[] = [];
+    engine.events.on('wordSpawned', ({ word }) => seen.push(word.text));
+    for (let i = 0; i < 3000; i++) engine.step();
+    expect(seen.length).toBeGreaterThan(100);
+    for (const w of seen) {
+      expect(w.length).toBeLessThanOrEqual(5);
+      expect(wordComplexity(w), w).toBeLessThanOrEqual(0.5);
+    }
   });
 
   it('has enough words for every level’s length range', () => {
@@ -126,16 +149,16 @@ describe('campaign level data', () => {
     }
   });
 
-  it('introduces spells from least to most powerful, one level at a time, never removing one', () => {
-    expect(levels[0]!.availableSpells).toEqual(['slow']);
+  it('introduces Fire first, then the rest from least to most powerful, never removing one', () => {
+    expect(levels[0]!.availableSpells).toEqual(['fire']);
     const intros = levels.filter((l) => l.introducesSpell).map((l) => [l.level, l.introducesSpell]);
     expect(intros).toEqual([
-      [1, 'slow'],
-      [3, 'ice'],
-      [6, 'barrier'],
-      [8, 'shock'],
-      [11, 'alter'],
-      [13, 'fire'],
+      [1, 'fire'],
+      [3, 'slow'],
+      [6, 'ice'],
+      [8, 'barrier'],
+      [11, 'shock'],
+      [13, 'alter'],
       [16, 'wind'],
       [18, 'harvest'],
     ]);
@@ -148,8 +171,8 @@ describe('campaign level data', () => {
   });
 
   it('knows which spells are unlocked at each level', () => {
-    expect(knownSpellsAt(levels, 1)).toEqual(['slow']);
-    expect(knownSpellsAt(levels, 7)).toEqual(['slow', 'ice', 'barrier']);
+    expect(knownSpellsAt(levels, 1)).toEqual(['fire']);
+    expect(knownSpellsAt(levels, 7)).toEqual(['slow', 'ice', 'fire']);
     expect(knownSpellsAt(levels, 20)).toEqual([...SPELL_IDS]);
   });
 

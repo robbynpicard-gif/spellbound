@@ -8,22 +8,21 @@
     "spawnInterval": 2200,
     "maxActiveWords": 5,
     "minWordLength": 3,
-    "maxWordLength": 7,
+    "maxWordLength": 5,
     "wordLengthWeights": {
-      "3": 1,
-      "4": 3,
-      "5": 3,
-      "6": 2,
-      "7": 1
+      "3": 9,
+      "4": 11,
+      "5": 9
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 10.0,
     "errorAcceleration": 12,
     "availableSpells": [
-      "slow"
+      "fire"
     ],
     "spellDropChance": 0.08,
-    "introducesSpell": "slow"
+    "introducesSpell": "fire",
+    "maxComplexity": 0.5
   },
   {
     "level": 2,
@@ -33,21 +32,21 @@
     "initialFallSpeed": 49,
     "spawnInterval": 2120,
     "maxActiveWords": 5,
-    "minWordLength": 4,
-    "maxWordLength": 7,
+    "minWordLength": 3,
+    "maxWordLength": 5,
     "wordLengthWeights": {
-      "4": 2,
-      "5": 3,
-      "6": 3,
-      "7": 2
+      "3": 8,
+      "4": 11,
+      "5": 10
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 10.5,
     "errorAcceleration": 13,
     "availableSpells": [
-      "slow"
+      "fire"
     ],
-    "spellDropChance": 0.079
+    "spellDropChance": 0.079,
+    "maxComplexity": 0.5
   },
   {
     "level": 3,
@@ -57,23 +56,24 @@
     "initialFallSpeed": 53,
     "spawnInterval": 2040,
     "maxActiveWords": 6,
-    "minWordLength": 4,
-    "maxWordLength": 7,
+    "minWordLength": 3,
+    "maxWordLength": 6,
     "wordLengthWeights": {
-      "4": 2,
-      "5": 3,
-      "6": 3,
-      "7": 2
+      "3": 7,
+      "4": 10,
+      "5": 11,
+      "6": 8
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 10.5,
     "errorAcceleration": 14,
     "availableSpells": [
       "slow",
-      "ice"
+      "fire"
     ],
     "spellDropChance": 0.077,
-    "introducesSpell": "ice"
+    "introducesSpell": "slow",
+    "maxComplexity": 0.5
   },
   {
     "level": 4,
@@ -83,23 +83,23 @@
     "initialFallSpeed": 58,
     "spawnInterval": 1960,
     "maxActiveWords": 6,
-    "minWordLength": 4,
-    "maxWordLength": 8,
+    "minWordLength": 3,
+    "maxWordLength": 6,
     "wordLengthWeights": {
-      "4": 1,
-      "5": 3,
-      "6": 3,
-      "7": 2,
-      "8": 1
+      "3": 5,
+      "4": 9,
+      "5": 11,
+      "6": 10
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 11.0,
     "errorAcceleration": 14,
     "availableSpells": [
       "slow",
-      "ice"
+      "fire"
     ],
-    "spellDropChance": 0.076
+    "spellDropChance": 0.076,
+    "maxComplexity": 1
   },
   {
     "level": 5,
@@ -109,21 +109,20 @@
     "initialFallSpeed": 58,
     "spawnInterval": 1960,
     "maxActiveWords": 6,
-    "minWordLength": 4,
-    "maxWordLength": 8,
+    "minWordLength": 3,
+    "maxWordLength": 6,
     "wordLengthWeights": {
-      "4": 1,
-      "5": 3,
-      "6": 3,
-      "7": 2,
-      "8": 1
+      "3": 5,
+      "4": 9,
+      "5": 11,
+      "6": 10
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 11.0,
     "errorAcceleration": 14,
     "availableSpells": [
       "slow",
-      "ice"
+      "fire"
     ],
     "spellDropChance": 0.08,
     "survivalMs": 60000,
@@ -131,7 +130,8 @@
       "initialFallSpeed": 66,
       "spawnInterval": 1800,
       "maxActiveWords": 7
-    }
+    },
+    "maxComplexity": 1
   },
   {
     "level": 6,
@@ -142,13 +142,12 @@
     "spawnInterval": 1880,
     "maxActiveWords": 6,
     "minWordLength": 4,
-    "maxWordLength": 8,
+    "maxWordLength": 7,
     "wordLengthWeights": {
-      "4": 1,
-      "5": 3,
-      "6": 3,
-      "7": 2,
-      "8": 1
+      "4": 8,
+      "5": 11,
+      "6": 10,
+      "7": 7
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 11.5,
@@ -156,10 +155,11 @@
     "availableSpells": [
       "slow",
       "ice",
-      "barrier"
+      "fire"
     ],
     "spellDropChance": 0.075,
-    "introducesSpell": "barrier"
+    "introducesSpell": "ice",
+    "maxComplexity": 1
   },
   {
     "level": 7,
@@ -170,14 +170,12 @@
     "spawnInterval": 1800,
     "maxActiveWords": 7,
     "minWordLength": 4,
-    "maxWordLength": 9,
+    "maxWordLength": 7,
     "wordLengthWeights": {
-      "4": 1,
-      "5": 2,
-      "6": 3,
-      "7": 3,
-      "8": 2,
-      "9": 1
+      "4": 6,
+      "5": 10,
+      "6": 11,
+      "7": 9
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 11.5,
@@ -185,9 +183,10 @@
     "availableSpells": [
       "slow",
       "ice",
-      "barrier"
+      "fire"
     ],
-    "spellDropChance": 0.073
+    "spellDropChance": 0.073,
+    "maxComplexity": 1
   },
   {
     "level": 8,
@@ -197,14 +196,14 @@
     "initialFallSpeed": 70,
     "spawnInterval": 1720,
     "maxActiveWords": 7,
-    "minWordLength": 5,
-    "maxWordLength": 9,
+    "minWordLength": 4,
+    "maxWordLength": 8,
     "wordLengthWeights": {
-      "5": 2,
-      "6": 3,
-      "7": 3,
-      "8": 2,
-      "9": 1
+      "4": 5,
+      "5": 9,
+      "6": 11,
+      "7": 10,
+      "8": 6
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 12.0,
@@ -213,10 +212,11 @@
       "slow",
       "ice",
       "barrier",
-      "shock"
+      "fire"
     ],
     "spellDropChance": 0.072,
-    "introducesSpell": "shock"
+    "introducesSpell": "barrier",
+    "maxComplexity": 1.5
   },
   {
     "level": 9,
@@ -226,14 +226,14 @@
     "initialFallSpeed": 74,
     "spawnInterval": 1640,
     "maxActiveWords": 7,
-    "minWordLength": 5,
-    "maxWordLength": 9,
+    "minWordLength": 4,
+    "maxWordLength": 8,
     "wordLengthWeights": {
-      "5": 2,
-      "6": 3,
-      "7": 3,
-      "8": 2,
-      "9": 1
+      "4": 4,
+      "5": 7,
+      "6": 10,
+      "7": 11,
+      "8": 8
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 12.5,
@@ -242,9 +242,10 @@
       "slow",
       "ice",
       "barrier",
-      "shock"
+      "fire"
     ],
-    "spellDropChance": 0.071
+    "spellDropChance": 0.071,
+    "maxComplexity": 1.5
   },
   {
     "level": 10,
@@ -254,14 +255,14 @@
     "initialFallSpeed": 74,
     "spawnInterval": 1640,
     "maxActiveWords": 7,
-    "minWordLength": 5,
-    "maxWordLength": 9,
+    "minWordLength": 4,
+    "maxWordLength": 8,
     "wordLengthWeights": {
-      "5": 2,
-      "6": 3,
-      "7": 3,
-      "8": 2,
-      "9": 1
+      "4": 4,
+      "5": 7,
+      "6": 10,
+      "7": 11,
+      "8": 8
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 12.5,
@@ -270,7 +271,7 @@
       "slow",
       "ice",
       "barrier",
-      "shock"
+      "fire"
     ],
     "spellDropChance": 0.08,
     "survivalMs": 75000,
@@ -278,7 +279,8 @@
       "initialFallSpeed": 83,
       "spawnInterval": 1480,
       "maxActiveWords": 8
-    }
+    },
+    "maxComplexity": 1.5
   },
   {
     "level": 11,
@@ -289,14 +291,13 @@
     "spawnInterval": 1560,
     "maxActiveWords": 8,
     "minWordLength": 5,
-    "maxWordLength": 10,
+    "maxWordLength": 9,
     "wordLengthWeights": {
-      "5": 1,
-      "6": 2,
-      "7": 3,
-      "8": 3,
-      "9": 2,
-      "10": 1
+      "5": 6,
+      "6": 9,
+      "7": 11,
+      "8": 9,
+      "9": 5
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 12.5,
@@ -306,10 +307,11 @@
       "ice",
       "barrier",
       "shock",
-      "alter"
+      "fire"
     ],
     "spellDropChance": 0.069,
-    "introducesSpell": "alter"
+    "introducesSpell": "shock",
+    "maxComplexity": 2
   },
   {
     "level": 12,
@@ -320,14 +322,13 @@
     "spawnInterval": 1480,
     "maxActiveWords": 8,
     "minWordLength": 5,
-    "maxWordLength": 10,
+    "maxWordLength": 9,
     "wordLengthWeights": {
-      "5": 1,
-      "6": 2,
-      "7": 3,
-      "8": 3,
-      "9": 2,
-      "10": 1
+      "5": 5,
+      "6": 8,
+      "7": 11,
+      "8": 10,
+      "9": 7
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 13.0,
@@ -337,9 +338,10 @@
       "ice",
       "barrier",
       "shock",
-      "alter"
+      "fire"
     ],
-    "spellDropChance": 0.068
+    "spellDropChance": 0.068,
+    "maxComplexity": 2
   },
   {
     "level": 13,
@@ -350,15 +352,14 @@
     "spawnInterval": 1400,
     "maxActiveWords": 8,
     "minWordLength": 5,
-    "maxWordLength": 11,
+    "maxWordLength": 10,
     "wordLengthWeights": {
-      "5": 1,
-      "6": 2,
-      "7": 3,
-      "8": 3,
-      "9": 2,
-      "10": 2,
-      "11": 1
+      "5": 3,
+      "6": 7,
+      "7": 10,
+      "8": 11,
+      "9": 8,
+      "10": 4
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 13.5,
@@ -372,7 +373,8 @@
       "fire"
     ],
     "spellDropChance": 0.067,
-    "introducesSpell": "fire"
+    "introducesSpell": "alter",
+    "maxComplexity": 2.5
   },
   {
     "level": 14,
@@ -382,16 +384,15 @@
     "initialFallSpeed": 91,
     "spawnInterval": 1320,
     "maxActiveWords": 9,
-    "minWordLength": 6,
-    "maxWordLength": 12,
+    "minWordLength": 5,
+    "maxWordLength": 10,
     "wordLengthWeights": {
-      "6": 2,
-      "7": 3,
-      "8": 3,
-      "9": 3,
-      "10": 2,
-      "11": 2,
-      "12": 1
+      "5": 3,
+      "6": 5,
+      "7": 9,
+      "8": 11,
+      "9": 9,
+      "10": 6
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 13.5,
@@ -404,7 +405,8 @@
       "alter",
       "fire"
     ],
-    "spellDropChance": 0.065
+    "spellDropChance": 0.065,
+    "maxComplexity": 2.5
   },
   {
     "level": 15,
@@ -414,16 +416,15 @@
     "initialFallSpeed": 91,
     "spawnInterval": 1320,
     "maxActiveWords": 9,
-    "minWordLength": 6,
-    "maxWordLength": 12,
+    "minWordLength": 5,
+    "maxWordLength": 10,
     "wordLengthWeights": {
-      "6": 2,
-      "7": 3,
-      "8": 3,
-      "9": 3,
-      "10": 2,
-      "11": 2,
-      "12": 1
+      "5": 3,
+      "6": 5,
+      "7": 9,
+      "8": 11,
+      "9": 9,
+      "10": 6
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 13.5,
@@ -442,7 +443,8 @@
       "initialFallSpeed": 100,
       "spawnInterval": 1160,
       "maxActiveWords": 10
-    }
+    },
+    "maxComplexity": 2.5
   },
   {
     "level": 16,
@@ -453,15 +455,14 @@
     "spawnInterval": 1240,
     "maxActiveWords": 9,
     "minWordLength": 6,
-    "maxWordLength": 12,
+    "maxWordLength": 11,
     "wordLengthWeights": {
-      "6": 2,
-      "7": 3,
-      "8": 3,
-      "9": 3,
-      "10": 2,
-      "11": 2,
-      "12": 1
+      "6": 4,
+      "7": 8,
+      "8": 11,
+      "9": 10,
+      "10": 7,
+      "11": 4
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 14.0,
@@ -487,15 +488,14 @@
     "spawnInterval": 1160,
     "maxActiveWords": 9,
     "minWordLength": 6,
-    "maxWordLength": 12,
+    "maxWordLength": 11,
     "wordLengthWeights": {
-      "6": 2,
-      "7": 3,
-      "8": 3,
-      "9": 3,
-      "10": 2,
-      "11": 2,
-      "12": 1
+      "6": 3,
+      "7": 6,
+      "8": 10,
+      "9": 11,
+      "10": 8,
+      "11": 5
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 14.5,
@@ -523,12 +523,12 @@
     "maxWordLength": 12,
     "wordLengthWeights": {
       "6": 2,
-      "7": 3,
-      "8": 3,
-      "9": 3,
-      "10": 2,
-      "11": 2,
-      "12": 1
+      "7": 5,
+      "8": 9,
+      "9": 11,
+      "10": 10,
+      "11": 6,
+      "12": 3
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 14.5,
@@ -557,13 +557,13 @@
     "minWordLength": 6,
     "maxWordLength": 12,
     "wordLengthWeights": {
-      "6": 1,
-      "7": 2,
-      "8": 3,
-      "9": 3,
-      "10": 3,
-      "11": 2,
-      "12": 2
+      "6": 2,
+      "7": 4,
+      "8": 7,
+      "9": 11,
+      "10": 11,
+      "11": 7,
+      "12": 4
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 15.0,
@@ -591,13 +591,13 @@
     "minWordLength": 6,
     "maxWordLength": 12,
     "wordLengthWeights": {
-      "6": 1,
-      "7": 2,
-      "8": 3,
-      "9": 3,
-      "10": 3,
-      "11": 2,
-      "12": 2
+      "6": 2,
+      "7": 4,
+      "8": 7,
+      "9": 11,
+      "10": 11,
+      "11": 7,
+      "12": 4
     },
     "modifierProbabilities": {},
     "instabilityPerMiss": 15.0,

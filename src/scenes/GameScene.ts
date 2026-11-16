@@ -189,7 +189,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     if (import.meta.env.DEV) {
-      (window as unknown as { spellboundEngine: GameEngine }).spellboundEngine = this.engine;
+      (window as unknown as { wizzyEngine: GameEngine }).wizzyEngine = this.engine;
     }
   }
 

@@ -21,7 +21,9 @@ import {
 
 import { sanitizeName } from '../multiplayer/protocol';
 
-export const SAVE_KEY = 'spellbound.save';
+export const SAVE_KEY = 'wizzytype.save';
+/** Save written before the game was renamed (read once, then rewritten under SAVE_KEY). */
+export const LEGACY_SAVE_KEY = 'spellbound.save';
 export const SAVE_VERSION = 4;
 
 /** Practice records live apart from Campaign records (GDD §14). */
@@ -181,7 +183,7 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
 export function browserStorage(): StorageLike | null {
   try {
     const storage = window.localStorage;
-    const probe = '__spellbound_probe__';
+    const probe = '__wizzytype_probe__';
     storage.setItem(probe, '1');
     storage.removeItem(probe);
     return storage;
@@ -203,7 +205,7 @@ export class SaveManager {
   ) {
     let raw: string | null = null;
     try {
-      raw = storage?.getItem(SAVE_KEY) ?? null;
+      raw = storage?.getItem(SAVE_KEY) ?? storage?.getItem(LEGACY_SAVE_KEY) ?? null;
     } catch {
       raw = null;
     }

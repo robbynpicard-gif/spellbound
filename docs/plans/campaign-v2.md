@@ -1,4 +1,4 @@
-# Spellbound — Campaign v2 plan (implemented)
+# Wizzy Type — Campaign v2 plan (implemented)
 
 _Agreed with the project owner and implemented, 2026-11-16 (decisions.md D-025/D-026). Replaces the 10-level campaign (D-014/D-016) once approved for implementation. Spell details: [spells-v2.md](spells-v2.md)._
 
@@ -13,14 +13,14 @@ _Agreed with the project owner and implemented, 2026-11-16 (decisions.md D-025/D
 - **Hardcore:** instability carries through the whole run. Available from the start, with its own records. Healing: Wind removes 50% of current instability, plus a **25% heal after each boss** (default; the owner had no preference).
 - Practice is unaffected.
 
-## Spell introductions (ordered from least to most powerful)
+## Spell introductions (Fire first, then least to most powerful — D-030)
 - When a spell's scroll first becomes collectible, a **pop-up pauses the round at its start**; Enter dismisses it. That spell's drop weight is ×3 on its intro level. No new spells are introduced on boss levels.
 
 | Ch | Levels | Introduced | Boss |
 |---|---|---|---|
-| 1 Apprentice's Tower | 1–4 | L1 Slow · L3 Ice | L5, 60 s |
-| 2 Sunken Library | 6–9 | L6 Barrier · L8 Shock | L10, 75 s |
-| 3 Alchemist's Vault | 11–14 | L11 Alter · L13 Fire | L15, 90 s |
+| 1 Apprentice's Tower | 1–4 | L1 Fire · L3 Slow | L5, 60 s |
+| 2 Sunken Library | 6–9 | L6 Ice · L8 Barrier | L10, 75 s |
+| 3 Alchemist's Vault | 11–14 | L11 Shock · L13 Alter | L15, 90 s |
 | 4 Storm Spire | 16–19 | L16 Wind · L18 Harvest | L20, 120 s |
 
 ## Bosses (survival)

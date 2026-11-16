@@ -35,5 +35,5 @@ game.events.once(BOOT_COMPLETE, () => app.showMainMenu());
 
 // Handy for debugging in the browser console during development only.
 if (import.meta.env.DEV) {
-  Object.assign(window, { spellbound: game, spellboundApp: app });
+  Object.assign(window, { wizzyType: game, wizzyApp: app });
 }

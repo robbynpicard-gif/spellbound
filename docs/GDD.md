@@ -1,9 +1,9 @@
-# SPELLBOUND
+# WIZZY TYPE
 ## Game Design Document & Claude Code Development Instructions
 
 **Document version:** 1.0  
 **Project status:** Pre-development  
-**Working title:** Spellbound  
+**Working title:** Wizzy Type  
 **Genre:** Arcade Typing / Fantasy / Multiplayer  
 **Platform:** Web browser (desktop-first)  
 **Development environment:** Claude Code + VS Code  
@@ -53,7 +53,7 @@ These principles should guide all development decisions.
 
 ## 3. Working title and identity
 
-Working title: **Spellbound**
+Working title: **Wizzy Type**
 
 Theme:
 - Wizardry
@@ -1051,7 +1051,7 @@ Implement:
 
 ## 29. Your role
 
-You are the lead software engineer responsible for implementing Spellbound.
+You are the lead software engineer responsible for implementing Wizzy Type.
 
 The user is the project owner and has limited programming experience.
 

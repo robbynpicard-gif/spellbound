@@ -18,6 +18,21 @@ const MAX_ATTEMPTS = 12;
  *   keystroke usually points at one word. "Last few" = maxActiveWords − 1,
  *   i.e. the words most likely to still be on the field.
  */
+/**
+ * How hard a word is to type, apart from its length: rare letters
+ * (j k q x z = 1, v w y = ½), each run of 3+ consonants (+1), and capitalised
+ * names (+2). "ash" = 0, "quill" = 1, "Yggdrasil" = 6.5.
+ */
+export function wordComplexity(word: string): number {
+  const w = word.toLowerCase();
+  let score = word[0] !== w[0] ? 2 : 0;
+  for (const ch of w) {
+    if ('jkqxz'.includes(ch)) score += 1;
+    else if ('vwy'.includes(ch)) score += 0.5;
+  }
+  return score + (w.match(/[^aeiou]{3,}/g)?.length ?? 0);
+}
+
 export class WordGenerator {
   private readonly byLength = new Map<number, string[]>();
   private readonly lengthWeights: Record<string, number>;
@@ -27,11 +42,12 @@ export class WordGenerator {
   constructor(
     words: readonly string[],
     config: Pick<DifficultyConfig, 'minWordLength' | 'maxWordLength' | 'wordLengthWeights'> &
-      Partial<Pick<DifficultyConfig, 'maxActiveWords'>>,
+      Partial<Pick<DifficultyConfig, 'maxActiveWords' | 'maxComplexity'>>,
     private readonly rng: SeededRandom,
   ) {
     for (const word of words) {
       if (word.length < config.minWordLength || word.length > config.maxWordLength) continue;
+      if (typeof config.maxComplexity === 'number' && wordComplexity(word) > config.maxComplexity) continue;
       const bucket = this.byLength.get(word.length);
       if (bucket) bucket.push(word);
       else this.byLength.set(word.length, [word]);

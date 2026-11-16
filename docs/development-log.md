@@ -4,6 +4,20 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Renamed to Wizzy Type; difficulty and speed pass
+
+**Done** (D-030): rename (title, package, save key with migration, docs);
+one-line spell summaries in game; Fire introduced first; word length and
+complexity grow with level; per-word speed variation with an in-level ramp.
+
+**Verified:** 162 unit tests pass (new: complexity limits on level 1, length
+and complexity never shrink across levels, speed variation range and mean,
+speed ramp formula, Purge restores base speed). Bot runs: perfect typists
+need ~110+ WPM of raw speed to clear level 20 (the game's own WPM readout
+shows ~58, because words arrive more slowly than they can type them).
+
+---
+
 ## 2026-11-16 — Milestone 7 (part 1): Gritty pixel art
 
 **Done** (D-028)

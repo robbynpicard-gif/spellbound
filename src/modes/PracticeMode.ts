@@ -33,7 +33,14 @@ export function isModifierFilter(value: unknown): value is ModifierFilter {
  */
 export function practiceConfig(level: DifficultyConfig, filter: ModifierFilter): DifficultyConfig {
   // Boss levels become endless at their starting pace (no timer, no ramp).
-  const config: DifficultyConfig = { ...level, requiredWords: null, survivalMs: null, ramp: null };
+  // Speeds ramp over the Campaign level's word count, so they match the Campaign exactly.
+  const config: DifficultyConfig = {
+    ...level,
+    requiredWords: null,
+    survivalMs: null,
+    ramp: null,
+    rampWords: level.rampWords ?? level.requiredWords,
+  };
   if (filter === 'original') {
     config.modifierProbabilities = {};
   } else if (filter === 'none') {

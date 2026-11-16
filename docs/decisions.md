@@ -1,4 +1,4 @@
-# Spellbound — Decision Record
+# Wizzy Type — Decision Record
 
 Each entry records a technical or design decision, why it was made, and its
 status. New decisions go at the bottom. Change a decision by adding a new entry
@@ -167,7 +167,7 @@ were used by typing FIRE / ICE / SLOW / WIND; Fire "burns all words", Ice
 "freezes all words", Slow slows them, Wind "renews your life", resets the
 danger bar to 0% and erases mistyped words.
 
-| Spell | Spellbound behaviour |
+| Spell | Wizzy Type behaviour |
 |---|---|
 | Fire — Incineration | Destroys every word on the field. Each scores base points (no combo bonus, combo kept), counts toward the level quota, and any tome it carried is collected. |
 | Ice — Frostbinding | 5 s: no word moves and no new word appears. Typing still works. |
@@ -284,7 +284,7 @@ _2026-11-16 · Accepted_
 
 Research into the archived Typing Maniac SWF is limited to understanding
 gameplay rules (speeds, penalties, spell effects). No art, audio, text,
-branding or code from it is copied into Spellbound. See
+branding or code from it is copied into Wizzy Type. See
 `docs/original-game-research.md`.
 
 ### D-025 — Campaign v2: 20 levels, 4 chapters, survival bosses, Normal/Hardcore
@@ -365,7 +365,7 @@ _2026-11-16 · Accepted (project owner) · supersedes D-021_
 ### D-028 — Gritty 16-bit pixel art, drawn in code
 _2026-11-16 · Accepted (project owner)_
 
-Design canvas: "Spellbound — pixel art direction" (claude.ai artifact).
+Design canvas: "Wizzy Type — pixel art direction" (claude.ai artifact).
 
 - **Look:** old-school pixel art with an isometric (3/4) feel; gameplay
   stays 2D. Dark and gritty, in the spirit of late-'90s isometric RPGs
@@ -401,3 +401,26 @@ _2026-11-16 · Accepted (project owner) · amends D-028_
 - Spell scrolls: a pulsing border and glow in the spell's colour, tinted
   paper, ribbons at both ends, a wax seal, and the spell's pixel icon at
   the left of the scroll.
+
+### D-030 — Renamed to Wizzy Type; difficulty by word complexity and varied speeds; Fire first
+_2026-11-16 · Accepted (project owner)_
+
+- **Name:** the game is **Wizzy Type** (was the working title "Spellbound").
+  The save moved to `wizzytype.save`; an old `spellbound.save` is read once
+  and carried over. The GitHub repository and its Pages address keep the
+  old name until the owner renames the repository.
+- **Spells in game are one line** (`summary` in spells.json, ≤ 8 words);
+  the longer `description` is kept for the future spellbook.
+- **Intro order:** Fire at level 1, then Slow 3, Ice 6, Barrier 8, Shock 11,
+  Alter 13, Wind 16, Harvest 18.
+- **Word difficulty:** lengths start at 3–5 letters (level 1) and grow to
+  6–12 (levels 18–20), with weights centred on longer words as levels rise.
+  `wordComplexity` scores rare letters, consonant clusters and capitalised
+  names; `maxComplexity` keeps early levels to plain words (0.5 at level 1,
+  rising to no limit from level 16).
+- **Fall speeds vary:** each word falls at ±25% of the level pace
+  (`speedVariance`), and on quota levels the average rises from ×0.85 at the
+  start to ×1.15 at the quota (`speedRamp`). Uses its own random stream, so
+  the word sequence (and duels) are unaffected. Practice ramps over the
+  Campaign level's word count (`rampWords`) so speeds still match exactly.
+  Arcane Purge returns each word to its own starting speed (`baseSpeed`).
