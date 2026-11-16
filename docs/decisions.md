@@ -361,3 +361,33 @@ _2026-11-16 · Accepted (project owner) · supersedes D-021_
 - **Wizard Duels always use the Fantasy dictionary** (`WORDS`), because the
   server replays both players' games and must have the same list.
 - Every bank alone has 800+ words for every level's length range (tested).
+
+### D-028 — Gritty 16-bit pixel art, drawn in code
+_2026-11-16 · Accepted (project owner)_
+
+Design canvas: "Spellbound — pixel art direction" (claude.ai artifact).
+
+- **Look:** old-school pixel art with an isometric (3/4) feel; gameplay
+  stays 2D. Dark and gritty, in the spirit of late-'90s isometric RPGs
+  (mood only — no borrowed interface or logos): desaturated soot, rust,
+  olive and bone; heavy shadow and vignette; candlelight as the one warm
+  light; grimy, noisy surfaces.
+- **Scale:** everything is drawn at 320×180 and shown at 4× with
+  nearest-neighbour filtering (`ART_SCALE`). `tools/pixelart/` (Python +
+  Pillow) generates the PNGs in `public/assets/`: one backdrop per chapter
+  (scene, ward line, the wizard's study, the iron HUD plate), a menu
+  backdrop and the spell icon strip. Run `python3 tools/pixelart/build.py`.
+- **Layout:** the study fills the bottom: the wizard at an alchemic
+  typewriter between shelves of scrolls. The **typewriter's paper is the
+  typing console**; accuracy/WPM sit on the desk plaque. Meters and spell
+  slots live in the iron plate at the top. The simulation keeps its field
+  height (560); the screen maps it onto the shorter field above the ward
+  line (`LAYOUT.fieldScale`, `screenY`), so difficulty is unchanged.
+- **Words are scrolls:** stained, torn, singed parchment drawn in code in
+  art pixels (`WordView`), ink letters, typed letters in rust, a rust frame
+  on the target, a coloured ribbon and wax seal on spell scrolls.
+- **Fonts:** Pixelify Sans (scroll words, typewriter, menu text) and VT323
+  (readouts, banners), from Google Fonts, both SIL Open Font License. Boot
+  waits up to 3 s for them, then falls back to system fonts.
+- Not done yet: boss creatures, animation (wizard, typewriter keys,
+  flasks), audio.

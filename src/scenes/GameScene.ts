@@ -9,7 +9,7 @@ import type { GameStats } from '../gameplay/ScoringSystem';
 import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { Effects } from '../render/Effects';
 import { FieldBackground } from '../render/FieldBackground';
-import { hex, LAYOUT, SPELL_COLORS } from '../render/layout';
+import { hex, LAYOUT, screenY, SPELL_COLORS } from '../render/layout';
 import { SpellEffects } from '../render/SpellEffects';
 import { WordView } from '../render/WordView';
 import { SPELLS } from '../spells/SpellRegistry';
@@ -138,7 +138,7 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(PALETTE.midnight);
-    this.background = new FieldBackground(this);
+    this.background = new FieldBackground(this, this.config.chapter ?? Math.ceil(this.config.level / 5));
     this.effects = new Effects(this);
     this.spellFx = new SpellEffects(this);
     this.hud = new GameHUD(
@@ -452,7 +452,7 @@ export class GameScene extends Phaser.Scene {
 
   private viewPosition(id: number, fieldX: number, fieldY: number): { x: number; y: number } {
     const view = this.views.get(id);
-    return { x: view?.x ?? fieldX, y: view?.y ?? LAYOUT.spawnY + fieldY };
+    return { x: view?.x ?? fieldX, y: view?.y ?? screenY(fieldY) };
   }
 
   private removeView(id: number): void {
@@ -465,15 +465,15 @@ export class GameScene extends Phaser.Scene {
     const cx = LAYOUT.width / 2;
     const cy = LAYOUT.spawnY + 200;
     const title = this.add
-      .text(cx, cy, `Level ${this.config.level}\n${this.config.name}`, {
+      .text(cx, cy, `LEVEL ${this.config.level}\n${this.config.name.toUpperCase()}`, {
         fontFamily: FONTS.heading,
-        fontSize: '44px',
+        fontSize: '60px',
         color: hex(PALETTE.gold),
         align: 'center',
-        lineSpacing: 6,
+        lineSpacing: 2,
       })
       .setOrigin(0.5)
-      .setShadow(0, 0, hex(PALETTE.arcane), 18, false, true)
+      .setShadow(4, 4, hex(PALETTE.midnight), 0, false, true)
       .setDepth(40);
     const goal = isSurvival(this.config)
       ? `Boss · Survive for ${Math.round(this.config.survivalMs! / 1000)} seconds`
@@ -481,7 +481,8 @@ export class GameScene extends Phaser.Scene {
         ? 'Endless practice: survive as long as you can'
         : `Complete ${this.config.requiredWords} words`;
     const sub = this.add
-      .text(cx, cy + 80, goal, { fontFamily: FONTS.gameplay, fontSize: '22px', color: hex(PALETTE.parchment) })
+      .text(cx, cy + 86, goal, { fontFamily: FONTS.heading, fontSize: '30px', color: hex(PALETTE.parchment) })
+      .setShadow(3, 3, hex(PALETTE.midnight), 0, false, true)
       .setOrigin(0.5)
       .setDepth(40);
     this.tweens.add({

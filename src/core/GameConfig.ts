@@ -36,26 +36,35 @@ export const FIELD: FieldConfig = {
 export const SIMULATION_HZ = 60;
 export const SIMULATION_STEP_MS = 1000 / SIMULATION_HZ;
 
-/** Shared colour palette (numeric form for Phaser; CSS mirrors these in main.css). */
+/**
+ * Shared colour palette: gritty, desaturated 16-bit (decisions.md D-028).
+ * Numeric form for Phaser; CSS mirrors these in main.css; the pixel art in
+ * public/assets uses the same values (tools/pixelart/pixelart.py).
+ */
 export const PALETTE = {
-  midnight: 0x0f0d16,
-  charcoal: 0x1a1724,
-  gold: 0xd4af37,
-  arcane: 0x8a5cf6,
-  parchment: 0xefe6d2,
-  fire: 0xe8642c,
-  ice: 0x5ad1f0,
-  wind: 0x6fd6b3,
-  crimson: 0xc0392b,
-  positive: 0x9be08a,
-  shield: 0xa9b8ff,
-  lightning: 0xf5e26b,
-  transmute: 0xf08fb8,
-  harvest: 0xe8bf62,
+  midnight: 0x0a0908,
+  charcoal: 0x1a1714,
+  gold: 0xd6a040,
+  arcane: 0x7a6096,
+  parchment: 0xc8b78c,
+  ink: 0x1e1610,
+  rust: 0x9a3412,
+  iron: 0x3a3834,
+  fire: 0xce622e,
+  ice: 0x6eaabe,
+  wind: 0x6ea082,
+  crimson: 0xb0402c,
+  positive: 0x8ab05a,
+  shield: 0x8c96b4,
+  lightning: 0xd6c468,
+  transmute: 0xba788c,
+  harvest: 0xc4a056,
 } as const;
 
-/** Fonts. Gameplay words always use the most legible stack. */
+/** Fonts (loaded from Google Fonts in index.html). Words on scrolls use the clearest one. */
 export const FONTS = {
-  heading: 'Georgia, "Times New Roman", serif',
-  gameplay: 'system-ui, "Segoe UI", Roboto, Arial, sans-serif',
+  /** Readouts, banners and the HUD: an old terminal face. */
+  heading: '"VT323", "Courier New", monospace',
+  /** Scroll words and the typewriter: a crisp pixel face. */
+  gameplay: '"Pixelify Sans", system-ui, "Segoe UI", Arial, sans-serif',
 } as const;

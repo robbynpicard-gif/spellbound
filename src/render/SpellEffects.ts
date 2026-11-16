@@ -180,10 +180,10 @@ export class SpellEffects {
     const text = this.scene.add
       .text(LAYOUT.width / 2, LAYOUT.spawnY + 230, SPELLS[spell].name, {
         fontFamily: FONTS.heading,
-        fontSize: '40px',
+        fontSize: '54px',
         color: hex(SPELL_COLORS[spell]),
         stroke: hex(PALETTE.midnight),
-        strokeThickness: 6,
+        strokeThickness: 8,
       })
       .setOrigin(0.5)
       .setDepth(25)

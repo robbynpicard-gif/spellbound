@@ -4,6 +4,27 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Milestone 7 (part 1): Gritty pixel art
+
+**Done** (D-028)
+- Art direction agreed on a design canvas, then built in: four chapter
+  backdrops and a menu backdrop drawn as 16-bit pixel art (320×180, shown
+  4×) by `tools/pixelart/`, spell icon strip, gritty palette.
+- Falling words are stained parchment scrolls; the typing console is the
+  paper in the wizard's alchemic typewriter; meters, score and spell slots
+  sit in the riveted iron HUD plate; accuracy on the desk plaque.
+- Menus re-themed: iron panels, pixel fonts (Pixelify Sans, VT323), hard
+  shadows.
+
+**Verified**
+- 155 unit tests pass; typecheck clean (simulation untouched; the screen
+  maps the same field onto the new layout).
+- Layout checked against the art on paper and in the generated images.
+  Not yet seen running in a browser here (no browser available in this
+  workspace); GitHub's build is the next check, then a play-test.
+
+---
+
 ## 2026-11-16 — Milestone 6 (part 2): Word banks and Options
 
 **Done** (D-027)

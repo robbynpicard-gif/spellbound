@@ -30,7 +30,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.6.0';
+const APP_VERSION = '0.7.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -94,7 +94,7 @@ export function mainMenuScreen(
     h(
       'p',
       { class: 'footnote' },
-      `Prototype ${APP_VERSION} · Temporary art · `,
+      `Version ${APP_VERSION} · `,
       persistent ? 'Records save in this browser' : 'Records cannot be saved in this browser',
     ),
   );
@@ -482,7 +482,7 @@ export function creditsScreen(onBack: () => void): Screen {
     h('p', null, `${GAME_TITLE} — an original wizard-themed typing game.`),
     h('p', null, 'Gameplay inspired by classic falling-word typing games.'),
     h('p', null, 'Built with Phaser, TypeScript and Vite.'),
-    h('p', { class: 'footnote' }, 'Art and audio are temporary placeholders.'),
+    h('p', { class: 'footnote' }, 'Pixel art drawn in code. Fonts: Pixelify Sans and VT323 (SIL Open Font License). Audio is coming later.'),
     h('div', { class: 'button-row' }, back),
   );
   return {

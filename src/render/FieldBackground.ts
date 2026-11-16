@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { PALETTE } from '../core/GameConfig';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
-import { LAYOUT } from './layout';
+import { ART, ART_SCALE, LAYOUT } from './layout';
 
 /** Ward-line colour per instability stage: calm arcane → gold → ember → crimson. */
 const WARD_COLORS: Record<InstabilityStage, number> = {
@@ -17,7 +17,8 @@ const WARD_COLORS: Record<InstabilityStage, number> = {
  * the glowing ward line the words must not reach. Reacts to instability with
  * colour, pulse speed and a crimson edge glow — never covering the words.
  *
- * Temporary art: drawn with shapes until original illustrated assets exist.
+ * The pixel art comes from public/assets (tools/pixelart); the instability
+ * glow, ward colour and shield are drawn over it.
  */
 export class FieldBackground {
   private readonly ward: Phaser.GameObjects.Graphics;
@@ -27,21 +28,27 @@ export class FieldBackground {
   private pulse?: Phaser.Tweens.Tween;
   private stage: InstabilityStage = 0;
 
-  constructor(private readonly scene: Phaser.Scene) {
-    const { width, height } = LAYOUT;
+  constructor(
+    private readonly scene: Phaser.Scene,
+    chapter = 1,
+  ) {
+    const { width } = LAYOUT;
 
-    const sky = scene.add.graphics().setDepth(-10);
-    sky.fillGradientStyle(PALETTE.midnight, PALETTE.midnight, PALETTE.charcoal, PALETTE.charcoal, 1);
-    sky.fillRect(0, 0, width, height);
+    // The chapter's pixel-art backdrop: scene, ward line, the wizard's study and the iron HUD plate.
+    const key = ART.chapter(chapter);
+    if (scene.textures.exists(key)) scene.add.image(0, 0, key).setOrigin(0).setScale(ART_SCALE).setDepth(-10);
+    else scene.add.rectangle(0, 0, width, LAYOUT.height, PALETTE.midnight).setOrigin(0).setDepth(-10);
 
-    for (let i = 0; i < 30; i++) {
+    // Dust drifting through the field, one art-pixel each.
+    for (let i = 0; i < 26; i++) {
       const mote = scene.add
-        .circle(
+        .rectangle(
           Phaser.Math.Between(0, width),
           Phaser.Math.Between(LAYOUT.spawnY, LAYOUT.wardY),
-          Phaser.Math.FloatBetween(1, 2.2),
-          i % 3 === 0 ? PALETTE.arcane : PALETTE.gold,
-          Phaser.Math.FloatBetween(0.1, 0.35),
+          ART_SCALE / 2,
+          ART_SCALE / 2,
+          i % 3 === 0 ? PALETTE.parchment : PALETTE.gold,
+          Phaser.Math.FloatBetween(0.1, 0.3),
         )
         .setDepth(-9);
       scene.tweens.add({
@@ -96,10 +103,10 @@ export class FieldBackground {
     const color = WARD_COLORS[stage];
     const y = LAYOUT.wardY;
     this.ward.clear();
-    this.ward.fillStyle(color, 0.12);
-    this.ward.fillRect(0, y - 10, LAYOUT.width, 20);
-    this.ward.lineStyle(2, color, 0.9);
-    this.ward.lineBetween(0, y, LAYOUT.width, y);
+    this.ward.fillStyle(color, 0.1);
+    this.ward.fillRect(0, y - 12, LAYOUT.width, 12);
+    this.ward.fillStyle(color, 0.75);
+    this.ward.fillRect(0, y, LAYOUT.width, ART_SCALE);
 
     this.pulse?.stop();
     this.ward.setAlpha(1);

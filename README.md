@@ -75,6 +75,12 @@ one at a time, with a pop-up the first level they can appear.
 
 A wrong letter makes the word you were typing fall faster and breaks your combo.
 
+## Art
+
+Gritty 16-bit pixel art, drawn in code: `tools/pixelart/` (Python + Pillow)
+generates the backdrops and icons in `public/assets/`. After changing it, run
+`python3 tools/pixelart/build.py` and commit the PNGs. See decisions.md D-028.
+
 ## What you need
 
 - **Node.js 20.19 or newer** (developed with Node 24). Check with `node --version`.
