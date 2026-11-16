@@ -1,9 +1,19 @@
 import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { InstabilityManager } from '../gameplay/InstabilityManager';
 import { accuracyOf, wordPoints, wpmOf, type GameStats } from '../gameplay/ScoringSystem';
+import {
+  addCharge,
+  consumeCharge,
+  isSpellId,
+  sanitizeCharges,
+  type SpellCharges,
+  type SpellId,
+} from '../gameplay/SpellManager';
 import { findAutoTarget } from '../gameplay/TargetManager';
 import { lengthClassOf, type WordState } from '../gameplay/Word';
 import { WordGenerator } from '../gameplay/WordGenerator';
+import type { SpellContext } from '../spells/BaseSpell';
+import { SPELLS } from '../spells/SpellRegistry';
 import { EventBus } from './EventBus';
 import type { GameEvents, GameResult } from './GameEvents';
 import { FIELD, SIMULATION_STEP_MS, type FieldConfig } from './GameConfig';
@@ -12,19 +22,22 @@ import { SeededRandom } from './Random';
 
 /**
  * A player action, stamped with the tick it happened on. The command log is
- * all that's needed (with the seed and config) to replay a game exactly —
- * the basis for multiplayer validation.
+ * all that's needed (with the seed, config and starting spells) to replay a
+ * game exactly — the basis for multiplayer validation.
  */
 export type Command =
   | { tick: number; type: 'char'; char: string }
   | { tick: number; type: 'abandon' }
-  | { tick: number; type: 'select'; wordId: number };
+  | { tick: number; type: 'select'; wordId: number }
+  | { tick: number; type: 'cast'; spell: SpellId };
 
 export interface EngineOptions {
   config: DifficultyConfig;
   seed: number;
   words: readonly string[];
   field?: FieldConfig;
+  /** Spell charges carried in (e.g. from the previous campaign level). */
+  initialSpells?: Partial<SpellCharges>;
 }
 
 const LETTER = /^[a-z]$/;
@@ -43,7 +56,8 @@ export class GameEngine {
   private readonly generator: WordGenerator;
   private readonly instability = new InstabilityManager();
   private readonly log: Command[] = [];
-  private readonly s: GameState = createInitialState();
+  private readonly s: GameState;
+  private readonly spellContext: SpellContext;
 
   constructor(options: EngineOptions) {
     this.config = options.config;
@@ -51,6 +65,8 @@ export class GameEngine {
     this.field = options.field ?? FIELD;
     this.rng = new SeededRandom(options.seed);
     this.generator = new WordGenerator(options.words, options.config, this.rng);
+    this.s = createInitialState(sanitizeCharges(options.initialSpells));
+    this.spellContext = this.createSpellContext();
   }
 
   /** Re-run a recorded game up to `untilTick` and return the engine. */
@@ -92,7 +108,23 @@ export class GameEngine {
     if (s.status !== 'playing') return;
     s.tick++;
 
-    const dt = SIMULATION_STEP_MS / 1000;
+    // Frostbinding: nothing moves and nothing spawns.
+    if (s.freezeTicks > 0) {
+      for (const word of s.words) word.prevY = word.y;
+      if (--s.freezeTicks === 0) this.events.emit('spellEnded', { spell: 'ice' });
+      return;
+    }
+
+    let factor = 1;
+    if (s.slowTicks > 0) {
+      factor = s.slowFactor;
+      if (--s.slowTicks === 0) {
+        s.slowFactor = 1;
+        this.events.emit('spellEnded', { spell: 'slow' });
+      }
+    }
+
+    const dt = (SIMULATION_STEP_MS / 1000) * factor;
     for (const word of s.words) {
       word.prevY = word.y;
       word.y += word.speed * dt;
@@ -134,6 +166,17 @@ export class GameEngine {
     this.record({ tick: this.s.tick, type: 'select', wordId });
   }
 
+  /** Cast a spell. Returns false (and emits spellFizzled) when no charge is held. */
+  castSpell(spell: SpellId): boolean {
+    if (this.s.status !== 'playing' || !isSpellId(spell)) return false;
+    if (this.s.spells[spell] <= 0) {
+      this.events.emit('spellFizzled', { spell });
+      return false;
+    }
+    this.record({ tick: this.s.tick, type: 'cast', spell });
+    return true;
+  }
+
   private record(command: Command): void {
     this.log.push(command);
     this.apply(command);
@@ -147,6 +190,8 @@ export class GameEngine {
         return this.setTarget(null);
       case 'select':
         return this.setTarget(command.wordId);
+      case 'cast':
+        return this.applyCast(command.spell);
     }
   }
 
@@ -167,6 +212,14 @@ export class GameEngine {
     else this.events.emit('wordProgress', { word: target });
   }
 
+  private applyCast(spell: SpellId): void {
+    const s = this.s;
+    if (!consumeCharge(s.spells, spell)) return;
+    s.spellsCast[spell]++;
+    this.events.emit('spellCast', { spell, charges: { ...s.spells } });
+    SPELLS[spell].cast(this.spellContext);
+  }
+
   // ───────────────────────── rules ─────────────────────────
 
   private spawn(): void {
@@ -176,6 +229,10 @@ export class GameEngine {
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;
     const x = Math.round(minX < maxX ? this.rng.range(minX, maxX) : this.field.width / 2);
+
+    const available = this.config.availableSpells;
+    const spell =
+      available.length > 0 && this.rng.chance(this.config.spellDropChance) ? this.rng.pick(available) : null;
 
     const word: WordState = {
       id: s.nextWordId++,
@@ -188,6 +245,7 @@ export class GameEngine {
       isTarget: false,
       lengthClass: lengthClassOf(text.length),
       modifier: null,
+      spell,
       spawnTick: s.tick,
       errors: 0,
     };
@@ -233,9 +291,14 @@ export class GameEngine {
 
     this.events.emit('wordCompleted', { word, points, combo: s.combo });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
+    this.emitProgress();
+    if (word.spell) this.collect(word.spell);
+    this.checkQuota();
+  }
 
-    const quota = this.config.requiredWords;
-    if (quota !== null && s.completed >= quota) this.end('won');
+  private collect(spell: SpellId): void {
+    const stored = addCharge(this.s.spells, spell);
+    this.events.emit('spellCollected', { spell, stored, charges: { ...this.s.spells } });
   }
 
   private miss(word: WordState): void {
@@ -262,6 +325,15 @@ export class GameEngine {
     }
   }
 
+  private emitProgress(): void {
+    this.events.emit('progressChanged', { completed: this.s.completed, required: this.config.requiredWords });
+  }
+
+  private checkQuota(): void {
+    const quota = this.config.requiredWords;
+    if (this.s.status === 'playing' && quota !== null && this.s.completed >= quota) this.end('won');
+  }
+
   private end(result: GameResult): void {
     this.s.status = result;
     this.events.emit('gameOver', { result, stats: this.stats() });
@@ -269,6 +341,53 @@ export class GameEngine {
 
   private findWord(id: number): WordState | undefined {
     return this.s.words.find((w) => w.id === id);
+  }
+
+  // ───────────────────────── spells ─────────────────────────
+
+  private createSpellContext(): SpellContext {
+    return {
+      burnAllWords: () => this.burnAllWords(),
+      freeze: (ticks) => {
+        this.s.freezeTicks = Math.max(this.s.freezeTicks, ticks);
+      },
+      slow: (ticks, factor) => {
+        this.s.slowTicks = Math.max(this.s.slowTicks, ticks);
+        this.s.slowFactor = factor;
+      },
+      resetInstability: () => {
+        const s = this.s;
+        s.instability = this.instability.add(-this.instability.value);
+        this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
+      },
+      resetWordSpeeds: () => {
+        for (const word of this.s.words) word.speed = this.config.initialFallSpeed;
+      },
+      ticks: (ms) => Math.max(1, Math.round(ms / SIMULATION_STEP_MS)),
+    };
+  }
+
+  /**
+   * Incineration: every word on the field is destroyed. Each scores its base
+   * points (no combo bonus, combo unchanged), counts toward the quota, and
+   * any tome it carried is collected.
+   */
+  private burnAllWords(): void {
+    const s = this.s;
+    const burned = [...s.words];
+    if (burned.length === 0) return;
+    let points = 0;
+    for (const word of burned) {
+      this.removeWord(word);
+      s.completed++;
+      points += wordPoints(word.text.length, 1);
+    }
+    s.score += points;
+    this.events.emit('wordsBurned', { words: burned, points });
+    this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
+    this.emitProgress();
+    for (const word of burned) if (word.spell) this.collect(word.spell);
+    this.checkQuota();
   }
 
   // ───────────────────────── stats ─────────────────────────

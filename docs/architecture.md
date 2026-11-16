@@ -1,6 +1,6 @@
 # Spellbound — Architecture
 
-_Last updated: 2026-11-16 (Milestone 2)_
+_Last updated: 2026-11-16 (Milestone 3)_
 
 This document describes how the code is organised and the rules that keep it
 maintainable. The Game Design Document (`docs/GDD.md`) says **what** the game
@@ -97,9 +97,24 @@ main.ts ─▶ App (src/app/App.ts) ─┬─▶ UIRoot shows one HTML Screen (s
 GameScene ── hooks.onPauseChanged / hooks.onGameOver ──▶ App
 ```
 
-Flow: Main menu → Campaign (level select) → GameScene (intro banner, play)
-→ Results (Next / Retry / Level select / Main menu). Esc pauses; the pause
+Flow (Milestone 3, D-016): Main menu → Campaign run: Level 1 → "Level
+Cleared" → Level 2 → … → Run over (New run / Main menu). The App holds the
+`CampaignRun` (score and spell charges carried between levels) and passes
+`initialSpells` / `scoreOffset` into each GameScene. Esc pauses; the pause
 screen is HTML, but the scene owns the pause state.
+
+### 3.7 Spells (Milestone 3, D-017)
+
+```
+data/spells.json ─▶ spells/SpellRegistry.ts (SPELLS: data + effect per id)
+GameEngine.castSpell(id) ─▶ 'cast' command ─▶ SPELLS[id].cast(SpellContext)
+SpellContext = burnAllWords · freeze · slow · resetInstability · resetWordSpeeds
+```
+
+Spells only act through `SpellContext`, so adding a spell means a data entry,
+an id in `gameplay/SpellManager.ts` and an effect in the registry — no engine
+edits unless it needs a new kind of effect. `render/SpellEffects.ts` draws
+them; `ui/GameHUD.ts` shows slots, progress and instability.
 
 | File | Responsibility |
 |---|---|

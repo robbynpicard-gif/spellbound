@@ -1,12 +1,16 @@
 import { GAME_TITLE } from '../core/GameConfig';
-import type { GameResult } from '../core/GameEvents';
 import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
 import type { GameStats } from '../gameplay/ScoringSystem';
-import type { CampaignOutcome, CampaignProgress } from '../modes/CampaignMode';
+import { SPELL_IDS, type SpellCharges } from '../gameplay/SpellManager';
+import type { CampaignRecords, CampaignRun, RunOutcome, RunSummary } from '../modes/CampaignMode';
+import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
+
+const stat = (label: string, value: string | number) =>
+  h('div', { class: 'stat' }, h('dt', null, label), h('dd', null, String(value)));
 
 // ───────────────────────── Main menu ─────────────────────────
 
@@ -23,8 +27,13 @@ const UPCOMING: [label: string, milestone: string][] = [
   ['Settings', 'Milestone 7'],
 ];
 
-export function mainMenuScreen(actions: MainMenuActions, persistent: boolean): Screen {
+export function mainMenuScreen(
+  actions: MainMenuActions,
+  records: Readonly<CampaignRecords>,
+  persistent: boolean,
+): Screen {
   const campaign = h('button', { class: 'menu-button primary', onClick: actions.onCampaign }, 'Campaign');
+  const best = records.bestRun;
 
   const element = h(
     'section',
@@ -45,189 +54,153 @@ export function mainMenuScreen(actions: MainMenuActions, persistent: boolean): S
       ),
       h('button', { class: 'menu-button', onClick: actions.onCredits }, 'Credits'),
     ),
+    best &&
+      h(
+        'p',
+        { class: 'best-run' },
+        `Best run: ${best.score.toLocaleString()} · `,
+        best.victory ? 'all levels cleared' : `reached level ${best.reachedLevel}`,
+      ),
     h(
       'p',
       { class: 'footnote' },
       `Prototype ${APP_VERSION} · Temporary art · `,
-      persistent ? 'Progress saves in this browser' : 'Progress cannot be saved in this browser',
+      persistent ? 'Records save in this browser' : 'Records cannot be saved in this browser',
     ),
   );
   return { element, focus: campaign };
-}
-
-// ───────────────────────── Level select ─────────────────────────
-
-export interface LevelSelectActions {
-  onPlay(level: number): void;
-  onBack(): void;
-}
-
-export function levelSelectScreen(
-  levels: readonly DifficultyConfig[],
-  progress: Readonly<CampaignProgress>,
-  actions: LevelSelectActions,
-): Screen {
-  let focus: HTMLElement | null = null;
-
-  const cards = levels.map((config) => {
-    const locked = config.level > progress.highestUnlocked;
-    const record = progress.levels[String(config.level)];
-    const cleared = (record?.completions ?? 0) > 0;
-    const card = h(
-      'button',
-      {
-        class: `level-card${locked ? ' locked' : ''}${cleared ? ' cleared' : ''}`,
-        disabled: locked,
-        onClick: () => actions.onPlay(config.level),
-        attrs: {
-          'aria-label': locked
-            ? `Level ${config.level}, locked`
-            : `Level ${config.level}, ${config.name}${cleared ? `, best score ${record!.bestScore}` : ''}`,
-        },
-      },
-      h('span', { class: 'level-number' }, config.level),
-      h('span', { class: 'level-name' }, locked ? 'Sealed' : config.name),
-      h(
-        'span',
-        { class: 'level-detail' },
-        locked
-          ? 'Clear the previous level'
-          : cleared
-            ? `Best ${record!.bestScore} · ${Math.round(record!.bestWpm)} WPM`
-            : `${config.requiredWords} words`,
-      ),
-    );
-    // Focus the furthest unlocked level so Enter continues the campaign.
-    if (config.level === progress.highestUnlocked) focus = card;
-    return card;
-  });
-
-  const element = h(
-    'section',
-    { class: 'screen level-select', attrs: { 'aria-labelledby': 'levels-title' } },
-    h('h2', { class: 'screen-title', attrs: { id: 'levels-title' } }, 'Campaign'),
-    h('p', { class: 'screen-subtitle' }, 'Choose a chamber of the tower to defend.'),
-    h('div', { class: 'level-grid' }, ...cards),
-    h('div', { class: 'button-row' }, h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back')),
-  );
-
-  return {
-    element,
-    focus,
-    onKey: (event) => {
-      if (event.key === 'Escape') actions.onBack();
-    },
-  };
 }
 
 // ───────────────────────── Pause ─────────────────────────
 
 export interface PauseActions {
   onResume(): void;
-  onRestart(): void;
-  onQuit(): void;
+  onRestartRun(): void;
+  onAbandon(): void;
 }
 
-export function pauseScreen(levelLabel: string, actions: PauseActions): Screen {
+export function pauseScreen(label: string, actions: PauseActions): Screen {
   const resume = h('button', { class: 'menu-button primary', onClick: actions.onResume }, 'Resume');
   const element = h(
     'section',
     { class: 'screen panel pause', attrs: { role: 'dialog', 'aria-labelledby': 'pause-title' } },
     h('h2', { class: 'screen-title', attrs: { id: 'pause-title' } }, 'Paused'),
-    h('p', { class: 'screen-subtitle' }, levelLabel),
+    h('p', { class: 'screen-subtitle' }, label),
     h('p', { class: 'flavour' }, 'The words hang in the air, waiting.'),
     h(
       'div',
       { class: 'menu-list' },
       resume,
-      h('button', { class: 'menu-button', onClick: actions.onRestart }, 'Restart level'),
-      h('button', { class: 'menu-button', onClick: actions.onQuit }, 'Quit to level select'),
+      h('button', { class: 'menu-button', onClick: actions.onRestartRun }, 'Restart run from level 1'),
+      h('button', { class: 'menu-button', onClick: actions.onAbandon }, 'Abandon run'),
     ),
-    h('p', { class: 'footnote' }, 'Esc resumes'),
+    h('p', { class: 'footnote' }, 'Esc resumes · An abandoned run is not recorded'),
   );
   // Esc is handled by the game scene (it owns the pause state).
   return { element, focus: resume };
 }
 
-// ───────────────────────── Results ─────────────────────────
+// ───────────────────────── Between levels ─────────────────────────
 
-export interface ResultsActions {
-  onNext(): void;
-  onRetry(): void;
-  onLevels(): void;
-  onMenu(): void;
+function spellSummary(charges: SpellCharges): HTMLElement {
+  const held = SPELL_IDS.filter((id) => charges[id] > 0);
+  return h(
+    'p',
+    { class: 'spell-summary' },
+    held.length === 0
+      ? 'No spell tomes carried.'
+      : `Carrying: ${held.map((id) => `${SPELLS[id].book} ×${charges[id]}`).join(' · ')}`,
+  );
 }
 
-export function resultsScreen(
-  config: DifficultyConfig,
-  result: GameResult,
+export function levelClearScreen(
+  cleared: DifficultyConfig,
+  next: DifficultyConfig,
   stats: GameStats,
-  outcome: CampaignOutcome,
-  actions: ResultsActions,
+  run: Readonly<CampaignRun>,
+  onContinue: () => void,
 ): Screen {
-  const won = result === 'won';
-  const finale = won && !outcome.hasNextLevel;
-  const title = finale ? 'The Tower Stands' : won ? 'Level Complete' : 'The Wards Have Fallen';
-
-  const stat = (label: string, value: string | number) =>
-    h('div', { class: 'stat' }, h('dt', null, label), h('dd', null, String(value)));
-
-  const rewards: (string | false)[] = [
-    won && outcome.isNewBest && outcome.previousBest !== null && `New personal best! (was ${outcome.previousBest})`,
-    outcome.unlockedLevel !== null && `Level ${outcome.unlockedLevel} unsealed`,
-    finale && 'You have completed every chamber of the campaign.',
-  ];
-  const bestLine = won
-    ? outcome.previousBest === null
-      ? 'First clear of this level'
-      : `Personal best: ${Math.max(outcome.previousBest, stats.score)}`
-    : outcome.previousBest === null
-      ? 'Not yet cleared'
-      : `Personal best: ${outcome.previousBest}`;
-
-  const nextButton =
-    won && outcome.hasNextLevel
-      ? h('button', { class: 'menu-button primary', onClick: actions.onNext }, 'Next level')
-      : null;
-  const retryButton = h(
-    'button',
-    { class: `menu-button${nextButton ? '' : ' primary'}`, onClick: actions.onRetry },
-    won ? 'Play again' : 'Try again',
-  );
-
+  const button = h('button', { class: 'menu-button primary', onClick: onContinue }, `Continue to level ${next.level}`);
   const element = h(
     'section',
-    { class: `screen panel results ${won ? 'won' : 'lost'}`, attrs: { role: 'dialog', 'aria-labelledby': 'results-title' } },
-    h('h2', { class: 'screen-title', attrs: { id: 'results-title' } }, title),
-    h('p', { class: 'screen-subtitle' }, `Level ${config.level} · ${config.name}`),
-    h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Score'), String(stats.score)),
+    { class: 'screen panel results won', attrs: { role: 'dialog', 'aria-labelledby': 'clear-title' } },
+    h('h2', { class: 'screen-title', attrs: { id: 'clear-title' } }, `Level ${cleared.level} Cleared`),
+    h('p', { class: 'screen-subtitle' }, cleared.name),
+    h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Run score'), run.score.toLocaleString()),
     h(
       'dl',
       { class: 'stat-grid' },
+      stat('Level score', `+${stats.score.toLocaleString()}`),
       stat('Accuracy', percent(stats.accuracy)),
       stat('WPM', Math.round(stats.wpm)),
-      stat('Words', config.requiredWords === null ? stats.completed : `${stats.completed} / ${config.requiredWords}`),
       stat('Missed', stats.missed),
       stat('Best combo', `×${stats.maxCombo}`),
       stat('Time', formatTime(stats.elapsedMs)),
     ),
-    h('p', { class: 'personal-best' }, bestLine),
-    ...rewards.filter((r): r is string => Boolean(r)).map((r) => h('p', { class: 'reward' }, r)),
+    spellSummary(run.spellCharges),
+    h('p', { class: 'next-up' }, `Next: Level ${next.level} · ${next.name}`),
+    h('div', { class: 'button-row' }, button),
+  );
+  return { element, focus: button };
+}
+
+// ───────────────────────── End of run ─────────────────────────
+
+export interface RunOverActions {
+  onNewRun(): void;
+  onMenu(): void;
+}
+
+export function runOverScreen(
+  summary: RunSummary,
+  outcome: RunOutcome,
+  lastLevel: DifficultyConfig,
+  totalLevels: number,
+  actions: RunOverActions,
+): Screen {
+  const won = summary.victory;
+  const title = won ? 'The Tower Stands' : 'The Wards Have Fallen';
+  const subtitle = won
+    ? `All ${totalLevels} levels cleared`
+    : `Fell on level ${summary.reachedLevel} · ${lastLevel.name} · ${summary.levelsCleared} cleared`;
+
+  const bestLine =
+    outcome.previousBest === null
+      ? 'Your first recorded run'
+      : outcome.isNewBest
+        ? `New best run! (was ${outcome.previousBest.toLocaleString()})`
+        : `Best run: ${outcome.previousBest.toLocaleString()}`;
+
+  const newRun = h('button', { class: 'menu-button primary', onClick: actions.onNewRun }, 'New run');
+  const element = h(
+    'section',
+    { class: `screen panel results ${won ? 'won' : 'lost'}`, attrs: { role: 'dialog', 'aria-labelledby': 'run-title' } },
+    h('h2', { class: 'screen-title', attrs: { id: 'run-title' } }, title),
+    h('p', { class: 'screen-subtitle' }, subtitle),
+    h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Final score'), summary.score.toLocaleString()),
+    h(
+      'dl',
+      { class: 'stat-grid' },
+      stat('Accuracy', percent(summary.accuracy)),
+      stat('WPM', Math.round(summary.wpm)),
+      stat('Words', summary.completed),
+      stat('Missed', summary.missed),
+      stat('Best combo', `×${summary.maxCombo}`),
+      stat('Time', formatTime(summary.elapsedMs)),
+    ),
+    h('p', { class: outcome.isNewBest && outcome.previousBest !== null ? 'reward' : 'personal-best' }, bestLine),
     h(
       'div',
       { class: 'button-row' },
-      nextButton,
-      retryButton,
-      h('button', { class: 'menu-button', onClick: actions.onLevels }, 'Level select'),
+      newRun,
       h('button', { class: 'menu-button', onClick: actions.onMenu }, 'Main menu'),
     ),
   );
-
   return {
     element,
-    focus: nextButton ?? retryButton,
+    focus: newRun,
     onKey: (event) => {
-      if (event.key === 'Escape') actions.onLevels();
+      if (event.key === 'Escape') actions.onMenu();
     },
   };
 }

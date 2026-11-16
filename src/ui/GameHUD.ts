@@ -2,9 +2,11 @@ import Phaser from 'phaser';
 import { FONTS, PALETTE } from '../core/GameConfig';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
-import { hex, LAYOUT } from '../render/layout';
+import { MAX_SPELL_CHARGES, SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
+import { hex, LAYOUT, SPELL_COLORS } from '../render/layout';
+import { SPELLS } from '../spells/SpellRegistry';
 
-const METER_COLORS: Record<InstabilityStage, number> = {
+const INSTABILITY_COLORS: Record<InstabilityStage, number> = {
   0: PALETTE.arcane,
   1: PALETTE.gold,
   2: PALETTE.fire,
@@ -18,25 +20,161 @@ const label = (color: number = PALETTE.parchment): Phaser.Types.GameObjects.Text
   color: hex(color),
 });
 
+const BAR_WIDTH = 380;
+const BAR_HEIGHT = 14;
+const SLOT_W = 78;
+const SLOT_H = 58;
+const SLOT_GAP = 10;
+
+/** A labelled horizontal meter that animates to new values. */
+class Meter {
+  private readonly bar: Phaser.GameObjects.Graphics;
+  private readonly text: Phaser.GameObjects.Text;
+  private shown = 0;
+  private readonly tweenTarget = { value: 0 };
+
+  constructor(
+    private readonly scene: Phaser.Scene,
+    private readonly x: number,
+    private readonly y: number,
+    private readonly caption: (value: number) => string,
+    private color: number,
+  ) {
+    this.bar = scene.add.graphics().setDepth(30);
+    this.text = scene.add
+      .text(x + BAR_WIDTH / 2, y - 16, '', { ...label(), fontSize: '14px', fontStyle: '600' })
+      .setOrigin(0.5)
+      .setDepth(31);
+    this.draw(0);
+  }
+
+  /** value is 0–100. */
+  set(value: number, color = this.color): void {
+    this.color = color;
+    this.scene.tweens.killTweensOf(this.tweenTarget);
+    this.tweenTarget.value = this.shown;
+    this.scene.tweens.add({
+      targets: this.tweenTarget,
+      value,
+      duration: 350,
+      ease: 'Cubic.Out',
+      onUpdate: () => this.draw(this.tweenTarget.value),
+    });
+  }
+
+  private draw(value: number): void {
+    this.shown = value;
+    const { x, y } = this;
+    const g = this.bar;
+    g.clear();
+    g.fillStyle(PALETTE.midnight, 0.9);
+    g.fillRoundedRect(x - 2, y - 2, BAR_WIDTH + 4, BAR_HEIGHT + 4, 8);
+    if (value > 0) {
+      g.fillStyle(this.color, 0.95);
+      g.fillRoundedRect(x, y, Math.max(BAR_HEIGHT, (BAR_WIDTH * Math.min(value, 100)) / 100), BAR_HEIGHT, 6);
+    }
+    g.lineStyle(1, PALETTE.gold, 0.5);
+    g.strokeRoundedRect(x - 2, y - 2, BAR_WIDTH + 4, BAR_HEIGHT + 4, 8);
+    this.text.setText(this.caption(value));
+  }
+}
+
+/** One spell inventory slot: key, book name and charge pips. */
+class SpellSlot {
+  private readonly frame: Phaser.GameObjects.Graphics;
+  private readonly pips: Phaser.GameObjects.Graphics;
+  private readonly container: Phaser.GameObjects.Container;
+  private readonly color: number;
+
+  constructor(
+    private readonly scene: Phaser.Scene,
+    readonly spell: SpellId,
+    x: number,
+    y: number,
+  ) {
+    this.color = SPELL_COLORS[spell];
+    const def = SPELLS[spell];
+    this.frame = scene.add.graphics();
+    this.pips = scene.add.graphics();
+    const key = scene.add.text(-SLOT_W / 2 + 7, -SLOT_H / 2 + 4, def.key, {
+      ...label(),
+      fontSize: '13px',
+      fontStyle: '700',
+    });
+    const name = scene.add
+      .text(0, -4, def.book, { ...label(this.color), fontSize: '16px', fontStyle: '700' })
+      .setOrigin(0.5);
+    this.container = scene.add
+      .container(x + SLOT_W / 2, y + SLOT_H / 2, [this.frame, this.pips, key, name])
+      .setDepth(31);
+    this.set(0);
+  }
+
+  set(charges: number): void {
+    const active = charges > 0;
+    this.frame.clear();
+    this.frame.fillStyle(active ? this.color : PALETTE.charcoal, active ? 0.18 : 0.6);
+    this.frame.fillRoundedRect(-SLOT_W / 2, -SLOT_H / 2, SLOT_W, SLOT_H, 10);
+    this.frame.lineStyle(active ? 2 : 1, active ? this.color : PALETTE.parchment, active ? 0.95 : 0.25);
+    this.frame.strokeRoundedRect(-SLOT_W / 2, -SLOT_H / 2, SLOT_W, SLOT_H, 10);
+    this.container.setAlpha(active ? 1 : 0.55);
+
+    this.pips.clear();
+    for (let i = 0; i < MAX_SPELL_CHARGES; i++) {
+      const px = (i - (MAX_SPELL_CHARGES - 1) / 2) * 14;
+      if (i < charges) {
+        this.pips.fillStyle(this.color, 1);
+        this.pips.fillCircle(px, 16, 4.5);
+      } else {
+        this.pips.lineStyle(1, PALETTE.parchment, 0.5);
+        this.pips.strokeCircle(px, 16, 4);
+      }
+    }
+  }
+
+  /** Bright pulse when cast or collected. */
+  pulse(): void {
+    this.scene.tweens.add({ targets: this.container, scale: { from: 1.18, to: 1 }, duration: 260, ease: 'Back.Out' });
+  }
+
+  /** Red shake when the player tries to cast with no charges. */
+  deny(): void {
+    const x = this.container.x;
+    this.scene.tweens.add({
+      targets: this.container,
+      x: { from: x - 5, to: x + 5 },
+      duration: 40,
+      yoyo: true,
+      repeat: 2,
+      onComplete: () => this.container.setX(x),
+    });
+    this.frame.lineStyle(2, PALETTE.crimson, 1);
+    this.frame.strokeRoundedRect(-SLOT_W / 2, -SLOT_H / 2, SLOT_W, SLOT_H, 10);
+  }
+}
+
 /**
- * Heads-up display: level, score, combo, words, accuracy, WPM, pause hint
- * and the tower instability meter.
+ * Heads-up display.
+ * Top bar: level, run score, combo, accuracy/WPM, pause hint.
+ * Bottom panel: level progress meter · spell slots · ward instability meter.
  */
 export class GameHUD {
   private readonly scoreText: Phaser.GameObjects.Text;
   private readonly comboText: Phaser.GameObjects.Text;
-  private readonly wordsText: Phaser.GameObjects.Text;
   private readonly accuracyText: Phaser.GameObjects.Text;
-  private readonly meter: Phaser.GameObjects.Graphics;
-  private readonly meterText: Phaser.GameObjects.Text;
-  private shownValue = 0;
-  private readonly meterTween = { value: 0 };
+  private readonly progress: Meter;
+  private readonly instability: Meter;
+  private readonly slots: Record<SpellId, SpellSlot>;
+  private lastCharges: SpellCharges | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
     levelName: string,
     private readonly quota: number | null,
+    /** Run score from earlier levels, added to this level's score. */
+    private readonly scoreOffset = 0,
   ) {
+    // Top bar
     const bar = scene.add.graphics().setDepth(30);
     bar.fillStyle(PALETTE.midnight, 0.85);
     bar.fillRect(0, 0, LAYOUT.width, LAYOUT.hudHeight);
@@ -51,33 +189,55 @@ export class GameHUD {
     // Fixed columns after the level name, so values changing width don't make the bar jitter.
     const x0 = Math.max(240, levelText.x + levelText.width + 36);
     this.scoreText = scene.add.text(x0, y, '', label()).setOrigin(0, 0.5).setDepth(31);
-    this.comboText = scene.add.text(x0 + 170, y, '', label()).setOrigin(0, 0.5).setDepth(31);
-    this.wordsText = scene.add.text(x0 + 300, y, '', label()).setOrigin(0, 0.5).setDepth(31);
-    this.accuracyText = scene.add.text(x0 + 470, y, '', label()).setOrigin(0, 0.5).setDepth(31);
+    this.comboText = scene.add.text(x0 + 190, y, '', label()).setOrigin(0, 0.5).setDepth(31);
+    this.accuracyText = scene.add.text(x0 + 320, y, '', label()).setOrigin(0, 0.5).setDepth(31);
     scene.add
       .text(LAYOUT.width - 20, y, 'Esc  Pause', { ...label(), fontSize: '16px' })
       .setOrigin(1, 0.5)
       .setAlpha(0.6)
       .setDepth(31);
 
-    this.meter = scene.add.graphics().setDepth(30);
-    this.meterText = scene.add
-      .text(LAYOUT.width / 2, LAYOUT.meterY, '', { ...label(), fontSize: '15px', fontStyle: '600' })
-      .setOrigin(0.5)
-      .setDepth(31);
+    // Bottom panel
+    const panelY = LAYOUT.panelY;
+    const panel = scene.add.graphics().setDepth(29);
+    panel.fillStyle(PALETTE.midnight, 0.85);
+    panel.fillRect(0, panelY - 4, LAYOUT.width, LAYOUT.height - panelY + 4);
+
+    const meterY = panelY + 38;
+    this.progress = new Meter(
+      scene,
+      50,
+      meterY,
+      (v) =>
+        this.quota === null
+          ? 'ENDLESS'
+          : `LEVEL PROGRESS  ${Math.round((v / 100) * this.quota)} / ${this.quota}`,
+      PALETTE.gold,
+    );
+    this.instability = new Meter(
+      scene,
+      LAYOUT.width - 50 - BAR_WIDTH,
+      meterY,
+      (v) => `WARD INSTABILITY  ${Math.round(v)}%`,
+      INSTABILITY_COLORS[0],
+    );
+
+    const slotsWidth = SPELL_IDS.length * SLOT_W + (SPELL_IDS.length - 1) * SLOT_GAP;
+    const slotX = (LAYOUT.width - slotsWidth) / 2;
+    this.slots = {} as Record<SpellId, SpellSlot>;
+    SPELL_IDS.forEach((id, i) => {
+      this.slots[id] = new SpellSlot(scene, id, slotX + i * (SLOT_W + SLOT_GAP), panelY + 2);
+    });
 
     this.updateStats(null);
-    this.drawMeter(0, 0);
   }
 
   updateStats(stats: GameStats | null, combo = 0): void {
     const s = stats;
-    this.scoreText.setText(`Score  ${s?.score ?? 0}`);
+    this.scoreText.setText(`Score  ${(this.scoreOffset + (s?.score ?? 0)).toLocaleString()}`);
     this.comboText
       .setText(`Combo  ×${combo}`)
       .setColor(hex(combo >= 5 ? PALETTE.gold : PALETTE.parchment));
-    const done = s?.completed ?? 0;
-    this.wordsText.setText(this.quota === null ? `Words  ${done}` : `Words  ${done} / ${this.quota}`);
     const acc = s ? Math.round(s.accuracy * 100) : 100;
     const wpm = s ? Math.round(s.wpm) : 0;
     this.accuracyText.setText(`Accuracy  ${acc}%    WPM  ${wpm}`);
@@ -87,35 +247,25 @@ export class GameHUD {
     this.scene.tweens.add({ targets: this.comboText, scale: { from: 1.25, to: 1 }, duration: 200 });
   }
 
-  /** Animate the meter to a new instability value (0–100). */
-  setInstability(value: number, stage: InstabilityStage): void {
-    this.scene.tweens.killTweensOf(this.meterTween);
-    this.meterTween.value = this.shownValue;
-    this.scene.tweens.add({
-      targets: this.meterTween,
-      value,
-      duration: 350,
-      ease: 'Cubic.Out',
-      onUpdate: () => this.drawMeter(this.meterTween.value, stage),
-    });
+  setProgress(completed: number): void {
+    if (this.quota === null) return;
+    this.progress.set(Math.min(100, (completed / this.quota) * 100));
   }
 
-  private drawMeter(value: number, stage: InstabilityStage): void {
-    this.shownValue = value;
-    const w = 520;
-    const h = 14;
-    const x = (LAYOUT.width - w) / 2;
-    const y = LAYOUT.meterY - h / 2;
-    const g = this.meter;
-    g.clear();
-    g.fillStyle(PALETTE.midnight, 0.9);
-    g.fillRoundedRect(x - 2, y - 2, w + 4, h + 4, 8);
-    if (value > 0) {
-      g.fillStyle(METER_COLORS[stage], 0.95);
-      g.fillRoundedRect(x, y, Math.max(h, (w * value) / 100), h, 6);
+  setInstability(value: number, stage: InstabilityStage): void {
+    this.instability.set(value, INSTABILITY_COLORS[stage]);
+  }
+
+  setSpells(charges: SpellCharges, pulse?: SpellId): void {
+    for (const id of SPELL_IDS) {
+      if (!this.lastCharges || this.lastCharges[id] !== charges[id]) this.slots[id].set(charges[id]);
     }
-    g.lineStyle(1, PALETTE.gold, 0.5);
-    g.strokeRoundedRect(x - 2, y - 2, w + 4, h + 4, 8);
-    this.meterText.setText(`WARD INSTABILITY  ${Math.round(value)}%`);
+    this.lastCharges = { ...charges };
+    if (pulse) this.slots[pulse].pulse();
+  }
+
+  denySpell(spell: SpellId): void {
+    this.slots[spell].deny();
+    this.scene.time.delayedCall(260, () => this.slots[spell].set(this.lastCharges?.[spell] ?? 0));
   }
 }

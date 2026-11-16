@@ -1,80 +1,131 @@
 import type { GameResult } from '../core/GameEvents';
-import type { GameStats } from '../gameplay/ScoringSystem';
+import { accuracyOf, wpmOf, type GameStats } from '../gameplay/ScoringSystem';
+import { emptyCharges, sanitizeCharges, type SpellCharges } from '../gameplay/SpellManager';
 
-/** Best results on one campaign level (from completed runs only). */
-export interface LevelRecord {
-  bestScore: number;
-  bestWpm: number;
-  bestAccuracy: number;
-  bestCombo: number;
-  completions: number;
-  attempts: number;
+/**
+ * Campaign = one continuous run (decisions.md D-016): always starts at
+ * level 1 and plays straight through. Score and spell charges carry from
+ * level to level; instability resets each level. The run ends when the
+ * wards fall or the last level is cleared. Choosing a level is only
+ * possible in Endless Practice.
+ */
+export interface RunTotals {
+  completed: number;
+  missed: number;
+  correctChars: number;
+  errors: number;
+  elapsedMs: number;
+  maxCombo: number;
 }
 
-export interface CampaignProgress {
-  /** Highest level the player may start. Starts at 1. */
-  highestUnlocked: number;
-  /** Keyed by level number as a string (JSON-friendly). */
-  levels: Record<string, LevelRecord>;
+export interface CampaignRun {
+  /** Level currently being played (or about to be). */
+  level: number;
+  /** Total score so far across all levels of this run. */
+  score: number;
+  levelsCleared: number;
+  /** Spell charges carried into the next level. */
+  spellCharges: SpellCharges;
+  totals: RunTotals;
 }
 
-export interface CampaignOutcome {
-  /** True when this run beat the previous best score on a completed run. */
+export interface RunSummary {
+  score: number;
+  levelsCleared: number;
+  /** Level the run ended on (the last level reached). */
+  reachedLevel: number;
+  victory: boolean;
+  accuracy: number;
+  wpm: number;
+  completed: number;
+  missed: number;
+  maxCombo: number;
+  elapsedMs: number;
+}
+
+/** Long-term campaign records kept in the save file. */
+export interface CampaignRecords {
+  /** Furthest level ever reached in a run (unlocks levels for Practice). */
+  highestReached: number;
+  bestRun: RunSummary | null;
+  runsStarted: number;
+  runsCompleted: number;
+}
+
+export interface RunOutcome {
   isNewBest: boolean;
-  /** Best completed score before this run, or null if never completed. */
+  /** Best run score before this run, or null if there was none. */
   previousBest: number | null;
-  /** Level number newly unlocked by this run, if any. */
-  unlockedLevel: number | null;
-  /** Whether a further level exists after this one. */
-  hasNextLevel: boolean;
 }
 
-export function emptyCampaignProgress(): CampaignProgress {
-  return { highestUnlocked: 1, levels: {} };
+export function emptyCampaignRecords(): CampaignRecords {
+  return { highestReached: 1, bestRun: null, runsStarted: 0, runsCompleted: 0 };
 }
 
-function emptyRecord(): LevelRecord {
-  return { bestScore: 0, bestWpm: 0, bestAccuracy: 0, bestCombo: 0, completions: 0, attempts: 0 };
+export function startRun(): CampaignRun {
+  return {
+    level: 1,
+    score: 0,
+    levelsCleared: 0,
+    spellCharges: emptyCharges(),
+    totals: { completed: 0, missed: 0, correctChars: 0, errors: 0, elapsedMs: 0, maxCombo: 0 },
+  };
 }
 
 /**
- * Campaign rules for what a finished run changes. Mutates `progress`.
- *
- * - Every run counts as an attempt.
- * - Only completed (won) runs set personal bests, so a long losing run can't
- *   outrank a real clear.
- * - Winning level N unlocks level N+1, if it exists.
+ * Adds a finished level to the run. Mutates `run`. On a win that isn't the
+ * last level, advances `run.level` to the next level.
  */
-export function applyCampaignResult(
-  progress: CampaignProgress,
-  level: number,
+export function recordLevel(
+  run: CampaignRun,
   result: GameResult,
   stats: GameStats,
+  chargesAfter: SpellCharges,
   totalLevels: number,
-): CampaignOutcome {
-  const key = String(level);
-  const record = (progress.levels[key] ??= emptyRecord());
-  record.attempts++;
+): { runOver: boolean; victory: boolean } {
+  const t = run.totals;
+  t.completed += stats.completed;
+  t.missed += stats.missed;
+  t.correctChars += stats.correctChars;
+  t.errors += stats.errors;
+  t.elapsedMs += stats.elapsedMs;
+  t.maxCombo = Math.max(t.maxCombo, stats.maxCombo);
+  run.score += stats.score;
+  run.spellCharges = sanitizeCharges(chargesAfter);
 
-  const hadCompletion = record.completions > 0;
-  const previousBest = hadCompletion ? record.bestScore : null;
-  let isNewBest = false;
-  let unlockedLevel: number | null = null;
+  if (result === 'lost') return { runOver: true, victory: false };
+  run.levelsCleared++;
+  if (run.level >= totalLevels) return { runOver: true, victory: true };
+  run.level++;
+  return { runOver: false, victory: false };
+}
 
-  if (result === 'won') {
-    record.completions++;
-    isNewBest = !hadCompletion || stats.score > record.bestScore;
-    record.bestScore = Math.max(record.bestScore, stats.score);
-    record.bestWpm = Math.max(record.bestWpm, stats.wpm);
-    record.bestAccuracy = Math.max(record.bestAccuracy, stats.accuracy);
-    record.bestCombo = Math.max(record.bestCombo, stats.maxCombo);
+export function summarizeRun(run: CampaignRun, victory: boolean): RunSummary {
+  const t = run.totals;
+  return {
+    score: run.score,
+    levelsCleared: run.levelsCleared,
+    reachedLevel: run.level,
+    victory,
+    accuracy: accuracyOf(t.correctChars, t.errors),
+    wpm: wpmOf(t.correctChars, t.elapsedMs),
+    completed: t.completed,
+    missed: t.missed,
+    maxCombo: t.maxCombo,
+    elapsedMs: t.elapsedMs,
+  };
+}
 
-    const next = level + 1;
-    if (next <= totalLevels && progress.highestUnlocked < next) {
-      progress.highestUnlocked = next;
-      unlockedLevel = next;
-    }
-  }
+export function noteLevelReached(records: CampaignRecords, level: number): void {
+  records.highestReached = Math.max(records.highestReached, level);
+}
 
-  return { isNewBest, previousBest, unlockedLevel, hasNextLevel: level < totalLevels };
+/** Records a finished run. Mutates `records`. Abandoned runs are not recorded. */
+export function applyRunResult(records: CampaignRecords, summary: RunSummary): RunOutcome {
+  const previousBest = records.bestRun?.score ?? null;
+  noteLevelReached(records, summary.reachedLevel);
+  if (summary.victory) records.runsCompleted++;
+  const isNewBest = previousBest === null || summary.score > previousBest;
+  if (isNewBest) records.bestRun = { ...summary };
+  return { isNewBest, previousBest };
 }

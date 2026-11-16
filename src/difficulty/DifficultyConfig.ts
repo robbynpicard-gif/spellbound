@@ -1,3 +1,5 @@
+import { isSpellId, type SpellId } from '../gameplay/SpellManager';
+
 /**
  * Everything that makes one level harder or easier than another.
  *
@@ -32,8 +34,13 @@ export interface DifficultyConfig {
    * Based on reports of the original game; see original-game-research.md #4–5.
    */
   errorAcceleration: number;
-  /** Spell ids the player may use on this level. Empty until Milestone 3. */
-  availableSpells: readonly string[];
+  /**
+   * Spells whose tomes can appear on this level. Charges already held can
+   * always be cast; this only controls what can be found.
+   */
+  availableSpells: readonly SpellId[];
+  /** Chance (0–1) that a newly spawned word carries a spell tome. */
+  spellDropChance: number;
 }
 
 /** Weighted average word length a level produces (a rough difficulty measure). */
@@ -97,6 +104,9 @@ export function validateLevels(data: unknown): DifficultyConfig[] {
     if (typeof raw.modifierProbabilities !== 'object' || raw.modifierProbabilities === null)
       fail('modifierProbabilities must be an object');
     if (!Array.isArray(raw.availableSpells)) fail('availableSpells must be an array');
+    else for (const id of raw.availableSpells) if (!isSpellId(id)) fail(`unknown spell "${String(id)}"`);
+    if (!isNum(raw.spellDropChance) || raw.spellDropChance < 0 || raw.spellDropChance > 1)
+      fail('spellDropChance must be between 0 and 1');
   });
 
   if (problems.length > 0) throw new Error(`Invalid level data:\n${problems.join('\n')}`);

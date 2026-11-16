@@ -4,6 +4,50 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Milestone 3: Original spells (+ campaign as a run, progress bar)
+
+**Owner requests this milestone:** campaign must be a run from level 1 with
+no level select (level choice only in Practice); add a progress bar like
+the instability bar.
+
+**Done**
+- Campaign rebuilt as a run (D-016): `CampaignMode` run state, level-cleared
+  and run-over screens, best-run record on the main menu, save v2 with v1
+  migration. Level select removed.
+- Spell system (D-017): `gameplay/SpellManager.ts` (ids, 3-charge cap),
+  `spells/BaseSpell.ts` + `SpellRegistry.ts` (central registry; data in
+  `data/spells.json`), engine support (tome words, `castSpell` command,
+  freeze/slow timers, burn, wind), events for collect/cast/fizzle/end.
+- Levels gain `availableSpells` and `spellDropChance`.
+- HUD bottom panel (D-018): Level Progress bar, four spell slots with charge
+  pips and key numbers, Ward Instability bar. Field height 600 → 560.
+- Visuals: tome book marker + coloured word, frost rims while frozen, ice and
+  temporal overlays, fire bursts, wind sweep, spell-name banner, gentle
+  colour wash instead of full-screen flashes.
+
+**Verified**
+- Typecheck and build clean; 68 unit tests (new: inventory cap, tomes
+  spawn/collect/waste, fizzle, each spell's effect and duration, Fire
+  finishing a level, replay with casts, run progression, best run, save
+  migration).
+- In the browser: run starts at level 1; tomes appear and fill slots; Fire
+  burned 4 words (+140) and collected a tome; Ice froze words (frost rims,
+  tint) and released them; Slow set 50% for 8 s; Wind took instability 20% →
+  0% and reset speeds; empty slot refused a cast; level 1 → "Level 1
+  Cleared" → Fire carried into level 2 → losing shows "The Wards Have
+  Fallen" with the run recorded. No console errors. The owner's save was
+  backed up before testing and restored after.
+
+**Temporary / placeholder**
+- Spell art is particles and shapes; no audio.
+- Spell numbers (durations, drop rates) are first-pass and unverified
+  against the original.
+
+**Next:** Milestone 4 — Endless Practice with level choice (levels offered
+up to the furthest reached in Campaign).
+
+---
+
 ## 2026-11-16 — Milestone 2: Campaign and difficulty
 
 **Decision:** project owner chose HTML menus (D-008 → accepted).

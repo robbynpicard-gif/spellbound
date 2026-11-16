@@ -142,6 +142,62 @@ _2026-11-16 · Accepted_
   fresh save; if storage is blocked the game still runs and the main menu
   says progress can't be saved.
 
+### D-016 — Campaign is a single run (supersedes the level-select part of D-015)
+_2026-11-16 · Accepted (project owner)_
+
+- Campaign always starts at level 1 and plays straight through; there is no
+  level select in Campaign. Choosing a level is only for Endless Practice.
+- Score and spell charges carry from level to level. **Instability resets to
+  0% at the start of each level** (Claude's default — easy to change if the
+  owner prefers it to carry over).
+- Between levels a "Level N Cleared" screen shows level stats, the run score
+  and carried spells; Enter continues.
+- The run ends when the wards fall or the last level is cleared. Records kept:
+  best run (score, levels cleared, accuracy, WPM…), furthest level reached
+  (this will decide which levels Practice offers), runs started/completed.
+- Pause offers Resume, Restart run, Abandon run. Abandoned runs aren't recorded.
+- Save format v2; v1 saves migrate (their highest unlocked level becomes the
+  furthest level reached).
+
+### D-017 — Original spells: how they're found, cast and what they do
+_2026-11-16 · Accepted as adaptation (sources are fan guides, not the game file)_
+
+Research (original-game-research.md #9–13): fan guides say the four books
+were used by typing FIRE / ICE / SLOW / WIND; Fire "burns all words", Ice
+"freezes all words", Slow slows them, Wind "renews your life", resets the
+danger bar to 0% and erases mistyped words.
+
+| Spell | Spellbound behaviour |
+|---|---|
+| Fire — Incineration | Destroys every word on the field. Each scores base points (no combo bonus, combo kept), counts toward the level quota, and any tome it carried is collected. |
+| Ice — Frostbinding | 5 s: no word moves and no new word appears. Typing still works. |
+| Slow — Temporal Distortion | 8 s: words fall at 50% speed. |
+| Wind — Arcane Purge | Instability → 0% and every word loses the extra speed mistakes gave it (our version of "erases mistyped words"). |
+
+- **Finding spells:** some falling words are *tomes* (book marker, coloured
+  text). Completing or burning one adds a charge. Each level lists which
+  tomes can appear (`availableSpells`) and how often (`spellDropChance`):
+  Fire from level 1, Ice from 2, Slow from 3, Wind from 4.
+- **Casting:** keys **1–4**. *Changed from the original's "type the spell
+  word"*: typing letters would collide with auto-targeting (typing "f" would
+  target a word starting with f).
+- Max 3 charges per spell; a tome for a full spell still scores but is lost.
+  Casting with no charges is refused with a red shake on that slot.
+- Re-casting Ice/Slow while active extends to the longer remaining time.
+- Timings and text live in `src/data/spells.json`; effects in
+  `src/spells/SpellRegistry.ts`. Casts are commands, so replays and future
+  multiplayer validation include them.
+
+### D-018 — HUD bottom panel and field height
+_2026-11-16 · Accepted (project owner asked for a progress bar)_
+
+The bottom panel holds Level Progress (gold, left), the four spell slots
+(centre) and Ward Instability (right). To fit it, the fall distance
+shrank from 600 to 560 px, so every level is about 7% quicker to fall
+through at the same speed. Spell casts use a soft colour wash
+(≤25% opacity) instead of a full-screen flash, for comfort and
+photosensitivity.
+
 ### D-009 — Original game is a mechanics reference only
 _2026-11-16 · Accepted_
 

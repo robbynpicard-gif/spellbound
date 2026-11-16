@@ -2,24 +2,22 @@ import type Phaser from 'phaser';
 import type { GameResult } from '../core/GameEvents';
 import type { LevelManager } from '../difficulty/LevelManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
+import type { SpellCharges } from '../gameplay/SpellManager';
+import { recordLevel, startRun, summarizeRun, type CampaignRun } from '../modes/CampaignMode';
 import { BackdropScene } from '../scenes/BackdropScene';
 import { GameScene, type GameSceneData } from '../scenes/GameScene';
 import type { SaveManager } from '../storage/SaveManager';
-import {
-  creditsScreen,
-  levelSelectScreen,
-  mainMenuScreen,
-  pauseScreen,
-  resultsScreen,
-} from '../ui/screens';
+import { creditsScreen, levelClearScreen, mainMenuScreen, pauseScreen, runOverScreen } from '../ui/screens';
 import type { UIRoot } from '../ui/UIRoot';
 
 /**
- * Top-level flow between screens: main menu → level select → play →
- * results → next level… It decides which Phaser scene runs and which HTML
- * screen is shown. Game rules stay in the engine; saving stays in SaveManager.
+ * Top-level flow between screens. Campaign is a single run (D-016):
+ * Main menu → Level 1 → Level cleared → Level 2 → … → Run over.
+ * Game rules stay in the engine; saving stays in SaveManager.
  */
 export class App {
+  private run: CampaignRun | null = null;
+
   constructor(
     private readonly game: Phaser.Game,
     private readonly ui: UIRoot,
@@ -28,22 +26,14 @@ export class App {
   ) {}
 
   showMainMenu(): void {
+    this.run = null;
     this.showBackdrop();
     this.ui.show(
       mainMenuScreen(
-        { onCampaign: () => this.showLevelSelect(), onCredits: () => this.showCredits() },
+        { onCampaign: () => this.startNewRun(), onCredits: () => this.showCredits() },
+        this.save.campaign,
         this.save.persistent,
       ),
-    );
-  }
-
-  showLevelSelect(): void {
-    this.showBackdrop();
-    this.ui.show(
-      levelSelectScreen(this.campaign.all, this.save.campaign, {
-        onPlay: (level) => this.startLevel(level),
-        onBack: () => this.showMainMenu(),
-      }),
     );
   }
 
@@ -52,26 +42,35 @@ export class App {
     this.ui.show(creditsScreen(() => this.showMainMenu()));
   }
 
-  startLevel(level: number): void {
-    const config = this.campaign.get(level);
-    const label = `Level ${config.level} · ${config.name}`;
+  startNewRun(): void {
+    this.run = startRun();
+    this.save.noteRunStarted();
+    this.playCurrentLevel();
+  }
+
+  private playCurrentLevel(): void {
+    const run = this.run;
+    if (!run) return;
+    const config = this.campaign.get(run.level);
+    this.save.noteLevelReached(run.level);
+    const label = `Level ${config.level} of ${this.campaign.count} · ${config.name}`;
+
     const data: GameSceneData = {
       config,
+      initialSpells: run.spellCharges,
+      scoreOffset: run.score,
       hooks: {
         onPauseChanged: (paused) => {
-          if (paused) {
-            this.ui.show(
-              pauseScreen(label, {
-                onResume: () => this.gameScene.resumeGame(),
-                onRestart: () => this.startLevel(level),
-                onQuit: () => this.showLevelSelect(),
-              }),
-            );
-          } else {
-            this.ui.clear();
-          }
+          if (!paused) return this.ui.clear();
+          this.ui.show(
+            pauseScreen(label, {
+              onResume: () => this.gameScene.resumeGame(),
+              onRestartRun: () => this.startNewRun(),
+              onAbandon: () => this.showMainMenu(),
+            }),
+          );
         },
-        onGameOver: (result, stats) => this.showResults(level, result, stats),
+        onGameOver: (result, stats, spells) => this.onLevelEnd(result, stats, spells),
       },
     };
 
@@ -81,13 +80,25 @@ export class App {
     this.game.scene.start(GameScene.KEY, data);
   }
 
-  private showResults(level: number, result: GameResult, stats: GameStats): void {
-    const outcome = this.save.recordCampaignResult(level, result, stats);
+  private onLevelEnd(result: GameResult, stats: GameStats, spells: SpellCharges): void {
+    const run = this.run;
+    if (!run) return;
+    const clearedLevel = this.campaign.get(run.level);
+    const { runOver, victory } = recordLevel(run, result, stats, spells, this.campaign.count);
+
+    if (!runOver) {
+      this.ui.show(
+        levelClearScreen(clearedLevel, this.campaign.get(run.level), stats, run, () => this.playCurrentLevel()),
+      );
+      return;
+    }
+
+    const summary = summarizeRun(run, victory);
+    const outcome = this.save.recordRun(summary);
+    this.run = null;
     this.ui.show(
-      resultsScreen(this.campaign.get(level), result, stats, outcome, {
-        onNext: () => this.startLevel(level + 1),
-        onRetry: () => this.startLevel(level),
-        onLevels: () => this.showLevelSelect(),
+      runOverScreen(summary, outcome, clearedLevel, this.campaign.count, {
+        onNewRun: () => this.startNewRun(),
         onMenu: () => this.showMainMenu(),
       }),
     );

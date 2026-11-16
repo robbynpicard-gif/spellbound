@@ -9,21 +9,29 @@ import {
 import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
 import { WORDS } from '../src/data/wordList';
 import type { GameStats } from '../src/gameplay/ScoringSystem';
-import { applyCampaignResult, emptyCampaignProgress } from '../src/modes/CampaignMode';
+import { emptyCharges, SPELL_IDS } from '../src/gameplay/SpellManager';
+import {
+  applyRunResult,
+  emptyCampaignRecords,
+  recordLevel,
+  startRun,
+  summarizeRun,
+} from '../src/modes/CampaignMode';
 import { parseSave, SAVE_KEY, SaveManager, type StorageLike } from '../src/storage/SaveManager';
 
 const levels = CAMPAIGN_LEVELS.all;
+const TOTAL = levels.length;
 
 function stats(score: number, extra: Partial<GameStats> = {}): GameStats {
   return {
     score,
     completed: 10,
-    missed: 0,
+    missed: 1,
     correctChars: 50,
-    errors: 0,
-    accuracy: 1,
+    errors: 5,
+    accuracy: 50 / 55,
     wpm: 40,
-    maxCombo: 10,
+    maxCombo: 7,
     elapsedMs: 60_000,
     averageCompletionMs: 3000,
     ...extra,
@@ -76,12 +84,21 @@ describe('campaign level data', () => {
     }
   });
 
+  it('introduces spells progressively and never removes one', () => {
+    expect(levels[0]!.availableSpells).toEqual(['fire']);
+    for (let i = 1; i < levels.length; i++) {
+      for (const id of levels[i - 1]!.availableSpells) expect(levels[i]!.availableSpells).toContain(id);
+    }
+    expect([...levels.at(-1)!.availableSpells].sort()).toEqual([...SPELL_IDS].sort());
+  });
+
   it('rejects broken level data with a helpful message', () => {
     const broken = structuredClone(levelsData) as Record<string, unknown>[];
     broken[1]!.level = 7;
     broken[2]!.minWordLength = 9;
     delete broken[3]!.name;
-    expect(() => validateLevels(broken)).toThrow(/level\[1\].*\n.*level\[2\].*\n.*level\[3\]/s);
+    broken[4]!.availableSpells = ['lightning'];
+    expect(() => validateLevels(broken)).toThrow(/level\[1\].*\n.*level\[2\].*\n.*level\[3\].*\n.*lightning/s);
     expect(() => validateLevels([])).toThrow();
   });
 
@@ -92,80 +109,97 @@ describe('campaign level data', () => {
   });
 });
 
-describe('campaign progression', () => {
-  it('starts with only level 1 unlocked', () => {
-    expect(emptyCampaignProgress().highestUnlocked).toBe(1);
+describe('campaign run', () => {
+  it('always starts at level 1 with no score or spells', () => {
+    const run = startRun();
+    expect(run).toMatchObject({ level: 1, score: 0, levelsCleared: 0, spellCharges: emptyCharges() });
   });
 
-  it('winning unlocks the next level once; losing unlocks nothing', () => {
-    const p = emptyCampaignProgress();
-    expect(applyCampaignResult(p, 1, 'lost', stats(500), 10).unlockedLevel).toBeNull();
-    expect(p.highestUnlocked).toBe(1);
+  it('advances level by level, carrying score and spell charges', () => {
+    const run = startRun();
+    const r1 = recordLevel(run, 'won', stats(500), { ...emptyCharges(), fire: 2 }, TOTAL);
+    expect(r1).toEqual({ runOver: false, victory: false });
+    expect(run).toMatchObject({ level: 2, score: 500, levelsCleared: 1 });
+    expect(run.spellCharges.fire).toBe(2);
 
-    const first = applyCampaignResult(p, 1, 'won', stats(800), 10);
-    expect(first.unlockedLevel).toBe(2);
-    expect(p.highestUnlocked).toBe(2);
-
-    const again = applyCampaignResult(p, 1, 'won', stats(900), 10);
-    expect(again.unlockedLevel).toBeNull();
-    expect(p.levels['1']!.attempts).toBe(3);
-    expect(p.levels['1']!.completions).toBe(2);
+    recordLevel(run, 'won', stats(700), { ...emptyCharges(), fire: 1, ice: 3 }, TOTAL);
+    expect(run).toMatchObject({ level: 3, score: 1200, levelsCleared: 2 });
+    expect(run.spellCharges).toMatchObject({ fire: 1, ice: 3 });
   });
 
-  it('tracks personal bests from completed runs only', () => {
-    const p = emptyCampaignProgress();
-    applyCampaignResult(p, 1, 'lost', stats(5000), 10);
-    expect(p.levels['1']!.bestScore).toBe(0);
-
-    const first = applyCampaignResult(p, 1, 'won', stats(800, { wpm: 30 }), 10);
-    expect(first).toMatchObject({ isNewBest: true, previousBest: null });
-
-    const worse = applyCampaignResult(p, 1, 'won', stats(600, { wpm: 50 }), 10);
-    expect(worse).toMatchObject({ isNewBest: false, previousBest: 800 });
-    expect(p.levels['1']!.bestScore).toBe(800);
-    expect(p.levels['1']!.bestWpm).toBe(50); // each best is tracked separately
-
-    const better = applyCampaignResult(p, 1, 'won', stats(1200), 10);
-    expect(better).toMatchObject({ isNewBest: true, previousBest: 800 });
+  it('ends on a loss, keeping that level’s score', () => {
+    const run = startRun();
+    recordLevel(run, 'won', stats(500), emptyCharges(), TOTAL);
+    const r = recordLevel(run, 'lost', stats(120), emptyCharges(), TOTAL);
+    expect(r).toEqual({ runOver: true, victory: false });
+    const summary = summarizeRun(run, false);
+    expect(summary).toMatchObject({ score: 620, levelsCleared: 1, reachedLevel: 2, victory: false });
+    expect(summary.accuracy).toBeCloseTo(100 / 110);
+    expect(summary.wpm).toBeCloseTo(100 / 5 / 2);
   });
 
-  it('the last level unlocks nothing and reports no next level', () => {
-    const p = emptyCampaignProgress();
-    p.highestUnlocked = 10;
-    const out = applyCampaignResult(p, 10, 'won', stats(100), 10);
-    expect(out).toMatchObject({ unlockedLevel: null, hasNextLevel: false });
-    expect(p.highestUnlocked).toBe(10);
+  it('clearing the last level wins the run', () => {
+    const run = startRun();
+    for (let i = 1; i < TOTAL; i++) recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL);
+    expect(run.level).toBe(TOTAL);
+    expect(recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL)).toEqual({ runOver: true, victory: true });
+    expect(summarizeRun(run, true)).toMatchObject({ levelsCleared: TOTAL, reachedLevel: TOTAL, victory: true });
+  });
+
+  it('records best runs and the furthest level reached', () => {
+    const records = emptyCampaignRecords();
+    const run = startRun();
+    recordLevel(run, 'won', stats(300), emptyCharges(), TOTAL);
+    recordLevel(run, 'lost', stats(50), emptyCharges(), TOTAL);
+    expect(applyRunResult(records, summarizeRun(run, false))).toEqual({ isNewBest: true, previousBest: null });
+    expect(records.highestReached).toBe(2);
+
+    const worse = startRun();
+    recordLevel(worse, 'lost', stats(100), emptyCharges(), TOTAL);
+    expect(applyRunResult(records, summarizeRun(worse, false))).toEqual({ isNewBest: false, previousBest: 350 });
+    expect(records.bestRun!.score).toBe(350);
+    expect(records.highestReached).toBe(2);
   });
 });
 
 describe('SaveManager', () => {
-  it('persists progress and reloads it (survives a page refresh)', () => {
+  it('persists records and reloads them (survives a page refresh)', () => {
     const storage = new MemoryStorage();
-    const first = new SaveManager(storage, 10);
-    first.recordCampaignResult(1, 'won', stats(700));
-    first.recordCampaignResult(2, 'won', stats(900));
+    const first = new SaveManager(storage, TOTAL);
+    first.noteRunStarted();
+    first.noteLevelReached(3);
+    const run = startRun();
+    recordLevel(run, 'lost', stats(900), emptyCharges(), TOTAL);
+    first.recordRun(summarizeRun(run, false));
 
-    const reloaded = new SaveManager(storage, 10);
-    expect(reloaded.campaign.highestUnlocked).toBe(3);
-    expect(reloaded.campaign.levels['2']!.bestScore).toBe(900);
+    const reloaded = new SaveManager(storage, TOTAL);
+    expect(reloaded.campaign).toMatchObject({ highestReached: 3, runsStarted: 1 });
+    expect(reloaded.campaign.bestRun!.score).toBe(900);
+  });
+
+  it('migrates a Milestone 2 (version 1) save', () => {
+    const v1 = JSON.stringify({ version: 1, campaign: { highestUnlocked: 4, levels: { 1: { bestScore: 99 } } } });
+    const save = parseSave(v1, TOTAL);
+    expect(save.version).toBe(2);
+    expect(save.campaign).toMatchObject({ highestReached: 4, bestRun: null });
   });
 
   it('works without storage (in-memory only)', () => {
-    const save = new SaveManager(null, 10);
+    const save = new SaveManager(null, TOTAL);
     expect(save.persistent).toBe(false);
-    save.recordCampaignResult(1, 'won', stats(10));
-    expect(save.campaign.highestUnlocked).toBe(2);
+    save.noteLevelReached(2);
+    expect(save.campaign.highestReached).toBe(2);
   });
 
   it('survives corrupt or tampered save data', () => {
-    expect(parseSave('{not json', 10).campaign.highestUnlocked).toBe(1);
-    expect(parseSave('{"version":99}', 10).campaign.highestUnlocked).toBe(1);
+    expect(parseSave('{not json', TOTAL).campaign.highestReached).toBe(1);
+    expect(parseSave('{"version":99,"campaign":{}}', TOTAL).campaign.highestReached).toBe(1);
     const tampered = parseSave(
-      JSON.stringify({ version: 1, campaign: { highestUnlocked: 500, levels: { 1: { bestScore: -5, bestAccuracy: 7 } } } }),
-      10,
+      JSON.stringify({ version: 2, campaign: { highestReached: 500, bestRun: { score: -5, accuracy: 7 } } }),
+      TOTAL,
     );
-    expect(tampered.campaign.highestUnlocked).toBe(10);
-    expect(tampered.campaign.levels['1']).toMatchObject({ bestScore: 0, bestAccuracy: 1 });
+    expect(tampered.campaign.highestReached).toBe(TOTAL);
+    expect(tampered.campaign.bestRun).toMatchObject({ score: 0, accuracy: 1 });
   });
 
   it('keeps working if storage throws', () => {
@@ -177,14 +211,14 @@ describe('SaveManager', () => {
         throw new Error('quota');
       },
     };
-    const save = new SaveManager(throwing, 10);
-    expect(() => save.recordCampaignResult(1, 'won', stats(1))).not.toThrow();
-    expect(save.campaign.highestUnlocked).toBe(2);
+    const save = new SaveManager(throwing, TOTAL);
+    expect(() => save.noteLevelReached(2)).not.toThrow();
+    expect(save.campaign.highestReached).toBe(2);
   });
 
   it('stores under a single namespaced key', () => {
     const storage = new MemoryStorage();
-    new SaveManager(storage, 10).recordCampaignResult(1, 'lost', stats(1));
+    new SaveManager(storage, TOTAL).noteRunStarted();
     expect([...storage.data.keys()]).toEqual([SAVE_KEY]);
   });
 });

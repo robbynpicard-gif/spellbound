@@ -3,24 +3,31 @@
 A wizard-themed arcade typing game for the browser. Words fall toward your
 tower; type them to cast counterspells before they land.
 
-> **Status:** Milestone 2 — a 10-level campaign with saved progress,
-> level select and results screens. Spells come in Milestone 3.
+> **Status:** Milestone 3 — the campaign is a single run through 10 levels,
+> with the four original spells. Endless Practice comes in Milestone 4.
 
 ## How to play
 
-Choose **Campaign**, then a level. Type the falling words before they reach
-the glowing ward line at the bottom. Complete the level's word quota to
-unlock the next one. Progress is saved in your browser.
+Choose **Campaign**. A run always starts at level 1 and continues level by
+level until the wards fall or you clear all 10. Type the falling words before
+they reach the glowing ward line. Fill the **Level Progress** bar to clear a
+level; don't let **Ward Instability** reach 100%.
+
+Words with a small coloured book are **spell tomes** — complete one to gain a
+charge (up to 3 of each). Charges carry through the whole run.
 
 | Key | Action |
 |---|---|
 | Letters | Type. The first letter picks a word; it stays selected until finished. |
 | Backspace | Drop the current word (its progress resets) |
 | Mouse click | Select a specific word |
+| **1** Fire | Incineration — burn every word on the field |
+| **2** Ice | Frostbinding — freeze everything for 5 s |
+| **3** Slow | Temporal Distortion — half speed for 8 s |
+| **4** Wind | Arcane Purge — instability back to 0% |
 | Esc | Pause / resume |
 
-Wrong keys make your current word fall faster and break your combo. Each word
-that breaks through adds 10% instability; at 100% the wards fall.
+Wrong keys make your current word fall faster and break your combo.
 
 ## What you need
 

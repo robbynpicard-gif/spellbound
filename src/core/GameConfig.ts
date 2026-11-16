@@ -23,7 +23,7 @@ export interface FieldConfig {
 
 export const FIELD: FieldConfig = {
   width: GAME_WIDTH,
-  height: 600,
+  height: 560,
   sideMargin: 32,
   approxCharWidth: 17,
 };

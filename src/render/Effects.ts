@@ -33,13 +33,17 @@ export class Effects {
   wordDestroyed(x: number, y: number, length: number, points: number): void {
     this.goldBurst.explode(10 + length * 3, x, y);
     this.arcaneBurst.explode(8 + length * 2, x, y);
+    this.floatText(x, y, `+${points}`, PALETTE.gold);
+  }
 
+  /** Short text that rises and fades (points, "+1 Fire", …). */
+  floatText(x: number, y: number, text: string, color: number, size = 22): void {
     const label = this.scene.add
-      .text(x, y, `+${points}`, {
+      .text(x, y, text, {
         fontFamily: FONTS.gameplay,
-        fontSize: '22px',
+        fontSize: `${size}px`,
         fontStyle: '700',
-        color: hex(PALETTE.gold),
+        color: hex(color),
         stroke: hex(PALETTE.midnight),
         strokeThickness: 4,
       })
@@ -49,7 +53,7 @@ export class Effects {
       targets: label,
       y: y - 50,
       alpha: 0,
-      duration: 800,
+      duration: 900,
       ease: 'Cubic.Out',
       onComplete: () => label.destroy(),
     });

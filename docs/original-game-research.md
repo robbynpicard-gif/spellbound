@@ -34,14 +34,26 @@ Legend: ✅ Verified · 📜 Historical description only · ❓ Unknown
 | 6 | Level completion | 📜 | Progressive levels | Word quota per level |
 | 7 | Difficulty scaling | ❓ | | |
 | 8 | Scoring and bonuses | 📜 | Scoring bonuses exist | |
-| 9 | Fire Book | 📜 | Destroys words | Incineration |
-| 10 | Ice Book | 📜 | Freezes words | Frostbinding |
-| 11 | Slow Book | 📜 | Slows words | Temporal Distortion |
-| 12 | Wind Book | 📜 | Possibly removes errors/missed words | Arcane Purge — **do not finalise** |
+| 9 | Fire Book | 📜 | "Burn all words" [1] | Incineration: destroys all words (D-017) |
+| 10 | Ice Book | 📜 | "Freeze all words" [1] | Frostbinding: 5 s freeze, no spawns |
+| 11 | Slow Book | 📜 | Slows words [1] | Temporal Distortion: 8 s at 50% |
+| 12 | Wind Book | 📜 | "Renew your life", resets danger bar to 0%, erases mistyped words [1]; fan remake also resets the danger bar [2] | Arcane Purge: instability → 0%, mistake speed-ups removed |
 | 13 | Spell inventory limits | ❓ | | Max 3 per spell (GDD §10) |
+| — | How books are used | 📜 | Typed as words: FIRE / ICE / SLOW / WIND [1] | Keys 1–4 instead (avoids clashing with auto-targeting; D-017) |
+| — | Durations | ❓ | A fan remake uses 5 s for Ice and Slow [2] — not authoritative | Ice 5 s, Slow 8 s (data file, easy to tune) |
 | 14 | Special word types | ❓ | | |
 | 15 | Audio/visual effects | ❓ | | Original assets only |
 | — | Missed words pile up at bottom | 📜 | Accumulation ends the game | Tower instability meter |
 
 ## Observations log
-_(Dated notes go here as research happens.)_
+
+**2026-11-16 — web search for the four books.** No primary source found;
+the SWF itself has not been inspected yet. Findings above come from:
+
+1. Fan guide, 2009: http://facebookgamesinfo.blogspot.com/2009/08/play-typing-maniac-on-facebook.html
+2. Fan remake (not the original; used only as a cross-check): https://github.com/halfguru/typing-maniac-clone
+3. Fan tips, 2009: https://www.selinawing.com/2009/06/typing-maniac-on-facebook.html
+4. iOS port review, 2011 (missed words pile up and end the game): https://appadvice.com/appnn/2011/02/review-typing-maniac
+
+Status column stays 📜 (historical description only) until the SWF is
+inspected with Ruffle/JPEXS.

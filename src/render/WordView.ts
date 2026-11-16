@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { FONTS, PALETTE } from '../core/GameConfig';
 import type { WordState } from '../gameplay/Word';
-import { hex, LAYOUT } from './layout';
+import { hex, LAYOUT, SPELL_COLORS } from './layout';
 
 const FONT_SIZE = 28;
 const STROKE = 5;
@@ -15,17 +15,20 @@ const BASE_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
 };
 
 /**
- * Draws one falling word: typed letters in gold, the rest in parchment,
- * and a glowing plate behind the current target. Reads WordState; never
- * changes it.
+ * Draws one falling word: typed letters in gold, the rest in parchment (or
+ * the tome's spell colour), a glowing plate behind the current target, a
+ * small book marker on spell tomes and a frost rim while frozen. Reads
+ * WordState; never changes it.
  */
 export class WordView extends Phaser.GameObjects.Container {
   private readonly plate: Phaser.GameObjects.Graphics;
   private readonly typedText: Phaser.GameObjects.Text;
   private readonly restText: Phaser.GameObjects.Text;
+  private readonly restColor: string;
   private readonly shake = { offset: 0 };
   private drawnTyped = -1;
   private drawnTarget: boolean | null = null;
+  private frozen = false;
   private halfWidth = 0;
 
   constructor(
@@ -33,9 +36,10 @@ export class WordView extends Phaser.GameObjects.Container {
     readonly word: WordState,
   ) {
     super(scene, 0, 0);
+    this.restColor = hex(word.spell ? SPELL_COLORS[word.spell] : PALETTE.parchment);
     this.plate = scene.add.graphics();
     this.typedText = scene.add.text(0, 0, '', { ...BASE_STYLE, color: hex(PALETTE.gold) });
-    this.restText = scene.add.text(0, 0, '', { ...BASE_STYLE, color: hex(PALETTE.parchment) });
+    this.restText = scene.add.text(0, 0, '', { ...BASE_STYLE, color: this.restColor });
     this.typedText.setOrigin(0, 0.5);
     this.restText.setOrigin(0, 0.5);
     this.add([this.plate, this.typedText, this.restText]);
@@ -59,10 +63,16 @@ export class WordView extends Phaser.GameObjects.Container {
     return Math.abs(x - this.x) <= this.halfWidth + 12 && Math.abs(y - this.y) <= FONT_SIZE;
   }
 
+  setFrozen(frozen: boolean): void {
+    if (this.frozen === frozen) return;
+    this.frozen = frozen;
+    this.redraw();
+  }
+
   flashError(): void {
     this.restText.setColor(hex(PALETTE.crimson));
     this.scene.time.delayedCall(160, () => {
-      if (this.active) this.restText.setColor(hex(PALETTE.parchment));
+      if (this.active) this.restText.setColor(this.restColor);
     });
     this.scene.tweens.killTweensOf(this.shake);
     this.scene.tweens.add({
@@ -89,16 +99,37 @@ export class WordView extends Phaser.GameObjects.Container {
     this.typedText.x = -total / 2;
     this.restText.x = -total / 2 + typedWidth;
 
-    this.plate.clear();
+    const padX = 12;
+    const h = FONT_SIZE + 18;
+    const left = -total / 2 - padX;
+    const g = this.plate;
+    g.clear();
     if (w.isTarget) {
-      const padX = 12;
-      const h = FONT_SIZE + 18;
-      this.plate.fillStyle(PALETTE.arcane, 0.28);
-      this.plate.fillRoundedRect(-total / 2 - padX, -h / 2, total + padX * 2, h, 10);
-      this.plate.lineStyle(2, PALETTE.gold, 0.9);
-      this.plate.strokeRoundedRect(-total / 2 - padX, -h / 2, total + padX * 2, h, 10);
+      g.fillStyle(PALETTE.arcane, 0.28);
+      g.fillRoundedRect(left, -h / 2, total + padX * 2, h, 10);
+      g.lineStyle(2, PALETTE.gold, 0.9);
+      g.strokeRoundedRect(left, -h / 2, total + padX * 2, h, 10);
+    } else if (this.frozen) {
+      g.fillStyle(PALETTE.ice, 0.12);
+      g.fillRoundedRect(left, -h / 2, total + padX * 2, h, 10);
+      g.lineStyle(2, PALETTE.ice, 0.8);
+      g.strokeRoundedRect(left, -h / 2, total + padX * 2, h, 10);
     }
+    if (w.spell) this.drawTomeMarker(g, left - 6, SPELL_COLORS[w.spell]);
     this.setDepth(w.isTarget ? 10 : 1);
+  }
+
+  /** A small closed book to the left of the word. */
+  private drawTomeMarker(g: Phaser.GameObjects.Graphics, right: number, color: number): void {
+    const bw = 16;
+    const bh = 20;
+    const x = right - bw;
+    g.fillStyle(color, 0.95);
+    g.fillRoundedRect(x, -bh / 2, bw, bh, 3);
+    g.fillStyle(PALETTE.midnight, 0.8);
+    g.fillRect(x + 3, -bh / 2 + 2, 2, bh - 4);
+    g.lineStyle(1, 0xffffff, 0.7);
+    g.strokeRoundedRect(x, -bh / 2, bw, bh, 3);
   }
 
   override destroy(fromScene?: boolean): void {

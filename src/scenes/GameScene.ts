@@ -6,22 +6,29 @@ import { createSeed } from '../core/Random';
 import { WORDS } from '../data/wordList';
 import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
 import type { GameStats } from '../gameplay/ScoringSystem';
+import type { SpellCharges } from '../gameplay/SpellManager';
 import { Effects } from '../render/Effects';
 import { FieldBackground } from '../render/FieldBackground';
-import { hex, LAYOUT } from '../render/layout';
+import { hex, LAYOUT, SPELL_COLORS } from '../render/layout';
+import { SpellEffects } from '../render/SpellEffects';
 import { WordView } from '../render/WordView';
+import { SPELLS, spellForKey } from '../spells/SpellRegistry';
 import { GameHUD } from '../ui/GameHUD';
 
 /** How the scene reports back to the app (menus are HTML, outside Phaser). */
 export interface GameSceneHooks {
   onPauseChanged(paused: boolean): void;
-  onGameOver(result: GameResult, stats: GameStats): void;
+  onGameOver(result: GameResult, stats: GameStats, spells: SpellCharges): void;
 }
 
 export interface GameSceneData {
   config: DifficultyConfig;
   hooks: GameSceneHooks;
   seed?: number;
+  /** Spell charges carried in from earlier in the run. */
+  initialSpells?: SpellCharges;
+  /** Run score from earlier levels (shown in the HUD). */
+  scoreOffset?: number;
 }
 
 /** Longest real-time gap simulated in one frame (avoids a burst after a stall). */
@@ -44,9 +51,11 @@ export class GameScene extends Phaser.Scene {
   private engine!: GameEngine;
   private config!: DifficultyConfig;
   private hooks!: GameSceneHooks;
+  private scoreOffset = 0;
   private readonly views = new Map<number, WordView>();
   private background!: FieldBackground;
   private effects!: Effects;
+  private spellFx!: SpellEffects;
   private hud!: GameHUD;
   private accumulator = 0;
   private introRemainingMs = 0;
@@ -59,7 +68,13 @@ export class GameScene extends Phaser.Scene {
   init(data: GameSceneData): void {
     this.config = data.config;
     this.hooks = data.hooks;
-    this.engine = new GameEngine({ config: this.config, seed: data.seed ?? createSeed(), words: WORDS });
+    this.scoreOffset = data.scoreOffset ?? 0;
+    this.engine = new GameEngine({
+      config: this.config,
+      seed: data.seed ?? createSeed(),
+      words: WORDS,
+      initialSpells: data.initialSpells,
+    });
     this.views.clear();
     this.accumulator = 0;
     this.introRemainingMs = INTRO_MS;
@@ -70,7 +85,14 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(PALETTE.midnight);
     this.background = new FieldBackground(this);
     this.effects = new Effects(this);
-    this.hud = new GameHUD(this, `Level ${this.config.level} · ${this.config.name}`, this.config.requiredWords);
+    this.spellFx = new SpellEffects(this);
+    this.hud = new GameHUD(
+      this,
+      `Level ${this.config.level} · ${this.config.name}`,
+      this.config.requiredWords,
+      this.scoreOffset,
+    );
+    this.hud.setSpells(this.engine.state.spells);
     this.showIntro();
 
     this.wireEngineEvents();
@@ -131,12 +153,19 @@ export class GameScene extends Phaser.Scene {
     });
 
     ev.on('wordCompleted', ({ word, points, combo }) => {
-      const view = this.views.get(word.id);
-      const x = view?.x ?? word.x;
-      const y = view?.y ?? LAYOUT.spawnY + word.y;
+      const { x, y } = this.viewPosition(word.id, word.x, word.y);
       this.removeView(word.id);
       this.effects.wordDestroyed(x, y, word.text.length, points);
       if (combo > 1) this.hud.pulseCombo();
+    });
+
+    ev.on('wordsBurned', ({ words, points }) => {
+      for (const word of words) {
+        const { x, y } = this.viewPosition(word.id, word.x, word.y);
+        this.removeView(word.id);
+        this.spellFx.burnWord(x, y);
+      }
+      this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 300, `+${points}`, PALETTE.fire, 30);
     });
 
     ev.on('wordMissed', ({ word }) => {
@@ -155,11 +184,44 @@ export class GameScene extends Phaser.Scene {
       this.background.setStage(stage);
     });
 
+    ev.on('progressChanged', ({ completed }) => this.hud.setProgress(completed));
+
+    ev.on('spellCollected', ({ spell, stored, charges }) => {
+      this.hud.setSpells(charges, stored ? spell : undefined);
+      const book = SPELLS[spell].book;
+      this.effects.floatText(
+        LAYOUT.width / 2,
+        LAYOUT.panelY - 24,
+        stored ? `+1 ${book} tome` : `${book} tomes full`,
+        stored ? SPELL_COLORS[spell] : PALETTE.parchment,
+        20,
+      );
+    });
+
+    ev.on('spellCast', ({ spell, charges }) => {
+      this.hud.setSpells(charges, spell);
+      this.spellFx.cast(spell);
+      if (spell === 'ice') for (const view of this.views.values()) view.setFrozen(true);
+    });
+
+    ev.on('spellEnded', ({ spell }) => {
+      this.spellFx.ended(spell);
+      if (spell === 'ice') for (const view of this.views.values()) view.setFrozen(false);
+    });
+
+    ev.on('spellFizzled', ({ spell }) => this.hud.denySpell(spell));
+
     ev.on('gameOver', ({ result, stats }) => {
       this.hud.updateStats(stats, this.engine.state.combo);
       this.input.keyboard!.disableGlobalCapture();
-      this.time.delayedCall(RESULTS_DELAY_MS, () => this.hooks.onGameOver(result, stats));
+      const spells = { ...this.engine.state.spells };
+      this.time.delayedCall(RESULTS_DELAY_MS, () => this.hooks.onGameOver(result, stats, spells));
     });
+  }
+
+  private viewPosition(id: number, fieldX: number, fieldY: number): { x: number; y: number } {
+    const view = this.views.get(id);
+    return { x: view?.x ?? fieldX, y: view?.y ?? LAYOUT.spawnY + fieldY };
   }
 
   private removeView(id: number): void {
@@ -170,7 +232,7 @@ export class GameScene extends Phaser.Scene {
   /** "Level 3 · Whispering Stacks — Complete 35 words", then fades. */
   private showIntro(): void {
     const cx = LAYOUT.width / 2;
-    const cy = LAYOUT.spawnY + 220;
+    const cy = LAYOUT.spawnY + 200;
     const title = this.add
       .text(cx, cy, `Level ${this.config.level}\n${this.config.name}`, {
         fontFamily: FONTS.heading,
@@ -209,8 +271,13 @@ export class GameScene extends Phaser.Scene {
     if (key === 'Escape') return this.setPaused(!this.paused);
     if (this.paused || this.introRemainingMs > 0) return;
 
-    if (event.repeat) return; // holding a key down should not type it repeatedly
+    if (event.repeat) return; // holding a key down should not type or cast repeatedly
     if (key === 'Backspace') return this.engine.abandon();
+    const spell = spellForKey(key);
+    if (spell) {
+      this.engine.castSpell(spell);
+      return;
+    }
     if (key.length === 1) this.engine.typeChar(key);
   }
 

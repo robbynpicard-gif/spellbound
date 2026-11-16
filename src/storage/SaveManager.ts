@@ -1,19 +1,18 @@
-import type { GameResult } from '../core/GameEvents';
-import type { GameStats } from '../gameplay/ScoringSystem';
 import {
-  applyCampaignResult,
-  emptyCampaignProgress,
-  type CampaignOutcome,
-  type CampaignProgress,
-  type LevelRecord,
+  applyRunResult,
+  emptyCampaignRecords,
+  noteLevelReached,
+  type CampaignRecords,
+  type RunOutcome,
+  type RunSummary,
 } from '../modes/CampaignMode';
 
 export const SAVE_KEY = 'spellbound.save';
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export interface SaveData {
   version: typeof SAVE_VERSION;
-  campaign: CampaignProgress;
+  campaign: CampaignRecords;
 }
 
 /** The subset of the Web Storage API we use (lets tests pass a fake). */
@@ -23,38 +22,55 @@ export interface StorageLike {
 }
 
 export function emptySave(): SaveData {
-  return { version: SAVE_VERSION, campaign: emptyCampaignProgress() };
+  return { version: SAVE_VERSION, campaign: emptyCampaignRecords() };
 }
 
 const num = (v: unknown, fallback = 0): number =>
   typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : fallback;
 
+const clampLevel = (v: unknown, totalLevels: number): number =>
+  Math.min(Math.max(Math.floor(num(v, 1)), 1), totalLevels);
+
+function parseRun(raw: unknown, totalLevels: number): RunSummary | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const r = raw as Partial<RunSummary>;
+  return {
+    score: num(r.score),
+    levelsCleared: Math.min(num(r.levelsCleared), totalLevels),
+    reachedLevel: clampLevel(r.reachedLevel, totalLevels),
+    victory: r.victory === true,
+    accuracy: Math.min(num(r.accuracy), 1),
+    wpm: num(r.wpm),
+    completed: num(r.completed),
+    missed: num(r.missed),
+    maxCombo: num(r.maxCombo),
+    elapsedMs: num(r.elapsedMs),
+  };
+}
+
 /**
- * Turns stored text back into SaveData. Anything unreadable or from an
- * unknown version yields a fresh save instead of crashing the game.
+ * Turns stored text back into SaveData. Anything unreadable yields a fresh
+ * save instead of crashing. Version 1 saves (per-level campaign, Milestone 2)
+ * are migrated: their highest unlocked level becomes the highest reached.
  */
 export function parseSave(raw: string | null, totalLevels: number): SaveData {
   if (!raw) return emptySave();
   try {
-    const data = JSON.parse(raw) as Partial<SaveData>;
-    if (data.version !== SAVE_VERSION || typeof data.campaign !== 'object' || !data.campaign) {
-      return emptySave();
-    }
+    const data = JSON.parse(raw) as { version?: number; campaign?: Record<string, unknown> };
+    const c = data.campaign;
+    if (typeof c !== 'object' || c === null) return emptySave();
     const save = emptySave();
-    const unlocked = Math.floor(num(data.campaign.highestUnlocked, 1));
-    save.campaign.highestUnlocked = Math.min(Math.max(unlocked, 1), totalLevels);
-    for (const [key, r] of Object.entries(data.campaign.levels ?? {})) {
-      if (typeof r !== 'object' || r === null) continue;
-      const rec = r as Partial<LevelRecord>;
-      save.campaign.levels[key] = {
-        bestScore: num(rec.bestScore),
-        bestWpm: num(rec.bestWpm),
-        bestAccuracy: Math.min(num(rec.bestAccuracy), 1),
-        bestCombo: num(rec.bestCombo),
-        completions: num(rec.completions),
-        attempts: num(rec.attempts),
-      };
+
+    if (data.version === 1) {
+      save.campaign.highestReached = clampLevel(c.highestUnlocked, totalLevels);
+      return save;
     }
+    if (data.version !== SAVE_VERSION) return emptySave();
+
+    save.campaign.highestReached = clampLevel(c.highestReached, totalLevels);
+    save.campaign.bestRun = parseRun(c.bestRun, totalLevels);
+    save.campaign.runsStarted = num(c.runsStarted);
+    save.campaign.runsCompleted = num(c.runsCompleted);
     return save;
   } catch {
     return emptySave();
@@ -75,8 +91,8 @@ export function browserStorage(): StorageLike | null {
 }
 
 /**
- * Loads and saves player progress. If storage is unavailable the game still
- * works; progress simply lasts until the page is closed.
+ * Loads and saves player records. If storage is unavailable the game still
+ * works; records simply last until the page is closed.
  */
 export class SaveManager {
   private save: SaveData;
@@ -98,12 +114,22 @@ export class SaveManager {
     return this.storage !== null;
   }
 
-  get campaign(): Readonly<CampaignProgress> {
+  get campaign(): Readonly<CampaignRecords> {
     return this.save.campaign;
   }
 
-  recordCampaignResult(level: number, result: GameResult, stats: GameStats): CampaignOutcome {
-    const outcome = applyCampaignResult(this.save.campaign, level, result, stats, this.totalLevels);
+  noteRunStarted(): void {
+    this.save.campaign.runsStarted++;
+    this.write();
+  }
+
+  noteLevelReached(level: number): void {
+    noteLevelReached(this.save.campaign, Math.min(level, this.totalLevels));
+    this.write();
+  }
+
+  recordRun(summary: RunSummary): RunOutcome {
+    const outcome = applyRunResult(this.save.campaign, summary);
     this.write();
     return outcome;
   }
@@ -112,7 +138,7 @@ export class SaveManager {
     try {
       this.storage?.setItem(SAVE_KEY, JSON.stringify(this.save));
     } catch {
-      // Storage full or blocked: keep playing with in-memory progress.
+      // Storage full or blocked: keep playing with in-memory records.
     }
   }
 }
