@@ -424,3 +424,30 @@ _2026-11-16 · Accepted (project owner)_
   the word sequence (and duels) are unaffected. Practice ramps over the
   Campaign level's word count (`rampWords`) so speeds still match exactly.
   Arcane Purge returns each word to its own starting speed (`baseSpeed`).
+
+### D-031 — Gothic art direction built in (640×360 at 2×)
+_2026-11-16 · Accepted (project owner) · supersedes the look in D-028_
+
+Spec: [`art-direction.md`](art-direction.md); reference: `mockups/gothic-reference.png`.
+
+- **Backdrop:** the owner's reference image, scaled to 640×360 and shown
+  at 2×, with everything the game draws live removed
+  (`tools/pixelart/gothic_backdrop.py`): sample words patched with nearby
+  sky; the spell rack, progress roll, score wheels, combo plate and
+  status-bar panels cleared. One library for all chapters, with a light
+  colour grade per chapter.
+- **Live elements, drawn in the same style:** parchment word plaques with
+  brass studs (magenta glow on the target; spell words coloured all over
+  with their icon); the progress roll on the typewriter (segments + exact
+  count + the typing line); brass score wheels with a gold flash and the
+  combo plate; a vertical rack of fully coloured spell scrolls (desaturated
+  when empty); a status bar with level, words, score/accuracy and ward
+  health (exact numbers + bars); the runic seal dims, flickers, reddens and
+  cracks as the ward weakens.
+- **Field:** words fall through the window area (screen x 24–1084, ward
+  line at y 418); the simulation is unchanged and is mapped onto it.
+- **Colours** (art-direction §2/§8): magenta arcane, teal secondary, amber
+  light; spells slow magenta, ice teal, barrier silver-blue, shock gold,
+  alter rose, fire burnt orange, wind green, harvest aged gold.
+- The earlier code-drawn chapter backdrops are retired; `tools/pixelart`
+  still builds the spell icon strip.

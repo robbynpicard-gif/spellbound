@@ -42,23 +42,28 @@ export const SIMULATION_STEP_MS = 1000 / SIMULATION_HZ;
  * public/assets uses the same values (tools/pixelart/pixelart.py).
  */
 export const PALETTE = {
-  midnight: 0x0a0908,
-  charcoal: 0x1a1714,
-  gold: 0xd6a040,
-  arcane: 0x7a6096,
-  parchment: 0xc8b78c,
-  ink: 0x1e1610,
-  rust: 0x9a3412,
-  iron: 0x3a3834,
-  fire: 0xce622e,
-  ice: 0x6eaabe,
-  wind: 0x6ea082,
-  crimson: 0xb0402c,
+  midnight: 0x0b0a10,
+  charcoal: 0x18141a,
+  gold: 0xe6a03c,
+  /** Primary arcane magic: muted magenta (docs/art-direction.md). */
+  arcane: 0xb4409c,
+  magentaGlow: 0xe25cc4,
+  /** Secondary magic: muted teal. */
+  teal: 0x3aa49a,
+  parchment: 0xe6d6b4,
+  paper: 0xd6ba8c,
+  ink: 0x22180f,
+  rust: 0xa8348c,
+  iron: 0x3a2a20,
+  fire: 0xd2692e,
+  ice: 0x3aa49a,
+  wind: 0x6a9a5a,
+  crimson: 0xc0392b,
   positive: 0x8ab05a,
-  shield: 0x8c96b4,
-  lightning: 0xd6c468,
-  transmute: 0xba788c,
-  harvest: 0xc4a056,
+  shield: 0x9aa4b8,
+  lightning: 0xc8a640,
+  transmute: 0xc07890,
+  harvest: 0xb48c48,
 } as const;
 
 /** Fonts (loaded from Google Fonts in index.html). Words on scrolls use the clearest one. */

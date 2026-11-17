@@ -1,4 +1,4 @@
-"""Builds Wizzy Type's pixel-art PNGs into public/assets/ (1x; the game scales them 4x).
+"""Builds the spell icon strip into public/assets/spells/ (12x12 per spell, scaled up in game).
 
     python3 tools/pixelart/build.py
 """
@@ -13,21 +13,14 @@ os.makedirs(os.path.join(ROOT, 'spells'), exist_ok=True)
 def save1x(c, path):
     c.im.save(path, optimize=True)
 
-# Play backdrops: chapter scene + ward line + study + vignette + the iron HUD plate (meters/slots are drawn by the game).
-for ch in (1, 2, 3, 4):
-    c = Canvas(); scenery(c, ch); ward_line(c); study(c); c.vignette(0.85); frame(c, 0, 0, 319, 15)
-    save1x(c, os.path.join(ROOT, 'backgrounds', f'chapter{ch}.png'))
-
-# Menu backdrop: the tower scene and the study, without the HUD plate.
-c = Canvas(); scenery(c, 1); ward_line(c); study(c); c.vignette(0.9)
-save1x(c, os.path.join(ROOT, 'backgrounds', 'menu.png'))
+# The play backdrop comes from gothic_backdrop.py (art-direction reference).
 
 # Spell icons: one 12x12 frame per spell, in SPELL_IDS order.
 order = ['slow', 'ice', 'barrier', 'shock', 'alter', 'fire', 'wind', 'harvest']
 c = Canvas(12*len(order), 12, (0, 0, 0))
 im = Image.new('RGBA', (12*len(order), 12), (0, 0, 0, 0)); c.im = im; c.px = im.load()
 for i, sp in enumerate(order):
-    col = SPELL[sp]; dark = tuple(int(v*0.55) for v in col)
+    col = (238, 228, 210); dark = (40, 26, 30)  # pale symbol with a dark core: reads on any spell colour
     pal = dict(w=col + (255,), b=dark + (255,), g=P['gold'] + (255,), y=P['gold2'] + (255,))
     for j, row in enumerate(ICONS[sp]):
         for k, ch in enumerate(row):

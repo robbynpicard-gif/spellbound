@@ -1,21 +1,21 @@
 import Phaser from 'phaser';
 import { FONTS, PALETTE } from '../core/GameConfig';
-import type { WordState } from '../gameplay/Word';
-import { ART, ART_SCALE, hex, screenY, SPELL_COLORS } from './layout';
 import { SPELL_IDS } from '../gameplay/SpellManager';
+import type { WordState } from '../gameplay/Word';
+import { ART, ART_SCALE, hex, screenX, screenY, SPELL_COLORS } from './layout';
 
 const FONT_SIZE = 25;
 /** One art pixel, in screen pixels. */
 const PX = ART_SCALE;
-/** Paper height in art pixels (the text sits in the middle). */
-const PAPER_H = 9;
+/** Plaque height in art pixels. */
+const PLAQUE_H = 20;
 
-/** Parchment shades and grime, matching tools/pixelart/pixelart.py. */
-const PARCH = 0xc4b082;
-const PARCH2 = 0xa0885e;
-const PARCH3 = 0x705a3a;
-const GRIME = 0x0e0c0a;
-const ROLL = 0x30211a;
+const PAPER = 0xd6ba8c;
+const PAPER_DARK = 0xb4966a;
+const PAPER_LIGHT = 0xead2a6;
+const BORDER = 0x2a1a10;
+const STUD = 0xc8963c;
+const STUD_LIGHT = 0xf0c878;
 
 const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontFamily: FONTS.gameplay,
@@ -23,7 +23,7 @@ const TEXT_STYLE: Phaser.Types.GameObjects.Text.TextStyle = {
   fontStyle: '700',
 };
 
-/** Small deterministic random source, so each scroll keeps the same stains. */
+/** Small deterministic random source, so each plaque keeps the same wear. */
 function rng(seed: number): () => number {
   let s = (seed * 2654435761) >>> 0;
   return () => {
@@ -35,23 +35,25 @@ function rng(seed: number): () => number {
   };
 }
 
-const darken = (color: number, f: number): number =>
-  (Math.round(((color >> 16) & 255) * f) << 16) | (Math.round(((color >> 8) & 255) * f) << 8) | Math.round((color & 255) * f);
+const shade = (color: number, f: number): number => {
+  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v * f)));
+  return (c((color >> 16) & 255) << 16) | (c((color >> 8) & 255) << 8) | c(color & 255);
+};
 
 /**
- * Draws one falling word as a stained parchment scroll in pixel art
- * (decisions.md D-028): ink letters, typed letters in rust, a rust frame
- * around the current target, a coloured ribbon and wax seal on spell
- * scrolls, and a frosted frame while frozen. Reads WordState; never changes it.
+ * One falling word as a parchment plaque in pixel art (decisions.md D-031):
+ * dark ink on aged parchment with brass corner studs; typed letters in
+ * magenta; a magenta glow around the current target; a teal frame while
+ * frozen. Spell scrolls are coloured all over in the spell's colour, with
+ * its icon. Reads WordState; never changes it.
  */
 export class WordView extends Phaser.GameObjects.Container {
-  private readonly paper: Phaser.GameObjects.Graphics;
+  private readonly glow: Phaser.GameObjects.Graphics;
+  private readonly plaque: Phaser.GameObjects.Graphics;
   private readonly typedText: Phaser.GameObjects.Text;
   private readonly restText: Phaser.GameObjects.Text;
-  private readonly restColor: string = hex(PALETTE.ink);
-  /** Spell scrolls: the spell's icon beside the word, and a pulsing glow. */
   private readonly icon: Phaser.GameObjects.Image | null = null;
-  private readonly glow: Phaser.GameObjects.Graphics | null = null;
+  private readonly restColor: string;
   private readonly shake = { offset: 0 };
   private drawnTyped = -1;
   private drawnTarget: boolean | null = null;
@@ -63,16 +65,20 @@ export class WordView extends Phaser.GameObjects.Container {
     readonly word: WordState,
   ) {
     super(scene, 0, 0);
-    this.paper = scene.add.graphics();
-    this.typedText = scene.add.text(0, 0, '', { ...TEXT_STYLE, color: hex(PALETTE.rust) }).setOrigin(0, 0.5);
+    const onColour = word.spell !== null;
+    this.restColor = hex(onColour ? 0xf6ecd8 : PALETTE.ink);
+    this.glow = scene.add.graphics();
+    this.plaque = scene.add.graphics();
+    this.typedText = scene.add
+      .text(0, 0, '', { ...TEXT_STYLE, color: hex(onColour ? 0xffe0f4 : PALETTE.rust) })
+      .setOrigin(0, 0.5);
     this.restText = scene.add.text(0, 0, '', { ...TEXT_STYLE, color: this.restColor }).setOrigin(0, 0.5);
-    if (word.spell) {
-      this.glow = scene.add.graphics();
-      this.icon = scene.add.image(0, 0, ART.icons, SPELL_IDS.indexOf(word.spell)).setScale(3).setOrigin(0.5);
-      this.add(this.glow);
-      scene.tweens.add({ targets: this.glow, alpha: { from: 1, to: 0.35 }, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.InOut' });
+    if (onColour) {
+      for (const t of [this.typedText, this.restText]) t.setShadow(2, 2, '#1a1214', 0, false, true);
+      this.icon = scene.add.image(0, 0, ART.icons, SPELL_IDS.indexOf(word.spell!)).setScale(3).setOrigin(0.5);
+      scene.tweens.add({ targets: this.glow, alpha: { from: 1, to: 0.35 }, duration: 650, yoyo: true, repeat: -1 });
     }
-    this.add([this.paper, this.typedText, this.restText]);
+    this.add([this.glow, this.plaque, this.typedText, this.restText]);
     if (this.icon) this.add(this.icon);
     scene.add.existing(this);
 
@@ -84,15 +90,15 @@ export class WordView extends Phaser.GameObjects.Container {
   /** Screen position for the current interpolation factor (0–1 between ticks). */
   sync(alpha: number): void {
     const w = this.word;
-    // Snap to the art grid so the scroll moves in whole art pixels, like the backdrop.
-    const y = Math.round(screenY(Phaser.Math.Linear(w.prevY, w.y, alpha)) / 2) * 2;
-    this.setPosition(w.x + this.shake.offset, y);
+    // Snap to the art grid so plaques move in whole art pixels, like the backdrop.
+    const y = Math.round(screenY(Phaser.Math.Linear(w.prevY, w.y, alpha)) / PX) * PX;
+    this.setPosition(Math.round(screenX(w.x)) + this.shake.offset, y);
     if (w.typed !== this.drawnTyped || w.isTarget !== this.drawnTarget) this.redraw();
   }
 
   /** Approximate on-screen bounds, for mouse clicks. */
   hitTest(x: number, y: number): boolean {
-    return Math.abs(x - this.x) <= this.halfWidth + 8 && Math.abs(y - this.y) <= (PAPER_H * PX) / 2 + 8;
+    return Math.abs(x - this.x) <= this.halfWidth + 8 && Math.abs(y - this.y) <= (PLAQUE_H * PX) / 2 + 8;
   }
 
   /** Redraw after the word's text changed (Transmutation), with a little pop. */
@@ -133,106 +139,83 @@ export class WordView extends Phaser.GameObjects.Container {
     this.restText.setText(w.text.slice(w.typed));
     const typedWidth = w.typed > 0 ? this.typedText.width : 0;
     const textWidth = typedWidth + this.restText.width;
-    const ribbon = w.spell ? 9 : 0;
+    const iconCols = this.icon ? 20 : 0;
 
-    // Paper size in art pixels; the text is centred on the paper (past the ribbon).
-    const cols = Math.max(14, Math.ceil(textWidth / PX) + 6 + ribbon);
+    // Plaque size in art pixels; the text sits centred (right of the icon on spell scrolls).
+    const cols = Math.max(30, Math.ceil(textWidth / PX) + 16 + iconCols);
     const x0 = -Math.floor(cols / 2);
-    const x1 = x0 + cols;
-    const y0 = -Math.floor(PAPER_H / 2);
-    const y1 = y0 + PAPER_H - 1;
-    this.halfWidth = ((cols + 4) * PX) / 2;
-    this.icon?.setPosition((x0 + 5) * PX + 2, PX / 2);
+    const x1 = x0 + cols - 1;
+    const y0 = -Math.floor(PLAQUE_H / 2);
+    const y1 = y0 + PLAQUE_H - 1;
+    this.halfWidth = (cols * PX) / 2;
 
-    const textLeft = (x0 + ribbon) * PX + ((cols - ribbon) * PX - textWidth) / 2;
+    const textLeft = (x0 + iconCols) * PX + ((cols - iconCols) * PX - textWidth) / 2;
     this.typedText.x = Math.round(textLeft);
     this.restText.x = Math.round(textLeft + typedWidth);
-    this.typedText.y = this.restText.y = 1;
+    this.typedText.y = this.restText.y = 0;
+    this.icon?.setPosition((x0 + 11) * PX, 0);
 
-    this.drawScroll(x0, x1, y0, y1);
+    this.draw(x0, x1, y0, y1);
     this.setDepth(w.isTarget ? 10 : 1);
   }
 
-  /** The scroll, in art pixels (each `px` call fills one PX×PX block). */
-  private drawScroll(x0: number, x1: number, y0: number, y1: number): void {
-    const g = this.paper;
+  /** The plaque, in art pixels. */
+  private draw(x0: number, x1: number, y0: number, y1: number): void {
     const w = this.word;
-    const rand = rng(w.id * 7919 + w.text.length);
-    const px = (x: number, y: number, color: number, alpha = 1) => {
-      g.fillStyle(color, alpha);
-      g.fillRect(x * PX, y * PX, PX, PX);
-    };
+    const g = this.plaque;
     const rect = (ax: number, ay: number, bx: number, by: number, color: number, alpha = 1) => {
       g.fillStyle(color, alpha);
       g.fillRect(ax * PX, ay * PX, (bx - ax + 1) * PX, (by - ay + 1) * PX);
     };
     g.clear();
+    const gl = this.glow;
+    gl.clear();
 
-    // Frame: rust around the word being typed, frost while frozen.
-    if (w.isTarget || this.frozen) {
-      const frame = w.isTarget ? PALETTE.rust : PALETTE.ice;
-      rect(x0 - 4, y0 - 2, x1 + 4, y1 + 2, frame, 0.95);
-      rect(x0 - 3, y0 - 1, x1 + 3, y1 + 1, GRIME, 0.9);
-    }
+    const spell = w.spell;
+    const body = spell ? SPELL_COLORS[spell] : PAPER;
+    const light = spell ? shade(body, 1.3) : PAPER_LIGHT;
+    const dark = spell ? shade(body, 0.62) : PAPER_DARK;
 
-    // Paper, with grime, stains, torn edges and a singed corner.
-    rect(x0, y0, x1, y1, PARCH);
-    for (let y = y0 + 1; y < y1; y++) {
-      for (let x = x0 + 1; x < x1; x++) if (rand() < 0.06) px(x, y, PARCH2, 0.8);
+    // Glow behind: magenta for the target, the spell's colour (pulsing) for spell scrolls.
+    if (w.isTarget || spell) {
+      const c = w.isTarget ? PALETTE.magentaGlow : body;
+      gl.fillStyle(c, w.isTarget ? 0.35 : 0.3);
+      gl.fillRect((x0 - 5) * PX, (y0 - 4) * PX, (x1 - x0 + 11) * PX, (y1 - y0 + 9) * PX);
+      gl.fillStyle(c, w.isTarget ? 0.2 : 0.15);
+      gl.fillRect((x0 - 8) * PX, (y0 - 6) * PX, (x1 - x0 + 17) * PX, (y1 - y0 + 13) * PX);
     }
-    for (let i = 0; i < 2; i++) {
-      const sx = x0 + 2 + Math.floor(rand() * (x1 - x0 - 4));
-      const sy = y0 + 1 + Math.floor(rand() * (y1 - y0 - 1));
-      rect(sx - 2, sy, sx + 2, sy, PARCH2, 0.5);
-    }
-    for (let x = x0; x <= x1; x++) {
-      if (rand() < 0.18) px(x, y0, GRIME);
-      if (rand() < 0.18) px(x, y1, PARCH3);
-    }
-    rect(x0, y1, x1, y1, PARCH2, 0.7);
-    px(x1 - 1, y0, GRIME);
-    px(x1 - 2, y0, PARCH3);
-    px(x1 - 1, y0 + 1, PARCH3);
+    // Frame: magenta when targeted, teal when frozen, dark otherwise.
+    const frame = w.isTarget ? PALETTE.magentaGlow : this.frozen ? PALETTE.teal : BORDER;
+    const fw = w.isTarget || this.frozen ? 2 : 1;
+    rect(x0 - fw, y0 - fw, x1 + fw, y1 + fw, frame);
 
-    // Rolled ends.
-    for (const e of [x0 - 2, x1 + 1]) {
-      rect(e, y0 - 1, e + 1, y1 + 1, PARCH3);
-      rect(e, y0 - 1, e, y1 + 1, ROLL);
-      px(e, y0 - 2, ROLL);
-      px(e + 1, y1 + 2, ROLL);
+    rect(x0, y0, x1, y1, body);
+    rect(x0, y0, x1, y0, light);
+    rect(x0, y1 - 1, x1, y1, dark);
+    // Wear: a few darker specks, always the same for this word.
+    const rand = rng(w.id * 7919 + w.text.length);
+    for (let i = 0; i < Math.floor((x1 - x0) / 5); i++) {
+      const sx = x0 + 1 + Math.floor(rand() * (x1 - x0 - 1));
+      const sy = y0 + 1 + Math.floor(rand() * (y1 - y0 - 2));
+      rect(sx, sy, sx, sy, dark, 0.6);
     }
-
-    // Spell scroll: glowing border in the spell's colour, tinted paper,
-    // ribbons at both ends, a wax seal; the icon sits at the left of the paper.
-    if (w.spell) {
-      const color = SPELL_COLORS[w.spell];
-      if (this.glow) {
-        const gl = this.glow;
-        gl.clear();
-        gl.fillStyle(color, 0.35);
-        gl.fillRect((x0 - 6) * PX, (y0 - 4) * PX, (x1 - x0 + 13) * PX, (y1 - y0 + 9) * PX);
-        gl.fillStyle(color, 0.95);
-        gl.fillRect((x0 - 4) * PX, (y0 - 2) * PX, (x1 - x0 + 9) * PX, PX);
-        gl.fillRect((x0 - 4) * PX, (y1 + 2) * PX, (x1 - x0 + 9) * PX, PX);
-        gl.fillRect((x0 - 4) * PX, (y0 - 2) * PX, PX, (y1 - y0 + 5) * PX);
-        gl.fillRect((x1 + 4) * PX, (y0 - 2) * PX, PX, (y1 - y0 + 5) * PX);
-      }
-      rect(x0, y0, x1, y1, color, 0.18);
-      rect(x0 + 1, y0 + 1, x0 + 8, y1 - 1, darken(color, 0.35), 0.85);
-      rect(x1 - 2, y0, x1 - 1, y1, color);
-      rect(x0 + 1, y0, x0 + 2, y1, color);
-      const seal = darken(color, 0.75);
-      rect(x0 + 1, y1, x0 + 3, y1 + 2, seal);
-      px(x0, y1 + 1, seal);
-      px(x0 + 4, y1 + 1, seal);
-      px(x0 + 2, y1 + 1, color);
-      px(x0 + 1, y1 + 4, color);
-      px(x0 + 3, y1 + 4, color);
+    // Brass studs in the corners.
+    for (const [cx, cy] of [
+      [x0 + 1, y0 + 1],
+      [x1 - 2, y0 + 1],
+      [x0 + 1, y1 - 3],
+      [x1 - 2, y1 - 3],
+    ] as const) {
+      rect(cx, cy, cx + 1, cy + 1, STUD);
+      rect(cx, cy, cx, cy, STUD_LIGHT);
     }
+    // Spell scrolls: a darker panel behind the icon.
+    if (spell) rect(x0 + 4, y0 + 3, x0 + 18, y1 - 3, shade(body, 0.45), 0.9);
   }
 
   override destroy(fromScene?: boolean): void {
     this.scene?.tweens.killTweensOf(this.shake);
+    if (this.glow) this.scene?.tweens.killTweensOf(this.glow);
     super.destroy(fromScene);
   }
 }

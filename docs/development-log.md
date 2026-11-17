@@ -4,6 +4,18 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Gothic art direction built in
+
+**Done** (D-031): backdrop from the reference art (640×360 at 2×) with live
+elements removed; parchment word plaques; progress roll, score wheels and
+combo on the typewriter; spell scroll rack; status bar; seal deterioration;
+chapter colour grades; menus recoloured.
+
+**Verified:** unit tests and typecheck pass (no simulation changes). Not yet
+seen in a browser here; GitHub's build is the next check.
+
+---
+
 ## 2026-11-16 — Renamed to Wizzy Type; difficulty and speed pass
 
 **Done** (D-030): rename (title, package, save key with migration, docs);

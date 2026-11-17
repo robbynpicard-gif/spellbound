@@ -48,7 +48,7 @@
   border-radius: 2px;
   padding: 28px 32px;
   box-shadow:
-    inset 0 0 0 2px rgb(214 160 64 / 0.25),
+    inset 0 0 0 2px rgb(230 160 60 / 0.25),
     inset 0 0 40px rgb(0 0 0 / 0.6),
     0 12px 0 rgb(0 0 0 / 0.5);
 }
@@ -127,7 +127,7 @@
 }
 
 .menu-button:hover:not(:disabled) {
-  background: rgb(122 96 150 / 0.25);
+  background: rgb(180 64 156 / 0.25);
   border-color: var(--color-gold);
 }
 
@@ -141,7 +141,7 @@
 }
 
 .menu-button.primary {
-  background: rgb(122 96 150 / 0.35);
+  background: rgb(180 64 156 / 0.35);
   border-color: var(--color-gold);
   color: #fff;
   font-weight: 600;
@@ -271,13 +271,13 @@
   font: inherit;
   color: var(--color-parchment);
   background: rgb(24 21 18 / 0.9);
-  border: 1px solid rgb(214 160 64 / 0.45);
+  border: 1px solid rgb(230 160 60 / 0.45);
   border-radius: 2px;
   cursor: pointer;
 }
 
 .level-card:hover:not(:disabled) {
-  background: rgb(122 96 150 / 0.25);
+  background: rgb(180 64 156 / 0.25);
   border-color: var(--color-gold);
 }
 
@@ -349,7 +349,7 @@
   max-width: 260px;
   padding: 8px 12px;
   text-align: left;
-  border: 1px solid rgb(214 160 64 / 0.35);
+  border: 1px solid rgb(230 160 60 / 0.35);
   border-radius: 2px;
   background: rgb(24 21 18 / 0.85);
   cursor: pointer;
@@ -357,7 +357,7 @@
 
 .filter-option:has(input:checked) {
   border-color: var(--color-gold);
-  background: rgb(122 96 150 / 0.25);
+  background: rgb(180 64 156 / 0.25);
 }
 
 .filter-option:has(input:focus-visible) {
@@ -533,7 +533,7 @@
 .bank-toggle.on {
   opacity: 1;
   border-color: var(--color-gold);
-  background: rgb(122 96 150 / 0.25);
+  background: rgb(180 64 156 / 0.25);
 }
 
 .bank-toggle:disabled {

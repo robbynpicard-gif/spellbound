@@ -20,16 +20,13 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload(): void {
-    for (const chapter of [1, 2, 3, 4]) {
-      this.load.image(ART.chapter(chapter), `assets/backgrounds/chapter${chapter}.png`);
-    }
-    this.load.image(ART.menu, 'assets/backgrounds/menu.png');
+    this.load.image(ART.backdrop, 'assets/backgrounds/gothic.png');
     this.load.spritesheet(ART.icons, 'assets/spells/icons.png', { frameWidth: 12, frameHeight: 12 });
   }
 
   create(): void {
     // Pixel art stays crisp when scaled up.
-    for (const key of [1, 2, 3, 4].map(ART.chapter).concat(ART.menu, ART.icons)) {
+    for (const key of [ART.backdrop, ART.icons]) {
       if (this.textures.exists(key)) this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     }
     this.createSparkTexture();

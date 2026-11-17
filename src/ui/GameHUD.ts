@@ -2,11 +2,19 @@ import Phaser from 'phaser';
 import { FONTS, PALETTE } from '../core/GameConfig';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
-import { SPELL_IDS, SPELL_POOL_SIZE, totalCharges, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
+import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { ART, ART_SCALE, hex, LAYOUT, SPELL_COLORS } from '../render/layout';
 import { TypingConsole } from './TypingConsole';
 
-const INSTABILITY_COLORS: Record<InstabilityStage, number> = {
+const PX = ART_SCALE;
+const INK = 0x22180f;
+const PAPER = 0xd6ba8c;
+const PAPER_DARK = 0xb4966a;
+const SLOT_EMPTY = 0x8a7458;
+const LABEL = 0xe6d6b4;
+
+/** Ward bar colour by health: magenta when healthy, then amber, ember, red. */
+const WARD_COLORS: Record<InstabilityStage, number> = {
   0: PALETTE.arcane,
   1: PALETTE.gold,
   2: PALETTE.fire,
@@ -14,96 +22,78 @@ const INSTABILITY_COLORS: Record<InstabilityStage, number> = {
   4: PALETTE.crimson,
 };
 
-/** HUD readouts: dim amber terminal text. */
-const readout = (color: number = PALETTE.gold, size = 18): Phaser.Types.GameObjects.Text.TextStyle => ({
+const ui = (color: number, size: number): Phaser.Types.GameObjects.Text.TextStyle => ({
   fontFamily: FONTS.heading,
   fontSize: `${size}px`,
   fontStyle: '600',
   color: hex(color),
 });
+const ink = (size: number): Phaser.Types.GameObjects.Text.TextStyle => ({
+  fontFamily: FONTS.gameplay,
+  fontSize: `${size}px`,
+  fontStyle: '700',
+  color: hex(INK),
+});
 
-const PX = ART_SCALE;
-const GRIME = 0x0e0c0a;
-const ROW1 = 18;
-const ROW2 = 46;
-const SLOT_W = 60;
-const SLOT_H = 56;
-const SLOT_GAP = 4;
-const ICON_SCALE = 3;
+const shade = (color: number, f: number): number => {
+  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v * f)));
+  return (c((color >> 16) & 255) << 16) | (c((color >> 8) & 255) << 8) | c(color & 255);
+};
+/** Depleted spells: greyed and darkened, but still recognisable. */
+const desaturate = (color: number): number => {
+  const r = (color >> 16) & 255;
+  const g = (color >> 8) & 255;
+  const b = color & 255;
+  const grey = (r + g + b) / 3;
+  const mix = (v: number) => Math.round((v * 0.3 + grey * 0.7) * 0.75);
+  return (mix(r) << 16) | (mix(g) << 8) | mix(b);
+};
 
-/**
- * A segmented gauge set into the iron plate, like an old dial readout.
- * The caption sits to its right.
- */
-class Gauge {
-  private readonly bar: Phaser.GameObjects.Graphics;
-  private readonly text: Phaser.GameObjects.Text;
+/** A thin bar in a status-bar panel. */
+class Bar {
+  private readonly g: Phaser.GameObjects.Graphics;
   private shown = 0;
-  private readonly tweenTarget = { value: 0 };
+  private readonly t = { v: 0 };
 
   constructor(
     private readonly scene: Phaser.Scene,
     private readonly x: number,
     private readonly y: number,
-    private readonly width: number,
-    private readonly caption: (value: number) => string,
+    private readonly w: number,
     private color: number,
   ) {
-    this.bar = scene.add.graphics().setDepth(30);
-    this.text = scene.add
-      .text(x + width + 10, y + PX, '', readout(PALETTE.parchment, 16))
-      .setOrigin(0, 0.5)
-      .setDepth(31);
+    this.g = scene.add.graphics().setDepth(31);
     this.draw(0);
   }
 
-  /** value is 0–100. */
   set(value: number, color = this.color): void {
     this.color = color;
-    this.scene.tweens.killTweensOf(this.tweenTarget);
-    this.tweenTarget.value = this.shown;
-    this.scene.tweens.add({
-      targets: this.tweenTarget,
-      value,
-      duration: 350,
-      ease: 'Cubic.Out',
-      onUpdate: () => this.draw(this.tweenTarget.value),
-    });
-  }
-
-  /** Redraw the caption without changing the bar. */
-  refresh(): void {
-    this.draw(this.shown);
-  }
-
-  setCaptionColor(color: number): void {
-    this.text.setColor(hex(color));
+    this.scene.tweens.killTweensOf(this.t);
+    this.t.v = this.shown;
+    this.scene.tweens.add({ targets: this.t, v: value, duration: 350, ease: 'Cubic.Out', onUpdate: () => this.draw(this.t.v) });
   }
 
   private draw(value: number): void {
     this.shown = value;
-    const g = this.bar;
-    const { x, y, width } = this;
+    const { g, x, y, w } = this;
     g.clear();
-    g.fillStyle(GRIME, 1);
-    g.fillRect(x - PX, y - PX, width + 2 * PX, 4 * PX);
-    g.fillStyle(PALETTE.midnight, 1);
-    g.fillRect(x, y, width, 2 * PX);
-    // Lit segments, one art pixel wide with a dark gap every fourth.
-    const lit = Math.round((width / PX) * Math.min(100, Math.max(0, value)) / 100);
+    g.fillStyle(0x060404, 1);
+    g.fillRect(x - PX, y - PX, w + 2 * PX, 5 * PX);
+    g.fillStyle(0x2a2020, 1);
+    g.fillRect(x, y, w, 3 * PX);
+    const fill = Math.round((w * Math.max(0, Math.min(100, value))) / 100 / PX) * PX;
     g.fillStyle(this.color, 1);
-    for (let i = 0; i < lit; i++) if (i % 4 !== 3) g.fillRect(x + i * PX, y, PX, 2 * PX);
-    g.fillStyle(PALETTE.iron, 1);
-    g.fillRect(x - PX, y + 2 * PX, width + 2 * PX, PX);
-    this.text.setText(this.caption(value));
+    g.fillRect(x, y, fill, 3 * PX);
+    g.fillStyle(shade(this.color, 1.35), 1);
+    g.fillRect(x, y, fill, PX);
   }
 }
 
-/** One spell slot: the spell's pixel icon, its cast word, and how many charges are held. */
-class SpellSlot {
-  private readonly frame: Phaser.GameObjects.Graphics;
+/** One scroll in the spell rack: coloured all over, a big symbol, the spell's name and its charges. */
+class RackScroll {
+  private readonly g: Phaser.GameObjects.Graphics;
   private readonly icon: Phaser.GameObjects.Image;
-  private readonly word: Phaser.GameObjects.Text;
+  private readonly name: Phaser.GameObjects.Text;
   private readonly count: Phaser.GameObjects.Text;
   private readonly container: Phaser.GameObjects.Container;
 
@@ -112,45 +102,70 @@ class SpellSlot {
     readonly spell: SpellId,
     x: number,
     y: number,
+    private readonly w: number,
+    private readonly h: number,
   ) {
-    this.frame = scene.add.graphics();
+    const big = h >= 70;
+    this.g = scene.add.graphics();
     this.icon = scene.add
-      .image(0, -8, ART.icons, SPELL_IDS.indexOf(spell))
-      .setScale(ICON_SCALE)
-      .setOrigin(0.5);
-    this.word = scene.add
-      .text(0, SLOT_H / 2 - 9, spell, readout(SPELL_COLORS[spell], 12))
-      .setOrigin(0.5);
+      .image(-w / 2 + (big ? 40 : 30), big ? -6 : 0, ART.icons, SPELL_IDS.indexOf(spell))
+      .setScale(big ? 4 : 3);
     this.count = scene.add
-      .text(SLOT_W / 2 - 4, -SLOT_H / 2 + 2, '', readout(PALETTE.parchment, 15))
-      .setOrigin(1, 0);
-    this.container = scene.add
-      .container(x + SLOT_W / 2, y + SLOT_H / 2, [this.frame, this.icon, this.word, this.count])
-      .setDepth(31);
+      .text(w / 2 - 14, big ? -10 : -2, '', ui(0xf6ecd8, big ? 28 : 22))
+      .setOrigin(1, 0.5)
+      .setShadow(2, 2, '#1a1214', 0, false, true);
+    this.name = scene.add
+      .text(big ? 0 : w / 2 - 14, big ? h / 2 - 20 : h / 2 - 12, spell.toUpperCase(), ui(0xf6ecd8, big ? 16 : 12))
+      .setOrigin(big ? 0.5 : 1, 0.5)
+      .setShadow(2, 2, '#1a1214', 0, false, true)
+      .setVisible(big || h >= 46);
+    this.container = scene.add.container(x + w / 2, y + h / 2, [this.g, this.icon, this.count, this.name]).setDepth(31);
     this.set(0);
   }
 
   set(charges: number): void {
     const active = charges > 0;
-    const g = this.frame;
+    const base = SPELL_COLORS[this.spell];
+    const body = active ? base : desaturate(base);
+    const { g, w, h } = this;
+    const x0 = -w / 2;
+    const y0 = -h / 2;
+    const curl = 5 * PX;
     g.clear();
-    g.fillStyle(GRIME, 1);
-    g.fillRect(-SLOT_W / 2, -SLOT_H / 2, SLOT_W, SLOT_H);
-    g.fillStyle(PALETTE.midnight, 1);
-    g.fillRect(-SLOT_W / 2 + PX, -SLOT_H / 2 + PX, SLOT_W - 2 * PX, SLOT_H - 2 * PX);
-    g.fillStyle(active ? SPELL_COLORS[this.spell] : PALETTE.iron, active ? 0.9 : 1);
-    g.fillRect(-SLOT_W / 2, SLOT_H / 2 - PX, SLOT_W, PX);
-    this.icon.setAlpha(active ? 1 : 0.35);
-    this.word.setAlpha(active ? 1 : 0.45);
-    this.count.setText(active ? `×${charges}` : '');
+    // Body, with rolled curls at top and bottom.
+    g.fillStyle(0x0a0606, 1);
+    g.fillRect(x0 + PX, y0 + 3 * PX, w - 2 * PX, h - 4 * PX);
+    g.fillStyle(body, 1);
+    g.fillRect(x0 + 2 * PX, y0 + curl, w - 4 * PX, h - 2 * curl);
+    for (const cy of [y0, y0 + h - curl]) {
+      g.fillStyle(shade(body, 0.6), 1);
+      g.fillRect(x0, cy, w, curl);
+      g.fillStyle(shade(body, 1.3), 1);
+      g.fillRect(x0, cy, w, PX);
+      g.fillStyle(shade(body, 0.4), 1);
+      g.fillRect(x0 + w - 3 * PX, cy + PX, 2 * PX, curl - 2 * PX);
+    }
+    g.fillStyle(shade(body, 1.2), 1);
+    g.fillRect(x0 + 2 * PX, y0 + curl, PX, h - 2 * curl);
+    g.fillStyle(shade(body, 0.7), 1);
+    g.fillRect(x0 + w - 3 * PX, y0 + curl, PX, h - 2 * curl);
+    this.icon.setAlpha(active ? 1 : 0.55);
+    this.count.setText(`×${charges}`).setAlpha(active ? 1 : 0.5);
+    this.name.setAlpha(active ? 1 : 0.6);
   }
 
-  /** Bright pulse when cast or collected. */
+  /** Collected or cast: a quick unfurl. */
   pulse(): void {
-    this.scene.tweens.add({ targets: this.container, scale: { from: 1.15, to: 1 }, duration: 260, ease: 'Back.Out' });
+    this.scene.tweens.add({
+      targets: this.container,
+      scaleY: { from: 1.18, to: 1 },
+      scaleX: { from: 1.06, to: 1 },
+      duration: 280,
+      ease: 'Back.Out',
+    });
   }
 
-  /** Red shake when the player tries to cast with no charges. */
+  /** Tried to cast with no charges. */
   deny(): void {
     const x = this.container.x;
     this.scene.tweens.add({
@@ -161,35 +176,38 @@ class SpellSlot {
       repeat: 2,
       onComplete: () => this.container.setX(x),
     });
-    this.frame.fillStyle(PALETTE.crimson, 1);
-    this.frame.fillRect(-SLOT_W / 2, SLOT_H / 2 - PX, SLOT_W, PX);
   }
 }
 
 /**
- * Heads-up display, set into the pixel-art backdrop (decisions.md D-028).
- * Iron plate (top): level + progress gauge · score, combo, ward gauge, spell
- * pool · spell slots (type the word shown to cast). The typing console is the
- * paper in the alchemic typewriter; accuracy and WPM are on the desk plaque.
+ * Heads-up display set into the gothic backdrop (decisions.md D-031,
+ * docs/art-direction.md). The typewriter's parchment roll shows progress
+ * segments and the typing line; the brass counter shows the score on number
+ * wheels with the combo below; the rack on the right holds a coloured scroll
+ * per unlocked spell; the status bar gives exact values.
  */
 export class GameHUD {
-  private readonly scoreText: Phaser.GameObjects.Text;
-  private readonly comboText: Phaser.GameObjects.Text;
-  private readonly accuracyText: Phaser.GameObjects.Text;
-  private readonly shieldText: Phaser.GameObjects.Text;
-  private readonly poolText: Phaser.GameObjects.Text;
-  private readonly progress: Gauge;
-  private readonly instability: Gauge;
-  private readonly slots: Partial<Record<SpellId, SpellSlot>> = {};
-  private readonly levelText: Phaser.GameObjects.Text;
   readonly console: TypingConsole;
+  private readonly roll: Phaser.GameObjects.Graphics;
+  private readonly rollLabel: Phaser.GameObjects.Text;
+  private readonly wheels: Phaser.GameObjects.Text[] = [];
+  private readonly counterGlow: Phaser.GameObjects.Rectangle;
+  private readonly comboText: Phaser.GameObjects.Text;
+  private readonly levelText: Phaser.GameObjects.Text;
+  private readonly wordsText: Phaser.GameObjects.Text;
+  private readonly scoreText: Phaser.GameObjects.Text;
+  private readonly accuracyText: Phaser.GameObjects.Text;
+  private readonly wardText: Phaser.GameObjects.Text;
+  private readonly progressBar: Bar;
+  private readonly wardBar: Bar;
+  private readonly scrolls: Partial<Record<SpellId, RackScroll>> = {};
   private lastCharges: SpellCharges | null = null;
-  /** Words completed (shown in place of the progress bar in endless Practice). */
   private completed = 0;
-  /** Boss level: total survival time, shown on the progress gauge. */
+  private shownScore = -1;
+  private ward = 100;
+  private shield = 0;
   private survivalMs: number | null = null;
   private survivalLeftMs = 0;
-  /** Wizard Duel: the rival's live score/instability replaces the progress gauge. */
   private rival: { name: string; score: number; instability: number; alive: boolean } | null = null;
 
   constructor(
@@ -199,141 +217,219 @@ export class GameHUD {
     /** Run score from earlier levels, added to this level's score. */
     private readonly scoreOffset = 0,
     rivalName?: string,
-    /** Spells to show slots for (those this run has unlocked), in power order. */
+    /** Spells with a scroll in the rack (those this run has unlocked), in power order. */
     knownSpells: readonly SpellId[] = SPELL_IDS,
   ) {
     if (rivalName) this.rival = { name: rivalName, score: 0, instability: 0, alive: true };
 
-    // Left: level and progress.
-    this.levelText = scene.add.text(16, ROW1, levelName, readout(PALETTE.gold, 22)).setOrigin(0, 0.5).setDepth(31);
-    this.progress = new Gauge(
-      scene,
-      20,
-      ROW2 - PX,
-      240,
-      (v) => {
-        const r = this.rival;
-        if (r) {
-          const name = r.name.toUpperCase().slice(0, 8);
-          return r.alive ? `${name} ${r.score.toLocaleString()} ${Math.round(r.instability)}%` : `${name} FELL`;
-        }
-        if (this.survivalMs !== null) {
-          const s = Math.ceil(this.survivalLeftMs / 1000);
-          return `SURVIVE ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-        }
-        return this.quota === null
-          ? `${this.completed} WORDS`
-          : `${Math.round((v / 100) * this.quota)}/${this.quota}`;
-      },
-      rivalName ? PALETTE.crimson : PALETTE.gold,
-    );
+    // Typewriter roll: progress segments and the typing line.
+    const r = LAYOUT.roll;
+    this.roll = scene.add.graphics().setDepth(30);
+    this.rollLabel = scene.add.text(r.x + r.width - 12, r.y + 16, '', ink(16)).setOrigin(1, 0.5).setDepth(31);
+    this.console = new TypingConsole(scene, r.x + r.width / 2, r.y + 48, r.width);
 
-    // Middle: score, combo, ward gauge, spell pool.
-    const mx = 470;
-    this.scoreText = scene.add.text(mx, ROW1, '', readout(PALETTE.parchment, 15)).setOrigin(0, 0.5).setDepth(31);
-    this.comboText = scene.add.text(mx + 150, ROW1, '', readout(PALETTE.parchment, 15)).setOrigin(0, 0.5).setDepth(31);
-    this.instability = new Gauge(scene, mx + 4, ROW2 - PX, 100, (v) => `WARD ${Math.round(v)}%`, INSTABILITY_COLORS[0]);
+    // Brass counter: six number wheels, and the combo plate.
+    const c = LAYOUT.counter;
+    const wheelW = 21;
+    const gap = (c.width - 6 * wheelW) / 5;
+    const wheels = scene.add.graphics().setDepth(30);
+    for (let i = 0; i < 6; i++) {
+      const wx = Math.round(c.x + i * (wheelW + gap));
+      wheels.fillStyle(0xe8dcc0, 1);
+      wheels.fillRect(wx, c.y + 4, wheelW, c.height - 8);
+      wheels.fillStyle(0xb8a888, 1);
+      wheels.fillRect(wx, c.y + 4, wheelW, 4);
+      wheels.fillRect(wx, c.y + c.height - 8, wheelW, 4);
+      this.wheels.push(scene.add.text(wx + wheelW / 2, c.y + c.height / 2, '0', ink(26)).setOrigin(0.5).setDepth(31));
+    }
+    this.counterGlow = scene.add
+      .rectangle(c.x - 4, c.y, c.width + 8, c.height, PALETTE.gold, 1)
+      .setOrigin(0)
+      .setAlpha(0)
+      .setDepth(32);
+    const k = LAYOUT.combo;
+    this.comboText = scene.add
+      .text(k.x + k.width / 2, k.y + k.height / 2, '', ui(PALETTE.magentaGlow, 20))
+      .setOrigin(0.5)
+      .setDepth(31);
 
-    // Right: spell slots. Only spells this run has unlocked get a slot; all share one pool.
+    // Spell rack: one scroll per unlocked spell.
     const shown = SPELL_IDS.filter((id) => knownSpells.includes(id));
-    const slotsWidth = shown.length * SLOT_W + Math.max(0, shown.length - 1) * SLOT_GAP;
-    const slotX = LAYOUT.width - 8 - slotsWidth;
+    const rack = LAYOUT.rack;
+    const step = shown.length > 0 ? Math.min(98, Math.floor(rack.height / shown.length)) : 0;
     shown.forEach((id, i) => {
-      this.slots[id] = new SpellSlot(scene, id, slotX + i * (SLOT_W + SLOT_GAP), (LAYOUT.hudHeight - SLOT_H) / 2);
+      this.scrolls[id] = new RackScroll(scene, id, rack.x + 6, rack.y + i * step + 4, rack.width - 12, step - 8);
     });
-    this.poolText = scene.add
-      .text(Math.min(slotX - 10, 756), ROW2, '', readout(PALETTE.parchment, 16))
-      .setOrigin(1, 0.5)
-      .setAlpha(shown.length > 0 ? 0.9 : 0)
-      .setDepth(31);
 
-    // The typewriter's paper is the typing console.
-    const paper = LAYOUT.paper;
-    this.console = new TypingConsole(scene, paper.x + paper.width / 2, paper.y + paper.height / 2, paper.width);
-
-    // Desk plaque: accuracy and WPM, and Arcane Shield blocks under it.
-    this.accuracyText = scene.add
-      .text(LAYOUT.plaque.x, LAYOUT.plaque.y, '', readout(PALETTE.parchment, 16))
-      .setOrigin(0.5)
-      .setAlpha(0.85)
-      .setDepth(31);
-    this.shieldText = scene.add
-      .text(LAYOUT.plaque.x, LAYOUT.plaque.y + 24, '', readout(PALETTE.shield, 16))
+    // Status bar: level · words · score · ward.
+    const st = LAYOUT.status;
+    const [p1, p2, p3, p4] = st.panels;
+    const cx = (p: readonly [number, number]) => (p[0] + p[1]) / 2;
+    this.levelText = scene.add
+      .text(cx(p1), st.y + st.height / 2, levelName.toUpperCase(), ui(LABEL, 17))
       .setOrigin(0.5)
       .setDepth(31);
+    this.wordsText = scene.add.text(cx(p2), st.y + 16, '', ui(LABEL, 17)).setOrigin(0.5).setDepth(31);
+    this.progressBar = new Bar(scene, p2[0] + 24, st.y + 34, p2[1] - p2[0] - 48, PALETTE.gold);
+    this.scoreText = scene.add.text(cx(p3), st.y + 16, '', ui(LABEL, 17)).setOrigin(0.5).setDepth(31);
+    this.accuracyText = scene.add.text(cx(p3), st.y + 38, '', ui(LABEL, 14)).setOrigin(0.5).setAlpha(0.8).setDepth(31);
+    this.wardText = scene.add.text(cx(p4), st.y + 16, '', ui(LABEL, 17)).setOrigin(0.5).setDepth(31);
+    this.wardBar = new Bar(scene, p4[0] + 24, st.y + 34, p4[1] - p4[0] - 48, WARD_COLORS[0]);
+    this.wardBar.set(100);
 
+    this.drawRoll();
     this.updateStats(null);
+    this.refreshWard();
   }
 
+  // ───────────────────────── score, combo, accuracy ─────────────────────────
+
   updateStats(stats: GameStats | null, combo = 0): void {
-    const s = stats;
-    this.scoreText.setText(`SCORE ${(this.scoreOffset + (s?.score ?? 0)).toLocaleString()}`);
-    this.comboText.setText(`COMBO ×${combo}`).setColor(hex(combo >= 5 ? PALETTE.gold : PALETTE.parchment));
-    const acc = s ? Math.round(s.accuracy * 100) : 100;
-    const wpm = s ? Math.round(s.wpm) : 0;
-    this.accuracyText.setText(`${acc}% · ${wpm} WPM`);
+    const score = this.scoreOffset + (stats?.score ?? 0);
+    if (score !== this.shownScore) {
+      const grew = this.shownScore >= 0 && score > this.shownScore;
+      this.shownScore = score;
+      const digits = String(Math.min(999999, score)).padStart(6, '0');
+      this.wheels.forEach((t, i) => t.setText(digits[i]!));
+      if (grew) {
+        // Subtle golden light on the counter when the score goes up.
+        this.scene.tweens.killTweensOf(this.counterGlow);
+        this.counterGlow.setAlpha(0.3);
+        this.scene.tweens.add({ targets: this.counterGlow, alpha: 0, duration: 400 });
+      }
+    }
+    this.comboText.setText(`COMBO ×${combo}`).setColor(hex(combo >= 5 ? PALETTE.gold : PALETTE.magentaGlow));
+    this.scoreText.setText(`SCORE ${score.toLocaleString()} · COMBO ×${combo}`);
+    const acc = stats ? Math.round(stats.accuracy * 100) : 100;
+    const wpm = stats ? Math.round(stats.wpm) : 0;
+    this.accuracyText.setText(`${acc}% ACCURACY · ${wpm} WPM`);
   }
 
   pulseCombo(): void {
     this.scene.tweens.add({ targets: this.comboText, scale: { from: 1.25, to: 1 }, duration: 200 });
   }
 
-  /** Replace the top-left title (e.g. the duel timer). */
+  /** Replace the level label (e.g. the duel timer). */
   setTitle(text: string): void {
-    if (this.levelText.text !== text) this.levelText.setText(text);
+    const upper = text.toUpperCase();
+    if (this.levelText.text !== upper) this.levelText.setText(upper);
   }
 
-  /** Wizard Duel: show the rival's live state on the progress gauge. */
+  // ───────────────────────── progress ─────────────────────────
+
   setRival(score: number, instability: number, alive: boolean): void {
     if (!this.rival) return;
     Object.assign(this.rival, { score, instability, alive });
-    this.progress.set(alive ? instability : 100);
+    this.drawRoll();
   }
 
   setProgress(completed: number): void {
     this.completed = completed;
-    if (this.rival || this.survivalMs !== null) return;
-    if (this.quota === null) return this.progress.refresh();
-    this.progress.set(Math.min(100, (completed / this.quota) * 100));
+    this.drawRoll();
   }
 
-  /** Boss level: show the survival timer on the progress gauge (fills as time passes). */
+  /** Boss level: the roll and bar show time survived. */
   setSurvival(totalMs: number, leftMs: number): void {
+    const before = Math.ceil(this.survivalLeftMs / 1000);
     const first = this.survivalMs === null;
-    const shownSecond = Math.ceil(this.survivalLeftMs / 1000);
     this.survivalMs = totalMs;
     this.survivalLeftMs = leftMs;
-    if (first || Math.ceil(leftMs / 1000) !== shownSecond) {
-      this.progress.set(Math.min(100, ((totalMs - leftMs) / totalMs) * 100));
-    }
+    if (first || Math.ceil(leftMs / 1000) !== before) this.drawRoll();
   }
 
-  /** Arcane Shield blocks left (0 hides the label). */
-  setShield(remaining: number): void {
-    this.shieldText.setText(remaining > 0 ? `SHIELD ×${remaining}` : '');
+  /** Segments on the parchment roll, the exact count beside them, and the status-bar bar. */
+  private drawRoll(): void {
+    const r = LAYOUT.roll;
+    const g = this.roll;
+    g.clear();
+    g.fillStyle(PAPER, 1);
+    g.fillRect(r.x, r.y, r.width, r.height);
+    g.fillStyle(0xead2a6, 1);
+    g.fillRect(r.x, r.y, r.width, PX);
+    g.fillStyle(PAPER_DARK, 1);
+    g.fillRect(r.x, r.y + r.height - PX, r.width, PX);
+    g.fillRect(r.x + 10, r.y + 32, r.width - 20, PX);
+
+    let filled = 0;
+    let total = 0;
+    let label: string;
+    let percent: number;
+    const rv = this.rival;
+    if (rv) {
+      total = 20;
+      filled = Math.round((rv.instability / 100) * total);
+      const name = rv.name.slice(0, 8).toUpperCase();
+      label = rv.alive ? `${name} ${rv.score.toLocaleString()}` : `${name} FELL`;
+      percent = rv.alive ? 100 - rv.instability : 0;
+      this.wordsText.setText(rv.alive ? `RIVAL WARD ${Math.round(100 - rv.instability)}%` : 'RIVAL FELL');
+    } else if (this.survivalMs !== null) {
+      total = 20;
+      const done = (this.survivalMs - this.survivalLeftMs) / this.survivalMs;
+      filled = Math.floor(done * total);
+      const s = Math.ceil(this.survivalLeftMs / 1000);
+      label = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+      percent = done * 100;
+      this.wordsText.setText(`SURVIVE ${label}`);
+    } else if (this.quota !== null) {
+      const done = Math.min(this.completed, this.quota);
+      total = Math.min(this.quota, 36);
+      filled = Math.floor((done / this.quota) * total);
+      label = `${done} / ${this.quota}`;
+      percent = (done / this.quota) * 100;
+      this.wordsText.setText(`${label} WORDS`);
+    } else {
+      label = `${this.completed} WORDS`;
+      percent = 100;
+      this.wordsText.setText(label);
+    }
+    this.rollLabel.setText(label);
+
+    if (total > 0) {
+      const area = r.width - 20 - this.rollLabel.width - 16;
+      const cell = Math.max(2 * PX, Math.floor(area / total / PX) * PX);
+      for (let i = 0; i < total; i++) {
+        const x = r.x + 10 + i * cell;
+        g.fillStyle(i < filled ? PALETTE.gold : SLOT_EMPTY, 1);
+        g.fillRect(x, r.y + 10, cell - PX, 6 * PX);
+        if (i < filled) {
+          g.fillStyle(0xffd278, 1);
+          g.fillRect(x, r.y + 10, cell - PX, PX);
+        }
+      }
+    }
+    this.progressBar.set(percent);
   }
+
+  // ───────────────────────── ward ─────────────────────────
 
   setInstability(value: number, stage: InstabilityStage): void {
-    this.instability.set(value, INSTABILITY_COLORS[stage]);
-    this.instability.setCaptionColor(stage >= 3 ? PALETTE.crimson : PALETTE.parchment);
+    this.ward = Math.max(0, 100 - value);
+    this.wardBar.set(this.ward, WARD_COLORS[stage]);
+    this.refreshWard(stage);
   }
+
+  /** Arcane Shield blocks left. */
+  setShield(remaining: number): void {
+    this.shield = remaining;
+    this.refreshWard();
+  }
+
+  private refreshWard(stage?: InstabilityStage): void {
+    this.wardText.setText(`WARD ${Math.round(this.ward)}%${this.shield > 0 ? ` · SHIELD ×${this.shield}` : ''}`);
+    if (stage !== undefined) this.wardText.setColor(hex(stage >= 3 ? PALETTE.crimson : LABEL));
+  }
+
+  // ───────────────────────── spells ─────────────────────────
 
   setSpells(charges: SpellCharges, pulse?: SpellId): void {
     for (const id of SPELL_IDS) {
-      if (!this.lastCharges || this.lastCharges[id] !== charges[id]) this.slots[id]?.set(charges[id]);
+      if (!this.lastCharges || this.lastCharges[id] !== charges[id]) this.scrolls[id]?.set(charges[id]);
     }
     this.lastCharges = { ...charges };
-    const total = totalCharges(charges);
-    this.poolText
-      .setText(`POOL ${total}/${SPELL_POOL_SIZE}`)
-      .setColor(hex(total >= SPELL_POOL_SIZE ? PALETTE.gold : PALETTE.parchment));
-    if (pulse) this.slots[pulse]?.pulse();
+    if (pulse) this.scrolls[pulse]?.pulse();
   }
 
   denySpell(spell: SpellId): void {
-    const slot = this.slots[spell];
-    if (!slot) return;
-    slot.deny();
-    this.scene.time.delayedCall(260, () => slot.set(this.lastCharges?.[spell] ?? 0));
+    this.scrolls[spell]?.deny();
   }
 }

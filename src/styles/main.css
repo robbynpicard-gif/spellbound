@@ -1,12 +1,12 @@
 :root {
-  /* Gritty 16-bit palette (decisions.md D-028); mirrors PALETTE in GameConfig.ts. */
-  --color-midnight: #0a0908;
-  --color-charcoal: #1a1714;
-  --color-iron: #3a3834;
-  --color-rust: #9a3412;
-  --color-gold: #d6a040;
-  --color-arcane: #7a6096;
-  --color-parchment: #c8b78c;
+  /* Gothic palette (decisions.md D-031); mirrors PALETTE in GameConfig.ts. */
+  --color-midnight: #0b0a10;
+  --color-charcoal: #18141a;
+  --color-iron: #4a3424;
+  --color-rust: #a8348c;
+  --color-gold: #e6a03c;
+  --color-arcane: #b4409c;
+  --color-parchment: #e6d6b4;
   --color-crimson: #b0402c;
   /* Brighter crimson for text, readable on dark panels. */
   --color-crimson-text: #d8644c;

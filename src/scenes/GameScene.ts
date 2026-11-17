@@ -9,7 +9,7 @@ import type { GameStats } from '../gameplay/ScoringSystem';
 import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { Effects } from '../render/Effects';
 import { FieldBackground } from '../render/FieldBackground';
-import { hex, LAYOUT, screenY, SPELL_COLORS } from '../render/layout';
+import { hex, LAYOUT, screenX, screenY, SPELL_COLORS } from '../render/layout';
 import { SpellEffects } from '../render/SpellEffects';
 import { WordView } from '../render/WordView';
 import { SPELLS } from '../spells/SpellRegistry';
@@ -143,7 +143,7 @@ export class GameScene extends Phaser.Scene {
     this.spellFx = new SpellEffects(this);
     this.hud = new GameHUD(
       this,
-      this.duel ? this.duelTitle(this.duel.durationMs) : `Level ${this.config.level}`,
+      this.duel ? this.duelTitle(this.duel.durationMs) : `Level ${this.config.level} · ${this.config.name}`,
       this.config.requiredWords,
       this.scoreOffset,
       this.duel?.rivalName,
@@ -356,7 +356,7 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('wordBlocked', ({ word }) => {
       this.removeView(word.id);
-      this.spellFx.burst(word.x, LAYOUT.wardY - 10, PALETTE.shield, 26);
+      this.spellFx.burst(screenX(word.x), LAYOUT.wardY - 10, PALETTE.shield, 26);
       this.background.flashBlocked();
     });
 
@@ -369,7 +369,7 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('wordMissed', ({ word }) => {
       this.removeView(word.id);
-      this.effects.wordBrokeThrough(word.x, LAYOUT.wardY);
+      this.effects.wordBrokeThrough(screenX(word.x), LAYOUT.wardY);
       this.background.flashMiss();
     });
 
@@ -452,7 +452,7 @@ export class GameScene extends Phaser.Scene {
 
   private viewPosition(id: number, fieldX: number, fieldY: number): { x: number; y: number } {
     const view = this.views.get(id);
-    return { x: view?.x ?? fieldX, y: view?.y ?? screenY(fieldY) };
+    return { x: view?.x ?? screenX(fieldX), y: view?.y ?? screenY(fieldY) };
   }
 
   private removeView(id: number): void {
