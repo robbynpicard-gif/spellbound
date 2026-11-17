@@ -4,6 +4,14 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Chapter and boss backdrops; wizard plan
+
+**Done** (D-033): eight backdrops derived from the reference; weather and
+gloom that build level by level; a wizard selection plan
+(`docs/plans/wizards-v1.md`) and wizard art options on the design canvas.
+
+---
+
 ## 2026-11-16 — Gothic art direction built in
 
 **Done** (D-031): backdrop from the reference art (640×360 at 2×) with live

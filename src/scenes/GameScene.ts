@@ -138,7 +138,10 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(PALETTE.midnight);
-    this.background = new FieldBackground(this, this.config.chapter ?? Math.ceil(this.config.level / 5));
+    // The chapter's scene; weather builds level by level, and bosses get their own scene.
+    const chapter = this.config.chapter ?? Math.ceil(this.config.level / 5);
+    const boss = isSurvival(this.config);
+    this.background = new FieldBackground(this, chapter, boss ? 4 : (this.config.level - 1) % 5, boss);
     this.effects = new Effects(this);
     this.spellFx = new SpellEffects(this);
     this.hud = new GameHUD(

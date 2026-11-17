@@ -463,3 +463,16 @@ pop-up at the start of each chapter; run-over screens close the story.
 No rule changes. A roguelite expansion (wizards with different mana
 capacities and unique spells, boons between levels, a persistent Library)
 is proposed in lore.md, not built.
+
+### D-033 — A backdrop per chapter and per boss; weather builds with difficulty
+_2026-11-16 · Accepted (project owner) · amends D-031_
+
+- `tools/pixelart/gothic_chapters.py` derives eight backdrops from the
+  cleaned reference (`gothic.png`): chapter 1 moonlit tower / blood-moon
+  boss; 2 drowned teal library with light shafts and bubbles / a vast shape
+  passing the windows; 3 furnace-lit vault with smoke and embers / inferno;
+  4 storm with rain and lightning / full storm.
+- In game, each level within a chapter deepens the night over the windows
+  and adds more weather (motes, bubbles, embers, or rain with lightning
+  that strikes more often); boss levels use the boss backdrop at full
+  intensity. Practice and duels use the same scene as the level they play.

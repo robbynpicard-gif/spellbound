@@ -63,7 +63,8 @@ export const SPELL_COLORS: Record<SpellId, number> = {
 
 /** Texture keys for the pixel art (loaded in BootScene). */
 export const ART = {
-  backdrop: 'bg-gothic',
+  /** The chapter's backdrop, or its boss version (decisions.md D-033). */
+  backdrop: (chapter = 1, boss = false) => `bg-${boss ? 'boss' : 'ch'}${Math.min(4, Math.max(1, chapter))}`,
   icons: 'spell-icons',
 } as const;
 
