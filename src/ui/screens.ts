@@ -1,5 +1,4 @@
 import { GAME_TITLE } from '../core/GameConfig';
-import lore from '../data/lore.json';
 import {
   FANTASY_WORDS,
   MODERN_WORDS,
@@ -31,7 +30,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.8.0';
+const APP_VERSION = '0.8.1';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -68,7 +67,6 @@ export function mainMenuScreen(
     'section',
     { class: 'screen main-menu', attrs: { 'aria-labelledby': 'title' } },
     h('h1', { class: 'game-title', attrs: { id: 'title' } }, GAME_TITLE),
-    h('p', { class: 'tagline' }, 'Catch the drifting scrolls. Master their knowledge.'),
     h(
       'nav',
       { class: 'menu-list', attrs: { 'aria-label': 'Main menu' } },
@@ -117,7 +115,6 @@ export function pauseScreen(label: string, onResume: () => void, options: PauseO
     { class: 'screen panel pause', attrs: { role: 'dialog', 'aria-labelledby': 'pause-title' } },
     h('h2', { class: 'screen-title', attrs: { id: 'pause-title' } }, 'Paused'),
     h('p', { class: 'screen-subtitle' }, label),
-    h('p', { class: 'flavour' }, 'The words hang in the air, waiting.'),
     h(
       'div',
       { class: 'menu-list' },
@@ -192,21 +189,6 @@ export function campaignModeScreen(
 // ───────────────────────── New spell ─────────────────────────
 
 /** Pop-up before a level that introduces a spell. The level waits until "Begin". */
-/** The story card for a chapter, if this level starts one. */
-function chapterStory(level: DifficultyConfig): HTMLElement | null {
-  const first = level.chapter !== undefined && (level.level - 1) % 5 === 0;
-  const ch = first ? (lore.chapters as Record<string, { title: string; intro: string }>)[String(level.chapter)] : undefined;
-  if (!ch) return null;
-  return h(
-    'div',
-    { class: 'chapter-story' },
-    h('p', { class: 'score-label' }, `Chapter ${level.chapter}`),
-    h('h3', { class: 'chapter-title' }, ch.title),
-    level.level === 1 ? h('p', { class: 'chapter-text' }, lore.premise) : null,
-    h('p', { class: 'chapter-text' }, ch.intro),
-  );
-}
-
 export function spellIntroScreen(spell: SpellId, level: DifficultyConfig, onBegin: () => void): Screen {
   const def = SPELLS[spell];
   const begin = h('button', { class: 'menu-button primary', onClick: onBegin }, `Begin level ${level.level}`);
@@ -216,7 +198,6 @@ export function spellIntroScreen(spell: SpellId, level: DifficultyConfig, onBegi
       class: 'screen panel spell-intro',
       attrs: { role: 'dialog', 'aria-labelledby': 'spell-intro-title', ...spellStyle(spell) },
     },
-    chapterStory(level),
     h('p', { class: 'score-label' }, 'New spell'),
     h('h2', { class: 'screen-title spell-name', attrs: { id: 'spell-intro-title' } }, def.name),
     h('p', { class: 'spell-effect' }, def.summary),
@@ -369,9 +350,8 @@ export function runOverScreen(
   actions: RunOverActions,
 ): Screen {
   const won = summary.victory;
-  const title = won ? 'The Tower Stands' : 'The Wards Have Fallen';
+  const title = won ? 'Victory' : 'Run Over';
   const mode = MODE_TITLES[actions.mode ?? 'normal'];
-  const story = won ? lore.victory : lore.defeat;
   const subtitle = won
     ? `${mode} · All ${totalLevels} levels cleared`
     : `${mode} · Fell on level ${summary.reachedLevel} · ${lastLevel.name} · ${summary.levelsCleared} cleared`;
@@ -389,7 +369,6 @@ export function runOverScreen(
     { class: `screen panel results ${won ? 'won' : 'lost'}`, attrs: { role: 'dialog', 'aria-labelledby': 'run-title' } },
     h('h2', { class: 'screen-title', attrs: { id: 'run-title' } }, title),
     h('p', { class: 'screen-subtitle' }, subtitle),
-    h('p', { class: 'flavour' }, story),
     h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Final score'), summary.score.toLocaleString()),
     h(
       'dl',

@@ -476,3 +476,11 @@ _2026-11-16 · Accepted (project owner) · amends D-031_
   and adds more weather (motes, bubbles, embers, or rain with lightning
   that strikes more often); boss levels use the boss backdrop at full
   intensity. Practice and duels use the same scene as the level they play.
+
+### D-034 — The lore is implied, never told
+_2026-11-16 · Accepted (project owner) · amends D-032_
+
+Chapter story cards, the premise, the menu tagline and the victory/defeat
+lines are removed. `docs/lore.md` stays as an internal world bible that
+guides art and naming. Game-rule words (mana, ward, spell) stay because
+they describe how to play.

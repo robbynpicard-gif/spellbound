@@ -1,6 +1,9 @@
-# Wizzy Type — lore
+# Wizzy Type — lore (world bible, never shown as text)
 
-## Premise (in game)
+> Per D-034 the game never tells this story in words. It is a reference for
+> the art, sound and naming, so the world is felt through play and pictures.
+
+## Premise (unspoken)
 Your master is gone, and their scrolls of forgotten knowledge drift through the
 tower on the night wind. Bound to an enchanted typewriter, you capture each
 scroll by typing its word before it slips past your wards. Every scroll you

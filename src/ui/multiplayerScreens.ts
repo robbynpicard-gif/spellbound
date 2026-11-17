@@ -12,7 +12,7 @@ export function connectingScreen(onCancel: () => void): Screen {
       'section',
       { class: 'screen panel', attrs: { 'aria-live': 'polite' } },
       h('h2', { class: 'screen-title' }, 'Multiplayer'),
-      h('p', { class: 'flavour' }, 'Reaching across the aether…'),
+      h('p', { class: 'flavour' }, 'Connecting…'),
       h('div', { class: 'button-row' }, cancel),
     ),
     focus: cancel,
