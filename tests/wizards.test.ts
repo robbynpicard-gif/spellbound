@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { GameEngine, type EngineOptions } from '../src/core/GameEngine';
 import type { DifficultyConfig } from '../src/difficulty/DifficultyConfig';
 import type { WordState } from '../src/gameplay/Word';
-import { FIELD } from '../src/core/GameConfig';
 import * as W from '../src/gameplay/Wizards';
 
 const WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist', 'lantern', 'bramble', 'cauldron', 'astrolabe'];
@@ -142,33 +141,45 @@ describe('Wizards (D-042)', () => {
     expect(e.state.kindleCharges).toBe(W.KINDLE_CHARGES - 1);
   });
 
-  it('Hedge Witch: Overgrowth holds the lowest words in place', () => {
-    const e = engine('hedgewitch', { spawnInterval: 150, maxActiveWords: 8, initialFallSpeed: 30 });
+  it('Cartographer: words fall in lanes; Compass Rose captures a whole lane', () => {
+    const e = engine('cartographer', { spawnInterval: 120, maxActiveWords: 12, initialFallSpeed: 15 });
     const sigil = farmSigil(e);
-    stepUntil(e, () => e.state.words.length >= 3);
+    const xs = new Set(e.state.words.filter((w) => w.text.length <= 5).map((w) => Math.round(w.x)));
+    expect(xs.size).toBeLessThanOrEqual(W.LANES);
     capture(e, sigil);
-    expect(e.state.heldIds.length).toBeGreaterThan(0);
-    const held = e.state.words.filter((w) => e.state.heldIds.includes(w.id));
-    const ys = held.map((w) => w.y);
-    for (let i = 0; i < 60; i++) e.step();
-    expect(held.filter((w) => e.state.words.includes(w)).map((w) => w.y)).toEqual(
-      ys.filter((_, i) => e.state.words.includes(held[i]!)),
-    );
+    expect(e.state.powerTicks).toBeGreaterThan(0);
+    stepUntil(e, () => {
+      const lanes = new Map<number, number>();
+      for (const w of e.state.words) lanes.set(Math.round(w.x / 50), (lanes.get(Math.round(w.x / 50)) ?? 0) + 1);
+      return [...lanes.values()].some((n) => n >= 2);
+    }, 400);
+    const counts = new Map<number, WordState[]>();
+    for (const w of e.state.words) counts.set(Math.round(w.x / 50), [...(counts.get(Math.round(w.x / 50)) ?? []), w]);
+    const lane = [...counts.values()].find((l) => l.length >= 2)!;
+    const before = e.state.completed;
+    capture(e, lane[0]!);
+    expect(e.state.completed).toBeGreaterThanOrEqual(before + lane.length);
   });
 
-  it('Warden: starts with a barrier; Bastion blocks misses and halves points', () => {
-    const e = engine('warden', { spawnInterval: 200, maxActiveWords: 8 });
-    expect(e.state.barrier).toBe(1);
-    capture(e, farmSigil(e));
-    expect(e.state.powerTicks).toBeGreaterThan(0);
-    const missed = e.state.missed;
-    const instability = e.state.instability;
-    // Push a word to the ward line while Bastion is up.
-    const w = e.state.words[0] ?? (stepUntil(e, () => e.state.words.length > 0), e.state.words[0]!);
-    w.y = FIELD.height - 0.1;
-    e.step();
-    expect(e.state.missed).toBe(missed);
-    expect(e.state.instability).toBe(instability);
+  it('Lexicant: typos are free; Malapropism makes every word the same and one Enter takes them all', () => {
+    const e = engine('lexicant', { spawnInterval: 150, maxActiveWords: 8, initialFallSpeed: 20 });
+    stepUntil(e, () => e.state.words.length > 0);
+    const w = e.state.words[0]!;
+    const speed = w.speed;
+    e.typeChar(w.match[0]!);
+    e.typeChar('z');
+    expect(w.speed).toBe(speed);
+    expect(w.errors).toBe(0);
+    e.clearInput();
+    const sigil = farmSigil(e);
+    stepUntil(e, () => e.state.words.length >= 3, 400);
+    capture(e, sigil);
+    const texts = new Set(e.state.words.map((x) => x.match));
+    expect(texts.size).toBeLessThanOrEqual(1);
+    const n = e.state.words.length;
+    const before = e.state.completed;
+    if (n > 0) capture(e, e.state.words[0]!);
+    expect(e.state.completed).toBe(before + n);
   });
 
   it('replays exactly with a wizard', () => {

@@ -595,3 +595,32 @@ _2026-11-17 · Accepted (project owner chose: wizard selection, score roll-up + 
 - The score counter rolls up with a ticking sound that climbs as it goes.
 - Lifetime stats (src/storage/LifetimeStats.ts) in the save file, shown on a new
   Stats screen: totals, records, bonuses, spells and per-wizard results.
+
+### D-043 — Roster change; per-wizard cosmetic unlock tracks; brief finale
+_2026-11-17 · Accepted (project owner)_
+
+- The Hedge Witch and Warden are retired. New: the **Cartographer** (words fall
+  in 5 lanes; Compass Rose: for 6 s a capture takes its whole lane) and the
+  **Lexicant** (typos are free; Malapropism: every word becomes the same short
+  word, and one Enter takes them all).
+- Each wizard has their own unlock track (src/gameplay/Cosmetics.ts), Peggle 2
+  style: mastery XP = points scored with that wizard; 10 mastery levels, one
+  unlock each, plus three feats (Flawless level, ×10 multiplier, clear the
+  Campaign). Slots: outfit (3 sprite looks), familiar (2 companions who react to
+  play), capture flourish, sigil rune, ink colour, title. Cosmetic only.
+  Wizard select → Wardrobe to equip; results show mastery gained and unlocks.
+- Level-end finale is now ~2 s (boss ~2.4 s) and the level score counts up.
+- Fixed: the game froze at the end of a won level. The finale's camera zoom used
+  the short ease name 'Sine.Out', which cameras don't accept; the scene stopped
+  updating, so the results never appeared. A browser-timer backup now guarantees
+  the results screen.
+
+### D-044 — The journey: the wizard's domain, then into the darkness
+_2026-11-17 · Accepted (project owner); art is placeholder until the art style is chosen_
+
+- Chapter 1 is played in the chosen wizard's domain (The Kiln, The Map Room…),
+  with its own level names and a study lit in the wizard's colours. Chapters 2–4
+  are the shared road outward: The Drowned Archive → The Ember Depths → The
+  Storm's Edge. Results show the journey strip.
+- Domain backdrops are recolours of the tower study for now; real domain art
+  waits for the art-style decision.

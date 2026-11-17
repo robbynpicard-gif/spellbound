@@ -517,9 +517,14 @@
 
 /* Choose your wizard (D-042) */
 .wizard-select {
-  width: min(960px, 100%);
-  padding-top: 18px;
-  padding-bottom: 18px;
+  width: min(1000px, 100%);
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  padding: 14px 20px;
+}
+
+.wizard-select .screen-subtitle {
+  margin-bottom: 4px;
 }
 
 .wizard-select .screen-title {
@@ -529,7 +534,7 @@
 .wizard-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 10px;
   margin-top: 8px;
 }
 
@@ -541,11 +546,14 @@
   min-width: 0;
   padding: 10px 12px 12px;
   text-align: left;
-  border-color: color-mix(in srgb, var(--wizard-color) 45%, transparent);
+  color: var(--color-parchment);
+  background: rgb(10 9 8 / 0.6);
+  border: 2px solid color-mix(in srgb, var(--wizard-color) 45%, transparent);
+  border-radius: 2px;
 }
 
-.wizard-card:hover:not(:disabled),
-.wizard-card:focus-visible,
+.wizard-card:hover,
+.wizard-card:focus-within,
 .wizard-card.selected {
   border-color: var(--wizard-color);
   background: color-mix(in srgb, var(--wizard-color) 14%, rgb(10 9 8 / 0.6));
@@ -554,7 +562,7 @@
 .wizard-portrait {
   display: flex;
   justify-content: center;
-  height: 84px;
+  height: 64px;
   overflow: hidden;
 }
 
@@ -578,9 +586,9 @@
 }
 
 .wizard-line {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 400;
-  line-height: 1.35;
+  line-height: 1.3;
   opacity: 0.9;
 }
 
@@ -640,4 +648,244 @@
 .wizard-stat dt {
   color: var(--wizard-color);
   opacity: 1;
+}
+
+.wizard-title {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--wizard-color);
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.wizard-actions .menu-button {
+  min-width: 0;
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+.wizard-actions .wizard-play {
+  flex: 0 0 38%;
+}
+
+.mastery {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.mastery-note {
+  white-space: nowrap;
+  opacity: 0.65;
+}
+
+.mastery-label {
+  white-space: nowrap;
+  color: var(--wizard-color, var(--color-gold));
+  font-weight: 700;
+}
+
+.mastery-bar {
+  flex: 1;
+  height: 6px;
+  background: rgb(0 0 0 / 0.6);
+  border: 1px solid rgb(255 255 255 / 0.15);
+}
+
+.mastery-fill {
+  display: block;
+  height: 100%;
+  background: var(--wizard-color, var(--color-gold));
+}
+
+/* Wardrobe (D-043) */
+.wardrobe {
+  width: min(900px, 100%);
+}
+
+.wardrobe-head {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  text-align: left;
+}
+
+.wardrobe-head .screen-title {
+  margin: 0;
+  color: var(--wizard-color);
+}
+
+.wardrobe-portrait img {
+  height: 192px;
+  image-rendering: pixelated;
+}
+
+.wardrobe-scroll {
+  max-height: min(48vh, 460px);
+}
+
+.wardrobe-row + .wardrobe-row {
+  margin-top: 12px;
+}
+
+.wardrobe-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.wardrobe-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 6px;
+  font: inherit;
+  color: var(--color-parchment);
+  background: rgb(10 9 8 / 0.6);
+  border: 2px solid rgb(255 255 255 / 0.12);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.wardrobe-item:hover:not(:disabled),
+.wardrobe-item:focus-visible {
+  border-color: var(--wizard-color);
+}
+
+.wardrobe-item.worn {
+  border-color: var(--wizard-color);
+  background: color-mix(in srgb, var(--wizard-color) 18%, rgb(10 9 8 / 0.6));
+}
+
+.wardrobe-item.locked {
+  cursor: default;
+  opacity: 0.45;
+  filter: grayscale(0.8);
+}
+
+.wardrobe-name {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.wardrobe-req {
+  font-size: 11px;
+  opacity: 0.7;
+  text-align: center;
+}
+
+.swatch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  font-size: 28px;
+  color: var(--wizard-color);
+}
+
+.swatch.outfit img {
+  height: 96px;
+  margin-top: 30px;
+  image-rendering: pixelated;
+}
+
+.swatch.familiar {
+  background-size: 96px auto;
+  background-position: 0 calc(var(--row, 0) * -48px);
+  image-rendering: pixelated;
+}
+
+.swatch.familiar[data-none] {
+  background: none;
+}
+
+.swatch.familiar[data-none]::after {
+  content: '—';
+  font-size: 20px;
+  opacity: 0.5;
+}
+
+.swatch.ink {
+  font-family: var(--font-heading);
+  color: var(--ink);
+}
+
+.mastery-panel {
+  margin: 14px auto 0;
+  max-width: 460px;
+  padding: 10px 14px;
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--wizard-color) 50%, transparent);
+  background: rgb(10 9 8 / 0.5);
+}
+
+.mastery-gain {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 700;
+  color: var(--wizard-color);
+}
+
+.unlock-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 0;
+  color: var(--color-gold);
+}
+
+.unlock-line .swatch {
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+}
+
+.unlock-line .swatch.familiar {
+  background-size: 64px auto;
+  background-position: 0 calc(var(--row, 0) * -32px);
+}
+
+.unlock-line .swatch.outfit img {
+  height: 64px;
+  margin-top: 20px;
+}
+
+/* The journey (D-044) */
+.journey {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 13px;
+}
+
+.journey-stop {
+  opacity: 0.45;
+}
+
+.journey-stop.done {
+  opacity: 0.75;
+  text-decoration: line-through;
+}
+
+.journey-stop.here {
+  opacity: 1;
+  font-weight: 700;
+  color: var(--wizard-color);
+}
+
+.journey-arrow {
+  opacity: 0.4;
 }

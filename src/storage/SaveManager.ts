@@ -20,7 +20,18 @@ import {
 
 import { sanitizeName } from '../multiplayer/protocol';
 import type { GameResult } from '../core/GameEvents';
-import { isWizardId, type WizardId } from '../gameplay/Wizards';
+import { isWizardId, WIZARD_IDS, type WizardId } from '../gameplay/Wizards';
+import {
+  awardMastery,
+  cosmeticsFor,
+  emptyWardrobeEntry,
+  FEATS,
+  SLOTS,
+  type Cosmetic,
+  type FeatId,
+  type Slot,
+  type WardrobeEntry,
+} from '../gameplay/Cosmetics';
 import {
   emptyLifetime,
   parseLifetime,
@@ -60,6 +71,32 @@ export interface SaveData {
   lifetime: LifetimeStats;
   /** Wizard picked last time, pre-selected next time. */
   lastWizard: WizardId;
+  /** Per-wizard mastery, feats and equipped cosmetics (D-043). */
+  wardrobe: Record<WizardId, WardrobeEntry>;
+}
+
+export function emptyWardrobe(): Record<WizardId, WardrobeEntry> {
+  return Object.fromEntries(WIZARD_IDS.map((id) => [id, emptyWardrobeEntry()])) as Record<WizardId, WardrobeEntry>;
+}
+
+export function parseWardrobe(raw: unknown): Record<WizardId, WardrobeEntry> {
+  const out = emptyWardrobe();
+  if (typeof raw !== 'object' || raw === null) return out;
+  for (const [id, r] of Object.entries(raw as Record<string, unknown>)) {
+    if (!isWizardId(id) || typeof r !== 'object' || r === null) continue;
+    const e = r as Record<string, unknown>;
+    const entry = out[id];
+    entry.xp = num(e.xp);
+    if (Array.isArray(e.feats)) entry.feats = e.feats.filter((f): f is FeatId => typeof f === 'string' && f in FEATS);
+    if (typeof e.equipped === 'object' && e.equipped !== null) {
+      const items = cosmeticsFor(id);
+      for (const slot of SLOTS) {
+        const v = (e.equipped as Record<string, unknown>)[slot];
+        if (typeof v === 'string' && items.some((c) => c.slot === slot && c.id === v)) entry.equipped[slot] = v;
+      }
+    }
+  }
+  return out;
 }
 
 export interface AudioSettings {
@@ -87,6 +124,7 @@ export function emptySave(): SaveData {
     settings: { music: true, sfx: true },
     lifetime: emptyLifetime(),
     lastWizard: 'apprentice',
+    wardrobe: emptyWardrobe(),
   };
 }
 
@@ -192,6 +230,7 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
         save.profile = parseProfile((data as { profile?: unknown }).profile, totalLevels);
         save.settings = parseSettings((data as { settings?: unknown }).settings);
         save.lifetime = parseLifetime((data as { lifetime?: unknown }).lifetime);
+        save.wardrobe = parseWardrobe((data as { wardrobe?: unknown }).wardrobe);
         {
           const w = (data as { lastWizard?: unknown }).lastWizard;
           if (isWizardId(w)) save.lastWizard = w;
@@ -299,6 +338,22 @@ export class SaveManager {
   recordLevelStats(stats: GameStats, result: GameResult, context: { mode: PlayMode; boss?: boolean; wizard?: WizardId }): void {
     recordLevelStats(this.save.lifetime, stats, result, context);
     this.write();
+  }
+
+  wardrobe(wizard: WizardId): Readonly<WardrobeEntry> {
+    return this.save.wardrobe[wizard];
+  }
+
+  equip(wizard: WizardId, slot: Slot, itemId: string): void {
+    this.save.wardrobe[wizard].equipped[slot] = itemId;
+    this.write();
+  }
+
+  /** Adds mastery XP and feats to a wizard; returns what was unlocked. */
+  awardMastery(wizard: WizardId, xp: number, feats: FeatId[]): Cosmetic[] {
+    const unlocked = awardMastery(wizard, this.save.wardrobe[wizard], { xp, feats });
+    this.write();
+    return unlocked;
   }
 
   get lastWizard(): WizardId {

@@ -3,6 +3,7 @@ import { FONTS, PALETTE } from '../core/GameConfig';
 import { SPELL_IDS } from '../gameplay/SpellManager';
 import type { WordState } from '../gameplay/Word';
 import { ART, ART_SCALE, hex, screenX, screenY, SPELL_COLORS } from './layout';
+import { SIGIL_GLYPHS } from './sigilGlyphs';
 
 const FONT_SIZE = 25;
 /** One art pixel, in screen pixels. */
@@ -58,7 +59,6 @@ export class WordView extends Phaser.GameObjects.Container {
   private drawnTyped = -1;
   private drawnTarget: boolean | null = null;
   private frozen = false;
-  private held = false;
   private halfWidth = 0;
 
   constructor(
@@ -66,6 +66,8 @@ export class WordView extends Phaser.GameObjects.Container {
     readonly word: WordState,
     /** Sigil scrolls glow in the wizard's colour (D-042). */
     private readonly sigilColor: number = PALETTE.gold,
+    /** Cosmetics (D-043): the sigil rune and the colour of typed letters ('' = default). */
+    private readonly style: { sigil: string; ink: string } = { sigil: 'diamond', ink: '' },
   ) {
     super(scene, 0, 0);
     const onColour = word.spell !== null || word.sigil === true;
@@ -73,7 +75,7 @@ export class WordView extends Phaser.GameObjects.Container {
     this.glow = scene.add.graphics();
     this.plaque = scene.add.graphics();
     this.typedText = scene.add
-      .text(0, 0, '', { ...TEXT_STYLE, color: hex(onColour ? 0xffe0f4 : PALETTE.rust) })
+      .text(0, 0, '', { ...TEXT_STYLE, color: onColour ? hex(0xffe0f4) : style.ink || hex(PALETTE.rust) })
       .setOrigin(0, 0.5);
     this.restText = scene.add.text(0, 0, '', { ...TEXT_STYLE, color: this.restColor }).setOrigin(0, 0.5);
     if (word.spell !== null) {
@@ -113,13 +115,6 @@ export class WordView extends Phaser.GameObjects.Container {
     this.drawnTyped = -1;
     this.redraw();
     this.scene.tweens.add({ targets: this, scale: { from: 1.3, to: 1 }, duration: 260, ease: 'Back.Out' });
-  }
-
-  /** Overgrowth (D-042): a green vine frame while the word is held. */
-  setHeld(held: boolean): void {
-    if (this.held === held) return;
-    this.held = held;
-    this.redraw();
   }
 
   setFrozen(frozen: boolean): void {
@@ -204,8 +199,8 @@ export class WordView extends Phaser.GameObjects.Container {
       gl.fillRect((x0 - 8) * PX, (y0 - 6) * PX, (x1 - x0 + 17) * PX, (y1 - y0 + 13) * PX);
     }
     // Frame: magenta when targeted, teal when frozen, dark otherwise.
-    const frame = w.isTarget ? PALETTE.magentaGlow : this.frozen ? PALETTE.teal : this.held ? 0x58b040 : BORDER;
-    const fw = w.isTarget || this.frozen || this.held ? 2 : 1;
+    const frame = w.isTarget ? PALETTE.magentaGlow : this.frozen ? PALETTE.teal : BORDER;
+    const fw = w.isTarget || this.frozen ? 2 : 1;
     rect(x0 - fw, y0 - fw, x1 + fw, y1 + fw, frame);
 
     rect(x0, y0, x1, y1, body);
@@ -228,27 +223,21 @@ export class WordView extends Phaser.GameObjects.Container {
       rect(cx, cy, cx + 1, cy + 1, STUD);
       rect(cx, cy, cx, cy, STUD_LIGHT);
     }
-    // Overgrowth: vines curling round the plaque.
-    if (this.held) {
-      for (let x = x0 - 2; x <= x1 + 2; x += 6) {
-        rect(x, y0 - 3, x + 1, y0 - 2, 0x3c8a2c);
-        rect(x + 3, y1 + 2, x + 4, y1 + 3, 0x3c8a2c);
-        rect(x + 1, y0 - 4, x + 1, y0 - 4, 0x8ad860);
-      }
-    }
     // Spell scrolls: a darker panel behind the icon.
     if (spell) rect(x0 + 4, y0 + 3, x0 + 18, y1 - 3, shade(body, 0.45), 0.9);
-    // Sigil scrolls: a glowing diamond rune in the wizard's colour.
+    // Sigil scrolls: a glowing rune in the wizard's colour.
     if (sigil) {
       rect(x0 + 4, y0 + 3, x0 + 18, y1 - 3, shade(body, 0.45), 0.9);
-      const cx = x0 + 11;
-      const cy = Math.round((y0 + y1) / 2);
-      for (let d = 0; d <= 5; d++) {
-        const half = 5 - d;
-        rect(cx - half, cy - d, cx + half, cy - d, d === 0 ? 0xffffff : this.sigilColor);
-        rect(cx - half, cy + d, cx + half, cy + d, d === 0 ? 0xffffff : this.sigilColor);
-      }
-      rect(cx - 1, cy - 1, cx + 1, cy + 1, 0xfff6e0);
+      const glyph = SIGIL_GLYPHS[this.style.sigil] ?? SIGIL_GLYPHS.diamond!;
+      const gx = x0 + 6;
+      const gy = Math.round((y0 + y1) / 2) - 5;
+      glyph.forEach((row, ry) => {
+        for (let rx = 0; rx < row.length; rx++) {
+          const ch = row[rx];
+          if (ch === '#') rect(gx + rx, gy + ry, gx + rx, gy + ry, this.sigilColor);
+          else if (ch === 'o' || ch === 'O') rect(gx + rx, gy + ry, gx + rx, gy + ry, 0xfff6e0);
+        }
+      });
     }
   }
 

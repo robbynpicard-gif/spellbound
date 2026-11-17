@@ -76,10 +76,14 @@ export const ART = {
   /** The study and the chapter's view through its windows, or the boss version (D-033, D-035). */
   backdrop: (chapter = 1, boss = false) => `bg-${theme(chapter, boss)}`,
   /** A wizard seated at the desk, lit by the room. */
-  wizard: (id = 'apprentice', look: 'a' | 'b' = 'a') => `wizard-${id}-${look}`,
+  wizard: (id = 'apprentice', look: string = 'a') => `wizard-${id}-${look}`,
+  /** A wizard's own study for chapter 1 (D-044); the Apprentice's is the original. */
+  domain: (wizard: string, boss = false) => `bg-${boss ? 'bossdom' : 'dom'}-${wizard}`,
   menu: 'bg-menu',
   library: 'bg-library',
   icons: 'spell-icons',
+  /** Familiars (D-043): 24×24 frames, two per familiar (idle, cheer). */
+  familiars: 'familiars',
   themes: ['ch1', 'ch2', 'ch3', 'ch4', 'boss1', 'boss2', 'boss3', 'boss4'] as const,
 } as const;
 

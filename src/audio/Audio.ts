@@ -343,16 +343,25 @@ class AudioEngine {
         sy.noiseHit(out, at, 0.5, 0.3, { type: 'bandpass', freq: 300, to: 3200, q: 0.8 }, { attack: 0.02 });
         sy.tone(out, at, 70, 0.9, 0.18, { type: 'sawtooth', glideTo: 50, filter: { type: 'lowpass', freq: 300 }, drive: 2 });
         break;
-      case 'hedgewitch': // creaking vines and a wooden knock
-        sy.tone(out, at, 220, 0.8, 0.05, { type: 'sawtooth', glideTo: 140, filter: { type: 'bandpass', freq: 700, q: 9 } });
-        sy.tone(out, at + 0.5, 150, 0.12, 0.2, { glideTo: 100, filter: { type: 'lowpass', freq: 700 } });
+      case 'cartographer': // a map unrolled, a compass needle spinning to north
+        sy.noiseHit(out, at, 0.45, 0.14, { type: 'bandpass', freq: 900, to: 3000, q: 1.2 }, { attack: 0.05, curve: 'lin' });
+        sy.tone(out, at + 0.2, midi(81), 0.7, 0.05, { type: 'sine', glideTo: midi(93), send: 0.5 });
+        sy.tone(out, at + 0.55, midi(93), 0.5, 0.04, { type: 'triangle', glideTo: midi(86), send: 0.5 });
         break;
-      case 'warden': // a portcullis drops onto stone
-        sy.tone(out, at, midi(38), 1.0, 0.12, { type: 'sawtooth', attack: 0.2, filter: { type: 'lowpass', freq: 400, to: 1100 } });
-        sy.bell(out, at + 0.2, midi(45), 0.15, 0.6, 3);
-        sy.noiseHit(out, at + 0.2, 0.15, 0.25, { type: 'lowpass', freq: 900 });
+      case 'lexicant': // every word at once: a babble of syllables, then one clear note
+        for (let k = 0; k < 9; k++)
+          sy.tone(out, at + k * 0.045, 300 + Math.random() * 500, 0.06, 0.06, { type: 'square', filter: { type: 'bandpass', freq: 1200, q: 3 } });
+        sy.bell(out, at + 0.5, midi(86), 0.09, 0.5, 1.6);
         break;
     }
+  }
+
+  /** Compass Rose / Malapropism: extra words captured, a quick run of chimes up the scale. */
+  echo(count: number): void {
+    if (!this.ready) return;
+    const now = this.t;
+    for (let k = 0; k < Math.min(6, count); k++)
+      this.sy.tone(this.sfxBus, now + 0.04 + k * 0.05, midi(PENTA[Math.min(PENTA.length - 1, 5 + k)]! + 12), 0.4, 0.06, { type: 'triangle', send: 0.5 });
   }
 
   /** Kindle: a neighbouring word catches fire. */
@@ -387,12 +396,12 @@ class AudioEngine {
     if (!this.ready) return;
     const sy = this.sy, out = this.sfxBus;
     const t0 = this.t + 0.05;
-    this.music.duck(t0, 0.8, 4.2);
+    this.music.duck(t0, 0.8, 2.6);
     sy.bell(out, t0, midi(93), 0.12, 0.3, 1.5); // ding!
     const chords = boss
       ? [[50, 57, 62, 65], [46, 53, 58, 62], [48, 55, 60, 64], [50, 57, 62, 66]]
       : [[50, 57, 62, 65], [55, 59, 62, 67], [57, 61, 64, 69], [50, 57, 62, 66]];
-    const lens = [0.6, 0.6, 0.8, 2.6];
+    const lens = [0.22, 0.22, 0.3, 1.8];
     let t = t0 + 0.25;
     chords.forEach((chord, ci) => {
       const len = lens[ci]!;

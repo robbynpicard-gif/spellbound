@@ -23,7 +23,7 @@ import { WIZARDS } from '../gameplay/Wizards';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.15.0';
+const APP_VERSION = '0.16.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -294,6 +294,7 @@ export function levelClearScreen(
   onContinue: () => void,
   reward?: BossReward | null,
   rerender?: () => void,
+  extra?: HTMLElement | null,
 ): Screen {
   const button = h('button', { class: 'menu-button primary', onClick: onContinue }, reward ? 'Skip reward and continue' : `Continue to level ${next.level}`);
   if (reward) button.classList.remove('primary');
@@ -322,6 +323,7 @@ export function levelClearScreen(
       ),
     spellSummary(run.spellCharges),
     reward && rerender ? rewardPicker(run, reward, rerender) : null,
+    extra ?? null,
     h('p', { class: 'next-up' }, `Next: Level ${next.level} · ${next.name}${isSurvival(next) ? ' · Boss' : ''}`),
     h('div', { class: 'button-row' }, button),
   );
@@ -335,6 +337,8 @@ export interface RunOverActions {
   onNewRun(): void;
   onMenu(): void;
   onChangeWizard?(): void;
+  /** Shown above the buttons (wizard mastery and unlocks). */
+  extra?: HTMLElement | null;
   mode?: CampaignMode;
 }
 
@@ -378,6 +382,7 @@ export function runOverScreen(
       stat('Time', formatTime(summary.elapsedMs)),
     ),
     h('p', { class: outcome.isNewBest && outcome.previousBest !== null ? 'reward' : 'personal-best' }, bestLine),
+    actions.extra ?? null,
     h(
       'div',
       { class: 'button-row' },

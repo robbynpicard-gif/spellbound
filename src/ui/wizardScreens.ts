@@ -3,7 +3,22 @@ import { BONUS_TEXT } from '../render/Celebrations';
 import { hex, SPELL_COLORS } from '../render/layout';
 import type { BonusId } from '../gameplay/ScoringSystem';
 import { SPELL_IDS } from '../gameplay/SpellManager';
-import { WIZARD_IDS, WIZARDS, type WizardId } from '../gameplay/Wizards';
+import { chapterName, WIZARD_IDS, WIZARDS, type WizardId } from '../gameplay/Wizards';
+import {
+  cosmeticsFor,
+  equipped,
+  isUnlocked,
+  loadout,
+  masteryLevel,
+  masteryProgress,
+  MAX_MASTERY,
+  SLOT_NAMES,
+  SLOTS,
+  unlockText,
+  type Cosmetic,
+  type Slot,
+  type WardrobeEntry,
+} from '../gameplay/Cosmetics';
 import { SPELLS } from '../spells/SpellRegistry';
 import type { LifetimeStats } from '../storage/LifetimeStats';
 import { formatTime, h, percent } from './dom';
@@ -16,31 +31,64 @@ const wizardStyle = (id: WizardId) => ({ style: `--wizard-color: ${hex(WIZARDS[i
 
 // ───────────────────────── Choose your wizard ─────────────────────────
 
+const portrait = (id: WizardId, look: string) =>
+  h('img', { attrs: { src: `assets/art/wizard-${id}-${look}.png`, alt: '' } });
+
+function masteryBar(entry: Readonly<WardrobeEntry>, note = ''): HTMLElement {
+  const level = masteryLevel(entry.xp);
+  const progress = masteryProgress(entry.xp);
+  const fill = progress ? Math.round((progress[0] / progress[1]) * 100) : 100;
+  return h(
+    'span',
+    { class: 'mastery' },
+    h('span', { class: 'mastery-label' }, `Mastery ${level}${level >= MAX_MASTERY ? ' · max' : ''}`),
+    h('span', { class: 'mastery-bar' }, h('span', { class: 'mastery-fill', attrs: { style: `width: ${fill}%` } })),
+    note ? h('span', { class: 'mastery-note' }, note) : null,
+  );
+}
+
 export function wizardSelectScreen(
   mode: CampaignMode,
   selected: WizardId,
   life: Readonly<LifetimeStats>,
-  actions: { onPick(wizard: WizardId): void; onBack(): void },
+  wardrobe: (id: WizardId) => Readonly<WardrobeEntry>,
+  actions: { onPick(wizard: WizardId): void; onWardrobe(wizard: WizardId): void; onBack(): void },
 ): Screen {
+  const plays: HTMLButtonElement[] = [];
   const cards = WIZARD_IDS.map((id) => {
     const w = WIZARDS[id];
     const rec = life.wizards[id];
-    return h(
+    const entry = wardrobe(id);
+    const kit = loadout(id, entry);
+    const play = h(
       'button',
       {
-        class: `menu-button wizard-card${id === selected ? ' selected' : ''}`,
-        attrs: { ...wizardStyle(id), 'aria-label': `${w.name}. ${w.passive.text} Power: ${w.power.name}. ${w.power.text}` },
+        class: `menu-button wizard-play${id === selected ? ' primary' : ''}`,
+        attrs: { 'aria-label': `Play as ${w.name}. ${w.passive.text} Power: ${w.power.name}. ${w.power.text}` },
         onClick: () => actions.onPick(id),
       },
-      h('span', { class: 'wizard-portrait' }, h('img', { attrs: { src: `assets/art/wizard-${id}-a.png`, alt: '' } })),
+      'Play',
+    );
+    plays.push(play);
+    const unlocked = cosmeticsFor(id).filter((c) => isUnlocked(c, entry)).length;
+    return h(
+      'article',
+      { class: `wizard-card${id === selected ? ' selected' : ''}`, attrs: wizardStyle(id) },
+      h('span', { class: 'wizard-portrait' }, portrait(id, kit.outfit)),
       h('span', { class: 'wizard-name' }, w.name),
-      h('span', { class: 'wizard-epithet' }, w.epithet),
+      kit.title ? h('span', { class: 'wizard-title' }, `“${kit.title}”`) : h('span', { class: 'wizard-epithet' }, w.epithet),
       h('span', { class: 'wizard-line' }, h('b', null, w.passive.name), ' · ', w.passive.text),
       h('span', { class: 'wizard-line power' }, h('b', null, `Sigil: ${w.power.name}`), ' · ', w.power.text),
-      h('span', { class: 'mode-best' }, rec.runs > 0 ? `Best run ${rec.bestRun.toLocaleString()} · ${rec.runs} run${rec.runs === 1 ? '' : 's'}` : 'Not played yet'),
+      masteryBar(entry, rec.runs > 0 ? `best ${rec.bestRun.toLocaleString()}` : ''),
+      h(
+        'span',
+        { class: 'wizard-actions' },
+        play,
+        h('button', { class: 'menu-button wizard-wardrobe', onClick: () => actions.onWardrobe(id) }, `Wardrobe ${unlocked}/${cosmeticsFor(id).length}`),
+      ),
     );
   });
-  const focus = cards[WIZARD_IDS.indexOf(selected)] ?? cards[0]!;
+  const focus = plays[WIZARD_IDS.indexOf(selected)] ?? plays[0]!;
   const element = h(
     'section',
     { class: 'screen panel wizard-select', attrs: { role: 'dialog', 'aria-labelledby': 'wizard-title' } },
@@ -60,15 +108,153 @@ export function wizardSelectScreen(
     focus,
     onKey: (event) => {
       if (event.key === 'Escape') actions.onBack();
-      const i = cards.indexOf(document.activeElement as HTMLButtonElement);
+      const i = plays.indexOf(document.activeElement as HTMLButtonElement);
       if (i < 0) return;
       const move = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 3, ArrowUp: -3 }[event.key];
       if (move) {
         event.preventDefault();
-        cards[(i + move + cards.length) % cards.length]!.focus();
+        plays[(i + move + plays.length) % plays.length]!.focus();
       }
     },
   };
+}
+
+// ───────────────────────── Wardrobe ─────────────────────────
+
+/** Small preview of a cosmetic for the wardrobe grid. */
+function swatch(id: WizardId, item: Cosmetic): HTMLElement {
+  switch (item.slot) {
+    case 'outfit':
+      return h('span', { class: 'swatch outfit' }, portrait(id, String(item.value)));
+    case 'familiar':
+      return h('span', {
+        class: 'swatch familiar',
+        attrs:
+          typeof item.value === 'number'
+            ? { style: `--row: ${item.value}; background-image: url(assets/art/familiars.png)` }
+            : { 'data-none': '' },
+      });
+    case 'ink':
+      return h('span', { class: 'swatch ink', attrs: { style: `--ink: ${item.value || '#ff60c8'}` } }, 'Aa');
+    case 'sigil':
+      return h('span', { class: 'swatch glyph' }, SIGIL_SYMBOLS[String(item.value)] ?? '◆');
+    case 'flourish':
+      return h('span', { class: 'swatch glyph' }, FLOURISH_SYMBOLS[String(item.value)] ?? '✦');
+    case 'title':
+      return h('span', { class: 'swatch glyph' }, '❝');
+  }
+}
+
+const SIGIL_SYMBOLS: Record<string, string> = {
+  diamond: '◆', star: '★', moon: '☾', book: '▤', key: '⚷', hourglass: '⧗', spiral: '◎', flame: '♨', sun: '☀', compass: '✛', cross: '✕', quill: '✒', eye: '◉',
+};
+const FLOURISH_SYMBOLS: Record<string, string> = {
+  sparks: '✦', stars: '✧', confetti: '❖', letters: 'Ab', dust: '∴', gears: '⚙', sand: '⋰', embers: '♨', fireworks: '✺', paper: '✉', compass: '✛', ink: '●',
+};
+
+export function wardrobeScreen(
+  id: WizardId,
+  entry: Readonly<WardrobeEntry>,
+  actions: { onEquip(slot: Slot, itemId: string): void; onPlay(): void; onBack(): void },
+  focusItem?: string,
+): Screen {
+  const w = WIZARDS[id];
+  const kit = loadout(id, entry);
+  const items = cosmeticsFor(id);
+  let focusEl: HTMLElement | null = null;
+  const rows = SLOTS.map((slot) => {
+    const worn = equipped(id, entry, slot);
+    return h(
+      'div',
+      { class: 'wardrobe-row' },
+      h('h3', { class: 'stats-heading' }, SLOT_NAMES[slot]),
+      h(
+        'div',
+        { class: 'wardrobe-items' },
+        ...items
+          .filter((c) => c.slot === slot)
+          .map((c) => {
+            const open = isUnlocked(c, entry);
+            const on = worn.id === c.id;
+            const btn = h(
+              'button',
+              {
+                class: `wardrobe-item${on ? ' worn' : ''}${open ? '' : ' locked'}`,
+                disabled: !open,
+                attrs: { title: open ? c.name : `${c.name} · ${unlockText(c)}`, 'aria-pressed': String(on) },
+                onClick: () => actions.onEquip(slot, c.id),
+              },
+              swatch(id, c),
+              h('span', { class: 'wardrobe-name' }, c.name),
+              h('span', { class: 'wardrobe-req' }, open ? (on ? 'Wearing' : 'Unlocked') : unlockText(c)),
+            );
+            if (`${slot}:${c.id}` === focusItem) focusEl = btn;
+            return btn;
+          }),
+      ),
+    );
+  });
+  const play = h('button', { class: 'menu-button primary', onClick: actions.onPlay }, `Play as ${w.name}`);
+  const level = masteryLevel(entry.xp);
+  const progress = masteryProgress(entry.xp);
+  const element = h(
+    'section',
+    { class: 'screen panel wardrobe', attrs: { role: 'dialog', 'aria-labelledby': 'wardrobe-title', ...wizardStyle(id) } },
+    h(
+      'div',
+      { class: 'wardrobe-head' },
+      h('span', { class: 'wardrobe-portrait' }, portrait(id, kit.outfit)),
+      h(
+        'div',
+        null,
+        h('h2', { class: 'screen-title wizard-name', attrs: { id: 'wardrobe-title' } }, w.name),
+        kit.title ? h('p', { class: 'wizard-title' }, `“${kit.title}”`) : null,
+        masteryBar(entry),
+        h(
+          'p',
+          { class: 'footnote' },
+          progress
+            ? `${(progress[1] - progress[0]).toLocaleString()} points to Mastery ${level + 1}. Every point you score with ${w.name} counts.`
+            : 'Fully mastered.',
+        ),
+      ),
+    ),
+    h('div', { class: 'stats-scroll wardrobe-scroll' }, ...rows),
+    h('div', { class: 'button-row' }, play, h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back')),
+  );
+  return {
+    element,
+    focus: focusEl ?? play,
+    onKey: (event) => {
+      if (event.key === 'Escape') actions.onBack();
+    },
+  };
+}
+
+/** The road from the wizard's domain into the darkness, with the current stop lit (D-044). */
+export function journeyStrip(id: WizardId, chapter: number): HTMLElement {
+  const stops = [1, 2, 3, 4].map((c) =>
+    h('span', { class: `journey-stop${c === chapter ? ' here' : c < chapter ? ' done' : ''}` }, chapterName(id, c)),
+  );
+  const parts: (HTMLElement | string)[] = [];
+  stops.forEach((s, i) => {
+    if (i > 0) parts.push(h('span', { class: 'journey-arrow' }, '→'));
+    parts.push(s);
+  });
+  return h('p', { class: 'journey', attrs: wizardStyle(id) }, ...parts);
+}
+
+/** Under a level's results: mastery gained and anything unlocked. */
+export function masteryPanel(id: WizardId, entry: Readonly<WardrobeEntry>, gained: number, unlocked: readonly Cosmetic[]): HTMLElement {
+  return h(
+    'div',
+    { class: 'mastery-panel', attrs: wizardStyle(id) },
+    h('span', { class: 'mastery-gain' }, `${WIZARDS[id].name} +${gained.toLocaleString()} mastery`),
+    masteryBar(entry),
+    ...unlocked.map((c) =>
+      h('p', { class: 'unlock-line' }, h('b', null, 'Unlocked! '), `${SLOT_NAMES[c.slot]}: ${c.name}`, swatch(id, c)),
+    ),
+  );
 }
 
 // ───────────────────────── Stats ─────────────────────────

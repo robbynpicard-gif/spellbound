@@ -45,12 +45,12 @@ describe('Lifetime stats (D-042)', () => {
 
   it('records runs per wizard', () => {
     const life = emptyLifetime();
-    const run = { score: 5000, levelsCleared: 3, reachedLevel: 4, victory: false, accuracy: 0.9, wpm: 50, completed: 80, missed: 4, maxCombo: 30, elapsedMs: 1, wizard: 'warden' as const };
+    const run = { score: 5000, levelsCleared: 3, reachedLevel: 4, victory: false, accuracy: 0.9, wpm: 50, completed: 80, missed: 4, maxCombo: 30, elapsedMs: 1, wizard: 'lexicant' as const };
     recordRunStats(life, run);
     recordRunStats(life, { ...run, score: 9000, victory: true });
     expect(life.runsFinished).toBe(2);
     expect(life.bestRunScore).toBe(9000);
-    expect(life.wizards.warden).toMatchObject({ runs: 2, victories: 1, bestRun: 9000 });
+    expect(life.wizards.lexicant).toMatchObject({ runs: 2, victories: 1, bestRun: 9000 });
   });
 
   it('survives junk in storage and old saves without stats', () => {

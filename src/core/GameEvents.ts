@@ -65,8 +65,8 @@ export interface GameEvents {
   powerChanged: { power: WizardId; active: boolean; ticks: number };
   /** Kindle: a capture at (x, y) set these words alight (captured for `points`). */
   wordsKindled: { x: number; y: number; words: WordState[]; points: number };
-  /** Overgrowth: these words are held in place. */
-  wordsHeld: { words: WordState[] };
+  /** Compass Rose / Malapropism: words captured along with the typed one. */
+  powerClaimed: { words: WordState[]; points: number };
   /** Rewind: the last miss was undone (`undone`) and every word pushed back up. */
   rewound: { undone: boolean };
 }

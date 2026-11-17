@@ -71,13 +71,10 @@ export interface GameState {
   peakInstability: number;
   bonusCounts: Partial<Record<BonusId, number>>;
   // ── wizard power (decisions.md D-042) ──
-  /** Ticks left of a timed power (Second Wind, Recall, Bastion). */
+  /** Ticks left of a timed power (Second Wind, Recall, Compass Rose, Malapropism). */
   powerTicks: number;
   /** Kindle: captures left that set a neighbour alight. */
   kindleCharges: number;
-  /** Overgrowth: ticks left, and the words held in place. */
-  heldTicks: number;
-  heldIds: number[];
   /** The last miss, so Rewind can undo it. */
   lastMiss: { combo: number; damage: number } | null;
   powersUsed: number;
@@ -126,8 +123,6 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     bonusCounts: {},
     powerTicks: 0,
     kindleCharges: 0,
-    heldTicks: 0,
-    heldIds: [],
     lastMiss: null,
     powersUsed: 0,
   };

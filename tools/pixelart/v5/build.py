@@ -110,7 +110,7 @@ def typewriter_front(c, th):
 
 
 def outside(theme):
-    if theme == 'ch1':
+    if theme.startswith(('ch1', 'dom')):
         return R.sky_ch1()
     c = S.SCENES[theme]()
     a = c.a
@@ -141,8 +141,8 @@ def render(theme):
     em = R.emissive_mask(c.a, th) & ~win
     lit = R.tone(c.a * R.texture(3) * L)
     base = np.where(em[..., None], c.a * 1.05, lit)
-    base[win] = c.a[win] + emis_sky[win] * (0.6 if theme == 'ch1' else 0.15)
-    emis = np.where(em[..., None], c.a, 0) + emis_sky * win[..., None] * (1 if theme == 'ch1' else 0.5)
+    base[win] = c.a[win] + emis_sky[win] * (0.6 if theme.startswith(('ch1', 'dom')) else 0.15)
+    emis = np.where(em[..., None], c.a, 0) + emis_sky * win[..., None] * (1 if theme.startswith(('ch1', 'dom')) else 0.5)
     bloom = R.blur(emis, 2) * 0.8 + R.blur(emis, 7) * 0.6 + R.blur(emis, 20) * 0.45
     out = np.clip(base + bloom, 0, 255)
     img = px.grade(Image.fromarray(out.astype(np.uint8)), sat=0.9, bright=1.0, gamma=1.0, grit=0.05, vignette=0.45, seed=2)
@@ -152,7 +152,12 @@ def render(theme):
 def wizard(L, th, wiz='apprentice', look='A'):
     """The wizard seated at lower left, turned toward the typewriter, lit by the room."""
     spec = dict(WZ.WIZARDS[wiz][look])
-    spec['robe'] = '2a2840'; spec['hatc'] = '24223a'; spec['trim'] = '2e2a3a'; spec['eyes'] = 'none'; spec['hair'] = None
+    # Cloth keeps a muted version of the outfit's colours (outfits are cosmetic unlocks, D-043).
+    t = 0.75 if look == 'C' else 0.5
+    def mix(h, dark='221e2c'):
+        a = [int(h[i:i + 2], 16) for i in (0, 2, 4)]; b = [int(dark[i:i + 2], 16) for i in (0, 2, 4)]
+        return ''.join(f'{int(b[k] + (a[k] - b[k]) * t):02x}' for k in range(3))
+    spec['robe'] = mix(spec['robe']); spec['hatc'] = mix(spec['hatc']); spec['trim'] = mix(spec['trim']); spec['eyes'] = 'none'; spec['hair'] = None
     img, ids = WZ.draw(spec, 'side', k=1.0, outline=False, ids=True)
     a = np.asarray(img, float); alpha = a[..., 3] > 0
     h, w = alpha.shape

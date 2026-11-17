@@ -162,7 +162,6 @@ export class GameEngine {
     this.spellContext = this.createSpellContext();
     this.wizard = options.wizard ?? null;
     this.sigilRng = new SeededRandom((this.seed ^ 0x51611c) >>> 0);
-    if (this.wizard === 'warden') this.s.barrier = 1;
   }
 
   /** Re-run a recorded game up to `untilTick` and return the engine. */
@@ -280,7 +279,6 @@ export class GameEngine {
     const dt = (SIMULATION_STEP_MS / 1000) * factor;
     for (const word of s.words) {
       word.prevY = word.y;
-      if (s.heldTicks > 0 && s.heldIds.includes(word.id)) continue; // Overgrowth
       word.y += word.speed * dt;
     }
 
@@ -384,7 +382,8 @@ export class GameEngine {
     // fixing it with Backspace keeps the chain alive (D-040).
     if (wasValid) {
       s.errors++;
-      if (attempted) this.penalize(attempted);
+      // Fluent (Lexicant): a typo costs nothing but the keystroke.
+      if (attempted && this.wizard !== 'lexicant') this.penalize(attempted);
     }
     this.events.emit('typingError', { wordId: attempted?.id ?? this.s.targetId, char });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
@@ -563,13 +562,13 @@ export class GameEngine {
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;
-    const x = Math.round(minX < maxX ? this.rng.range(minX, maxX) : this.field.width / 2);
+    let x = Math.round(minX < maxX ? this.rng.range(minX, maxX) : this.field.width / 2);
+    if (this.wizard === 'cartographer') x = Math.round(Math.min(Math.max(this.laneX(this.laneOf(x)), minX), Math.max(minX, maxX)));
 
     const available = this.config.availableSpells;
     // Scrolls: whether one drops, then which spell (rarer spells have lower weights).
-    const dropChance = this.config.spellDropChance * (this.wizard === 'hedgewitch' ? W.WITCH_DROP : 1);
     let spell =
-      available.length > 0 && this.rng.chance(Math.min(1, dropChance))
+      available.length > 0 && this.rng.chance(this.config.spellDropChance)
         ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
         : null;
     const sigil = this.rollSigil();
@@ -624,6 +623,7 @@ export class GameEngine {
     if (word.spell) this.collect(word.spell);
     if (word.sigil) this.firePower();
     else if (s.kindleCharges > 0) this.kindle(word);
+    else if (s.powerTicks > 0 && (this.wizard === 'cartographer' || this.wizard === 'lexicant')) this.echo(word, multiplier);
     this.checkQuota();
   }
 
@@ -642,13 +642,6 @@ export class GameEngine {
       s.blocked++;
       this.events.emit('wordBlocked', { word, barrierLeft: s.barrier });
       this.events.emit('barrierChanged', { remaining: s.barrier });
-      return;
-    }
-
-    // Bastion (Warden): the ward takes no damage and the combo holds.
-    if (this.wizard === 'warden' && s.powerTicks > 0) {
-      s.blocked++;
-      this.events.emit('wordBlocked', { word, barrierLeft: s.barrier });
       return;
     }
 
@@ -956,13 +949,12 @@ export class GameEngine {
   /** True while the wizard's power is running (no new sigils then). */
   get powerActive(): boolean {
     const s = this.s;
-    return s.powerTicks > 0 || s.kindleCharges > 0 || s.heldTicks > 0;
+    return s.powerTicks > 0 || s.kindleCharges > 0;
   }
 
   private pointsFactor(): number {
     let f = this.wizard === 'pyromancer' ? W.PYRO_SCORE : 1;
     if (this.s.powerTicks > 0 && this.wizard === 'apprentice') f *= 2;
-    if (this.s.powerTicks > 0 && this.wizard === 'warden') f *= 0.5;
     return f;
   }
 
@@ -971,10 +963,6 @@ export class GameEngine {
     const wizard = this.wizard;
     if (!wizard) return;
     if (s.powerTicks > 0 && --s.powerTicks === 0) this.events.emit('powerChanged', { power: wizard, active: false, ticks: 0 });
-    if (s.heldTicks > 0 && --s.heldTicks === 0) {
-      s.heldIds = [];
-      this.events.emit('powerChanged', { power: wizard, active: false, ticks: 0 });
-    }
   }
 
   private firePower(): void {
@@ -990,24 +978,21 @@ export class GameEngine {
       case 'archivist':
         s.powerTicks = ticks(W.RECALL_MS);
         break;
-      case 'warden':
-        s.powerTicks = ticks(W.BASTION_MS);
+      case 'cartographer':
+        s.powerTicks = ticks(W.COMPASS_MS);
         break;
       case 'pyromancer':
         s.kindleCharges = W.KINDLE_CHARGES;
         break;
-      case 'hedgewitch': {
-        const lowest = [...s.words].sort((a, b) => b.y - a.y || a.id - b.id).slice(0, W.OVERGROWTH_WORDS);
-        s.heldIds = lowest.map((w) => w.id);
-        s.heldTicks = lowest.length > 0 ? ticks(W.OVERGROWTH_MS) : 0;
-        if (lowest.length > 0) this.events.emit('wordsHeld', { words: lowest });
+      case 'lexicant':
+        this.malapropism();
+        s.powerTicks = ticks(W.MALAPROPISM_MS);
         break;
-      }
       case 'chronomancer':
         this.rewind();
         break;
     }
-    const left = wizard === 'pyromancer' ? s.kindleCharges : wizard === 'hedgewitch' ? s.heldTicks : s.powerTicks;
+    const left = wizard === 'pyromancer' ? s.kindleCharges : s.powerTicks;
     this.events.emit('powerChanged', { power: wizard, active: left > 0, ticks: left });
   }
 
@@ -1030,6 +1015,52 @@ export class GameEngine {
       word.prevY = word.y;
     }
     this.events.emit('rewound', { undone: last !== null });
+  }
+
+  /** Cartographer lanes: the field split into LANES columns. */
+  private laneOf(x: number): number {
+    const inner = this.field.width - 2 * this.field.sideMargin;
+    return Math.min(W.LANES - 1, Math.max(0, Math.floor(((x - this.field.sideMargin) / inner) * W.LANES)));
+  }
+
+  private laneX(lane: number): number {
+    const inner = this.field.width - 2 * this.field.sideMargin;
+    return this.field.sideMargin + ((lane + 0.5) / W.LANES) * inner;
+  }
+
+  /**
+   * Compass Rose (every word in the captured word's lane) and Malapropism
+   * (every word with the same text): captured too, at the capture's multiplier.
+   */
+  private echo(from: WordState, multiplier: number): void {
+    const s = this.s;
+    const lane = this.laneOf(from.x);
+    const hits =
+      this.wizard === 'cartographer'
+        ? s.words.filter((w) => this.laneOf(w.x) === lane)
+        : s.words.filter((w) => w.match === from.match);
+    if (hits.length === 0) return;
+    const factor = this.pointsFactor();
+    const points = this.claimWords(hits, (w) => Math.round(wordPoints(w.text.length, multiplier) * factor));
+    this.events.emit('powerClaimed', { words: hits, points });
+    this.afterClaim(hits);
+  }
+
+  /** Malapropism: every word on the field becomes one short word. */
+  private malapropism(): void {
+    const s = this.s;
+    if (s.words.length === 0 || this.shortWords.length === 0) return;
+    const rng = new SeededRandom((this.seed ^ Math.imul(s.tick + 7, 0x85ebca6b)) >>> 0);
+    const text = rng.pick(this.shortWords);
+    const aimed = s.targetId !== null || s.pinnedId !== null;
+    for (const word of s.words) {
+      word.text = text;
+      word.match = text.toLowerCase();
+      word.lengthClass = lengthClassOf(text.length);
+      word.typed = 0;
+    }
+    if (aimed) this.resetInput(true);
+    this.events.emit('wordsTransmuted', { words: [...s.words] });
   }
 
   /** Kindle: the capture sets the nearest word alight (captured for half its base points). */

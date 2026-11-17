@@ -24,22 +24,28 @@ def G(base):
 WIZARDS = {
     'apprentice': dict(name='The Apprentice', mana=8, start='Fire ×1', unique='No twist: the classic game',
         A=dict(robe='3a3a8a', trim='e6a03c', hat='pointed', hatc='3a3a8a', hair='6a3a20', beard=None, eyes='ink', prop='orb', propc='e25cc4'),
-        B=dict(robe='6a3a2a', trim='c8a050', hat='pointed', hatc='4a2a5a', hair='c08040', beard=None, eyes='ink', prop='candle', propc='ffd070')),
+        B=dict(robe='6a3a2a', trim='c8a050', hat='pointed', hatc='4a2a5a', hair='c08040', beard=None, eyes='ink', prop='candle', propc='ffd070'),
+        C=dict(robe='e8e0f8', trim='ffd060', hat='pointed', hatc='c8c0f0', hair='6a3a20', beard=None, eyes='ink', prop='orb', propc='80e0ff')),
     'archivist': dict(name='The Archivist', mana=6, start='Slow ×1', unique='Recall: 3 letters + Enter',
         A=dict(robe='2e5a5a', trim='c8b48c', hat='hood', hatc='24484a', hair=None, beard='b8b0a8', eyes='specs', prop='tomes', propc='8a3a3a'),
-        B=dict(robe='4a3a5a', trim='e6a03c', hat='hood', hatc='3a2c48', hair=None, beard='d8d0c8', eyes='specs', prop='quill', propc='e6d6b4')),
+        B=dict(robe='4a3a5a', trim='e6a03c', hat='hood', hatc='3a2c48', hair=None, beard='d8d0c8', eyes='specs', prop='quill', propc='e6d6b4'),
+        C=dict(robe='8a1a2a', trim='ffd060', hat='hood', hatc='6a1420', hair=None, beard='f0ece4', eyes='specs', prop='tomes', propc='ffd060')),
     'chronomancer': dict(name='The Chronomancer', mana=7, start='Ice ×1', unique='Rewind: undo the last miss',
         A=dict(robe='27306a', trim='e6c050', hat='brim', hatc='1e244e', hair=None, beard='e8e4dc', eyes='ink', prop='hourglass', propc='e6c050'),
-        B=dict(robe='3a2a5a', trim='3aa49a', hat='brim', hatc='241a3a', hair=None, beard='a8a4b8', eyes='glowteal', prop='clock', propc='3aa49a')),
+        B=dict(robe='3a2a5a', trim='3aa49a', hat='brim', hatc='241a3a', hair=None, beard='a8a4b8', eyes='glowteal', prop='clock', propc='3aa49a'),
+        C=dict(robe='a86a2a', trim='ffe080', hat='brim', hatc='7a4a1a', hair=None, beard='f8f4ec', eyes='ink', prop='hourglass', propc='60f0e0')),
     'pyromancer': dict(name='The Pyromancer', mana=10, start='Fire ×2', unique='Burned scrolls count, at half',
         A=dict(robe='8a2020', trim='e0902a', hat='flame', hatc='5a1414', hair=None, beard=None, eyes='glowfire', prop='flame', propc='ffb040'),
-        B=dict(robe='2a2226', trim='d2692e', hat='flame', hatc='1e1618', hair=None, beard='3a2a26', eyes='glowfire', prop='flame', propc='ff7030')),
-    'hedgewitch': dict(name='The Hedge Witch', mana=12, start='—', unique='Huge mana, fewer powered scrolls',
-        A=dict(robe='3e5a2e', trim='b48c48', hat='witch', hatc='2e3a24', hair='c05a2a', beard=None, eyes='ink', prop='herbs', propc='7aa050'),
-        B=dict(robe='5a3a4a', trim='a8c070', hat='witch', hatc='2a1e2a', hair='e8e0d0', beard=None, eyes='ink', prop='mushroom', propc='c0392b')),
-    'warden': dict(name='The Warden', mana=6, start='Barrier ×1', unique='Each level starts shielded',
-        A=dict(robe='4a4e5a', trim='9aa4b8', hat='helm', hatc='6a7080', hair=None, beard=None, eyes='glowteal', prop='shield', propc='3aa49a'),
-        B=dict(robe='3a2e2a', trim='c8a040', hat='helm', hatc='5a4a3a', hair=None, beard=None, eyes='glowgold', prop='lantern', propc='ffcf60')),
+        B=dict(robe='2a2226', trim='d2692e', hat='flame', hatc='1e1618', hair=None, beard='3a2a26', eyes='glowfire', prop='flame', propc='ff7030'),
+        C=dict(robe='ff6a1a', trim='ffe060', hat='flame', hatc='c03a10', hair=None, beard=None, eyes='glowfire', prop='flame', propc='fff070')),
+    'cartographer': dict(name='The Cartographer', mana=8, start='—', unique='Compass Rose: lane captures',
+        A=dict(robe='5a4a2a', trim='c8a050', hat='cap', hatc='3a4a5a', hair='8a5a30', beard=None, eyes='ink', prop='compass', propc='e6c050'),
+        B=dict(robe='2a4a4a', trim='e6d6b4', hat='cap', hatc='5a2a2a', hair='d8d0c8', beard='d8d0c8', eyes='ink', prop='compass', propc='60d0c0'),
+        C=dict(robe='1a2a6a', trim='ffd060', hat='cap', hatc='14204e', hair='d8d0c8', beard='d8d0c8', eyes='ink', prop='compass', propc='a0e0ff')),
+    'lexicant': dict(name='The Lexicant', mana=8, start='—', unique='Malapropism: one word, many captures',
+        A=dict(robe='5a2a4a', trim='e6a03c', hat='books', hatc='8a3a3a', hair=None, beard='e8e4dc', eyes='specs', prop='bigquill', propc='e6d6b4'),
+        B=dict(robe='2a3a2a', trim='c8b48c', hat='books', hatc='2e5a5a', hair=None, beard='b8a898', eyes='specs', prop='bigquill', propc='e25cc4'),
+        C=dict(robe='18141e', trim='ff60d0', hat='books', hatc='e25cc4', hair=None, beard='ffffff', eyes='specs', prop='bigquill', propc='ff60d0')),
 }
 
 
@@ -65,6 +71,9 @@ def draw(spec, view='front', k=1.6, outline=True, ids=False):
         for k, c in enumerate((prop, leather, robe_d, prop)):
             S.rect(c, 8 + k % 2 * 3, 46 + k * 7, 34 + k % 2 * 3, 53 + k * 7)
         S.rect(leather, 30, 46, 33, 80)
+    if p == 'compass':   # a rolled map slung across the back
+        S.line(leather, [(14, 40), (80, 96)], 2)
+        S.rect(prop, 8, 30, 20, 76); S.rect(trim, 8, 30, 20, 33); S.rect(trim, 8, 73, 20, 76)
     if p in ('herbs', 'mushroom'):
         S.line(wood, [(12, 18), (14, 126)], 3)
     if p == 'clock' and not game:
@@ -144,6 +153,14 @@ def draw(spec, view='front', k=1.6, outline=True, ids=False):
         S.ellipse(hat, [10, 38, 86, 50]); S.rect(hat, 32, 14, 64, 44); S.ellipse(hat, [32, 8, 64, 22])
         S.rect(trim, 32, 36, 64, 41)
         for x in range(34, 64, 6): S.rect(trim, x, 34, x + 2, 36)
+    if spec['hat'] == 'cap':   # a wide, floppy surveyor's cap with a feather
+        S.ellipse(hat, [18 + fx, 30, 80 + fx, 50]); S.rect(trim, 32 + fx, 42, 64 + fx, 45)
+        S.poly(prop, [(66 + fx, 36), (84 + fx, 14), (80 + fx, 12), (64 + fx, 34)])
+    if spec['hat'] == 'books':   # a teetering stack of dictionaries
+        for k, (w, off) in enumerate(((30, 0), (26, 3), (32, -2), (22, 2), (18, -1))):
+            c = (hat, trim, robe_d, hat, trim)[k]
+            S.rect(c, 48 - w // 2 + off + fx, 38 - k * 7, 48 + w // 2 + off + fx, 44 - k * 7)
+            S.rect(leather, 48 - w // 2 + off + fx, 38 - k * 7, 48 - w // 2 + off + 2 + fx, 44 - k * 7)
     if spec['hat'] == 'witch':
         S.ellipse(hat, [14 + fx, 38, 82 + fx, 50])
         S.poly(hat, [(30 + fx, 44), (64 + fx, 44), (56 + fx, 26), (68 + fx, 14), (78 + fx, 18), (60 + fx, 2), (44 + fx, 22)])
@@ -171,6 +188,12 @@ def draw(spec, view='front', k=1.6, outline=True, ids=False):
     if p == 'clock' and game:
         S.ellipse(prop, [hx, hy + 8, hx + 18, hy + 26]); S.ellipse(robe_d, [hx + 3, hy + 11, hx + 15, hy + 23])
         S.rect(glowm, hx + 8, hy + 12, hx + 10, hy + 18)
+    if p == 'compass':
+        S.ellipse(prop, [hx, hy + 8, hx + 18, hy + 26]); S.ellipse(robe_d, [hx + 2, hy + 10, hx + 16, hy + 24])
+        S.poly(glowm, [(hx + 9, hy + 11), (hx + 11, hy + 17), (hx + 9, hy + 23), (hx + 7, hy + 17)])
+    if p == 'bigquill':   # an absurdly large quill
+        S.poly(prop, [(hx + 4, hy + 34), (hx + 26, hy - 30), (hx + 30, hy - 26), (hx + 10, hy + 20)])
+        S.line(trim, [(hx + 6, hy + 30), (hx + 27, hy - 27)], 1)
     if p == 'lantern':
         S.rect(steel, hx + 2, hy + 6, hx + 14, hy + 28); S.rect(glowm, hx + 4, hy + 10, hx + 12, hy + 25); S.rect(steel, hx + 7, hy, hx + 9, hy + 6)
     if p == 'mushroom' and not game:

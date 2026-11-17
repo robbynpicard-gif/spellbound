@@ -102,61 +102,81 @@ export class Celebrations {
     if (tier >= 3) this.scene.cameras.main.shake(180, 0.003);
   }
 
-  /** The level is won. Slow, operatic, unnecessary. Returns its length in ms. */
-  finale(boss: boolean, levelBonuses: readonly Bonus[], levelScore: number): number {
+  /**
+   * The level is won: brief and loud (about 2 s; a boss gets a little more).
+   * A punch-in, a flash, a burst of confetti, a slammed banner, and the level
+   * score counting up with its bonuses. Returns its length in ms.
+   */
+  finale(boss: boolean, levelBonuses: readonly Bonus[], levelScore: number, onTick?: (progress: number) => void): number {
     const scene = this.scene;
     const cam = scene.cameras.main;
     const cx = LAYOUT.width / 2;
     const cy = LAYOUT.wardY * 0.4;
-    cam.zoomTo(1.06, 500, 'Sine.Out');
-    this.flash(0xfff4d8, 0.5);
-    cam.shake(250, 0.004);
+    // Camera eases must be full Phaser names ('Sine.easeOut'): cameras don't
+    // accept the short forms tweens do, and a bad name stops the whole scene.
+    cam.zoomTo(1.05, 160, 'Sine.easeOut');
+    scene.time.delayedCall(260, () => cam.zoomTo(1, 420, 'Sine.easeInOut'));
+    this.flash(0xfff4d8, 0.55);
+    cam.shake(200, boss ? 0.006 : 0.004);
 
-    // Parchment confetti from the top of the window.
+    // One burst of parchment confetti from the middle of the field.
     const confetti = scene.add
-      .particles(0, -10, CONFETTI, {
-        x: { min: LAYOUT.fieldLeft, max: LAYOUT.fieldRight },
-        speedY: { min: 80, max: 220 },
-        speedX: { min: -60, max: 60 },
-        rotate: { start: 0, end: 540 },
-        lifespan: 2800,
-        gravityY: 120,
-        scale: { min: 1, max: 2.2 },
+      .particles(cx, cy, CONFETTI, {
+        speed: { min: 260, max: 620 },
+        angle: { min: 200, max: 340 },
+        rotate: { start: 0, end: 720 },
+        lifespan: { min: 900, max: 1500 },
+        gravityY: 700,
+        scale: { min: 1, max: 2.4 },
         tint: [PALETTE.parchment, PALETTE.gold, PALETTE.magentaGlow, 0x5ad0c0],
-        quantity: 6,
-        frequency: 30,
+        emitting: false,
       })
       .setDepth(37);
-    scene.time.delayedCall(1300, () => confetti.stop());
-    scene.time.delayedCall(4200, () => confetti.destroy());
+    confetti.explode(boss ? 160 : 100);
+    scene.time.delayedCall(1800, () => confetti.destroy());
 
     const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)]!;
     const banner = scene.add.text(cx, cy, pick(boss ? BOSS_BANNERS : BANNERS), style(56, PALETTE.gold)).setOrigin(0.5).setDepth(39);
     const quip = scene.add.text(cx, cy + 52, pick(QUIPS), style(18, PALETTE.parchment, FONTS.gameplay)).setOrigin(0.5).setDepth(39).setAlpha(0);
-    banner.setScale(3).setAlpha(0);
-    scene.tweens.add({ targets: banner, scale: 1, alpha: 1, duration: 420, ease: 'Back.Out' });
-    scene.tweens.add({ targets: banner, scale: 1.04, yoyo: true, repeat: 3, duration: 380, delay: 420 });
-    scene.tweens.add({ targets: quip, alpha: 0.9, delay: 700, duration: 400 });
+    banner.setScale(2.6).setAlpha(0);
+    scene.tweens.add({ targets: banner, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out' });
+    scene.tweens.add({ targets: quip, alpha: 0.9, delay: 300, duration: 250 });
 
-    // The tally: each end-of-level bonus, then the level's total.
-    let t = 1100;
+    // Bonuses pop in together, then the level score counts up.
     levelBonuses.forEach((b, i) => {
       const line = `${BONUS_TEXT[b.id].label.toUpperCase()}  +${b.points.toLocaleString()}`;
       const label = scene.add
-        .text(cx, cy + 100 + i * 34, line, style(24, PALETTE.magentaGlow, FONTS.gameplay))
+        .text(cx, cy + 96 + i * 30, line, style(22, PALETTE.magentaGlow, FONTS.gameplay))
         .setOrigin(0.5)
         .setDepth(39)
         .setAlpha(0);
-      scene.tweens.add({ targets: label, alpha: 1, x: { from: cx - 40, to: cx }, delay: t, duration: 260 });
-      t += 380;
+      scene.tweens.add({ targets: label, alpha: 1, scale: { from: 1.5, to: 1 }, delay: 280 + i * 110, duration: 180, ease: 'Back.Out' });
     });
-    const total = scene.add
-      .text(cx, cy + 110 + levelBonuses.length * 34, `LEVEL SCORE  ${levelScore.toLocaleString()}`, style(28, PALETTE.parchment, FONTS.gameplay))
-      .setOrigin(0.5)
-      .setDepth(39)
-      .setAlpha(0);
-    scene.tweens.add({ targets: total, alpha: 1, scale: { from: 1.4, to: 1 }, delay: t, duration: 320, ease: 'Back.Out' });
-    return t + 1600;
+    const totalY = cy + 106 + levelBonuses.length * 30;
+    const total = scene.add.text(cx, totalY, 'LEVEL SCORE  0', style(30, PALETTE.parchment, FONTS.gameplay)).setOrigin(0.5).setDepth(39).setAlpha(0);
+    const roll = { value: 0 };
+    let lastTick = 0;
+    scene.tweens.add({ targets: total, alpha: 1, delay: 300, duration: 120 });
+    scene.tweens.add({
+      targets: roll,
+      value: levelScore,
+      delay: 320,
+      duration: 750,
+      ease: 'Cubic.Out',
+      onUpdate: (tween: Phaser.Tweens.Tween) => {
+        total.setText(`LEVEL SCORE  ${Math.round(roll.value).toLocaleString()}`);
+        const now = scene.time.now;
+        if (onTick && now - lastTick > 45) {
+          lastTick = now;
+          onTick(tween.progress);
+        }
+      },
+      onComplete: () => {
+        total.setText(`LEVEL SCORE  ${levelScore.toLocaleString()}`).setColor(hex(PALETTE.gold));
+        scene.tweens.add({ targets: total, scale: { from: 1.25, to: 1 }, duration: 200, ease: 'Back.Out' });
+      },
+    });
+    return boss ? 2400 : 1900;
   }
 
   private flash(color: number, alpha: number): void {

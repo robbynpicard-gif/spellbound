@@ -6,15 +6,15 @@
  * colour, like Peggle's green pegs. All wizards share the same levels and
  * spells. Pure data: the rules live in GameEngine.
  */
-export type WizardId = 'apprentice' | 'archivist' | 'chronomancer' | 'pyromancer' | 'hedgewitch' | 'warden';
+export type WizardId = 'apprentice' | 'archivist' | 'chronomancer' | 'pyromancer' | 'cartographer' | 'lexicant';
 
 export const WIZARD_IDS: readonly WizardId[] = [
   'apprentice',
   'archivist',
   'chronomancer',
   'pyromancer',
-  'hedgewitch',
-  'warden',
+  'cartographer',
+  'lexicant',
 ];
 
 export interface WizardDef {
@@ -61,23 +61,52 @@ export const WIZARDS: Record<WizardId, WizardDef> = {
     power: { name: 'Kindle', text: 'Your next 4 captures each set the nearest word alight, capturing it for half points.' },
     color: 0xff7838,
   },
-  hedgewitch: {
-    id: 'hedgewitch',
-    name: 'The Hedge Witch',
-    epithet: 'Grows things in the margins.',
-    passive: { name: 'Green Thumb', text: 'Spell scrolls appear 50% more often.' },
-    power: { name: 'Overgrowth', text: 'Vines catch the 3 lowest words and hold them in place for 6 seconds.' },
-    color: 0x78c860,
+  cartographer: {
+    id: 'cartographer',
+    name: 'The Cartographer',
+    epithet: 'Has mapped the edge of the world. It moved.',
+    passive: { name: 'Charted Course', text: 'Words fall in 5 neat lanes, so the field is easy to read.' },
+    power: { name: 'Compass Rose', text: 'For 6 seconds, capturing a word also captures every word in its lane.' },
+    color: 0xd8b860,
   },
-  warden: {
-    id: 'warden',
-    name: 'The Warden',
-    epithet: 'Has never once been asked to leave.',
-    passive: { name: 'Standing Guard', text: 'Every level starts with one Barrier block.' },
-    power: { name: 'Bastion', text: 'For 6 seconds the ward takes no damage and misses keep your combo, but points are halved.' },
-    color: 0xc0c8d8,
+  lexicant: {
+    id: 'lexicant',
+    name: 'The Lexicant',
+    epithet: 'Knows every word. Uses the wrong ones.',
+    passive: { name: 'Fluent', text: 'Typos never speed words up or cost the Perfect bonus.' },
+    power: { name: 'Malapropism', text: 'Every word on screen becomes the same short word: one Enter captures them all.' },
+    color: 0xe25cc4,
   },
 };
+
+/**
+ * The journey (D-044): chapter 1 is played in the wizard's own domain, then
+ * every run sets out through the same three chapters into the darkness.
+ */
+export interface Domain {
+  name: string;
+  /** Names of chapter 1's five levels (the fifth is its boss). */
+  levels: readonly [string, string, string, string, string];
+  /** Backdrop art key suffix ('' = the original tower study). */
+  art: string;
+}
+
+export const DOMAINS: Record<WizardId, Domain> = {
+  apprentice: { name: 'The Tower Study', levels: ['The First Ward', 'Candlelight Study', 'Whispering Stacks', 'The Spiral Stair', 'The Bell Tower'], art: '' },
+  archivist: { name: 'The Endless Stacks', levels: ['The Reading Room', 'The Card Catalogue', 'Restricted Section', 'The Long Gallery', 'The Last Copy'], art: 'archivist' },
+  chronomancer: { name: 'The Clock Loft', levels: ['The Pendulum Hall', 'The Gear Garden', 'The Escapement', 'Hour Hand Bridge', 'The Stopped Bell'], art: 'chronomancer' },
+  pyromancer: { name: 'The Kiln', levels: ['The Ash Hearth', 'The Bellows Room', 'The Glassworks', 'The Cinder Stair', 'The Furnace Heart'], art: 'pyromancer' },
+  cartographer: { name: 'The Map Room', levels: ['The Drafting Table', 'The Globe Gallery', 'Uncharted Margins', 'The Compass Stair', 'Here Be Dragons'], art: 'cartographer' },
+  lexicant: { name: 'The Scriptorium', levels: ['The Inkwell', 'Margin Notes', 'The Errata Hall', 'The Lexicon Stair', 'The Unspeakable Word'], art: 'lexicant' },
+};
+
+/** The road out of the domain, chapter by chapter (chapter 1 = the domain). */
+export const JOURNEY: readonly string[] = ['', 'The Drowned Archive', 'The Ember Depths', "The Storm's Edge"];
+
+export function chapterName(wizard: WizardId | null, chapter: number): string {
+  if (chapter <= 1) return wizard ? DOMAINS[wizard].name : DOMAINS.apprentice.name;
+  return JOURNEY[Math.min(JOURNEY.length - 1, chapter - 1)]!;
+}
 
 export function isWizardId(value: unknown): value is WizardId {
   return typeof value === 'string' && (WIZARD_IDS as readonly string[]).includes(value);
@@ -98,7 +127,7 @@ export const ARCHIVIST_SLOW = 0.85;
 export const PYRO_SCORE = 1.2;
 export const PYRO_DAMAGE = 1.2;
 export const KINDLE_CHARGES = 4;
-export const WITCH_DROP = 1.5;
-export const OVERGROWTH_WORDS = 3;
-export const OVERGROWTH_MS = 6000;
-export const BASTION_MS = 6000;
+export const LANES = 5;
+export const COMPASS_MS = 6000;
+/** Malapropism: how long matching words keep echoing each other's capture. */
+export const MALAPROPISM_MS = 3000;

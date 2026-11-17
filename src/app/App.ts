@@ -4,7 +4,7 @@ import type { LevelManager } from '../difficulty/LevelManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import { WORDS } from '../data/wordList';
 import { audio } from '../audio/Audio';
-import { isSurvival } from '../difficulty/DifficultyConfig';
+import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { SPELL_IDS, type SpellCharges } from '../gameplay/SpellManager';
 import {
   bossRewardChoices,
@@ -34,8 +34,10 @@ import {
   type BossReward,
 } from '../ui/screens';
 import type { UIRoot } from '../ui/UIRoot';
-import { statsScreen, wizardSelectScreen } from '../ui/wizardScreens';
-import { WIZARDS, type WizardId } from '../gameplay/Wizards';
+import { journeyStrip, masteryPanel, statsScreen, wardrobeScreen, wizardSelectScreen } from '../ui/wizardScreens';
+import { h } from '../ui/dom';
+import { featsFrom, loadout, type Slot } from '../gameplay/Cosmetics';
+import { DOMAINS, WIZARDS, type WizardId } from '../gameplay/Wizards';
 
 /**
  * Top-level flow between screens.
@@ -133,13 +135,37 @@ export class App {
     this.run = null;
     this.showBackdrop();
     this.ui.show(
-      wizardSelectScreen(mode, this.save.lastWizard, this.save.lifetime, {
+      wizardSelectScreen(mode, this.save.lastWizard, this.save.lifetime, (id) => this.save.wardrobe(id), {
         onPick: (wizard) => {
           this.save.setLastWizard(wizard);
           this.startNewRun(mode, wizard);
         },
+        onWardrobe: (wizard) => this.showWardrobe(mode, wizard),
         onBack: () => this.showCampaignModes(),
       }),
+    );
+  }
+
+  /** A wizard's cosmetic unlock track (D-043): equip what you've earned, then play. */
+  showWardrobe(mode: CampaignMode, wizard: WizardId, focus?: string): void {
+    this.showBackdrop();
+    this.ui.show(
+      wardrobeScreen(
+        wizard,
+        this.save.wardrobe(wizard),
+        {
+          onEquip: (slot: Slot, itemId: string) => {
+            this.save.equip(wizard, slot, itemId);
+            this.showWardrobe(mode, wizard, `${slot}:${itemId}`);
+          },
+          onPlay: () => {
+            this.save.setLastWizard(wizard);
+            this.startNewRun(mode, wizard);
+          },
+          onBack: () => this.showWizardSelect(mode),
+        },
+        focus,
+      ),
     );
   }
 
@@ -152,7 +178,7 @@ export class App {
   private playCurrentLevel(): void {
     const run = this.run;
     if (!run) return;
-    const config = this.campaign.get(run.level);
+    const config = this.levelFor(run, run.level);
     this.save.noteLevelReached(run.level, run.mode);
     const modeLabel = run.mode === 'hardcore' ? ' · Hardcore' : '';
     const label = `Level ${config.level} of ${this.campaign.count} · ${config.name}${modeLabel} · ${WIZARDS[run.wizard].name}`;
@@ -167,6 +193,7 @@ export class App {
       initialInstability: run.instability,
       initialCombo: run.combo,
       wizard: run.wizard,
+      loadout: loadout(run.wizard, this.save.wardrobe(run.wizard)),
       knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
       spellIntro: config.introducesSpell ?? null,
       words: this.words,
@@ -188,10 +215,17 @@ export class App {
     });
   }
 
+  /** A Campaign level as this run sees it: chapter 1 is the wizard's own domain (D-044). */
+  private levelFor(run: CampaignRun, level: number): DifficultyConfig {
+    const base = this.campaign.get(level);
+    const chapter = base.chapter ?? Math.ceil(base.level / 5);
+    return chapter === 1 ? { ...base, name: DOMAINS[run.wizard].levels[(base.level - 1) % 5] ?? base.name } : base;
+  }
+
   private onLevelEnd(result: GameResult, stats: GameStats, spells: SpellCharges, instability: number): void {
     const run = this.run;
     if (!run) return;
-    const clearedLevel = this.campaign.get(run.level);
+    const clearedLevel = this.levelFor(run, run.level);
     this.save.recordLevelStats(stats, result, { mode: 'campaign', boss: isSurvival(clearedLevel), wizard: run.wizard });
     const { runOver, victory } = recordLevel(
       run,
@@ -201,6 +235,17 @@ export class App {
       this.campaign.count,
       instability,
       clearedLevel,
+    );
+
+    // Mastery: every point scored with this wizard counts; feats unlock the rest.
+    const gained = Math.max(0, stats.score);
+    const unlocked = this.save.awardMastery(run.wizard, gained, featsFrom(stats, result === 'won', runOver && victory));
+    const nextLevel = this.levelFor(run, run.level);
+    const mastery = h(
+      'div',
+      null,
+      journeyStrip(run.wizard, runOver ? (clearedLevel.chapter ?? 1) : (nextLevel.chapter ?? Math.ceil(nextLevel.level / 5))),
+      masteryPanel(run.wizard, this.save.wardrobe(run.wizard), gained, unlocked),
     );
 
     if (!runOver) {
@@ -217,7 +262,7 @@ export class App {
       }
       const show = () =>
         this.ui.show(
-          levelClearScreen(clearedLevel, this.campaign.get(run.level), stats, run, () => this.playCurrentLevel(), reward, show),
+          levelClearScreen(clearedLevel, this.levelFor(run, run.level), stats, run, () => this.playCurrentLevel(), reward, show, mastery),
         );
       show();
       return;
@@ -230,6 +275,7 @@ export class App {
       runOverScreen(summary, outcome, clearedLevel, this.campaign.count, {
         onNewRun: () => this.startNewRun(run.mode, run.wizard),
         onChangeWizard: () => this.showWizardSelect(run.mode),
+        extra: mastery,
         onMenu: () => this.showMainMenu(),
         mode: run.mode,
       }),

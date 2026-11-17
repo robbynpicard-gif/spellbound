@@ -4,6 +4,15 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-17 — Freeze fix, roster, wardrobes, journey
+
+**Done** (D-043, D-044, v0.16.0): fixed the end-of-level freeze (found by
+running the real build in headless Chrome with a typing bot); Cartographer and
+Lexicant replace the Hedge Witch and Warden; per-wizard cosmetic tracks and
+Wardrobe; brief finale with counting score; chapter 1 in the wizard's domain.
+
+---
+
 ## 2026-11-17 — Wizards, score roll-up, Stats
 
 **Done** (D-042, v0.15.0): six playable wizards with sigil-scroll powers,
