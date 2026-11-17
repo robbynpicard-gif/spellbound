@@ -43,6 +43,8 @@ class AudioEngine {
     if (!Ctx) return;
     const ctx = new Ctx();
     this.ctx = ctx;
+    // Some browsers create the context suspended even inside a gesture.
+    if (ctx.state === 'suspended') void ctx.resume();
     const master = ctx.createGain();
     master.gain.value = 0.8;
     const comp = ctx.createDynamicsCompressor();

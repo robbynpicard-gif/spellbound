@@ -30,7 +30,9 @@ const save = new SaveManager(browserStorage(), CAMPAIGN_LEVELS.count);
 audio.setMusic(save.audio.music);
 audio.setSfx(save.audio.sfx);
 // Browsers only allow sound after the player clicks or presses a key.
-for (const type of ['pointerdown', 'keydown'] as const) window.addEventListener(type, () => audio.unlock(), { capture: true });
+for (const type of ['pointerdown', 'pointerup', 'mousedown', 'click', 'touchend', 'keydown', 'keyup'] as const) {
+  window.addEventListener(type, () => audio.unlock(), { capture: true });
+}
 // A soft tick for every menu button.
 document.addEventListener('click', (e) => {
   if ((e.target as HTMLElement | null)?.closest?.('.menu-button')) audio.click();
