@@ -17,7 +17,8 @@ import { LAG_TICKS, Match } from '../server/match';
 import { RoomManager, type Connection } from '../server/rooms';
 import { parseClientMessage } from '../server/validation';
 
-const LEVEL = CAMPAIGN_LEVELS.get(1);
+// Stage 5 level 1: fast enough that an idle player collapses well within a test run.
+const LEVEL = CAMPAIGN_LEVELS.get(81);
 const CONFIG = practiceConfig(LEVEL, 'original');
 const ticksToMs = (ticks: number) => ticks * SIMULATION_STEP_MS;
 
