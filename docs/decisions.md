@@ -536,3 +536,13 @@ _2026-11-16 · Accepted (project owner)_
 - Music and sound effects are separate buses, each on/off in Options (back on
   the main menu) and in the pause menu; saved in `settings: { music, sfx }`.
 - Sound starts after the first click or key press (browser rule).
+
+### D-039 — Shorter rounds; Alter opens a window of easy words
+_2026-11-16 · Accepted (project owner)_
+
+- Every level needs 5 fewer words (level 1: 15 → 10 … level 19: 35 → 30;
+  bosses are timed and unchanged). Spell drop chance ×1.25 so about as many
+  spell scrolls fall per level.
+- Alter: long words on screen become short ones for good, and for 8 s every
+  new word is short and easy (3–5 letters, complexity ≤ 0.5). Then new words
+  return to the level's difficulty. The window pauses while frozen.

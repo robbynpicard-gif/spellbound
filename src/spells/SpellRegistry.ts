@@ -11,7 +11,10 @@ const EFFECTS: Record<SpellId, (ctx: SpellContext, data: SpellData) => void> = {
   ice: (ctx, data) => ctx.freeze(ctx.ticks(data.durationMs ?? 5000)),
   barrier: (ctx, data) => ctx.addBarrier(data.blocks ?? 2),
   shock: (ctx, data) => ctx.chainLightning(data.arcs ?? 3),
-  alter: (ctx, data) => ctx.transmute(data.minLength ?? 6),
+  alter: (ctx, data) => {
+    ctx.transmute(data.minLength ?? 6);
+    ctx.easyWords(ctx.ticks(data.durationMs ?? 8000));
+  },
   fire: (ctx) => ctx.burnAllWords(),
   wind: (ctx, data) => {
     ctx.purgeInstability(data.hardcoreHeal ?? 0.5);

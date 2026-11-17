@@ -26,6 +26,8 @@ export interface GameEvents {
   barrierChanged: { remaining: number };
   /** Temporal Distortion stacks changed (cast, or one wore off). */
   slowChanged: { stacks: number; factor: number };
+  /** Alter's easy-word window: ticks left (0 when it ends). */
+  easyChanged: { ticks: number };
   /** Frostbinding time left changed by a cast. */
   freezeChanged: { ticks: number };
   /**

@@ -44,6 +44,8 @@ export interface GameState {
    * stack. Stacks don't tick down while frozen.
    */
   slowStacks: number[];
+  /** Ticks left of Alter's easy-word window: new words are short and simple. */
+  easyTicks: number;
   /** Fall-speed multiplier of one slow stack. */
   slowFactor: number;
   /** Arcane Shield: misses still to be blocked this level. */
@@ -79,6 +81,7 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     spellsCast: emptyCharges(),
     freezeTicks: 0,
     slowStacks: [],
+    easyTicks: 0,
     slowFactor: 1,
     barrier: 0,
     blocked: 0,

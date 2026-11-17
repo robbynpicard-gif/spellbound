@@ -40,10 +40,11 @@
     "id": "alter",
     "name": "Transmutation",
     "book": "Alter",
-    "summary": "Turns long words into short ones.",
-    "description": "Every word of 6 or more letters becomes a short word of 3–4 letters.",
+    "summary": "Shortens long words; easy words for 8 s.",
+    "description": "Every word of 6+ letters becomes a short one, for good. Then, for 8 seconds, every new word is short and easy (3–5 letters, no rare letters or names). After that, words return to the level’s difficulty.",
     "dropWeight": 3,
-    "minLength": 6
+    "minLength": 6,
+    "durationMs": 8000
   },
   {
     "id": "fire",

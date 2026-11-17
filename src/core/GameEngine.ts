@@ -61,6 +61,10 @@ export const LEVEL_SPEED_RAMP = 0.15;
 /** Transmutation turns long words into words of these lengths. */
 const SHORT_WORD_MIN = 3;
 const SHORT_WORD_MAX = 4;
+const EASY_WORD_MIN = 3;
+const EASY_WORD_MAX = 5;
+/** No rare letters, long consonant runs or names in Alter's window. */
+const EASY_MAX_COMPLEXITY = 0.5;
 
 const LETTER = /^[a-z]$/i;
 /** Longest text the typing console accepts. */
@@ -90,6 +94,8 @@ export class GameEngine {
   private readonly speedRng: SeededRandom;
   /** 3–4 letter words Transmutation can turn long words into. */
   private readonly shortWords: readonly string[];
+  /** Words for Alter's easy window: short and simple, never longer than the level allows. */
+  private readonly easyGenerator: WordGenerator | null;
   private readonly log: Command[] = [];
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
@@ -104,6 +110,22 @@ export class GameEngine {
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
     this.instability = new InstabilityManager(options.initialInstability ?? 0);
     this.shortWords = options.words.filter((w) => w.length >= SHORT_WORD_MIN && w.length <= SHORT_WORD_MAX);
+    let easy: WordGenerator | null = null;
+    try {
+      easy = new WordGenerator(
+        options.words,
+        {
+          minWordLength: Math.min(EASY_WORD_MIN, options.config.minWordLength),
+          maxWordLength: Math.min(EASY_WORD_MAX, options.config.maxWordLength),
+          maxComplexity: EASY_MAX_COMPLEXITY,
+          maxActiveWords: options.config.maxActiveWords,
+        },
+        this.rng,
+      );
+    } catch {
+      easy = null; // a word list with no short words: Alter only shortens
+    }
+    this.easyGenerator = easy;
     this.s = createInitialState(sanitizeCharges(options.initialSpells), this.instability.value);
     this.spellContext = this.createSpellContext();
   }
@@ -204,6 +226,10 @@ export class GameEngine {
 
     // Temporal Distortion: each stack multiplies the slow-down and has its own timer.
     let factor = 1;
+    if (s.easyTicks > 0 && --s.easyTicks === 0) {
+      this.events.emit('easyChanged', { ticks: 0 });
+      this.events.emit('spellEnded', { spell: 'alter' });
+    }
     if (s.slowStacks.length > 0) {
       factor = Math.pow(s.slowFactor, s.slowStacks.length);
       const before = s.slowStacks.length;
@@ -481,7 +507,7 @@ export class GameEngine {
 
   private spawn(fallSpeed: number): void {
     const s = this.s;
-    const text = this.generator.next();
+    const text = s.easyTicks > 0 && this.easyGenerator ? this.easyGenerator.next() : this.generator.next();
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;
@@ -621,6 +647,10 @@ export class GameEngine {
       },
       chainLightning: (arcs) => this.chainLightning(arcs),
       transmute: (minLength) => this.transmute(minLength),
+      easyWords: (ticks) => {
+        this.s.easyTicks += ticks;
+        this.events.emit('easyChanged', { ticks: this.s.easyTicks });
+      },
       harvestAll: () => this.harvestAll(),
       purgeInstability: (hardcoreFraction) => {
         const s = this.s;

@@ -43,6 +43,8 @@ export interface SpellContext {
   chainLightning(arcs: number): void;
   /** Transmutation: words of `minLength`+ letters become 3–4 letter words. */
   transmute(minLength: number): void;
+  /** Alter's window: for this many more ticks, new words are short and easy. */
+  easyWords(ticks: number): void;
   /** Harvest: every word on the field counts toward the quota, at half points. */
   harvestAll(): void;
   /** Arcane Purge: instability to 0% (Normal) or reduced by `hardcoreFraction` of itself (Hardcore). */

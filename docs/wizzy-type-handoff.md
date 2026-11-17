@@ -1,6 +1,6 @@
 # Wizzy Type: full project handoff
 
-_Snapshot: 2026-11-16, version 0.11.0._
+_Snapshot: 2026-11-16, version 0.12.0. Level word counts are 5 lower than the table below (D-039)._
 
 ## 1. What it is
 Wizzy Type is a browser typing game that reimagines the old web game *Typing Maniac*. A wizard sits in a gothic study at an enchanted typewriter, and word scrolls drift down past the study's arched windows. You type a word and press **Enter** to capture it before it reaches the window sill (the **ward line**). Each scroll that breaks through damages the ward (its "instability" rises). Some scrolls are **spell scrolls**: capturing one adds a spell charge, and typing the spell's name (e.g. `fire`) plus Enter casts it.
@@ -87,7 +87,7 @@ There are 8 spells, listed below in power order and introduced in this order. Al
 | ice | Freezes every word for 5 s (stacks) | 4 |
 | barrier | Blocks the next 2 misses | 4 |
 | shock | Zaps the lowest word and the 3 nearest | 3 |
-| alter | Turns long words (6+ letters) into short ones | 3 |
+| alter | Long words become short for good; then 8 s of short, easy new words | 3 |
 | fire | Burns every word away (no points); introduced first as a bailout | 2 |
 | wind | Restores your ward (in Hardcore, halves instability) | 1.5 |
 | harvest | Claims every word on screen at half points (counts toward progress) | 1 |

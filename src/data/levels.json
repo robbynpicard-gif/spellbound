@@ -3,7 +3,7 @@
     "level": 1,
     "name": "The First Ward",
     "chapter": 1,
-    "requiredWords": 15,
+    "requiredWords": 10,
     "initialFallSpeed": 45,
     "spawnInterval": 2200,
     "maxActiveWords": 8,
@@ -20,7 +20,7 @@
     "availableSpells": [
       "fire"
     ],
-    "spellDropChance": 0.08,
+    "spellDropChance": 0.1,
     "introducesSpell": "fire",
     "maxComplexity": 0.5
   },
@@ -28,7 +28,7 @@
     "level": 2,
     "name": "Candlelight Study",
     "chapter": 1,
-    "requiredWords": 16,
+    "requiredWords": 11,
     "initialFallSpeed": 49,
     "spawnInterval": 2120,
     "maxActiveWords": 8,
@@ -45,14 +45,14 @@
     "availableSpells": [
       "fire"
     ],
-    "spellDropChance": 0.079,
+    "spellDropChance": 0.099,
     "maxComplexity": 0.5
   },
   {
     "level": 3,
     "name": "Whispering Stacks",
     "chapter": 1,
-    "requiredWords": 18,
+    "requiredWords": 13,
     "initialFallSpeed": 53,
     "spawnInterval": 2040,
     "maxActiveWords": 9,
@@ -71,7 +71,7 @@
       "slow",
       "fire"
     ],
-    "spellDropChance": 0.077,
+    "spellDropChance": 0.096,
     "introducesSpell": "slow",
     "maxComplexity": 0.5
   },
@@ -79,7 +79,7 @@
     "level": 4,
     "name": "The Spiral Stair",
     "chapter": 1,
-    "requiredWords": 19,
+    "requiredWords": 14,
     "initialFallSpeed": 58,
     "spawnInterval": 1960,
     "maxActiveWords": 9,
@@ -98,7 +98,7 @@
       "slow",
       "fire"
     ],
-    "spellDropChance": 0.076,
+    "spellDropChance": 0.095,
     "maxComplexity": 1
   },
   {
@@ -124,7 +124,7 @@
       "slow",
       "fire"
     ],
-    "spellDropChance": 0.08,
+    "spellDropChance": 0.1,
     "survivalMs": 60000,
     "ramp": {
       "initialFallSpeed": 66,
@@ -137,7 +137,7 @@
     "level": 6,
     "name": "The Sunken Gate",
     "chapter": 2,
-    "requiredWords": 20,
+    "requiredWords": 15,
     "initialFallSpeed": 62,
     "spawnInterval": 1880,
     "maxActiveWords": 9,
@@ -157,7 +157,7 @@
       "ice",
       "fire"
     ],
-    "spellDropChance": 0.075,
+    "spellDropChance": 0.094,
     "introducesSpell": "ice",
     "maxComplexity": 1
   },
@@ -165,7 +165,7 @@
     "level": 7,
     "name": "Drowned Archive",
     "chapter": 2,
-    "requiredWords": 22,
+    "requiredWords": 17,
     "initialFallSpeed": 66,
     "spawnInterval": 1800,
     "maxActiveWords": 10,
@@ -185,14 +185,14 @@
       "ice",
       "fire"
     ],
-    "spellDropChance": 0.073,
+    "spellDropChance": 0.091,
     "maxComplexity": 1
   },
   {
     "level": 8,
     "name": "The Ink Grotto",
     "chapter": 2,
-    "requiredWords": 23,
+    "requiredWords": 18,
     "initialFallSpeed": 70,
     "spawnInterval": 1720,
     "maxActiveWords": 10,
@@ -214,7 +214,7 @@
       "barrier",
       "fire"
     ],
-    "spellDropChance": 0.072,
+    "spellDropChance": 0.09,
     "introducesSpell": "barrier",
     "maxComplexity": 1.5
   },
@@ -222,7 +222,7 @@
     "level": 9,
     "name": "Lantern Depths",
     "chapter": 2,
-    "requiredWords": 24,
+    "requiredWords": 19,
     "initialFallSpeed": 74,
     "spawnInterval": 1640,
     "maxActiveWords": 10,
@@ -244,7 +244,7 @@
       "barrier",
       "fire"
     ],
-    "spellDropChance": 0.071,
+    "spellDropChance": 0.089,
     "maxComplexity": 1.5
   },
   {
@@ -273,7 +273,7 @@
       "barrier",
       "fire"
     ],
-    "spellDropChance": 0.08,
+    "spellDropChance": 0.1,
     "survivalMs": 75000,
     "ramp": {
       "initialFallSpeed": 83,
@@ -286,7 +286,7 @@
     "level": 11,
     "name": "The Alchemy Cellar",
     "chapter": 3,
-    "requiredWords": 26,
+    "requiredWords": 21,
     "initialFallSpeed": 79,
     "spawnInterval": 1560,
     "maxActiveWords": 12,
@@ -309,7 +309,7 @@
       "shock",
       "fire"
     ],
-    "spellDropChance": 0.069,
+    "spellDropChance": 0.086,
     "introducesSpell": "shock",
     "maxComplexity": 2
   },
@@ -317,7 +317,7 @@
     "level": 12,
     "name": "Hall of Flasks",
     "chapter": 3,
-    "requiredWords": 27,
+    "requiredWords": 22,
     "initialFallSpeed": 83,
     "spawnInterval": 1480,
     "maxActiveWords": 12,
@@ -340,14 +340,14 @@
       "shock",
       "fire"
     ],
-    "spellDropChance": 0.068,
+    "spellDropChance": 0.085,
     "maxComplexity": 2
   },
   {
     "level": 13,
     "name": "Quicksilver Vault",
     "chapter": 3,
-    "requiredWords": 28,
+    "requiredWords": 23,
     "initialFallSpeed": 87,
     "spawnInterval": 1400,
     "maxActiveWords": 12,
@@ -372,7 +372,7 @@
       "alter",
       "fire"
     ],
-    "spellDropChance": 0.067,
+    "spellDropChance": 0.084,
     "introducesSpell": "alter",
     "maxComplexity": 2.5
   },
@@ -380,7 +380,7 @@
     "level": 14,
     "name": "The Ember Gate",
     "chapter": 3,
-    "requiredWords": 30,
+    "requiredWords": 25,
     "initialFallSpeed": 91,
     "spawnInterval": 1320,
     "maxActiveWords": 14,
@@ -405,7 +405,7 @@
       "alter",
       "fire"
     ],
-    "spellDropChance": 0.065,
+    "spellDropChance": 0.081,
     "maxComplexity": 2.5
   },
   {
@@ -437,7 +437,7 @@
       "alter",
       "fire"
     ],
-    "spellDropChance": 0.08,
+    "spellDropChance": 0.1,
     "survivalMs": 90000,
     "ramp": {
       "initialFallSpeed": 100,
@@ -450,7 +450,7 @@
     "level": 16,
     "name": "Storm Over the Spire",
     "chapter": 4,
-    "requiredWords": 31,
+    "requiredWords": 26,
     "initialFallSpeed": 95,
     "spawnInterval": 1240,
     "maxActiveWords": 14,
@@ -476,14 +476,14 @@
       "fire",
       "wind"
     ],
-    "spellDropChance": 0.064,
+    "spellDropChance": 0.08,
     "introducesSpell": "wind"
   },
   {
     "level": 17,
     "name": "Midnight Conjuring",
     "chapter": 4,
-    "requiredWords": 32,
+    "requiredWords": 27,
     "initialFallSpeed": 100,
     "spawnInterval": 1160,
     "maxActiveWords": 14,
@@ -509,13 +509,13 @@
       "fire",
       "wind"
     ],
-    "spellDropChance": 0.063
+    "spellDropChance": 0.079
   },
   {
     "level": 18,
     "name": "Shattered Sky",
     "chapter": 4,
-    "requiredWords": 34,
+    "requiredWords": 29,
     "initialFallSpeed": 104,
     "spawnInterval": 1080,
     "maxActiveWords": 15,
@@ -543,14 +543,14 @@
       "wind",
       "harvest"
     ],
-    "spellDropChance": 0.061,
+    "spellDropChance": 0.076,
     "introducesSpell": "harvest"
   },
   {
     "level": 19,
     "name": "Thunder Steps",
     "chapter": 4,
-    "requiredWords": 35,
+    "requiredWords": 30,
     "initialFallSpeed": 108,
     "spawnInterval": 1000,
     "maxActiveWords": 15,
@@ -578,7 +578,7 @@
       "wind",
       "harvest"
     ],
-    "spellDropChance": 0.06
+    "spellDropChance": 0.075
   },
   {
     "level": 20,
@@ -612,7 +612,7 @@
       "wind",
       "harvest"
     ],
-    "spellDropChance": 0.08,
+    "spellDropChance": 0.1,
     "survivalMs": 120000,
     "ramp": {
       "initialFallSpeed": 118,

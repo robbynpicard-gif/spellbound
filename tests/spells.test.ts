@@ -1,3 +1,4 @@
+import { wordComplexity } from '../src/gameplay/WordGenerator';
 import { describe, expect, it, vi } from 'vitest';
 import { GameEngine, type EngineOptions } from '../src/core/GameEngine';
 import type { DifficultyConfig } from '../src/difficulty/DifficultyConfig';
@@ -384,18 +385,36 @@ describe('casting', () => {
     expect(engine.state.completed).toBe(1);
   });
 
-  it('Transmutation does not change the word sequence that spawns next', () => {
-    const opts = makeOptions({ spawnInterval: 10, maxActiveWords: 30, minWordLength: 3, maxWordLength: 10 });
-    const a = new GameEngine({ ...opts, initialSpells: { alter: 1 } });
-    const b = new GameEngine(opts);
-    const seqA: string[] = [];
-    const seqB: string[] = [];
-    a.events.on('wordSpawned', ({ word }) => seqA.push(word.text));
-    b.events.on('wordSpawned', ({ word }) => seqB.push(word.text));
-    for (let i = 0; i < 200; i++) a.step(), b.step();
-    cast(a, 'alter');
-    for (let i = 0; i < 400; i++) a.step(), b.step();
-    expect(seqA).toEqual(seqB);
+  it('Alter: for 8 seconds new words are short and easy, then the level\'s words return; shortened words stay short', () => {
+    const engine = makeEngine(
+      { spawnInterval: 100, maxActiveWords: 60, minWordLength: 6, maxWordLength: 10, initialFallSpeed: 900, instabilityPerMiss: 0.001 },
+      { initialSpells: { alter: 1 } },
+    );
+    stepUntilWords(engine, 4);
+    const long = engine.state.words.map((w) => w.id);
+    cast(engine, 'alter');
+    const shortened = engine.state.words.filter((w) => long.includes(w.id)).map((w) => ({ id: w.id, text: w.text }));
+    const during: string[] = [];
+    const after: string[] = [];
+    let open = true;
+    engine.events.on('spellEnded', ({ spell }) => {
+      if (spell === 'alter') open = false;
+    });
+    engine.events.on('wordSpawned', ({ word }) => (open ? during : after).push(word.text));
+    for (let i = 0; i < 8 * 60 + 200; i++) engine.step();
+    expect(open).toBe(false);
+    expect(during.length).toBeGreaterThan(10);
+    for (const w of during) {
+      expect(w.length).toBeLessThanOrEqual(5);
+      expect(wordComplexity(w)).toBeLessThanOrEqual(0.5);
+    }
+    expect(after.length).toBeGreaterThan(0);
+    for (const w of after) expect(w.length).toBeGreaterThanOrEqual(6);
+    // Words shortened by the cast never grow back.
+    for (const s of shortened) {
+      const w = engine.state.words.find((x) => x.id === s.id);
+      if (w) expect(w.text).toBe(s.text);
+    }
   });
 
   it('Wind resets instability and removes mistake speed-ups', () => {
