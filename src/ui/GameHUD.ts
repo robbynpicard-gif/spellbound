@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { audio } from '../audio/Audio';
 import { multiplierOf, tierOf } from '../gameplay/ScoringSystem';
 import { FONTS, PALETTE } from '../core/GameConfig';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
@@ -207,6 +208,10 @@ export class GameHUD {
   private lastCharges: SpellCharges | null = null;
   private completed = 0;
   private shownScore = -1;
+  /** Score the counter wheels show right now: it rolls up toward `shownScore` (D-042). */
+  private rolled = -1;
+  private rollFrom = 0;
+  private tickTimer = 0;
   private ward = 100;
   private shield = 0;
   private survivalMs: number | null = null;
@@ -296,8 +301,10 @@ export class GameHUD {
     if (score !== this.shownScore) {
       const grew = this.shownScore >= 0 && score > this.shownScore;
       this.shownScore = score;
-      const digits = String(Math.min(999999, score)).padStart(6, '0');
-      this.wheels.forEach((t, i) => t.setText(digits[i]!));
+      if (this.rolled < 0 || score < this.rolled) {
+        this.rolled = score; // first frame, or a reset: no roll
+        this.showDigits(score, false);
+      } else if (grew) this.rollFrom = this.rolled;
       if (grew) {
         // Subtle golden light on the counter when the score goes up.
         this.scene.tweens.killTweensOf(this.counterGlow);
@@ -311,6 +318,34 @@ export class GameHUD {
     const acc = stats ? Math.round(stats.accuracy * 100) : 100;
     const wpm = stats ? Math.round(stats.wpm) : 0;
     this.accuracyText.setText(`${acc}% ACCURACY · ${wpm} WPM`);
+  }
+
+  /** Every frame: roll the counter wheels up toward the score, ticking as they turn. */
+  update(deltaMs: number): void {
+    const target = this.shownScore;
+    if (this.rolled < 0 || this.rolled >= target) return;
+    const gap = target - this.rolled;
+    const step = Math.max(1, Math.ceil(gap * (1 - Math.exp(-deltaMs / 110))));
+    this.rolled = Math.min(target, this.rolled + step);
+    this.showDigits(this.rolled, true);
+    this.tickTimer -= deltaMs;
+    if (this.tickTimer <= 0) {
+      this.tickTimer = 45;
+      const span = Math.max(1, target - this.rollFrom);
+      audio.counterTick((this.rolled - this.rollFrom) / span);
+    }
+  }
+
+  private showDigits(score: number, animate: boolean): void {
+    const digits = String(Math.min(999999, score)).padStart(6, '0');
+    this.wheels.forEach((t, i) => {
+      if (t.text === digits[i]) return;
+      t.setText(digits[i]!);
+      if (animate) {
+        this.scene.tweens.killTweensOf(t);
+        this.scene.tweens.add({ targets: t, scaleY: { from: 0.4, to: 1 }, duration: 90, ease: 'Quad.Out' });
+      }
+    });
   }
 
   pulseCombo(): void {

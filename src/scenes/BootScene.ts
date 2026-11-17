@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { WIZARD_IDS } from '../gameplay/Wizards';
 import { SPARK_TEXTURE } from '../render/Effects';
 import { ART } from '../render/layout';
 
@@ -25,13 +26,13 @@ export class BootScene extends Phaser.Scene {
     }
     this.load.image(ART.menu, 'assets/art/menu.png');
     this.load.image(ART.library, 'assets/art/library.png');
-    this.load.image(ART.wizard(), 'assets/art/wizard-apprentice-a.png');
+    for (const id of WIZARD_IDS) this.load.image(ART.wizard(id), `assets/art/wizard-${id}-a.png`);
     this.load.spritesheet(ART.icons, 'assets/spells/icons.png', { frameWidth: 12, frameHeight: 12 });
   }
 
   create(): void {
     // Pixel art stays crisp when scaled up.
-    const keys = [...ART.themes.map((t) => `bg-${t}`), ART.menu, ART.library, ART.wizard()];
+    const keys = [...ART.themes.map((t) => `bg-${t}`), ART.menu, ART.library, ...WIZARD_IDS.map((id) => ART.wizard(id))];
     for (const key of [...keys, ART.icons]) {
       if (this.textures.exists(key)) this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     }

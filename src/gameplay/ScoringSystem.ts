@@ -137,6 +137,10 @@ export interface GameStats {
   elapsedMs: number;
   /** Average time from a word appearing to being completed. */
   averageCompletionMs: number;
+  /** Wizard powers fired this level (sigil scrolls captured, D-042). */
+  powersUsed?: number;
+  /** Times each spell was cast this level. */
+  spellsCast?: Partial<Record<string, number>>;
 }
 
 export function accuracyOf(correct: number, errors: number): number {

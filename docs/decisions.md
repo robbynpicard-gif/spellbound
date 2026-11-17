@@ -578,3 +578,20 @@ _2026-11-17 · Accepted (project owner asked for it; details open to review)_
   element. Level start = carriage return; level won = bell, then choir,
   organ, timpani over the ducked score.
 - Code: src/audio/synth.ts (voices), Music.ts (score), Audio.ts (effects and API).
+
+### D-042 — Wizards with sigil-scroll powers; score roll-up; lifetime stats
+_2026-11-17 · Accepted (project owner chose: wizard selection, score roll-up + stats, sigil scrolls)_
+
+- Campaign → Normal/Hardcore → **Choose your wizard** (six; the last pick is
+  remembered). Each has a passive and a signature power (src/gameplay/Wizards.ts):
+  Apprentice (Second Wind), Archivist (Recall; long words fall slower),
+  Chronomancer (Rewind; a miss drops a tier instead of resetting), Pyromancer
+  (Kindle; +20% points, +20% ward damage), Hedge Witch (Overgrowth; more spell
+  scrolls), Warden (Bastion; starts each level with one Barrier block).
+- Powers fire when you type a **sigil scroll**: a rare word in the wizard's
+  colour with a diamond rune (7% per word after 4 captures, one at a time, never
+  while a power runs). Sigils use their own random stream, so the word sequence
+  is the same for every wizard. Practice and duels have no wizard.
+- The score counter rolls up with a ticking sound that climbs as it goes.
+- Lifetime stats (src/storage/LifetimeStats.ts) in the save file, shown on a new
+  Stats screen: totals, records, bonuses, spells and per-wizard results.

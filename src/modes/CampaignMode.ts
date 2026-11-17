@@ -11,6 +11,7 @@ import {
   type SpellId,
 } from '../gameplay/SpellManager';
 import { SPELLS } from '../spells/SpellRegistry';
+import type { WizardId } from '../gameplay/Wizards';
 
 /**
  * Campaign = one continuous run (decisions.md D-016, docs/plans/campaign-v2.md):
@@ -46,6 +47,8 @@ export interface RunTotals {
 
 export interface CampaignRun {
   mode: CampaignMode;
+  /** The wizard played this run (D-042). */
+  wizard: WizardId;
   /** Level currently being played (or about to be). */
   level: number;
   /** Instability carried into the next level (always 0 in Normal). */
@@ -72,6 +75,8 @@ export interface RunSummary {
   missed: number;
   maxCombo: number;
   elapsedMs: number;
+  /** Wizard played (runs recorded before D-042 have none: the Apprentice). */
+  wizard?: WizardId;
 }
 
 /** Long-term campaign records kept in the save file. */
@@ -93,9 +98,10 @@ export function emptyCampaignRecords(): CampaignRecords {
   return { highestReached: 1, bestRun: null, runsStarted: 0, runsCompleted: 0 };
 }
 
-export function startRun(mode: CampaignMode = 'normal'): CampaignRun {
+export function startRun(mode: CampaignMode = 'normal', wizard: WizardId = 'apprentice'): CampaignRun {
   return {
     mode,
+    wizard,
     instability: 0,
     level: 1,
     score: 0,
@@ -158,6 +164,7 @@ export function summarizeRun(run: CampaignRun, victory: boolean): RunSummary {
     missed: t.missed,
     maxCombo: t.maxCombo,
     elapsedMs: t.elapsedMs,
+    wizard: run.wizard,
   };
 }
 

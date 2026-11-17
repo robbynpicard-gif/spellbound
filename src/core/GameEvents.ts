@@ -3,6 +3,7 @@ import type { WordState } from '../gameplay/Word';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
+import type { WizardId } from '../gameplay/Wizards';
 
 export type GameResult = 'won' | 'lost';
 
@@ -60,4 +61,12 @@ export interface GameEvents {
   /** A timed spell (Frostbinding, or the last Temporal Distortion stack) wore off. */
   spellEnded: { spell: SpellId };
   gameOver: { result: GameResult; stats: GameStats };
+  /** A wizard power started or ended (D-042). `ticks` left for timed powers. */
+  powerChanged: { power: WizardId; active: boolean; ticks: number };
+  /** Kindle: a capture at (x, y) set these words alight (captured for `points`). */
+  wordsKindled: { x: number; y: number; words: WordState[]; points: number };
+  /** Overgrowth: these words are held in place. */
+  wordsHeld: { words: WordState[] };
+  /** Rewind: the last miss was undone (`undone`) and every word pushed back up. */
+  rewound: { undone: boolean };
 }

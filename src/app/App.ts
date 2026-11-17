@@ -34,6 +34,8 @@ import {
   type BossReward,
 } from '../ui/screens';
 import type { UIRoot } from '../ui/UIRoot';
+import { statsScreen, wizardSelectScreen } from '../ui/wizardScreens';
+import { WIZARDS, type WizardId } from '../gameplay/Wizards';
 
 /**
  * Top-level flow between screens.
@@ -63,6 +65,7 @@ export class App {
           onPractice: () => this.showPracticeSetup(),
           onCredits: () => this.showCredits(),
           onOptions: () => this.showOptions(),
+          onStats: () => this.showStats(),
         },
         this.save.campaign,
         this.save.persistent,
@@ -103,6 +106,11 @@ export class App {
     return [...WORDS];
   }
 
+  showStats(): void {
+    this.showBackdrop();
+    this.ui.show(statsScreen(this.save.lifetime, () => this.showMainMenu()));
+  }
+
   showCredits(): void {
     this.showBackdrop();
     this.ui.show(creditsScreen(() => this.showMainMenu()));
@@ -115,14 +123,28 @@ export class App {
     this.showBackdrop();
     this.ui.show(
       campaignModeScreen(this.save.records('normal'), this.save.records('hardcore'), this.campaign.count, {
-        onStart: (mode) => this.startNewRun(mode),
+        onStart: (mode) => this.showWizardSelect(mode),
         onBack: () => this.showMainMenu(),
       }),
     );
   }
 
-  startNewRun(mode: CampaignMode = 'normal'): void {
-    this.run = startRun(mode);
+  showWizardSelect(mode: CampaignMode): void {
+    this.run = null;
+    this.showBackdrop();
+    this.ui.show(
+      wizardSelectScreen(mode, this.save.lastWizard, this.save.lifetime, {
+        onPick: (wizard) => {
+          this.save.setLastWizard(wizard);
+          this.startNewRun(mode, wizard);
+        },
+        onBack: () => this.showCampaignModes(),
+      }),
+    );
+  }
+
+  startNewRun(mode: CampaignMode = 'normal', wizard: WizardId = this.save.lastWizard): void {
+    this.run = startRun(mode, wizard);
     this.save.noteRunStarted(mode);
     this.playCurrentLevel();
   }
@@ -133,7 +155,7 @@ export class App {
     const config = this.campaign.get(run.level);
     this.save.noteLevelReached(run.level, run.mode);
     const modeLabel = run.mode === 'hardcore' ? ' · Hardcore' : '';
-    const label = `Level ${config.level} of ${this.campaign.count} · ${config.name}${modeLabel}`;
+    const label = `Level ${config.level} of ${this.campaign.count} · ${config.name}${modeLabel} · ${WIZARDS[run.wizard].name}`;
     const held = SPELL_IDS.filter((id) => run.spellCharges[id] > 0);
     const known = knownSpellsAt(this.campaign.all, run.level);
 
@@ -144,13 +166,14 @@ export class App {
       hardcore: run.mode === 'hardcore',
       initialInstability: run.instability,
       initialCombo: run.combo,
+      wizard: run.wizard,
       knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
       spellIntro: config.introducesSpell ?? null,
       words: this.words,
       hooks: {
         onPauseChanged: (paused) =>
           this.onPause(paused, label, [
-            { label: 'Restart run from level 1', onClick: () => this.startNewRun(run.mode) },
+            { label: 'Restart run from level 1', onClick: () => this.startNewRun(run.mode, run.wizard) },
             { label: 'Abandon run', onClick: () => this.showMainMenu() },
           ], 'An abandoned run is not recorded'),
         onGameOver: (result, stats, spells, instability) => this.onLevelEnd(result, stats, spells, instability),
@@ -169,6 +192,7 @@ export class App {
     const run = this.run;
     if (!run) return;
     const clearedLevel = this.campaign.get(run.level);
+    this.save.recordLevelStats(stats, result, { mode: 'campaign', boss: isSurvival(clearedLevel), wizard: run.wizard });
     const { runOver, victory } = recordLevel(
       run,
       result,
@@ -204,7 +228,8 @@ export class App {
     this.run = null;
     this.ui.show(
       runOverScreen(summary, outcome, clearedLevel, this.campaign.count, {
-        onNewRun: () => this.startNewRun(run.mode),
+        onNewRun: () => this.startNewRun(run.mode, run.wizard),
+        onChangeWizard: () => this.showWizardSelect(run.mode),
         onMenu: () => this.showMainMenu(),
         mode: run.mode,
       }),
@@ -266,6 +291,7 @@ export class App {
     // Stop the game (so Esc can't resume it behind the results) and show the sky backdrop.
     this.showBackdrop();
     const outcome = this.save.recordPractice(level, filter, stats);
+    this.save.recordLevelStats(stats, fell ? 'lost' : 'won', { mode: 'practice' });
     this.ui.show(
       practiceResultsScreen(this.campaign.get(level), filter, stats, outcome, fell, {
         onAgain: () => this.startPractice(level, filter),

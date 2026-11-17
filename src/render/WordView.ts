@@ -58,14 +58,17 @@ export class WordView extends Phaser.GameObjects.Container {
   private drawnTyped = -1;
   private drawnTarget: boolean | null = null;
   private frozen = false;
+  private held = false;
   private halfWidth = 0;
 
   constructor(
     scene: Phaser.Scene,
     readonly word: WordState,
+    /** Sigil scrolls glow in the wizard's colour (D-042). */
+    private readonly sigilColor: number = PALETTE.gold,
   ) {
     super(scene, 0, 0);
-    const onColour = word.spell !== null;
+    const onColour = word.spell !== null || word.sigil === true;
     this.restColor = hex(onColour ? 0xf6ecd8 : PALETTE.ink);
     this.glow = scene.add.graphics();
     this.plaque = scene.add.graphics();
@@ -73,10 +76,14 @@ export class WordView extends Phaser.GameObjects.Container {
       .text(0, 0, '', { ...TEXT_STYLE, color: hex(onColour ? 0xffe0f4 : PALETTE.rust) })
       .setOrigin(0, 0.5);
     this.restText = scene.add.text(0, 0, '', { ...TEXT_STYLE, color: this.restColor }).setOrigin(0, 0.5);
-    if (onColour) {
+    if (word.spell !== null) {
       for (const t of [this.typedText, this.restText]) t.setShadow(2, 2, '#1a1214', 0, false, true);
       this.icon = scene.add.image(0, 0, ART.icons, SPELL_IDS.indexOf(word.spell!)).setScale(3).setOrigin(0.5);
       scene.tweens.add({ targets: this.glow, alpha: { from: 1, to: 0.35 }, duration: 650, yoyo: true, repeat: -1 });
+    }
+    if (word.sigil) {
+      for (const t of [this.typedText, this.restText]) t.setShadow(2, 2, '#1a1214', 0, false, true);
+      scene.tweens.add({ targets: this.glow, alpha: { from: 1, to: 0.2 }, duration: 380, yoyo: true, repeat: -1 });
     }
     this.add([this.glow, this.plaque, this.typedText, this.restText]);
     if (this.icon) this.add(this.icon);
@@ -106,6 +113,13 @@ export class WordView extends Phaser.GameObjects.Container {
     this.drawnTyped = -1;
     this.redraw();
     this.scene.tweens.add({ targets: this, scale: { from: 1.3, to: 1 }, duration: 260, ease: 'Back.Out' });
+  }
+
+  /** Overgrowth (D-042): a green vine frame while the word is held. */
+  setHeld(held: boolean): void {
+    if (this.held === held) return;
+    this.held = held;
+    this.redraw();
   }
 
   setFrozen(frozen: boolean): void {
@@ -139,7 +153,7 @@ export class WordView extends Phaser.GameObjects.Container {
     this.restText.setText(w.text.slice(w.typed));
     const typedWidth = w.typed > 0 ? this.typedText.width : 0;
     const textWidth = typedWidth + this.restText.width;
-    const iconCols = this.icon ? 20 : 0;
+    const iconCols = this.icon || w.sigil ? 20 : 0;
 
     // Plaque size in art pixels; the text sits centred (right of the icon on spell scrolls).
     const cols = Math.max(30, Math.ceil(textWidth / PX) + 16 + iconCols);
@@ -172,21 +186,26 @@ export class WordView extends Phaser.GameObjects.Container {
     gl.clear();
 
     const spell = w.spell;
-    const body = spell ? SPELL_COLORS[spell] : PAPER;
-    const light = spell ? shade(body, 1.3) : PAPER_LIGHT;
-    const dark = spell ? shade(body, 0.62) : PAPER_DARK;
+    const sigil = w.sigil === true;
+    const body = spell ? SPELL_COLORS[spell] : sigil ? shade(this.sigilColor, 0.5) : PAPER;
+    const light = spell || sigil ? shade(body, 1.3) : PAPER_LIGHT;
+    const dark = spell || sigil ? shade(body, 0.62) : PAPER_DARK;
 
     // Glow behind: magenta for the target, the spell's colour (pulsing) for spell scrolls.
-    if (w.isTarget || spell) {
-      const c = w.isTarget ? PALETTE.magentaGlow : body;
+    if (w.isTarget || spell || sigil) {
+      const c = w.isTarget ? PALETTE.magentaGlow : sigil ? this.sigilColor : body;
+      if (sigil && !w.isTarget) {
+        gl.fillStyle(c, 0.22);
+        gl.fillRect((x0 - 12) * PX, (y0 - 9) * PX, (x1 - x0 + 25) * PX, (y1 - y0 + 19) * PX);
+      }
       gl.fillStyle(c, w.isTarget ? 0.35 : 0.3);
       gl.fillRect((x0 - 5) * PX, (y0 - 4) * PX, (x1 - x0 + 11) * PX, (y1 - y0 + 9) * PX);
       gl.fillStyle(c, w.isTarget ? 0.2 : 0.15);
       gl.fillRect((x0 - 8) * PX, (y0 - 6) * PX, (x1 - x0 + 17) * PX, (y1 - y0 + 13) * PX);
     }
     // Frame: magenta when targeted, teal when frozen, dark otherwise.
-    const frame = w.isTarget ? PALETTE.magentaGlow : this.frozen ? PALETTE.teal : BORDER;
-    const fw = w.isTarget || this.frozen ? 2 : 1;
+    const frame = w.isTarget ? PALETTE.magentaGlow : this.frozen ? PALETTE.teal : this.held ? 0x58b040 : BORDER;
+    const fw = w.isTarget || this.frozen || this.held ? 2 : 1;
     rect(x0 - fw, y0 - fw, x1 + fw, y1 + fw, frame);
 
     rect(x0, y0, x1, y1, body);
@@ -209,8 +228,28 @@ export class WordView extends Phaser.GameObjects.Container {
       rect(cx, cy, cx + 1, cy + 1, STUD);
       rect(cx, cy, cx, cy, STUD_LIGHT);
     }
+    // Overgrowth: vines curling round the plaque.
+    if (this.held) {
+      for (let x = x0 - 2; x <= x1 + 2; x += 6) {
+        rect(x, y0 - 3, x + 1, y0 - 2, 0x3c8a2c);
+        rect(x + 3, y1 + 2, x + 4, y1 + 3, 0x3c8a2c);
+        rect(x + 1, y0 - 4, x + 1, y0 - 4, 0x8ad860);
+      }
+    }
     // Spell scrolls: a darker panel behind the icon.
     if (spell) rect(x0 + 4, y0 + 3, x0 + 18, y1 - 3, shade(body, 0.45), 0.9);
+    // Sigil scrolls: a glowing diamond rune in the wizard's colour.
+    if (sigil) {
+      rect(x0 + 4, y0 + 3, x0 + 18, y1 - 3, shade(body, 0.45), 0.9);
+      const cx = x0 + 11;
+      const cy = Math.round((y0 + y1) / 2);
+      for (let d = 0; d <= 5; d++) {
+        const half = 5 - d;
+        rect(cx - half, cy - d, cx + half, cy - d, d === 0 ? 0xffffff : this.sigilColor);
+        rect(cx - half, cy + d, cx + half, cy + d, d === 0 ? 0xffffff : this.sigilColor);
+      }
+      rect(cx - 1, cy - 1, cx + 1, cy + 1, 0xfff6e0);
+    }
   }
 
   override destroy(fromScene?: boolean): void {

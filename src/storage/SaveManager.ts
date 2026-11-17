@@ -19,6 +19,16 @@ import {
 } from '../modes/PracticeMode';
 
 import { sanitizeName } from '../multiplayer/protocol';
+import type { GameResult } from '../core/GameEvents';
+import { isWizardId, type WizardId } from '../gameplay/Wizards';
+import {
+  emptyLifetime,
+  parseLifetime,
+  recordLevelStats,
+  recordRunStats,
+  type LifetimeStats,
+  type PlayMode,
+} from './LifetimeStats';
 
 export const SAVE_KEY = 'wizzytype.save';
 /** Save written before the game was renamed (read once, then rewritten under SAVE_KEY). */
@@ -46,6 +56,10 @@ export interface SaveData {
   /** Options. Added within v4 (missing → defaults). */
   /** Player settings: music and sound effects on/off (D-038). */
   settings: AudioSettings;
+  /** Everything ever played (D-042). Added within v4 (missing → zeros). */
+  lifetime: LifetimeStats;
+  /** Wizard picked last time, pre-selected next time. */
+  lastWizard: WizardId;
 }
 
 export interface AudioSettings {
@@ -71,6 +85,8 @@ export function emptySave(): SaveData {
     practice: emptyPractice(),
     profile: { name: '', duelLevel: 1 },
     settings: { music: true, sfx: true },
+    lifetime: emptyLifetime(),
+    lastWizard: 'apprentice',
   };
 }
 
@@ -94,6 +110,7 @@ function parseRun(raw: unknown, totalLevels: number): RunSummary | null {
     missed: num(r.missed),
     maxCombo: num(r.maxCombo),
     elapsedMs: num(r.elapsedMs),
+    ...(isWizardId(r.wizard) ? { wizard: r.wizard } : {}),
   };
 }
 
@@ -174,6 +191,11 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
         save.practice = parsePractice(data.practice, totalLevels);
         save.profile = parseProfile((data as { profile?: unknown }).profile, totalLevels);
         save.settings = parseSettings((data as { settings?: unknown }).settings);
+        save.lifetime = parseLifetime((data as { lifetime?: unknown }).lifetime);
+        {
+          const w = (data as { lastWizard?: unknown }).lastWizard;
+          if (isWizardId(w)) save.lastWizard = w;
+        }
         return save;
       default:
         return emptySave();
@@ -258,6 +280,7 @@ export class SaveManager {
 
   recordRun(summary: RunSummary, mode: CampaignMode = 'normal'): RunOutcome {
     const outcome = applyRunResult(this.mutable(mode), summary);
+    recordRunStats(this.save.lifetime, summary);
     this.write();
     return outcome;
   }
@@ -265,6 +288,25 @@ export class SaveManager {
   notePracticeChoice(level: number, filter: ModifierFilter): void {
     this.save.practice.lastLevel = Math.min(Math.max(1, level), this.totalLevels);
     this.save.practice.lastFilter = filter;
+    this.write();
+  }
+
+  get lifetime(): Readonly<LifetimeStats> {
+    return this.save.lifetime;
+  }
+
+  /** Adds a finished level, Practice session or duel to the lifetime stats. */
+  recordLevelStats(stats: GameStats, result: GameResult, context: { mode: PlayMode; boss?: boolean; wizard?: WizardId }): void {
+    recordLevelStats(this.save.lifetime, stats, result, context);
+    this.write();
+  }
+
+  get lastWizard(): WizardId {
+    return this.save.lastWizard;
+  }
+
+  setLastWizard(wizard: WizardId): void {
+    this.save.lastWizard = wizard;
     this.write();
   }
 

@@ -32,6 +32,8 @@ import { commonPrefixLength, guessIntendedWord, mostUrgent, wordsMatching } from
 import { lengthClassOf, type WordState } from '../gameplay/Word';
 import { WordGenerator } from '../gameplay/WordGenerator';
 import type { SpellContext } from '../spells/BaseSpell';
+import * as W from '../gameplay/Wizards';
+import type { WizardId } from '../gameplay/Wizards';
 import { dropWeights, SPELLS } from '../spells/SpellRegistry';
 import { EventBus } from './EventBus';
 import type { GameEvents, GameResult } from './GameEvents';
@@ -64,6 +66,8 @@ export interface EngineOptions {
   initialInstability?: number;
   /** Combo carried in from the previous level of a Campaign run (D-040). */
   initialCombo?: number;
+  /** The wizard being played (D-042). Absent: no passive, no sigil scrolls (Practice, duels). */
+  wizard?: WizardId;
 }
 
 /** The pace a level is running at right now (boss levels speed up over time). */
@@ -120,6 +124,9 @@ export class GameEngine {
   private readonly log: Command[] = [];
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
+  readonly wizard: WizardId | null;
+  /** Separate random stream for sigil scrolls, so the word sequence is unaffected. */
+  private readonly sigilRng: SeededRandom;
 
   constructor(options: EngineOptions) {
     this.config = options.config;
@@ -153,6 +160,9 @@ export class GameEngine {
     this.s.maxCombo = carried;
     this.s.peakMultiplier = multiplierOf(carried);
     this.spellContext = this.createSpellContext();
+    this.wizard = options.wizard ?? null;
+    this.sigilRng = new SeededRandom((this.seed ^ 0x51611c) >>> 0);
+    if (this.wizard === 'warden') this.s.barrier = 1;
   }
 
   /** Re-run a recorded game up to `untilTick` and return the engine. */
@@ -242,6 +252,8 @@ export class GameEngine {
     const remaining = this.survivalRemainingMs;
     if (remaining !== null && remaining <= 0) return this.end('won');
 
+    this.tickPower();
+
     // Frostbinding: nothing moves and nothing spawns (slow stacks wait too).
     if (s.freezeTicks > 0) {
       for (const word of s.words) word.prevY = word.y;
@@ -268,6 +280,7 @@ export class GameEngine {
     const dt = (SIMULATION_STEP_MS / 1000) * factor;
     for (const word of s.words) {
       word.prevY = word.y;
+      if (s.heldTicks > 0 && s.heldIds.includes(word.id)) continue; // Overgrowth
       word.y += word.speed * dt;
     }
 
@@ -395,6 +408,16 @@ export class GameEngine {
     if (isSpellId(input)) {
       this.resetInput(true);
       return this.castSpell(input);
+    }
+
+    // 2b. Recall (Archivist): a unique prefix of 3+ letters captures its word.
+    if (this.wizard === 'archivist' && s.powerTicks > 0 && input.length >= W.RECALL_LETTERS) {
+      const matches = this.candidates(input);
+      if (matches.length === 1) {
+        this.complete(matches[0]!);
+        if (s.input !== '') this.resetInput(true);
+        return;
+      }
     }
 
     // 3. Anything else is an incomplete or misspelled word:
@@ -544,10 +567,15 @@ export class GameEngine {
 
     const available = this.config.availableSpells;
     // Scrolls: whether one drops, then which spell (rarer spells have lower weights).
-    const spell =
-      available.length > 0 && this.rng.chance(this.config.spellDropChance)
+    const dropChance = this.config.spellDropChance * (this.wizard === 'hedgewitch' ? W.WITCH_DROP : 1);
+    let spell =
+      available.length > 0 && this.rng.chance(Math.min(1, dropChance))
         ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
         : null;
+    const sigil = this.rollSigil();
+    if (sigil) spell = null;
+    let speed = this.spawnSpeed(fallSpeed);
+    if (this.wizard === 'archivist' && text.length >= W.ARCHIVIST_LONG_FROM) speed *= W.ARCHIVIST_SLOW;
 
     const word: WordState = {
       id: s.nextWordId++,
@@ -556,7 +584,7 @@ export class GameEngine {
       x,
       y: 0,
       prevY: 0,
-      speed: this.spawnSpeed(fallSpeed),
+      speed,
       baseSpeed: 0,
       typed: 0,
       isTarget: false,
@@ -565,6 +593,7 @@ export class GameEngine {
       spell,
       spawnTick: s.tick,
       errors: 0,
+      sigil,
     };
     word.baseSpeed = word.speed;
     s.words.push(word);
@@ -585,7 +614,7 @@ export class GameEngine {
     s.completionTicksTotal += s.tick - word.spawnTick;
     const multiplier = multiplierOf(s.combo);
     const bonuses = this.wordBonuses(word);
-    const points = scoreWord(word.text.length, multiplier, bonuses);
+    const points = Math.round(scoreWord(word.text.length, multiplier, bonuses) * this.pointsFactor());
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
@@ -593,6 +622,8 @@ export class GameEngine {
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     this.emitProgress();
     if (word.spell) this.collect(word.spell);
+    if (word.sigil) this.firePower();
+    else if (s.kindleCharges > 0) this.kindle(word);
     this.checkQuota();
   }
 
@@ -614,9 +645,23 @@ export class GameEngine {
       return;
     }
 
+    // Bastion (Warden): the ward takes no damage and the combo holds.
+    if (this.wizard === 'warden' && s.powerTicks > 0) {
+      s.blocked++;
+      this.events.emit('wordBlocked', { word, barrierLeft: s.barrier });
+      return;
+    }
+
     s.missed++;
-    this.setCombo(0);
-    s.instability = this.instability.add(this.config.instabilityPerMiss);
+    const comboBefore = s.combo;
+    if (this.wizard === 'apprentice' && s.powerTicks > 0) {
+      // Second Wind: the combo survives.
+    } else if (this.wizard === 'chronomancer') this.setCombo(comboAfterWrongEntry(s.combo));
+    else this.setCombo(0);
+    const damage = this.config.instabilityPerMiss * (this.wizard === 'pyromancer' ? W.PYRO_DAMAGE : 1);
+    const before = this.instability.value;
+    s.instability = this.instability.add(damage);
+    s.lastMiss = { combo: comboBefore, damage: s.instability - before };
     s.peakInstability = Math.max(s.peakInstability, s.instability);
 
     this.events.emit('wordMissed', { word, instability: s.instability });
@@ -823,6 +868,7 @@ export class GameEngine {
     this.events.emit('scoreChanged', { score: this.s.score, combo: this.s.combo });
     this.emitProgress();
     for (const word of words) if (word.spell) this.collect(word.spell);
+    if (words.some((w) => w.sigil)) this.firePower();
     this.checkQuota();
   }
 
@@ -896,6 +942,111 @@ export class GameEngine {
     this.events.emit('wordsTransmuted', { words: changed });
   }
 
+  // ───────────────────────── wizard powers (D-042) ─────────────────────────
+
+  /** Whether the word being spawned carries a sigil scroll. */
+  private rollSigil(): boolean {
+    const s = this.s;
+    if (!this.wizard) return false;
+    const roll = this.sigilRng.next(); // always drawn, so the stream doesn't depend on state
+    if (s.completed < W.SIGIL_AFTER || this.powerActive || s.words.some((w) => w.sigil)) return false;
+    return roll < W.SIGIL_CHANCE;
+  }
+
+  /** True while the wizard's power is running (no new sigils then). */
+  get powerActive(): boolean {
+    const s = this.s;
+    return s.powerTicks > 0 || s.kindleCharges > 0 || s.heldTicks > 0;
+  }
+
+  private pointsFactor(): number {
+    let f = this.wizard === 'pyromancer' ? W.PYRO_SCORE : 1;
+    if (this.s.powerTicks > 0 && this.wizard === 'apprentice') f *= 2;
+    if (this.s.powerTicks > 0 && this.wizard === 'warden') f *= 0.5;
+    return f;
+  }
+
+  private tickPower(): void {
+    const s = this.s;
+    const wizard = this.wizard;
+    if (!wizard) return;
+    if (s.powerTicks > 0 && --s.powerTicks === 0) this.events.emit('powerChanged', { power: wizard, active: false, ticks: 0 });
+    if (s.heldTicks > 0 && --s.heldTicks === 0) {
+      s.heldIds = [];
+      this.events.emit('powerChanged', { power: wizard, active: false, ticks: 0 });
+    }
+  }
+
+  private firePower(): void {
+    const s = this.s;
+    const wizard = this.wizard;
+    if (!wizard) return;
+    s.powersUsed++;
+    const ticks = (ms: number) => Math.round(ms / SIMULATION_STEP_MS);
+    switch (wizard) {
+      case 'apprentice':
+        s.powerTicks = ticks(W.SECOND_WIND_MS);
+        break;
+      case 'archivist':
+        s.powerTicks = ticks(W.RECALL_MS);
+        break;
+      case 'warden':
+        s.powerTicks = ticks(W.BASTION_MS);
+        break;
+      case 'pyromancer':
+        s.kindleCharges = W.KINDLE_CHARGES;
+        break;
+      case 'hedgewitch': {
+        const lowest = [...s.words].sort((a, b) => b.y - a.y || a.id - b.id).slice(0, W.OVERGROWTH_WORDS);
+        s.heldIds = lowest.map((w) => w.id);
+        s.heldTicks = lowest.length > 0 ? ticks(W.OVERGROWTH_MS) : 0;
+        if (lowest.length > 0) this.events.emit('wordsHeld', { words: lowest });
+        break;
+      }
+      case 'chronomancer':
+        this.rewind();
+        break;
+    }
+    const left = wizard === 'pyromancer' ? s.kindleCharges : wizard === 'hedgewitch' ? s.heldTicks : s.powerTicks;
+    this.events.emit('powerChanged', { power: wizard, active: left > 0, ticks: left });
+  }
+
+  /** Rewind: undo the last miss, then push every word back up the field. */
+  private rewind(): void {
+    const s = this.s;
+    const last = s.lastMiss;
+    if (last) {
+      s.instability = this.instability.add(-last.damage);
+      this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
+      if (last.combo > s.combo) {
+        this.setCombo(last.combo);
+        this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
+      }
+      s.lastMiss = null;
+    }
+    const lift = this.field.height * W.REWIND_LIFT;
+    for (const word of s.words) {
+      word.y = Math.max(0, word.y - lift);
+      word.prevY = word.y;
+    }
+    this.events.emit('rewound', { undone: last !== null });
+  }
+
+  /** Kindle: the capture sets the nearest word alight (captured for half its base points). */
+  private kindle(from: WordState): void {
+    const s = this.s;
+    s.kindleCharges--;
+    const near = [...s.words].sort(
+      (a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y) || a.id - b.id,
+    )[0];
+    if (near) {
+      const points = this.claimWords([near], (w) => Math.round((wordPoints(w.text.length, 1) / 2) * W.PYRO_SCORE));
+      this.events.emit('wordsKindled', { x: from.x, y: from.y, words: [near], points });
+      this.afterClaim([near]);
+    }
+    if (s.kindleCharges === 0 && this.wizard) this.events.emit('powerChanged', { power: this.wizard, active: false, ticks: 0 });
+  }
+
   // ───────────────────────── stats ─────────────────────────
 
   stats(): GameStats {
@@ -917,6 +1068,8 @@ export class GameEngine {
       elapsedMs,
       averageCompletionMs:
         s.completed === 0 ? 0 : (s.completionTicksTotal / s.completed) * SIMULATION_STEP_MS,
+      powersUsed: s.powersUsed,
+      spellsCast: { ...s.spellsCast },
     };
   }
 }

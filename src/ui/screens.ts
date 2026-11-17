@@ -19,10 +19,11 @@ import {
 } from '../modes/CampaignMode';
 import { hex, SPELL_COLORS } from '../render/layout';
 import { SPELLS } from '../spells/SpellRegistry';
+import { WIZARDS } from '../gameplay/Wizards';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.14.0';
+const APP_VERSION = '0.15.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -39,6 +40,7 @@ export interface MainMenuActions {
   onPractice(): void;
   onCredits(): void;
   onOptions(): void;
+  onStats(): void;
 }
 
 /** Menu entries that exist in the GDD but are built in later milestones. */
@@ -72,6 +74,7 @@ export function mainMenuScreen(
           h('span', { class: 'badge' }, 'Coming soon'),
         ),
       ),
+      h('button', { class: 'menu-button', onClick: actions.onStats }, 'Stats'),
       h('button', { class: 'menu-button', onClick: actions.onOptions }, 'Options'),
       h('button', { class: 'menu-button', onClick: actions.onCredits }, 'Credits'),
     ),
@@ -331,6 +334,7 @@ export function levelClearScreen(
 export interface RunOverActions {
   onNewRun(): void;
   onMenu(): void;
+  onChangeWizard?(): void;
   mode?: CampaignMode;
 }
 
@@ -344,9 +348,10 @@ export function runOverScreen(
   const won = summary.victory;
   const title = won ? 'Victory' : 'Run Over';
   const mode = MODE_TITLES[actions.mode ?? 'normal'];
-  const subtitle = won
+  const who = summary.wizard ? `${WIZARDS[summary.wizard].name} · ` : '';
+  const subtitle = who + (won
     ? `${mode} · All ${totalLevels} levels cleared`
-    : `${mode} · Fell on level ${summary.reachedLevel} · ${lastLevel.name} · ${summary.levelsCleared} cleared`;
+    : `${mode} · Fell on level ${summary.reachedLevel} · ${lastLevel.name} · ${summary.levelsCleared} cleared`);
 
   const bestLine =
     outcome.previousBest === null
@@ -377,6 +382,7 @@ export function runOverScreen(
       'div',
       { class: 'button-row' },
       newRun,
+      actions.onChangeWizard && h('button', { class: 'menu-button', onClick: actions.onChangeWizard }, 'Change wizard'),
       h('button', { class: 'menu-button', onClick: actions.onMenu }, 'Main menu'),
     ),
   );
@@ -400,7 +406,7 @@ export function creditsScreen(onBack: () => void): Screen {
     h('p', null, `${GAME_TITLE} — an original wizard-themed typing game.`),
     h('p', null, 'Gameplay inspired by classic falling-word typing games.'),
     h('p', null, 'Built with Phaser, TypeScript and Vite.'),
-    h('p', { class: 'footnote' }, 'Pixel art from the Wizzy Type art direction. Fonts: Atkinson Hyperlegible and Pixelify Sans (SIL Open Font License). Audio is coming later.'),
+    h('p', { class: 'footnote' }, 'Pixel art from the Wizzy Type art direction. Fonts: Atkinson Hyperlegible and Pixelify Sans (SIL Open Font License). Music and sound are synthesised live in your browser.'),
     h('div', { class: 'button-row' }, back),
   );
   return {

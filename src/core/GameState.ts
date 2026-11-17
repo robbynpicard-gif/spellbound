@@ -70,6 +70,17 @@ export interface GameState {
   /** Highest instability reached this level (Comeback). */
   peakInstability: number;
   bonusCounts: Partial<Record<BonusId, number>>;
+  // ── wizard power (decisions.md D-042) ──
+  /** Ticks left of a timed power (Second Wind, Recall, Bastion). */
+  powerTicks: number;
+  /** Kindle: captures left that set a neighbour alight. */
+  kindleCharges: number;
+  /** Overgrowth: ticks left, and the words held in place. */
+  heldTicks: number;
+  heldIds: number[];
+  /** The last miss, so Rewind can undo it. */
+  lastMiss: { combo: number; damage: number } | null;
+  powersUsed: number;
 }
 
 /** Delay before the very first word appears, so the player can get ready. */
@@ -113,5 +124,11 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     peakMultiplier: 1,
     peakInstability: instability,
     bonusCounts: {},
+    powerTicks: 0,
+    kindleCharges: 0,
+    heldTicks: 0,
+    heldIds: [],
+    lastMiss: null,
+    powersUsed: 0,
   };
 }

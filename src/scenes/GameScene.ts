@@ -17,6 +17,8 @@ import { WordView } from '../render/WordView';
 import { SPELLS } from '../spells/SpellRegistry';
 import { GameHUD } from '../ui/GameHUD';
 import { instabilityStage } from '../gameplay/InstabilityManager';
+import { WIZARDS, type WizardId } from '../gameplay/Wizards';
+import { WizardPower } from '../render/WizardPower';
 
 /** How the scene reports back to the app (menus are HTML, outside Phaser). */
 export interface GameSceneHooks {
@@ -52,6 +54,8 @@ export interface GameSceneData {
   words?: readonly string[];
   /** Present only in a Wizard Duel. */
   duel?: DuelOptions;
+  /** Campaign: the wizard played (passive, sigil scrolls and portrait, D-042). */
+  wizard?: WizardId;
 }
 
 /**
@@ -109,6 +113,8 @@ export class GameScene extends Phaser.Scene {
   private duel: DuelOptions | null = null;
   private duelMenuOpen = false;
   private countdownText: Phaser.GameObjects.Text | null = null;
+  private wizard: WizardId | null = null;
+  private power: WizardPower | null = null;
 
   constructor() {
     super(GameScene.KEY);
@@ -130,7 +136,9 @@ export class GameScene extends Phaser.Scene {
       hardcore: data.hardcore,
       initialInstability: data.initialInstability,
       initialCombo: data.initialCombo,
+      wizard: data.duel ? undefined : data.wizard,
     });
+    this.wizard = data.duel ? null : (data.wizard ?? null);
     this.views.clear();
     this.accumulator = 0;
     this.introRemainingMs = this.duel ? 0 : INTRO_MS;
@@ -151,7 +159,9 @@ export class GameScene extends Phaser.Scene {
     audio.setStress(instabilityStage(this.engine.state.instability));
     audio.setHeat(tierOf(this.engine.state.combo));
     audio.levelStart();
-    this.background = new FieldBackground(this, chapter, boss ? 4 : (this.config.level - 1) % 5, boss);
+    this.background = new FieldBackground(this, chapter, boss ? 4 : (this.config.level - 1) % 5, boss, this.wizard ?? 'apprentice');
+    this.power = this.wizard ? new WizardPower(this, this.wizard) : null;
+
     this.effects = new Effects(this);
     this.celebrate = new Celebrations(this);
     this.spellFx = new SpellEffects(this);
@@ -164,6 +174,10 @@ export class GameScene extends Phaser.Scene {
       this.knownSpells,
     );
     this.hud.setSpells(this.engine.state.spells);
+    if (this.engine.state.barrier > 0) {
+      this.background.setShield(true);
+      this.hud.setShield(this.engine.state.barrier);
+    }
     const startInstability = this.engine.state.instability;
     if (startInstability > 0) {
       const stage = instabilityStage(startInstability);
@@ -208,6 +222,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   override update(_time: number, delta: number): void {
+    // The score counter keeps rolling (and power gauges draining) through the finale.
+    if (!this.paused) {
+      this.hud.update(Math.min(delta, MAX_FRAME_MS));
+      if (this.engine.status === 'playing' && this.introRemainingMs <= 0 && !this.awaitingIntro) this.power?.update(Math.min(delta, MAX_FRAME_MS));
+    }
     if (this.duel) return this.updateDuel(this.duel);
     if (this.paused || this.awaitingIntro || this.engine.status !== 'playing') return;
 
@@ -324,12 +343,38 @@ export class GameScene extends Phaser.Scene {
     const ev = this.engine.events;
 
     ev.on('wordSpawned', ({ word }) => {
-      this.views.set(word.id, new WordView(this, word));
+      this.views.set(word.id, new WordView(this, word, this.wizard ? WIZARDS[this.wizard].color : undefined));
+      if (word.sigil) audio.sigilAppears();
+    });
+
+    // ── wizard powers (D-042) ──
+    ev.on('powerChanged', ({ active, ticks }) => {
+      this.power?.changed(active, ticks);
+      if (this.wizard === 'warden') this.background.setShield(active || this.engine.state.barrier > 0);
+      if (!active && this.wizard === 'hedgewitch') for (const view of this.views.values()) view.setHeld(false);
+    });
+    ev.on('wordsHeld', ({ words }) => {
+      for (const w of words) this.views.get(w.id)?.setHeld(true);
+    });
+    ev.on('rewound', () => this.power?.rewind());
+    ev.on('wordsKindled', ({ words, points }) => {
+      audio.kindle();
+      this.power?.spend();
+      for (const word of words) {
+        const { x, y } = this.viewPosition(word.id, word.x, word.y);
+        this.removeView(word.id);
+        this.spellFx.burnWord(x, y);
+        this.effects.floatText(x, y, `+${points}`, PALETTE.fire, 24);
+      }
     });
 
     ev.on('wordCompleted', ({ word, points, combo, multiplier, bonuses }) => {
       audio.capture(combo, bonuses.map((b) => b.id));
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
+      if (word.sigil && this.wizard) {
+        audio.power(this.wizard);
+        this.power?.fired(x, y);
+      }
       this.removeView(word.id);
       this.effects.wordDestroyed(x, y, word.text.length, points, multiplier);
       this.celebrate.wordBonuses(x, y, bonuses);
@@ -378,7 +423,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     ev.on('barrierChanged', ({ remaining }) => {
-      this.background.setShield(remaining > 0);
+      this.background.setShield(remaining > 0 || (this.wizard === 'warden' && this.engine.state.powerTicks > 0));
       this.hud.setShield(remaining);
     });
 

@@ -44,6 +44,8 @@ export class FieldBackground {
     /** 0–3 through a chapter's levels, 4 on its boss: weather and gloom build with it. */
     intensity = 0,
     boss = false,
+    /** The wizard at the desk (D-042). */
+    wizard = 'apprentice',
   ) {
     const { width, height } = LAYOUT;
     const key = ART.backdrop(chapter, boss);
@@ -58,8 +60,9 @@ export class FieldBackground {
         .setDepth(-9.5);
     }
     // The wizard, seated at lower left (D-037).
-    if (scene.textures.exists(ART.wizard())) {
-      scene.add.image(LAYOUT.wizard.x, LAYOUT.wizard.y, ART.wizard()).setOrigin(0).setScale(ART_SCALE).setDepth(-8.4);
+    const portrait = scene.textures.exists(ART.wizard(wizard)) ? ART.wizard(wizard) : ART.wizard();
+    if (scene.textures.exists(portrait)) {
+      scene.add.image(LAYOUT.wizard.x, LAYOUT.wizard.y, portrait).setOrigin(0).setScale(ART_SCALE).setDepth(-8.4);
     }
 
     // Seal deterioration, drawn over the seal in the backdrop.

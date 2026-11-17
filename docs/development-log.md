@@ -4,6 +4,13 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-17 — Wizards, score roll-up, Stats
+
+**Done** (D-042, v0.15.0): six playable wizards with sigil-scroll powers,
+wizard selection before a run, rolling score counter, lifetime Stats screen.
+
+---
+
 ## 2026-11-17 — Sound rebuild and options report
 
 **Done** (D-041): dynamic score with stress and heat, bar-quantised
