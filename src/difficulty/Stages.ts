@@ -16,7 +16,9 @@ import { validateLevels, type DifficultyConfig } from './DifficultyConfig';
 export type StageMode = 'normal' | 'hardcore';
 export const STAGE_COUNT = 5;
 export const STAGE_LEVELS = 20;
-/** Levels where a stage introduces its first spell. */
+/** Stage 1 introduces a starter spell at this level (owner, 2026-11-17). */
+export const INTRO_LEVEL = 2;
+/** Each stage introduces a spell at this level. */
 export const SPELL_LEVEL = 10;
 
 export const STAGE_NAMES = ["The Apprentice's Tower", 'The Forgotten Stacks', "The Alchemist's Vault", 'The Storm Spire', 'The Unwritten'] as const;
@@ -41,20 +43,22 @@ export const STAGE_TUNING: Record<
     maxComplexity: readonly (number | null)[];
   }
 > = {
+  // WPM: the agreed targets raised by a third (owner, 2026-11-17), same shape.
+  // Shorter words and a slower fall mean more words on screen at once.
   normal: {
-    startWpm: 12,
-    targetWpm: [18, 22, 26, 30, 35],
-    lengths: [[3, 5], [3, 6], [4, 7], [4, 8], [5, 9]],
-    fallSeconds: [17, 10],
+    startWpm: 16,
+    targetWpm: [24, 29, 35, 40, 47],
+    lengths: [[3, 4], [3, 5], [3, 6], [4, 7], [4, 8]],
+    fallSeconds: [20, 11],
     instabilityPerMiss: [10, 11, 12, 13, 14],
     errorAcceleration: [12, 14, 16, 18, 20],
     maxComplexity: [0.5, 1, 1.5, 2, null],
   },
   hardcore: {
-    startWpm: 18,
-    targetWpm: [25, 30, 35, 40, 45],
-    lengths: [[3, 6], [4, 7], [4, 8], [5, 9], [5, 10]],
-    fallSeconds: [14, 7.5],
+    startWpm: 24,
+    targetWpm: [33, 40, 47, 53, 60],
+    lengths: [[3, 5], [3, 6], [4, 7], [4, 8], [5, 9]],
+    fallSeconds: [15, 8.5],
     instabilityPerMiss: [12, 13, 14, 15, 16],
     errorAcceleration: [16, 18, 20, 22, 24],
     maxComplexity: [1, 1.5, 2, 2.5, null],
@@ -67,37 +71,64 @@ const LEVEL_19_SHARE = 0.95;
 const BOSS_START_SHARE = 0.9;
 const BOSS_END_SHARE = 1.12;
 /** Boss survival time per stage. */
-export const BOSS_SECONDS = [60, 75, 90, 105, 120] as const;
-/** A standard level lasts roughly this long at its own pace. */
-const LEVEL_SECONDS = 65;
-const SPELL_DROP_CHANCE = 0.12;
+export const BOSS_SECONDS = [60, 70, 80, 90, 100] as const;
+/** A standard level lasts roughly this long at its own pace (a stage ≈ 15 minutes). */
+const LEVEL_SECONDS = 37;
+const SPELL_DROP_CHANCE = 0.2;
+/** Words already falling when a level starts, so there is a choice from the first second. */
+const OPENING_WORDS: Record<StageMode, number> = { normal: 4, hardcore: 5 };
+/** Surges start at this level of each stage, so spells matter by levels 6–7. */
+export const SURGE_FROM_LEVEL = 6;
+/** Extra surge length in Hardcore. */
+const HARDCORE_SURGE_MS = 1000;
+
+/** Surges for a level: one mid-level (6–12), two (13–19), three in the boss. */
+function surgesFor(mode: StageMode, level: number, boss: boolean): { at: number; ms: number }[] {
+  const extra = mode === 'hardcore' ? HARDCORE_SURGE_MS : 0;
+  if (boss) return [0.3, 0.6, 0.85].map((at) => ({ at, ms: 6000 + extra }));
+  if (level < SURGE_FROM_LEVEL) return [];
+  if (level <= 12) return [{ at: 0.55, ms: 5000 + extra }];
+  return [0.35, 0.75].map((at) => ({ at, ms: 4500 + extra }));
+}
 
 /**
- * Spell unlocks (D-047): two per stage, in power order. The first arrives at
- * level 10; the second is the reward for beating the boss and is first
- * playable at the start of the next stage. Stage 5 adds none: by then all
- * eight are known, and the final stage is the test.
+ * Spell unlocks (D-047, revised 2026-11-17). Stage 1 starts with Fire at
+ * level 2; each stage then adds one at level 10 and one for beating its boss
+ * (first playable at the start of the next stage).
  */
-export function spellsOfStage(stage: number): { atLevel10: SpellId | null; fromBoss: SpellId | null } {
-  if (stage < 1 || stage > 4) return { atLevel10: null, fromBoss: null };
-  return { atLevel10: SPELL_IDS[(stage - 1) * 2]!, fromBoss: SPELL_IDS[(stage - 1) * 2 + 1]! };
+interface StageSpells {
+  atLevel2: SpellId | null;
+  atLevel10: SpellId | null;
+  fromBoss: SpellId | null;
+}
+const SCHEDULE: readonly StageSpells[] = [
+  { atLevel2: 'fire', atLevel10: 'slow', fromBoss: 'ice' },
+  { atLevel2: null, atLevel10: 'barrier', fromBoss: 'shock' },
+  { atLevel2: null, atLevel10: 'alter', fromBoss: 'wind' },
+  { atLevel2: null, atLevel10: 'harvest', fromBoss: null },
+  { atLevel2: null, atLevel10: null, fromBoss: null },
+];
+
+export function spellsOfStage(stage: number): StageSpells {
+  return SCHEDULE[stage - 1] ?? { atLevel2: null, atLevel10: null, fromBoss: null };
 }
 
 /** Spells known when playing a given level of a stage. */
 export function knownSpells(stage: number, level: number): SpellId[] {
   const known: SpellId[] = [];
   for (let s = 1; s < stage; s++) {
-    const { atLevel10, fromBoss } = spellsOfStage(s);
-    if (atLevel10) known.push(atLevel10);
-    if (fromBoss) known.push(fromBoss);
+    const { atLevel2, atLevel10, fromBoss } = spellsOfStage(s);
+    for (const id of [atLevel2, atLevel10, fromBoss]) if (id) known.push(id);
   }
-  const own = spellsOfStage(stage).atLevel10;
-  if (own && level >= SPELL_LEVEL) known.push(own);
+  const own = spellsOfStage(stage);
+  if (own.atLevel2 && level >= INTRO_LEVEL) known.push(own.atLevel2);
+  if (own.atLevel10 && level >= SPELL_LEVEL) known.push(own.atLevel10);
   return SPELL_IDS.filter((id) => known.includes(id));
 }
 
 /** The spell a level introduces with a pop-up (and drops more often), if any. */
 export function introducedAt(stage: number, level: number): SpellId | null {
+  if (level === INTRO_LEVEL && spellsOfStage(stage).atLevel2) return spellsOfStage(stage).atLevel2;
   if (level === SPELL_LEVEL) return spellsOfStage(stage).atLevel10;
   if (level === 1 && stage > 1) return spellsOfStage(stage - 1).fromBoss;
   return null;
@@ -133,7 +164,7 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
   const speed = round(FIELD.height / fall);
   const wpm = boss ? t.targetWpm[i]! * BOSS_START_SHARE : levelWpm(mode, stage, level);
   const spawn = spawnFor(wpm, avgLen);
-  const room = (fallS: number, spawnMs: number) => Math.min(15, Math.max(4, Math.ceil((fallS * 1000) / spawnMs) + 2));
+  const room = (fallS: number, spawnMs: number) => Math.min(16, Math.max(6, Math.ceil((fallS * 1000) / spawnMs) + 2));
   const spells = knownSpells(stage, level);
   const config: DifficultyConfig = {
     level,
@@ -153,6 +184,8 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
     spellDropChance: spells.length > 0 ? SPELL_DROP_CHANCE : 0,
     maxComplexity: t.maxComplexity[i] ?? null,
     introducesSpell: introducedAt(stage, level),
+    openingWords: OPENING_WORDS[mode],
+    surges: surgesFor(mode, level, boss),
   };
   if (boss) {
     const endSpawn = spawnFor(t.targetWpm[i]! * BOSS_END_SHARE, avgLen);

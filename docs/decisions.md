@@ -698,3 +698,36 @@ question went unanswered; open to change):**
 docs/calibration-2026-11-17.md. Measured WPM matches the plan within ±2. A
 steady typist at exactly the target speed, casting no spells, loses the bosses
 of Normal stages 4–5 and Hardcore stage 5.
+
+### D-048 — Livelier pacing, Fire first, spells that matter, one Apprentice (2026-11-17)
+
+**Owner decisions:**
+- Spell pool stays one shared pool of 8 charges.
+- Claiming a scroll with a full pool: the scroll fizzles to grey smoke where it
+  was claimed, the spell rack flashes red and shakes, a dull clunk plays, and
+  the player gets **Overflow** points: 50 × the combo multiplier.
+- A starter spell at Stage 1 level 2: **Fire**. The rest of the schedule moves
+  up one: S1 Fire (L2), Slow (L10), Ice (boss) · S2 Barrier, Shock · S3 Alter,
+  Wind · S4 Harvest (L10), no boss spell · S5 none.
+- Scoring stays uncapped (combo × Clean Streak can reach ×35) unless it
+  becomes a problem.
+- Best scores are per stage. The main menu shows stages cleared per mode.
+- Difficulty floor raised by a third, same shape. Normal 16 → 24/29/35/40/47
+  WPM; Hardcore 24 → 33/40/47/53/60.
+- Early game must be more engaged: more words to choose from (shorter words,
+  slower fall, more of them), more scrolls (20% of words), ~15-minute stages.
+- Spells should feel useful by level 6–7 and be necessary at the boss.
+- The six-wizard roster, sigil powers, familiars and the wardrobe/mastery track
+  are removed. One plain Apprentice. An ability layer may come back once the
+  core loop is solid.
+- Art is parked; gameplay feel first.
+
+**Implementation:**
+- Each level opens with 4 words (Hardcore 5) already falling, spread down the
+  top of the field.
+- Surges: short bursts where words come 1/0.6× as often (and 3 more may be on
+  screen). Levels 6–12: one 5 s surge mid-level. Levels 13–19: two 4.5 s
+  surges. Boss: three 6 s surges. Hardcore surges last 1 s longer. Endless
+  Practice repeats a level's surges every quota's worth of words.
+- Levels last about 37 s at their own pace; bosses 60/70/80/90/100 s.
+- Calibration: docs/calibration-2026-11-17.md (v0.20.0 section).

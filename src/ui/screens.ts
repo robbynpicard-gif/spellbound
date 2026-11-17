@@ -20,11 +20,10 @@ import {
 import { hex, SPELL_COLORS } from '../render/layout';
 import { STAGE_COUNT, STAGE_LEVELS, STAGE_NAMES } from '../difficulty/Stages';
 import { SPELLS } from '../spells/SpellRegistry';
-import { WIZARDS } from '../gameplay/Wizards';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.19.0';
+const APP_VERSION = '0.20.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -50,7 +49,8 @@ const UPCOMING: [label: string, milestone: string][] = [
   ['Spellbook', 'Milestone 6'],
 ];
 
-export function mainMenuScreen(actions: MainMenuActions, bestScore: number | null, persistent: boolean): Screen {
+/** `progress`: a line about campaign progress (best scores are per stage, on the stage screen). */
+export function mainMenuScreen(actions: MainMenuActions, progress: string | null, persistent: boolean): Screen {
   const campaign = h('button', { class: 'menu-button primary', onClick: actions.onCampaign }, 'Campaign');
 
   const element = h(
@@ -74,7 +74,7 @@ export function mainMenuScreen(actions: MainMenuActions, bestScore: number | nul
       h('button', { class: 'menu-button', onClick: actions.onOptions }, 'Options'),
       h('button', { class: 'menu-button', onClick: actions.onCredits }, 'Credits'),
     ),
-    bestScore !== null && h('p', { class: 'best-run' }, `Best stage run: ${bestScore.toLocaleString()}`),
+    progress !== null && h('p', { class: 'best-run' }, progress),
     h(
       'p',
       { class: 'footnote' },
@@ -291,8 +291,7 @@ export interface RunOverActions {
   onNextStage?(): void;
   /** Victory: the spell won from the boss (first playable next stage). */
   spellWon?: SpellId | null;
-  onChangeWizard?(): void;
-  /** Shown above the buttons (wizard mastery and unlocks). */
+  /** Shown above the buttons (the stage journey). */
   extra?: HTMLElement | null;
   mode?: CampaignMode;
 }
@@ -307,8 +306,7 @@ export function runOverScreen(
   const stage = summary.stage ?? 1;
   const title = won ? `Stage ${stage} Cleared` : 'Run Over';
   const mode = MODE_TITLES[actions.mode ?? 'normal'];
-  const who = summary.wizard ? `${WIZARDS[summary.wizard].name} · ` : '';
-  const subtitle = who + (won
+  const subtitle = (won
     ? `${mode} · ${STAGE_NAMES[stage - 1]} · ${lastLevel.name} defeated`
     : `${mode} · Stage ${stage} · fell on level ${summary.reachedLevel} · ${summary.levelsCleared} cleared`);
 
@@ -353,7 +351,6 @@ export function runOverScreen(
       { class: 'button-row' },
       next,
       newRun,
-      actions.onChangeWizard && h('button', { class: 'menu-button', onClick: actions.onChangeWizard }, 'Change wizard'),
       h('button', { class: 'menu-button', onClick: actions.onMenu }, 'Main menu'),
     ),
   );

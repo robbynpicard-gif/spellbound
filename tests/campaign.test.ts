@@ -17,7 +17,8 @@ import {
 import { WORDS } from '../src/data/wordList';
 import { GameEngine } from '../src/core/GameEngine';
 import type { GameStats } from '../src/gameplay/ScoringSystem';
-import { emptyCharges, SPELL_IDS } from '../src/gameplay/SpellManager';
+import { emptyCharges, SPELL_IDS, SPELL_POOL_SIZE } from '../src/gameplay/SpellManager';
+import { OVERFLOW_POINTS } from '../src/core/GameEngine';
 import {
   HARDCORE_HEAL,
   HARDCORE_HEAL_LEVELS,
@@ -90,13 +91,14 @@ describe('stage structure (D-047)', () => {
   });
 
   it('uses the agreed WPM targets', () => {
-    expect(STAGE_TUNING.normal.targetWpm).toEqual([18, 22, 26, 30, 35]);
-    expect(STAGE_TUNING.hardcore.targetWpm).toEqual([25, 30, 35, 40, 45]);
-    expect(levelWpm('normal', 1, 1)).toBe(12);
-    expect(levelWpm('hardcore', 1, 1)).toBe(18);
-    expect(levelWpm('normal', 3, 20)).toBe(26);
+    // The agreed targets raised by a third (owner, 2026-11-17).
+    expect(STAGE_TUNING.normal.targetWpm).toEqual([24, 29, 35, 40, 47]);
+    expect(STAGE_TUNING.hardcore.targetWpm).toEqual([33, 40, 47, 53, 60]);
+    expect(levelWpm('normal', 1, 1)).toBe(16);
+    expect(levelWpm('hardcore', 1, 1)).toBe(24);
+    expect(levelWpm('normal', 3, 20)).toBe(35);
     // Each stage starts where the previous stage's target was.
-    expect(levelWpm('normal', 2, 1)).toBe(18);
+    expect(levelWpm('normal', 2, 1)).toBe(24);
   });
 
   it('gets harder within each stage, and Hardcore is harder than Normal', () => {
@@ -127,43 +129,54 @@ describe('stage structure (D-047)', () => {
         }
   });
 
-  it('keeps a stage run roughly 20–30 minutes', () => {
+  it('keeps a stage run near 15 minutes', () => {
     for (const mode of MODES)
       for (const stage of STAGES) {
         let ms = 0;
         for (const l of stageLevels(mode, stage)) ms += isSurvival(l) ? l.survivalMs! : l.requiredWords! * l.spawnInterval + 4000;
-        expect(ms / 60_000).toBeGreaterThan(18);
-        expect(ms / 60_000).toBeLessThan(32);
+        expect(ms / 60_000).toBeGreaterThan(12);
+        expect(ms / 60_000).toBeLessThan(17);
       }
   });
 });
 
-describe('spell schedule: 2 per stage, at level 10 and from the boss', () => {
+describe('spell schedule: Fire at stage 1 level 2, then level 10 and the boss', () => {
   it('follows the agreed order', () => {
     expect(STAGES.map(spellsOfStage)).toEqual([
-      { atLevel10: 'slow', fromBoss: 'ice' },
-      { atLevel10: 'barrier', fromBoss: 'shock' },
-      { atLevel10: 'alter', fromBoss: 'fire' },
-      { atLevel10: 'wind', fromBoss: 'harvest' },
-      { atLevel10: null, fromBoss: null },
+      { atLevel2: 'fire', atLevel10: 'slow', fromBoss: 'ice' },
+      { atLevel2: null, atLevel10: 'barrier', fromBoss: 'shock' },
+      { atLevel2: null, atLevel10: 'alter', fromBoss: 'wind' },
+      { atLevel2: null, atLevel10: 'harvest', fromBoss: null },
+      { atLevel2: null, atLevel10: null, fromBoss: null },
     ]);
   });
 
   it('introduces the level-10 spell at level 10 and the boss spell at the next stage’s level 1', () => {
-    expect(stageLevel('normal', 1, 9).availableSpells).toEqual([]);
+    expect(stageLevel('normal', 1, 1).availableSpells).toEqual([]);
+    expect(stageLevel('normal', 1, 2).introducesSpell).toBe('fire');
+    expect(stageLevel('normal', 1, 9).availableSpells).toEqual(['fire']);
     expect(stageLevel('normal', 1, 10).introducesSpell).toBe('slow');
-    expect(stageLevel('normal', 1, 10).availableSpells).toEqual(['slow']);
+    expect([...stageLevel('normal', 1, 10).availableSpells].sort()).toEqual(['fire', 'slow']);
     expect(stageLevel('normal', 1, 20).availableSpells).not.toContain('ice');
     expect(stageLevel('normal', 2, 1).introducesSpell).toBe('ice');
-    expect(knownSpells(2, 1).sort()).toEqual(['ice', 'slow']);
+    expect(knownSpells(2, 1).sort()).toEqual(['fire', 'ice', 'slow']);
     expect(knownSpells(5, 1).sort()).toEqual([...SPELL_IDS].sort());
+  });
+
+  it('opens each level with a cluster of words, and adds surges from level 6', () => {
+    expect(stageLevel('normal', 1, 1).openingWords).toBe(4);
+    expect(stageLevel('hardcore', 1, 1).openingWords).toBe(5);
+    expect(stageLevel('normal', 1, 5).surges).toEqual([]);
+    expect(stageLevel('normal', 1, 6).surges!.length).toBe(1);
+    expect(stageLevel('normal', 1, 13).surges!.length).toBe(2);
+    expect(stageLevel('normal', 1, 20).surges!.length).toBe(3);
   });
 
   it('starts a later stage with 1 charge of the spell its previous boss gave', () => {
     expect(startRun('normal', 1).spellCharges).toEqual(emptyCharges());
     expect(startRun('normal', 2).spellCharges.ice).toBe(1);
-    expect(startRun('hardcore', 4).spellCharges.fire).toBe(1);
-    expect(startRun('normal', 5).spellCharges.harvest).toBe(1);
+    expect(startRun('hardcore', 4).spellCharges.wind).toBe(1);
+    expect(startRun('normal', 5).spellCharges).toEqual(emptyCharges());
   });
 });
 
@@ -219,6 +232,49 @@ describe('stage run', () => {
   it('a Hardcore run passes its instability into the engine', () => {
     const engine = new GameEngine({ config: stageLevel('hardcore', 1, 1), seed: 1, words: WORDS, hardcore: true, initialInstability: 45 });
     expect(engine.state.instability).toBe(45);
+  });
+});
+
+describe('pacing and overflow (engine)', () => {
+  it('starts a level with its opening words already falling, spread down the field', () => {
+    const e = new GameEngine({ config: stageLevel('normal', 1, 1), seed: 2, words: WORDS });
+    e.step();
+    expect(e.state.words.length).toBe(4);
+    expect(new Set(e.state.words.map((w) => Math.round(w.y))).size).toBe(4);
+  });
+
+  it('runs a surge at its point in the level: words come faster, then it ends', () => {
+    const config = { ...stageLevel('normal', 2, 7), requiredWords: 40 };
+    const e = new GameEngine({ config, seed: 5, words: WORDS });
+    const events: boolean[] = [];
+    e.events.on('surgeChanged', ({ active }) => events.push(active));
+    const normal = e.pace.spawnInterval;
+    // Force progress past the surge point by capturing words instantly.
+    for (let t = 0; t < 60 * 400 && events.length < 2; t++) {
+      e.step();
+      const w = e.state.words[0];
+      if (w && e.state.completed < 30) { for (const c of w.match) e.typeChar(c); e.submit(); }
+      if (events.length === 1 && events[0]) expect(e.pace.spawnInterval).toBeLessThan(normal);
+    }
+    expect(events).toEqual([true, false]);
+  });
+
+  it(`a scroll claimed with a full pool fizzles for ${OVERFLOW_POINTS} × the multiplier`, () => {
+    const config = { ...stageLevel('normal', 2, 3), spellDropChance: 1 };
+    const full = { ...emptyCharges(), fire: SPELL_POOL_SIZE };
+    const e = new GameEngine({ config, seed: 9, words: WORDS, initialSpells: full });
+    const got: { stored: boolean; overflowPoints: number }[] = [];
+    e.events.on('spellCollected', (p) => got.push(p));
+    while (e.state.words.length === 0) e.step();
+    const w = e.state.words[0]!;
+    const before = e.state.score;
+    let wordPts = 0;
+    e.events.on('wordCompleted', ({ points }) => (wordPts = points));
+    for (const c of w.match) e.typeChar(c);
+    e.submit();
+    expect(got[0]).toMatchObject({ stored: false, overflowPoints: OVERFLOW_POINTS });
+    expect(e.state.score - before).toBe(wordPts + OVERFLOW_POINTS);
+    expect(e.state.spells.fire).toBe(SPELL_POOL_SIZE);
   });
 });
 

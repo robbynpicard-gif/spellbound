@@ -7,7 +7,6 @@ import {
   type SpellCharges,
 } from '../gameplay/SpellManager';
 import { spellsOfStage, STAGE_LEVELS } from '../difficulty/Stages';
-import type { WizardId } from '../gameplay/Wizards';
 
 /**
  * Campaign (decisions.md D-047, docs/design.md §4): two modes, each with five
@@ -44,8 +43,6 @@ export interface CampaignRun {
   mode: CampaignMode;
   /** The stage being played (1–5). */
   stage: number;
-  /** The wizard played this run (D-042). */
-  wizard: WizardId;
   /** Level currently being played (or about to be). */
   level: number;
   /** Instability carried into the next level (always 0 in Normal). */
@@ -76,8 +73,6 @@ export interface RunSummary {
   missed: number;
   maxCombo: number;
   elapsedMs: number;
-  /** Wizard played (runs recorded before D-042 have none: the Apprentice). */
-  wizard?: WizardId;
 }
 
 /** Long-term records for one stage of one mode, kept in the save file. */
@@ -104,14 +99,13 @@ export function emptyCampaignRecords(): CampaignRecords {
  * A fresh run of one stage. From stage 2 on, the run starts with one charge of
  * the spell won from the previous stage's boss (D-047).
  */
-export function startRun(mode: CampaignMode = 'normal', stage = 1, wizard: WizardId = 'apprentice'): CampaignRun {
+export function startRun(mode: CampaignMode = 'normal', stage = 1): CampaignRun {
   const charges = emptyCharges();
   const gift = stage > 1 ? spellsOfStage(stage - 1).fromBoss : null;
   if (gift) addCharge(charges, gift);
   return {
     mode,
     stage,
-    wizard,
     instability: 0,
     level: 1,
     score: 0,
@@ -176,7 +170,6 @@ export function summarizeRun(run: CampaignRun, victory: boolean): RunSummary {
     missed: t.missed,
     maxCombo: t.maxCombo,
     elapsedMs: t.elapsedMs,
-    wizard: run.wizard,
   };
 }
 

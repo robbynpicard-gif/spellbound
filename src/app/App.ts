@@ -26,7 +26,7 @@ import {
 } from '../ui/screens';
 import type { UIRoot } from '../ui/UIRoot';
 import { PRACTICE_UNLOCK_ALL } from './flags';
-import { journeyStrip, statsScreen } from '../ui/wizardScreens';
+import { journeyStrip, statsScreen } from '../ui/statsScreens';
 
 /**
  * Top-level flow between screens.
@@ -59,7 +59,7 @@ export class App {
           onOptions: () => this.showOptions(),
           onStats: () => this.showStats(),
         },
-        this.save.bestScore(),
+        this.progressLine(),
         this.save.persistent,
       ),
     );
@@ -100,12 +100,21 @@ export class App {
 
   showStats(): void {
     this.showBackdrop();
-    this.ui.show(statsScreen(this.save.lifetime, () => this.showMainMenu(), false));
+    this.ui.show(statsScreen(this.save.lifetime, () => this.showMainMenu()));
   }
 
   showCredits(): void {
     this.showBackdrop();
     this.ui.show(creditsScreen(() => this.showMainMenu()));
+  }
+
+  /** "Normal: 2 of 5 stages cleared · Hardcore: …", or null before any run. */
+  private progressLine(): string | null {
+    const modes: CampaignMode[] = ['normal', 'hardcore'];
+    const played = modes.some((m) => this.save.records(m, 1).runsStarted > 0);
+    if (!played) return null;
+    const cleared = (m: CampaignMode) => [1, 2, 3, 4, 5].filter((st) => this.save.records(m, st).runsCompleted > 0).length;
+    return `Normal: ${cleared('normal')} of ${STAGE_COUNT} stages cleared · Hardcore: ${cleared('hardcore')} of ${STAGE_COUNT}`;
   }
 
   // ───────────────────────── Campaign ─────────────────────────

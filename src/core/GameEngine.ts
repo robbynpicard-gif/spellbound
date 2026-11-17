@@ -35,8 +35,6 @@ import { commonPrefixLength, guessIntendedWord, mostUrgent, wordsMatching } from
 import { lengthClassOf, type WordState } from '../gameplay/Word';
 import { WordGenerator } from '../gameplay/WordGenerator';
 import type { SpellContext } from '../spells/BaseSpell';
-import * as W from '../gameplay/Wizards';
-import type { WizardId } from '../gameplay/Wizards';
 import { dropWeights, SPELLS } from '../spells/SpellRegistry';
 import { EventBus } from './EventBus';
 import type { GameEvents, GameResult } from './GameEvents';
@@ -71,8 +69,6 @@ export interface EngineOptions {
   initialCombo?: number;
   /** Clean Streak carried in from the previous level of the same chapter (D-046). */
   initialCleanStreak?: number;
-  /** The wizard being played (D-042). Absent: no passive, no sigil scrolls (Practice, duels). */
-  wizard?: WizardId;
 }
 
 /** The pace a level is running at right now (boss levels speed up over time). */
@@ -86,6 +82,11 @@ export interface Pace {
 export const SPEED_VARIANCE = 0.25;
 /** Quota levels: average speed runs from ×(1−this) at the start to ×(1+this) at the quota. */
 export const LEVEL_SPEED_RAMP = 0.15;
+/** During a surge words arrive this much more often, and a few more may be on the field. */
+export const SURGE_SPAWN_FACTOR = 0.6;
+export const SURGE_EXTRA_WORDS = 3;
+/** Claiming a scroll with a full spell pool: these points × the combo multiplier instead. */
+export const OVERFLOW_POINTS = 50;
 
 /** Transmutation turns long words into words of these lengths. */
 const SHORT_WORD_MIN = 3;
@@ -129,9 +130,6 @@ export class GameEngine {
   private readonly log: Command[] = [];
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
-  readonly wizard: WizardId | null;
-  /** Separate random stream for sigil scrolls, so the word sequence is unaffected. */
-  private readonly sigilRng: SeededRandom;
 
   constructor(options: EngineOptions) {
     this.config = options.config;
@@ -167,8 +165,6 @@ export class GameEngine {
     this.s.cleanStreak = Math.max(0, Math.floor(options.initialCleanStreak ?? 0));
     this.s.peakCleanStreak = this.s.cleanStreak;
     this.spellContext = this.createSpellContext();
-    this.wizard = options.wizard ?? null;
-    this.sigilRng = new SeededRandom((this.seed ^ 0x51611c) >>> 0);
   }
 
   /** Re-run a recorded game up to `untilTick` and return the engine. */
@@ -210,15 +206,55 @@ export class GameEngine {
    */
   get pace(): Pace {
     const c = this.config;
-    const base = { fallSpeed: c.initialFallSpeed, spawnInterval: c.spawnInterval, maxActiveWords: c.maxActiveWords };
-    if (!isSurvival(c) || !c.ramp) return base;
-    const t = Math.min(1, this.elapsedMs / c.survivalMs!);
-    const lerp = (a: number, b: number) => a + (b - a) * t;
-    return {
-      fallSpeed: lerp(base.fallSpeed, c.ramp.initialFallSpeed),
-      spawnInterval: lerp(base.spawnInterval, c.ramp.spawnInterval),
-      maxActiveWords: Math.round(lerp(base.maxActiveWords, c.ramp.maxActiveWords)),
-    };
+    let pace = { fallSpeed: c.initialFallSpeed, spawnInterval: c.spawnInterval, maxActiveWords: c.maxActiveWords };
+    if (isSurvival(c) && c.ramp) {
+      const t = Math.min(1, this.elapsedMs / c.survivalMs!);
+      const lerp = (a: number, b: number) => a + (b - a) * t;
+      pace = {
+        fallSpeed: lerp(pace.fallSpeed, c.ramp.initialFallSpeed),
+        spawnInterval: lerp(pace.spawnInterval, c.ramp.spawnInterval),
+        maxActiveWords: Math.round(lerp(pace.maxActiveWords, c.ramp.maxActiveWords)),
+      };
+    }
+    if (this.s.surgeTicks > 0)
+      pace = { ...pace, spawnInterval: pace.spawnInterval * SURGE_SPAWN_FACTOR, maxActiveWords: pace.maxActiveWords + SURGE_EXTRA_WORDS };
+    return pace;
+  }
+
+  /** How far through the level we are (0–1): share of the quota, or of the boss timer. */
+  private get progress(): number {
+    const c = this.config;
+    if (c.requiredWords) return Math.min(1, this.s.completed / c.requiredWords);
+    if (c.survivalMs) return Math.min(1, this.elapsedMs / c.survivalMs);
+    // Endless Practice: each quota's worth of words is one lap, with the level's surges again.
+    if (c.rampWords) return (this.s.completed % c.rampWords) / c.rampWords;
+    return 0;
+  }
+
+  /** Opening words, and starting/ending surges. Runs once per tick before movement. */
+  private tickPacing(): void {
+    const s = this.s;
+    const c = this.config;
+    if (s.tick === 1 && c.openingWords) {
+      const n = c.openingWords;
+      for (let k = 0; k < n; k++) this.spawn(this.pace.fallSpeed, this.field.height * (0.04 + (0.3 * (n - 1 - k)) / Math.max(1, n - 1)));
+      s.spawnTimerMs = this.pace.spawnInterval;
+    }
+    if (s.surgeTicks > 0 && --s.surgeTicks === 0) this.events.emit('surgeChanged', { active: false });
+    if (!c.requiredWords && !c.survivalMs && c.rampWords) {
+      const lap = Math.floor(s.completed / c.rampWords);
+      if (lap !== s.surgeLap) {
+        s.surgeLap = lap;
+        s.surgesStarted = 0;
+      }
+    }
+    const next = c.surges?.[s.surgesStarted];
+    if (next && s.surgeTicks === 0 && this.progress >= next.at) {
+      s.surgesStarted++;
+      s.surgeTicks = Math.max(1, Math.round(next.ms / SIMULATION_STEP_MS));
+      s.spawnTimerMs = Math.min(s.spawnTimerMs, 200);
+      this.events.emit('surgeChanged', { active: true });
+    }
   }
 
   get commands(): readonly Command[] {
@@ -258,7 +294,7 @@ export class GameEngine {
     const remaining = this.survivalRemainingMs;
     if (remaining !== null && remaining <= 0) return this.end('won');
 
-    this.tickPower();
+    this.tickPacing();
 
     // Frostbinding: nothing moves and nothing spawns (slow stacks wait too).
     if (s.freezeTicks > 0) {
@@ -392,8 +428,7 @@ export class GameEngine {
       // Clean Streak: a typo (even one fixed with Backspace) steps back one milestone (D-046).
       s.entryTypo = true;
       this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
-      // Fluent (Lexicant): a typo costs nothing but the keystroke.
-      if (attempted && this.wizard !== 'lexicant') this.penalize(attempted);
+      if (attempted) this.penalize(attempted);
     }
     this.events.emit('typingError', { wordId: attempted?.id ?? this.s.targetId, char });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
@@ -417,16 +452,6 @@ export class GameEngine {
     if (isSpellId(input)) {
       this.resetInput(true);
       return this.castSpell(input);
-    }
-
-    // 2b. Recall (Archivist): a unique prefix of 3+ letters captures its word.
-    if (this.wizard === 'archivist' && s.powerTicks > 0 && input.length >= W.RECALL_LETTERS) {
-      const matches = this.candidates(input);
-      if (matches.length === 1) {
-        this.complete(matches[0]!);
-        if (s.input !== '') this.resetInput(true);
-        return;
-      }
     }
 
     // 3. Anything else is an incomplete or misspelled word:
@@ -568,33 +593,29 @@ export class GameEngine {
     return fallSpeed * vary * ramp;
   }
 
-  private spawn(fallSpeed: number): void {
+  private spawn(fallSpeed: number, startY = 0): void {
     const s = this.s;
     const text = s.easyTicks > 0 && this.easyGenerator ? this.easyGenerator.next() : this.generator.next();
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;
     let x = Math.round(minX < maxX ? this.rng.range(minX, maxX) : this.field.width / 2);
-    if (this.wizard === 'cartographer') x = Math.round(Math.min(Math.max(this.laneX(this.laneOf(x)), minX), Math.max(minX, maxX)));
 
     const available = this.config.availableSpells;
     // Scrolls: whether one drops, then which spell (rarer spells have lower weights).
-    let spell =
+    const spell =
       available.length > 0 && this.rng.chance(this.config.spellDropChance)
         ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
         : null;
-    const sigil = this.rollSigil();
-    if (sigil) spell = null;
-    let speed = this.spawnSpeed(fallSpeed);
-    if (this.wizard === 'archivist' && text.length >= W.ARCHIVIST_LONG_FROM) speed *= W.ARCHIVIST_SLOW;
+    const speed = this.spawnSpeed(fallSpeed);
 
     const word: WordState = {
       id: s.nextWordId++,
       text,
       match: text.toLowerCase(),
       x,
-      y: 0,
-      prevY: 0,
+      y: startY,
+      prevY: startY,
       speed,
       baseSpeed: 0,
       typed: 0,
@@ -604,7 +625,6 @@ export class GameEngine {
       spell,
       spawnTick: s.tick,
       errors: 0,
-      sigil,
     };
     word.baseSpeed = word.speed;
     s.words.push(word);
@@ -629,23 +649,29 @@ export class GameEngine {
     if (word.errors === 0 && !s.entryTypo) this.setCleanStreak(s.cleanStreak + 1, 'capture');
     const streak = streakMultiplierOf(s.cleanStreak);
     const bonuses = this.wordBonuses(word);
-    const points = Math.round(scoreWord(word.text.length, multiplier, bonuses, streak) * this.pointsFactor());
+    const points = Math.round(scoreWord(word.text.length, multiplier, bonuses, streak));
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
     this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: streak });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     this.emitProgress();
-    if (word.spell) this.collect(word.spell);
-    if (word.sigil) this.firePower();
-    else if (s.kindleCharges > 0) this.kindle(word);
-    else if (s.powerTicks > 0 && (this.wizard === 'cartographer' || this.wizard === 'lexicant')) this.echo(word, multiplier);
+    if (word.spell) this.collect(word);
     this.checkQuota();
   }
 
-  private collect(spell: SpellId): void {
-    const stored = addCharge(this.s.spells, spell);
-    this.events.emit('spellCollected', { spell, stored, charges: { ...this.s.spells } });
+  /** Claims a word's scroll. With a full pool it fizzles for consolation points. */
+  private collect(word: WordState): void {
+    const s = this.s;
+    const spell = word.spell!;
+    const stored = addCharge(s.spells, spell);
+    const overflowPoints = stored ? 0 : OVERFLOW_POINTS * multiplierOf(s.combo);
+    if (overflowPoints > 0) {
+      s.score += overflowPoints;
+      s.overflows++;
+    }
+    this.events.emit('spellCollected', { spell, stored, charges: { ...s.spells }, overflowPoints, x: word.x, y: word.y });
+    if (overflowPoints > 0) this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
   }
 
   private miss(word: WordState): void {
@@ -662,16 +688,10 @@ export class GameEngine {
     }
 
     s.missed++;
-    const comboBefore = s.combo;
-    if (this.wizard === 'apprentice' && s.powerTicks > 0) {
-      // Second Wind: the combo survives.
-    } else if (this.wizard === 'chronomancer') this.setCombo(comboAfterWrongEntry(s.combo));
-    else this.setCombo(0);
+    this.setCombo(0);
     this.setCleanStreak(0, 'miss');
-    const damage = this.config.instabilityPerMiss * (this.wizard === 'pyromancer' ? W.PYRO_DAMAGE : 1);
-    const before = this.instability.value;
+    const damage = this.config.instabilityPerMiss;
     s.instability = this.instability.add(damage);
-    s.lastMiss = { combo: comboBefore, damage: s.instability - before };
     s.peakInstability = Math.max(s.peakInstability, s.instability);
 
     this.events.emit('wordMissed', { word, instability: s.instability });
@@ -894,8 +914,7 @@ export class GameEngine {
   private afterClaim(words: WordState[]): void {
     this.events.emit('scoreChanged', { score: this.s.score, combo: this.s.combo });
     this.emitProgress();
-    for (const word of words) if (word.spell) this.collect(word.spell);
-    if (words.some((w) => w.sigil)) this.firePower();
+    for (const word of words) if (word.spell) this.collect(word);
     this.checkQuota();
   }
 
@@ -969,149 +988,6 @@ export class GameEngine {
     this.events.emit('wordsTransmuted', { words: changed });
   }
 
-  // ───────────────────────── wizard powers (D-042) ─────────────────────────
-
-  /** Whether the word being spawned carries a sigil scroll. */
-  private rollSigil(): boolean {
-    const s = this.s;
-    if (!this.wizard) return false;
-    const roll = this.sigilRng.next(); // always drawn, so the stream doesn't depend on state
-    if (s.completed < W.SIGIL_AFTER || this.powerActive || s.words.some((w) => w.sigil)) return false;
-    return roll < W.SIGIL_CHANCE;
-  }
-
-  /** True while the wizard's power is running (no new sigils then). */
-  get powerActive(): boolean {
-    const s = this.s;
-    return s.powerTicks > 0 || s.kindleCharges > 0;
-  }
-
-  private pointsFactor(): number {
-    let f = this.wizard === 'pyromancer' ? W.PYRO_SCORE : 1;
-    if (this.s.powerTicks > 0 && this.wizard === 'apprentice') f *= 2;
-    return f;
-  }
-
-  private tickPower(): void {
-    const s = this.s;
-    const wizard = this.wizard;
-    if (!wizard) return;
-    if (s.powerTicks > 0 && --s.powerTicks === 0) this.events.emit('powerChanged', { power: wizard, active: false, ticks: 0 });
-  }
-
-  private firePower(): void {
-    const s = this.s;
-    const wizard = this.wizard;
-    if (!wizard) return;
-    s.powersUsed++;
-    const ticks = (ms: number) => Math.round(ms / SIMULATION_STEP_MS);
-    switch (wizard) {
-      case 'apprentice':
-        s.powerTicks = ticks(W.SECOND_WIND_MS);
-        break;
-      case 'archivist':
-        s.powerTicks = ticks(W.RECALL_MS);
-        break;
-      case 'cartographer':
-        s.powerTicks = ticks(W.COMPASS_MS);
-        break;
-      case 'pyromancer':
-        s.kindleCharges = W.KINDLE_CHARGES;
-        break;
-      case 'lexicant':
-        this.malapropism();
-        s.powerTicks = ticks(W.MALAPROPISM_MS);
-        break;
-      case 'chronomancer':
-        this.rewind();
-        break;
-    }
-    const left = wizard === 'pyromancer' ? s.kindleCharges : s.powerTicks;
-    this.events.emit('powerChanged', { power: wizard, active: left > 0, ticks: left });
-  }
-
-  /** Rewind: undo the last miss, then push every word back up the field. */
-  private rewind(): void {
-    const s = this.s;
-    const last = s.lastMiss;
-    if (last) {
-      s.instability = this.instability.add(-last.damage);
-      this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
-      if (last.combo > s.combo) {
-        this.setCombo(last.combo);
-        this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
-      }
-      s.lastMiss = null;
-    }
-    const lift = this.field.height * W.REWIND_LIFT;
-    for (const word of s.words) {
-      word.y = Math.max(0, word.y - lift);
-      word.prevY = word.y;
-    }
-    this.events.emit('rewound', { undone: last !== null });
-  }
-
-  /** Cartographer lanes: the field split into LANES columns. */
-  private laneOf(x: number): number {
-    const inner = this.field.width - 2 * this.field.sideMargin;
-    return Math.min(W.LANES - 1, Math.max(0, Math.floor(((x - this.field.sideMargin) / inner) * W.LANES)));
-  }
-
-  private laneX(lane: number): number {
-    const inner = this.field.width - 2 * this.field.sideMargin;
-    return this.field.sideMargin + ((lane + 0.5) / W.LANES) * inner;
-  }
-
-  /**
-   * Compass Rose (every word in the captured word's lane) and Malapropism
-   * (every word with the same text): captured too, at the capture's multiplier.
-   */
-  private echo(from: WordState, multiplier: number): void {
-    const s = this.s;
-    const lane = this.laneOf(from.x);
-    const hits =
-      this.wizard === 'cartographer'
-        ? s.words.filter((w) => this.laneOf(w.x) === lane)
-        : s.words.filter((w) => w.match === from.match);
-    if (hits.length === 0) return;
-    const factor = this.pointsFactor();
-    const points = this.claimWords(hits, (w) => Math.round(wordPoints(w.text.length, multiplier) * factor));
-    this.events.emit('powerClaimed', { words: hits, points });
-    this.afterClaim(hits);
-  }
-
-  /** Malapropism: every word on the field becomes one short word. */
-  private malapropism(): void {
-    const s = this.s;
-    if (s.words.length === 0 || this.shortWords.length === 0) return;
-    const rng = new SeededRandom((this.seed ^ Math.imul(s.tick + 7, 0x85ebca6b)) >>> 0);
-    const text = rng.pick(this.shortWords);
-    const aimed = s.targetId !== null || s.pinnedId !== null;
-    for (const word of s.words) {
-      word.text = text;
-      word.match = text.toLowerCase();
-      word.lengthClass = lengthClassOf(text.length);
-      word.typed = 0;
-    }
-    if (aimed) this.resetInput(true);
-    this.events.emit('wordsTransmuted', { words: [...s.words] });
-  }
-
-  /** Kindle: the capture sets the nearest word alight (captured for half its base points). */
-  private kindle(from: WordState): void {
-    const s = this.s;
-    s.kindleCharges--;
-    const near = [...s.words].sort(
-      (a, b) => Math.hypot(a.x - from.x, a.y - from.y) - Math.hypot(b.x - from.x, b.y - from.y) || a.id - b.id,
-    )[0];
-    if (near) {
-      const points = this.claimWords([near], (w) => Math.round((wordPoints(w.text.length, 1) / 2) * W.PYRO_SCORE));
-      this.events.emit('wordsKindled', { x: from.x, y: from.y, words: [near], points });
-      this.afterClaim([near]);
-    }
-    if (s.kindleCharges === 0 && this.wizard) this.events.emit('powerChanged', { power: this.wizard, active: false, ticks: 0 });
-  }
-
   // ───────────────────────── stats ─────────────────────────
 
   stats(): GameStats {
@@ -1135,7 +1011,6 @@ export class GameEngine {
       elapsedMs,
       averageCompletionMs:
         s.completed === 0 ? 0 : (s.completionTicksTotal / s.completed) * SIMULATION_STEP_MS,
-      powersUsed: s.powersUsed,
       spellsCast: { ...s.spellsCast },
     };
   }

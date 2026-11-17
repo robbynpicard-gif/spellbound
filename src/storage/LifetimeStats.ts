@@ -1,21 +1,11 @@
 import type { GameResult } from '../core/GameEvents';
 import type { GameStats } from '../gameplay/ScoringSystem';
-import { isWizardId, WIZARD_IDS, type WizardId } from '../gameplay/Wizards';
 import type { RunSummary } from '../modes/CampaignMode';
 
 /**
  * Everything the player has done, across every mode, kept in the save file
  * (decisions.md D-042). Pure functions so the rules can be tested.
  */
-export interface WizardRecord {
-  runs: number;
-  victories: number;
-  levelsCleared: number;
-  wordsCaptured: number;
-  powersUsed: number;
-  bestRun: number;
-}
-
 export interface LifetimeStats {
   levelsPlayed: number;
   levelsWon: number;
@@ -39,19 +29,13 @@ export interface LifetimeStats {
   bestMultiplier: number;
   /** Best words per minute over a level with at least MIN_WORDS_FOR_WPM words. */
   bestWpm: number;
-  powersUsed: number;
   bonusCounts: Record<string, number>;
   spellsCast: Record<string, number>;
-  wizards: Record<WizardId, WizardRecord>;
 }
 
 export const MIN_WORDS_FOR_WPM = 10;
 
 export type PlayMode = 'campaign' | 'practice' | 'duel';
-
-export function emptyWizardRecord(): WizardRecord {
-  return { runs: 0, victories: 0, levelsCleared: 0, wordsCaptured: 0, powersUsed: 0, bestRun: 0 };
-}
 
 export function emptyLifetime(): LifetimeStats {
   return {
@@ -75,10 +59,8 @@ export function emptyLifetime(): LifetimeStats {
     bestCleanStreak: 0,
     bestMultiplier: 1,
     bestWpm: 0,
-    powersUsed: 0,
     bonusCounts: {},
     spellsCast: {},
-    wizards: Object.fromEntries(WIZARD_IDS.map((id) => [id, emptyWizardRecord()])) as Record<WizardId, WizardRecord>,
   };
 }
 
@@ -102,14 +84,6 @@ export function parseLifetime(raw: unknown): LifetimeStats {
   life.bestMultiplier = Math.max(1, life.bestMultiplier);
   life.bonusCounts = counts(r.bonusCounts);
   life.spellsCast = counts(r.spellsCast);
-  if (typeof r.wizards === 'object' && r.wizards !== null) {
-    for (const [id, w] of Object.entries(r.wizards as Record<string, unknown>)) {
-      if (!isWizardId(id) || typeof w !== 'object' || w === null) continue;
-      const rec = emptyWizardRecord();
-      for (const k of Object.keys(rec) as (keyof WizardRecord)[]) rec[k] = num((w as Record<string, unknown>)[k]);
-      life.wizards[id] = rec;
-    }
-  }
   return life;
 }
 
@@ -122,7 +96,7 @@ export function recordLevelStats(
   life: LifetimeStats,
   stats: GameStats,
   result: GameResult,
-  context: { mode: PlayMode; boss?: boolean; wizard?: WizardId },
+  context: { mode: PlayMode; boss?: boolean },
 ): void {
   life.levelsPlayed++;
   if (result === 'won') life.levelsWon++;
@@ -141,15 +115,8 @@ export function recordLevelStats(
   life.bestCleanStreak = Math.max(life.bestCleanStreak, stats.peakCleanStreak ?? 0);
   life.bestMultiplier = Math.max(life.bestMultiplier, stats.peakMultiplier);
   if (stats.completed >= MIN_WORDS_FOR_WPM) life.bestWpm = Math.max(life.bestWpm, Math.round(stats.wpm));
-  life.powersUsed += stats.powersUsed ?? 0;
   add(life.bonusCounts, stats.bonusCounts);
   add(life.spellsCast, stats.spellsCast);
-  if (context.wizard) {
-    const w = life.wizards[context.wizard];
-    w.wordsCaptured += stats.completed;
-    w.powersUsed += stats.powersUsed ?? 0;
-    if (result === 'won') w.levelsCleared++;
-  }
 }
 
 /** Adds a finished Campaign run. Mutates `life`. */
@@ -157,8 +124,4 @@ export function recordRunStats(life: LifetimeStats, summary: RunSummary): void {
   life.runsFinished++;
   if (summary.victory) life.runsVictorious++;
   life.bestRunScore = Math.max(life.bestRunScore, summary.score);
-  const w = life.wizards[summary.wizard ?? 'apprentice'];
-  w.runs++;
-  if (summary.victory) w.victories++;
-  w.bestRun = Math.max(w.bestRun, summary.score);
 }

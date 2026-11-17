@@ -1,7 +1,6 @@
 import type { SpellId } from '../gameplay/SpellManager';
 import { Music, type Mood } from './Music';
 import { midi, Synth } from './synth';
-import type { WizardId } from '../gameplay/Wizards';
 
 export type { Mood } from './Music';
 
@@ -395,66 +394,13 @@ class AudioEngine {
     }
   }
 
-  // ───────────────────────── wizard powers (D-042) ─────────────────────────
-
-  /** A sigil scroll appears: a soft, high shimmer so you look for it. */
-  sigilAppears(): void {
-    if (!this.ready) return;
-    const now = this.t;
-    [81, 86, 89].forEach((n, k) => this.sy.tone(this.sfxBus, now + k * 0.07, midi(n), 0.9, 0.035, { type: 'sine', send: 0.7 }));
-  }
-
-  /** A sigil captured: the power fires. A rising bell arpeggio and choir swell, then the wizard's own flavour. */
-  power(wizard: WizardId): void {
+  /** A scroll claimed with a full spell pool: a dull, muffled clunk and a hiss (it fizzles). */
+  overflow(): void {
     if (!this.ready) return;
     const sy = this.sy, out = this.sfxBus, now = this.t;
-    [62, 69, 74, 77, 81, 86].forEach((n, k) => sy.bell(out, now + k * 0.055, midi(n), 0.07, 0.5, 1.8));
-    for (const n of [62, 69, 74, 77]) sy.choir(out, now + 0.05, midi(n), 1.6, 0.03, 0.6);
-    sy.noiseHit(out, now, 0.7, 0.12, { type: 'bandpass', freq: 600, to: 6000, q: 0.8 }, { attack: 0.3, curve: 'lin', send: 0.5 });
-    const at = now + 0.3;
-    switch (wizard) {
-      case 'apprentice': // a bright brass flourish
-        [62, 66, 69, 74].forEach((n, k) => sy.tone(out, at + k * 0.06, midi(n), 0.6, 0.07, { type: 'sawtooth', filter: { type: 'lowpass', freq: 900, to: 3600 }, send: 0.3 }));
-        break;
-      case 'archivist': // pages riffled, a quill scratch
-        for (let k = 0; k < 10; k++) sy.noiseHit(out, at + k * 0.035, 0.04, 0.11, { type: 'bandpass', freq: 2200 + k * 180, q: 1.4 });
-        sy.noiseHit(out, at + 0.4, 0.25, 0.07, { type: 'highpass', freq: 5000 });
-        break;
-      case 'chronomancer': // a clock spun backwards
-        sy.tone(out, at, midi(50), 0.9, 0.1, { type: 'sawtooth', glideTo: midi(74), filter: { type: 'lowpass', freq: 400, to: 2600 }, send: 0.4 });
-        for (let k = 0; k < 8; k++) sy.noiseHit(out, at + 0.6 - k * 0.07, 0.03, 0.1, { type: 'bandpass', freq: 1500, q: 5 });
-        break;
-      case 'pyromancer': // ignition
-        sy.noiseHit(out, at, 0.5, 0.3, { type: 'bandpass', freq: 300, to: 3200, q: 0.8 }, { attack: 0.02 });
-        sy.tone(out, at, 70, 0.9, 0.18, { type: 'sawtooth', glideTo: 50, filter: { type: 'lowpass', freq: 300 }, drive: 2 });
-        break;
-      case 'cartographer': // a map unrolled, a compass needle spinning to north
-        sy.noiseHit(out, at, 0.45, 0.14, { type: 'bandpass', freq: 900, to: 3000, q: 1.2 }, { attack: 0.05, curve: 'lin' });
-        sy.tone(out, at + 0.2, midi(81), 0.7, 0.05, { type: 'sine', glideTo: midi(93), send: 0.5 });
-        sy.tone(out, at + 0.55, midi(93), 0.5, 0.04, { type: 'triangle', glideTo: midi(86), send: 0.5 });
-        break;
-      case 'lexicant': // every word at once: a babble of syllables, then one clear note
-        for (let k = 0; k < 9; k++)
-          sy.tone(out, at + k * 0.045, 300 + Math.random() * 500, 0.06, 0.06, { type: 'square', filter: { type: 'bandpass', freq: 1200, q: 3 } });
-        sy.bell(out, at + 0.5, midi(86), 0.09, 0.5, 1.6);
-        break;
-    }
-  }
-
-  /** Compass Rose / Malapropism: extra words captured, a quick run of chimes up the scale. */
-  echo(count: number): void {
-    if (!this.ready) return;
-    const now = this.t;
-    for (let k = 0; k < Math.min(6, count); k++)
-      this.sy.tone(this.sfxBus, now + 0.04 + k * 0.05, midi(PENTA[Math.min(PENTA.length - 1, 5 + k)]! + 12), 0.4, 0.06, { type: 'triangle', send: 0.5 });
-  }
-
-  /** Kindle: a neighbouring word catches fire. */
-  kindle(): void {
-    if (!this.ready) return;
-    const sy = this.sy, out = this.sfxBus, now = this.t;
-    sy.noiseHit(out, now, 0.35, 0.22, { type: 'bandpass', freq: 400, to: 2400, q: 0.9 }, { attack: 0.02 });
-    for (let k = 0; k < 10; k++) sy.noiseHit(out, now + 0.05 + Math.random() * 0.4, 0.008, 0.18, { type: 'highpass', freq: 2000 + Math.random() * 3000 });
+    sy.tone(out, now, 110, 0.18, 0.2, { type: 'square', glideTo: 70, filter: { type: 'lowpass', freq: 420 } });
+    sy.noiseHit(out, now + 0.02, 0.09, 0.12, { type: 'lowpass', freq: 700 });
+    sy.noiseHit(out, now + 0.08, 0.45, 0.06, { type: 'bandpass', freq: 3000, to: 900, q: 0.7 }, { attack: 0.03, curve: 'lin' });
   }
 
   /** The score counter's wheels turning: a tiny tick, pitched up by how far the roll has come. */

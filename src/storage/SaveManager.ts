@@ -25,18 +25,6 @@ import {
 
 import { sanitizeName } from '../multiplayer/protocol';
 import type { GameResult } from '../core/GameEvents';
-import { isWizardId, WIZARD_IDS, type WizardId } from '../gameplay/Wizards';
-import {
-  awardMastery,
-  cosmeticsFor,
-  emptyWardrobeEntry,
-  FEATS,
-  SLOTS,
-  type Cosmetic,
-  type FeatId,
-  type Slot,
-  type WardrobeEntry,
-} from '../gameplay/Cosmetics';
 import {
   emptyLifetime,
   parseLifetime,
@@ -84,34 +72,6 @@ export interface SaveData {
   settings: AudioSettings;
   /** Everything ever played (D-042). Added within v4 (missing → zeros). */
   lifetime: LifetimeStats;
-  /** Wizard picked last time, pre-selected next time. */
-  lastWizard: WizardId;
-  /** Per-wizard mastery, feats and equipped cosmetics (D-043). */
-  wardrobe: Record<WizardId, WardrobeEntry>;
-}
-
-export function emptyWardrobe(): Record<WizardId, WardrobeEntry> {
-  return Object.fromEntries(WIZARD_IDS.map((id) => [id, emptyWardrobeEntry()])) as Record<WizardId, WardrobeEntry>;
-}
-
-export function parseWardrobe(raw: unknown): Record<WizardId, WardrobeEntry> {
-  const out = emptyWardrobe();
-  if (typeof raw !== 'object' || raw === null) return out;
-  for (const [id, r] of Object.entries(raw as Record<string, unknown>)) {
-    if (!isWizardId(id) || typeof r !== 'object' || r === null) continue;
-    const e = r as Record<string, unknown>;
-    const entry = out[id];
-    entry.xp = num(e.xp);
-    if (Array.isArray(e.feats)) entry.feats = e.feats.filter((f): f is FeatId => typeof f === 'string' && f in FEATS);
-    if (typeof e.equipped === 'object' && e.equipped !== null) {
-      const items = cosmeticsFor(id);
-      for (const slot of SLOTS) {
-        const v = (e.equipped as Record<string, unknown>)[slot];
-        if (typeof v === 'string' && items.some((c) => c.slot === slot && c.id === v)) entry.equipped[slot] = v;
-      }
-    }
-  }
-  return out;
 }
 
 export interface AudioSettings {
@@ -144,8 +104,6 @@ export function emptySave(): SaveData {
     profile: { name: '', duelLevel: 1 },
     settings: { music: true, sfx: true },
     lifetime: emptyLifetime(),
-    lastWizard: 'apprentice',
-    wardrobe: emptyWardrobe(),
   };
 }
 
@@ -169,7 +127,6 @@ function parseRun(raw: unknown, totalLevels: number): RunSummary | null {
     missed: num(r.missed),
     maxCombo: num(r.maxCombo),
     elapsedMs: num(r.elapsedMs),
-    ...(isWizardId(r.wizard) ? { wizard: r.wizard } : {}),
     ...(typeof r.stage === 'number' ? { stage: clampStage(r.stage) } : {}),
   };
 }
@@ -198,7 +155,6 @@ function parseSavedRun(raw: unknown): CampaignRun | null {
   return {
     mode: r.mode,
     stage: clampStage(r.stage),
-    wizard: 'apprentice',
     level: clampLevel(r.level, STAGE_LEVELS),
     instability: Math.min(num(r.instability), 99),
     score: num(r.score),
@@ -268,7 +224,7 @@ function parseSettings(raw: unknown): SaveData['settings'] {
  * - v5: the stage campaign (D-047).
  * - v1–v4 (the old 20-level campaign): campaign and practice records no longer
  *   match any level and are cleared (the player is told once); settings,
- *   profile, lifetime stats and wardrobe are kept where present.
+ *   profile, settings and lifetime stats are kept where present.
  */
 export function parseSave(raw: string | null, totalLevels: number): SaveData {
   if (!raw) return emptySave();
@@ -280,8 +236,6 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
       save.profile = parseProfile(data.profile, totalLevels);
       save.settings = parseSettings(data.settings);
       save.lifetime = parseLifetime(data.lifetime);
-      save.wardrobe = parseWardrobe(data.wardrobe);
-      if (isWizardId(data.lastWizard)) save.lastWizard = data.lastWizard;
     };
     if (data.version === SAVE_VERSION) {
       keepShared();
@@ -412,37 +366,11 @@ export class SaveManager {
   }
 
   /** Adds a finished level, Practice session or duel to the lifetime stats. */
-  recordLevelStats(stats: GameStats, result: GameResult, context: { mode: PlayMode; boss?: boolean; wizard?: WizardId }): void {
+  recordLevelStats(stats: GameStats, result: GameResult, context: { mode: PlayMode; boss?: boolean }): void {
     recordLevelStats(this.save.lifetime, stats, result, context);
     this.write();
   }
 
-  wardrobe(wizard: WizardId): Readonly<WardrobeEntry> {
-    return this.save.wardrobe[wizard];
-  }
-
-  equip(wizard: WizardId, slot: Slot, itemId: string): void {
-    this.save.wardrobe[wizard].equipped[slot] = itemId;
-    this.write();
-  }
-
-  /** Adds mastery XP and feats to a wizard; returns what was unlocked. */
-  awardMastery(wizard: WizardId, xp: number, feats: FeatId[]): Cosmetic[] {
-    const unlocked = awardMastery(wizard, this.save.wardrobe[wizard], { xp, feats });
-    this.write();
-    return unlocked;
-  }
-
-  get lastWizard(): WizardId {
-    return this.save.lastWizard;
-  }
-
-  setLastWizard(wizard: WizardId): void {
-    this.save.lastWizard = wizard;
-    this.write();
-  }
-
-  /** Music and sound effects switches. */
   get audio(): Readonly<AudioSettings> {
     return this.save.settings;
   }

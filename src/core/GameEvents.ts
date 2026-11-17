@@ -3,7 +3,6 @@ import type { WordState } from '../gameplay/Word';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
-import type { WizardId } from '../gameplay/Wizards';
 
 export type GameResult = 'won' | 'lost';
 
@@ -62,7 +61,10 @@ export interface GameEvents {
   progressChanged: { completed: number; required: number | null };
   scoreChanged: { score: number; combo: number };
   /** A scroll was completed. `stored` is false when the spell pool was already full. */
-  spellCollected: { spell: SpellId; stored: boolean; charges: SpellCharges };
+  /** A scroll claimed. With a full pool the charge is not stored: it fizzles at (x, y) for `overflowPoints`. */
+  spellCollected: { spell: SpellId; stored: boolean; charges: SpellCharges; overflowPoints: number; x: number; y: number };
+  /** A surge of extra words started or ended. */
+  surgeChanged: { active: boolean };
   spellCast: { spell: SpellId; charges: SpellCharges };
   /** Tried to cast with no charges left. */
   spellFizzled: { spell: SpellId };
@@ -81,12 +83,6 @@ export interface GameEvents {
     previousMultiplier: number;
     reason: 'capture' | 'typo' | 'wrongEntry' | 'miss';
   };
-  /** A wizard power started or ended (D-042). `ticks` left for timed powers. */
-  powerChanged: { power: WizardId; active: boolean; ticks: number };
-  /** Kindle: a capture at (x, y) set these words alight (captured for `points`). */
-  wordsKindled: { x: number; y: number; words: WordState[]; points: number };
-  /** Compass Rose / Malapropism: words captured along with the typed one. */
-  powerClaimed: { words: WordState[]; points: number };
   /** Rewind: the last miss was undone (`undone`) and every word pushed back up. */
   rewound: { undone: boolean };
 }

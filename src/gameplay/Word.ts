@@ -36,8 +36,6 @@ export interface WordState {
   readonly spawnTick: number;
   /** Wrong keystrokes made while this word was the target. */
   errors: number;
-  /** A sigil scroll: capturing it fires the wizard's power (D-042). */
-  sigil?: boolean;
 }
 
 export function lengthClassOf(length: number): LengthClass {

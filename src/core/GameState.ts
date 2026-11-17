@@ -23,6 +23,13 @@ export interface GameState {
   nextWordId: number;
   /** Time until the next spawn is allowed. */
   spawnTimerMs: number;
+  /** Surges already started this level, and ticks left of the current one. */
+  surgesStarted: number;
+  /** Scrolls claimed with a full pool. */
+  overflows: number;
+  surgeTicks: number;
+  /** Endless Practice: which lap of the level the surges belong to. */
+  surgeLap: number;
   score: number;
   combo: number;
   maxCombo: number;
@@ -70,14 +77,6 @@ export interface GameState {
   /** Highest instability reached this level (Comeback). */
   peakInstability: number;
   bonusCounts: Partial<Record<BonusId, number>>;
-  // ── wizard power (decisions.md D-042) ──
-  /** Ticks left of a timed power (Second Wind, Recall, Compass Rose, Malapropism). */
-  powerTicks: number;
-  /** Kindle: captures left that set a neighbour alight. */
-  kindleCharges: number;
-  /** The last miss, so Rewind can undo it. */
-  lastMiss: { combo: number; damage: number } | null;
-  powersUsed: number;
   // ── Clean Streak (D-046) ──
   /** Words captured in a row without a typo (stepped back by typos, reset by wrong Enters and misses). */
   cleanStreak: number;
@@ -100,6 +99,10 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     penalizedId: null,
     nextWordId: 1,
     spawnTimerMs: FIRST_SPAWN_DELAY_MS,
+    surgesStarted: 0,
+    overflows: 0,
+    surgeTicks: 0,
+    surgeLap: 0,
     score: 0,
     combo: 0,
     maxCombo: 0,
@@ -127,10 +130,6 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     peakMultiplier: 1,
     peakInstability: instability,
     bonusCounts: {},
-    powerTicks: 0,
-    kindleCharges: 0,
-    lastMiss: null,
-    powersUsed: 0,
     cleanStreak: 0,
     peakCleanStreak: 0,
     entryTypo: false,

@@ -57,6 +57,13 @@ export interface DifficultyConfig {
   rampWords?: number | null;
   /** Campaign stage (1–5) this level belongs to (D-047). */
   stage?: number;
+  /** Words already falling when the level starts (spread over the top of the field). */
+  openingWords?: number;
+  /**
+   * Surges: short bursts of extra words. `at` is the point in the level (0–1:
+   * share of the quota, or of the boss timer) and `ms` how long it lasts.
+   */
+  surges?: readonly { at: number; ms: number }[];
   /** Duels: the level's number within its stage (`level` is then 1–100). */
   stageLevel?: number;
   /** Which set of backdrop art to use (1–4). Display only. */

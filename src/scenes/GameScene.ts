@@ -11,18 +11,14 @@ import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellMan
 import { Effects } from '../render/Effects';
 import { Celebrations } from '../render/Celebrations';
 import { FieldBackground } from '../render/FieldBackground';
-import { ART, hex, LAYOUT, screenX, screenY, SPELL_COLORS } from '../render/layout';
+import { hex, LAYOUT, screenX, screenY, SPELL_COLORS } from '../render/layout';
 import { SpellEffects } from '../render/SpellEffects';
 import { WordView } from '../render/WordView';
 import { SPELLS } from '../spells/SpellRegistry';
 import { GameHUD } from '../ui/GameHUD';
 import { instabilityStage } from '../gameplay/InstabilityManager';
-import { WIZARDS, type WizardId } from '../gameplay/Wizards';
 import { STAGE_NAMES } from '../difficulty/Stages';
-import { WizardPower } from '../render/WizardPower';
-import { Familiar } from '../render/Familiar';
 import { StreakFeedback } from '../render/StreakFeedback';
-import type { Loadout } from '../gameplay/Cosmetics';
 
 /** How the scene reports back to the app (menus are HTML, outside Phaser). */
 export interface GameSceneHooks {
@@ -60,10 +56,6 @@ export interface GameSceneData {
   words?: readonly string[];
   /** Present only in a Wizard Duel. */
   duel?: DuelOptions;
-  /** Campaign: the wizard played (passive, sigil scrolls and portrait, D-042). */
-  wizard?: WizardId;
-  /** Campaign: the wizard's equipped cosmetics (D-043). */
-  loadout?: Loadout;
 }
 
 /**
@@ -121,14 +113,10 @@ export class GameScene extends Phaser.Scene {
   private duel: DuelOptions | null = null;
   private duelMenuOpen = false;
   private countdownText: Phaser.GameObjects.Text | null = null;
-  private wizard: WizardId | null = null;
-  private power: WizardPower | null = null;
-  private loadout: Loadout | null = null;
   /** A brief freeze of game time when a spell is cast, so the moment lands (D-045). */
   private hitStopMs = 0;
   private streakFx!: StreakFeedback;
   private lastTierUpAt = -1000;
-  private familiar: Familiar | null = null;
 
   constructor() {
     super(GameScene.KEY);
@@ -151,10 +139,7 @@ export class GameScene extends Phaser.Scene {
       initialInstability: data.initialInstability,
       initialCombo: data.initialCombo,
       initialCleanStreak: data.initialCleanStreak,
-      wizard: data.duel ? undefined : data.wizard,
     });
-    this.wizard = data.duel ? null : (data.wizard ?? null);
-    this.loadout = this.wizard ? (data.loadout ?? null) : null;
     this.views.clear();
     this.accumulator = 0;
     this.introRemainingMs = this.duel ? 0 : INTRO_MS;
@@ -166,17 +151,6 @@ export class GameScene extends Phaser.Scene {
       data.knownSpells ?? SPELL_IDS.filter((id) => this.config.availableSpells.includes(id) || held.includes(id));
   }
 
-  /** Loads the wizard's domain backdrop the first time it's needed (D-044). */
-  preload(): void {
-    const chapter = this.config.chapter ?? Math.ceil(this.config.level / 5);
-    if (!this.wizard || chapter !== 1 || this.wizard === 'apprentice') return;
-    const boss = isSurvival(this.config);
-    const key = ART.domain(this.wizard, boss);
-    if (this.textures.exists(key)) return;
-    this.load.image(key, `assets/art/backdrop-${boss ? 'bossdom' : 'dom'}-${this.wizard}.png`);
-    this.load.once(Phaser.Loader.Events.FILE_COMPLETE, () => this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST));
-  }
-
   create(): void {
     this.cameras.main.setBackgroundColor(PALETTE.midnight);
     // The chapter's scene; weather builds level by level, and bosses get their own scene.
@@ -186,12 +160,9 @@ export class GameScene extends Phaser.Scene {
     audio.setStress(instabilityStage(this.engine.state.instability));
     audio.setHeat(tierOf(this.engine.state.combo));
     audio.levelStart();
-    this.background = new FieldBackground(this, chapter, boss ? 4 : Math.min(3, Math.floor(((this.config.stageLevel ?? this.config.level) - 1) / 5)), boss, this.wizard ?? 'apprentice', this.loadout?.outfit ?? 'a');
-    this.power = this.wizard ? new WizardPower(this, this.wizard) : null;
-    this.familiar = this.loadout && this.loadout.familiar >= 0 ? new Familiar(this, this.loadout.familiar) : null;
+    this.background = new FieldBackground(this, chapter, boss ? 4 : Math.min(3, Math.floor(((this.config.stageLevel ?? this.config.level) - 1) / 5)), boss);
 
     this.effects = new Effects(this);
-    if (this.loadout) this.effects.flourish = this.loadout.flourish;
     this.celebrate = new Celebrations(this);
     this.spellFx = new SpellEffects(this);
     this.hud = new GameHUD(
@@ -253,11 +224,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   override update(_time: number, delta: number): void {
-    // The score counter keeps rolling (and power gauges draining) through the finale.
-    if (!this.paused) {
-      this.hud.update(Math.min(delta, MAX_FRAME_MS));
-      if (this.engine.status === 'playing' && this.introRemainingMs <= 0 && !this.awaitingIntro) this.power?.update(Math.min(delta, MAX_FRAME_MS));
-    }
+    // The score counter keeps rolling through the finale.
+    if (!this.paused) this.hud.update(Math.min(delta, MAX_FRAME_MS));
     if (this.duel) return this.updateDuel(this.duel);
     if (this.paused || this.awaitingIntro || this.engine.status !== 'playing') return;
 
@@ -381,12 +349,8 @@ export class GameScene extends Phaser.Scene {
     ev.on('wordSpawned', ({ word }) => {
       this.views.set(
         word.id,
-        new WordView(this, word, this.wizard ? WIZARDS[this.wizard].color : undefined, {
-          sigil: this.loadout?.sigil ?? 'diamond',
-          ink: this.loadout?.ink ?? '',
-        }),
+        new WordView(this, word),
       );
-      if (word.sigil) audio.sigilAppears();
     });
 
     // ── Clean Streak (D-046) ──
@@ -419,43 +383,11 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // ── wizard powers (D-042) ──
-    ev.on('powerChanged', ({ active, ticks }) => {
-      this.power?.changed(active, ticks);
-    });
-    ev.on('powerClaimed', ({ words, points }) => {
-      const color = this.wizard ? WIZARDS[this.wizard].color : PALETTE.gold;
-      audio.echo(words.length);
-      for (const word of words) {
-        const { x, y } = this.viewPosition(word.id, word.x, word.y);
-        this.removeView(word.id);
-        this.spellFx.burst(x, y, color, 22);
-      }
-      if (points > 0) this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 300, `+${points}`, color, 30);
-    });
-    ev.on('rewound', () => this.power?.rewind());
-    ev.on('wordsKindled', ({ words, points }) => {
-      audio.kindle();
-      this.power?.spend();
-      for (const word of words) {
-        const { x, y } = this.viewPosition(word.id, word.x, word.y);
-        this.removeView(word.id);
-        this.spellFx.burnWord(x, y);
-        this.effects.floatText(x, y, `+${points}`, PALETTE.fire, 24);
-      }
-    });
-
     ev.on('wordCompleted', ({ word, points, combo, multiplier, bonuses }) => {
       audio.capture(combo, bonuses.map((b) => b.id));
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
-      if (word.sigil && this.wizard) {
-        audio.power(this.wizard);
-        this.power?.fired(x, y);
-      }
       this.removeView(word.id);
       this.effects.wordDestroyed(x, y, word.text.length, points, multiplier, word.text);
-      if (word.sigil) this.familiar?.cheer();
-      else this.familiar?.hop();
       this.celebrate.wordBonuses(x, y, bonuses);
       this.hud.console.flash(PALETTE.gold);
       if (combo > 1) this.hud.pulseCombo();
@@ -510,7 +442,6 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('wordMissed', ({ word }) => {
       audio.miss();
-      this.familiar?.flinch();
       this.removeView(word.id);
       this.effects.wordBrokeThrough(screenX(word.x), LAYOUT.wardY);
       this.background.flashMiss();
@@ -537,17 +468,25 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('progressChanged', ({ completed }) => this.hud.setProgress(completed));
 
-    ev.on('spellCollected', ({ spell, stored, charges }) => {
-      audio.pickup();
+    ev.on('spellCollected', ({ spell, stored, charges, overflowPoints, x, y }) => {
       this.hud.setSpells(charges, stored ? spell : undefined);
-      const book = SPELLS[spell].book;
-      this.effects.floatText(
-        LAYOUT.width / 2,
-        LAYOUT.panelY - 24,
-        stored ? `+1 ${book} mana` : 'Mana full',
-        stored ? SPELL_COLORS[spell] : PALETTE.parchment,
-        20,
-      );
+      if (stored) {
+        audio.pickup();
+        this.effects.floatText(LAYOUT.width / 2, LAYOUT.panelY - 24, `+1 ${SPELLS[spell].book} mana`, SPELL_COLORS[spell], 20);
+        return;
+      }
+      // Pool full: the scroll fizzles to grey smoke where it was claimed (owner decision, 2026-11-17).
+      audio.overflow();
+      const sx = screenX(x);
+      const sy = screenY(y);
+      this.spellFx.burst(sx, sy, 0x9a948a, 40);
+      this.spellFx.burst(sx, sy - 12, 0x5a5650, 24);
+      this.effects.floatText(sx, sy - 34, `MANA FULL · +${overflowPoints}`, 0xd8d0c0, 26);
+      this.hud.rackFull();
+    });
+    ev.on('surgeChanged', ({ active }) => {
+      this.hud.setSurge(active);
+      if (active) audio.tierDown(1);
     });
 
     ev.on('spellCast', ({ spell, charges }) => {
@@ -578,7 +517,6 @@ export class GameScene extends Phaser.Scene {
       if (up) {
         this.lastTierUpAt = this.time.now;
         audio.tierUp(tier);
-        this.familiar?.cheer();
         this.celebrate.tierUp(multiplier, tier);
       } else audio.tierDown(tier);
     });
@@ -663,7 +601,7 @@ export class GameScene extends Phaser.Scene {
           fontFamily: FONTS.gameplay,
           fontSize: '20px',
           fontStyle: '700',
-          color: hex(this.wizard ? WIZARDS[this.wizard].color : PALETTE.parchment),
+          color: hex(PALETTE.parchment),
         })
         .setShadow(3, 3, hex(PALETTE.midnight), 0, false, true)
         .setOrigin(0.5)

@@ -18,7 +18,6 @@ const stats = (over: Partial<GameStats> = {}): GameStats => ({
   levelBonuses: [],
   elapsedMs: 60_000,
   averageCompletionMs: 2000,
-  powersUsed: 2,
   spellsCast: { fire: 1 },
   ...over,
 });
@@ -26,7 +25,7 @@ const stats = (over: Partial<GameStats> = {}): GameStats => ({
 describe('Lifetime stats (D-042)', () => {
   it('adds levels up and keeps the bests', () => {
     const life = emptyLifetime();
-    recordLevelStats(life, stats(), 'won', { mode: 'campaign', boss: true, wizard: 'pyromancer' });
+    recordLevelStats(life, stats(), 'won', { mode: 'campaign', boss: true });
     recordLevelStats(life, stats({ score: 400, missed: 3, maxCombo: 5, wpm: 90, completed: 5 }), 'lost', { mode: 'practice' });
     expect(life.levelsPlayed).toBe(2);
     expect(life.levelsWon).toBe(1);
@@ -39,36 +38,31 @@ describe('Lifetime stats (D-042)', () => {
     expect(life.bestWpm).toBe(61); // 90 WPM over 5 words doesn't count
     expect(life.bonusCounts.perfect).toBe(30);
     expect(life.spellsCast.fire).toBe(2);
-    expect(life.wizards.pyromancer.levelsCleared).toBe(1);
-    expect(life.wizards.pyromancer.powersUsed).toBe(2);
   });
 
-  it('records runs per wizard', () => {
+  it('records finished runs', () => {
     const life = emptyLifetime();
-    const run = { score: 5000, levelsCleared: 3, reachedLevel: 4, victory: false, accuracy: 0.9, wpm: 50, completed: 80, missed: 4, maxCombo: 30, elapsedMs: 1, wizard: 'lexicant' as const };
+    const run = { score: 5000, levelsCleared: 3, reachedLevel: 4, victory: false, accuracy: 0.9, wpm: 50, completed: 80, missed: 4, maxCombo: 30, elapsedMs: 1 };
     recordRunStats(life, run);
     recordRunStats(life, { ...run, score: 9000, victory: true });
     expect(life.runsFinished).toBe(2);
     expect(life.bestRunScore).toBe(9000);
-    expect(life.wizards.lexicant).toMatchObject({ runs: 2, victories: 1, bestRun: 9000 });
+    expect(life.runsVictorious).toBe(1);
   });
 
   it('survives junk in storage and old saves without stats', () => {
-    expect(parseLifetime({ levelsPlayed: -3, bonusCounts: { '<x>': 4 }, wizards: { nobody: {} } })).toEqual(emptyLifetime());
+    expect(parseLifetime({ levelsPlayed: -3, bonusCounts: { '<x>': 4 }, powersUsed: 5 })).toEqual(emptyLifetime());
     const old = JSON.stringify({ version: 4, campaign: { highestReached: 2 } });
     const save = parseSave(old, 20);
     expect(save.lifetime).toEqual(emptyLifetime());
-    expect(save.lastWizard).toBe('apprentice');
   });
 
-  it('SaveManager keeps stats and the last wizard between visits', () => {
+  it('SaveManager keeps stats between visits', () => {
     const store = new Map<string, string>();
     const storage: StorageLike = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => void store.set(k, v) };
     const a = new SaveManager(storage, 20);
-    a.recordLevelStats(stats(), 'won', { mode: 'campaign', wizard: 'archivist' });
-    a.setLastWizard('archivist');
+    a.recordLevelStats(stats(), 'won', { mode: 'campaign' });
     const b = new SaveManager(storage, 20);
     expect(b.lifetime.wordsCaptured).toBe(20);
-    expect(b.lastWizard).toBe('archivist');
   });
 });

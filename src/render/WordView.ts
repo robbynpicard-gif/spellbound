@@ -3,7 +3,6 @@ import { FONTS, PALETTE } from '../core/GameConfig';
 import { SPELL_IDS } from '../gameplay/SpellManager';
 import type { WordState } from '../gameplay/Word';
 import { ART, ART_SCALE, hex, screenX, screenY, SPELL_COLORS } from './layout';
-import { SIGIL_GLYPHS } from './sigilGlyphs';
 
 const FONT_SIZE = 25;
 /** One art pixel, in screen pixels. */
@@ -64,28 +63,20 @@ export class WordView extends Phaser.GameObjects.Container {
   constructor(
     scene: Phaser.Scene,
     readonly word: WordState,
-    /** Sigil scrolls glow in the wizard's colour (D-042). */
-    private readonly sigilColor: number = PALETTE.gold,
-    /** Cosmetics (D-043): the sigil rune and the colour of typed letters ('' = default). */
-    private readonly style: { sigil: string; ink: string } = { sigil: 'diamond', ink: '' },
   ) {
     super(scene, 0, 0);
-    const onColour = word.spell !== null || word.sigil === true;
+    const onColour = word.spell !== null;
     this.restColor = hex(onColour ? 0xf6ecd8 : PALETTE.ink);
     this.glow = scene.add.graphics();
     this.plaque = scene.add.graphics();
     this.typedText = scene.add
-      .text(0, 0, '', { ...TEXT_STYLE, color: onColour ? hex(0xffe0f4) : style.ink || hex(PALETTE.rust) })
+      .text(0, 0, '', { ...TEXT_STYLE, color: onColour ? hex(0xffe0f4) : hex(PALETTE.rust) })
       .setOrigin(0, 0.5);
     this.restText = scene.add.text(0, 0, '', { ...TEXT_STYLE, color: this.restColor }).setOrigin(0, 0.5);
     if (word.spell !== null) {
       for (const t of [this.typedText, this.restText]) t.setShadow(2, 2, '#1a1214', 0, false, true);
       this.icon = scene.add.image(0, 0, ART.icons, SPELL_IDS.indexOf(word.spell!)).setScale(3).setOrigin(0.5);
       scene.tweens.add({ targets: this.glow, alpha: { from: 1, to: 0.35 }, duration: 650, yoyo: true, repeat: -1 });
-    }
-    if (word.sigil) {
-      for (const t of [this.typedText, this.restText]) t.setShadow(2, 2, '#1a1214', 0, false, true);
-      scene.tweens.add({ targets: this.glow, alpha: { from: 1, to: 0.2 }, duration: 380, yoyo: true, repeat: -1 });
     }
     this.add([this.glow, this.plaque, this.typedText, this.restText]);
     if (this.icon) this.add(this.icon);
@@ -148,7 +139,7 @@ export class WordView extends Phaser.GameObjects.Container {
     this.restText.setText(w.text.slice(w.typed));
     const typedWidth = w.typed > 0 ? this.typedText.width : 0;
     const textWidth = typedWidth + this.restText.width;
-    const iconCols = this.icon || w.sigil ? 20 : 0;
+    const iconCols = this.icon ? 20 : 0;
 
     // Plaque size in art pixels; the text sits centred (right of the icon on spell scrolls).
     const cols = Math.max(30, Math.ceil(textWidth / PX) + 16 + iconCols);
@@ -181,18 +172,13 @@ export class WordView extends Phaser.GameObjects.Container {
     gl.clear();
 
     const spell = w.spell;
-    const sigil = w.sigil === true;
-    const body = spell ? SPELL_COLORS[spell] : sigil ? shade(this.sigilColor, 0.5) : PAPER;
-    const light = spell || sigil ? shade(body, 1.3) : PAPER_LIGHT;
-    const dark = spell || sigil ? shade(body, 0.62) : PAPER_DARK;
+    const body = spell ? SPELL_COLORS[spell] : PAPER;
+    const light = spell ? shade(body, 1.3) : PAPER_LIGHT;
+    const dark = spell ? shade(body, 0.62) : PAPER_DARK;
 
     // Glow behind: magenta for the target, the spell's colour (pulsing) for spell scrolls.
-    if (w.isTarget || spell || sigil) {
-      const c = w.isTarget ? PALETTE.magentaGlow : sigil ? this.sigilColor : body;
-      if (sigil && !w.isTarget) {
-        gl.fillStyle(c, 0.22);
-        gl.fillRect((x0 - 12) * PX, (y0 - 9) * PX, (x1 - x0 + 25) * PX, (y1 - y0 + 19) * PX);
-      }
+    if (w.isTarget || spell) {
+      const c = w.isTarget ? PALETTE.magentaGlow : body;
       gl.fillStyle(c, w.isTarget ? 0.35 : 0.3);
       gl.fillRect((x0 - 5) * PX, (y0 - 4) * PX, (x1 - x0 + 11) * PX, (y1 - y0 + 9) * PX);
       gl.fillStyle(c, w.isTarget ? 0.2 : 0.15);
@@ -225,20 +211,6 @@ export class WordView extends Phaser.GameObjects.Container {
     }
     // Spell scrolls: a darker panel behind the icon.
     if (spell) rect(x0 + 4, y0 + 3, x0 + 18, y1 - 3, shade(body, 0.45), 0.9);
-    // Sigil scrolls: a glowing rune in the wizard's colour.
-    if (sigil) {
-      rect(x0 + 4, y0 + 3, x0 + 18, y1 - 3, shade(body, 0.45), 0.9);
-      const glyph = SIGIL_GLYPHS[this.style.sigil] ?? SIGIL_GLYPHS.diamond!;
-      const gx = x0 + 6;
-      const gy = Math.round((y0 + y1) / 2) - 5;
-      glyph.forEach((row, ry) => {
-        for (let rx = 0; rx < row.length; rx++) {
-          const ch = row[rx];
-          if (ch === '#') rect(gx + rx, gy + ry, gx + rx, gy + ry, this.sigilColor);
-          else if (ch === 'o' || ch === 'O') rect(gx + rx, gy + ry, gx + rx, gy + ry, 0xfff6e0);
-        }
-      });
-    }
   }
 
   override destroy(fromScene?: boolean): void {

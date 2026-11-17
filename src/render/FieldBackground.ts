@@ -44,14 +44,9 @@ export class FieldBackground {
     /** 0–3 through a chapter's levels, 4 on its boss: weather and gloom build with it. */
     intensity = 0,
     boss = false,
-    /** The wizard at the desk (D-042) and their outfit (D-043). */
-    wizard = 'apprentice',
-    outfit = 'a',
   ) {
     const { width, height } = LAYOUT;
-    // Chapter 1 is the wizard's own domain (D-044), loaded by GameScene.preload.
-    const domain = chapter <= 1 ? ART.domain(wizard, boss) : null;
-    const key = domain && scene.textures.exists(domain) ? domain : ART.backdrop(chapter, boss);
+    const key = ART.backdrop(chapter, boss);
     if (scene.textures.exists(key)) scene.add.image(0, 0, key).setOrigin(0).setScale(ART_SCALE).setDepth(-10);
     else scene.add.rectangle(0, 0, width, height, PALETTE.midnight).setOrigin(0).setDepth(-10);
     // The night deepens level by level through a chapter (only over the window view).
@@ -63,11 +58,7 @@ export class FieldBackground {
         .setDepth(-9.5);
     }
     // The wizard, seated at lower left (D-037).
-    const portrait = scene.textures.exists(ART.wizard(wizard, outfit))
-      ? ART.wizard(wizard, outfit)
-      : scene.textures.exists(ART.wizard(wizard))
-        ? ART.wizard(wizard)
-        : ART.wizard();
+    const portrait = ART.wizard();
     if (scene.textures.exists(portrait)) {
       scene.add.image(LAYOUT.wizard.x, LAYOUT.wizard.y, portrait).setOrigin(0).setScale(ART_SCALE).setDepth(-8.4);
     }

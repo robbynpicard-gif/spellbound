@@ -4,6 +4,17 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-17 — Livelier pacing, Fire first, one Apprentice
+
+**Done** (D-048, v0.20.0): difficulty +33%; shorter words, slower fall, an
+opening cluster of words each level; surges from level 6; scrolls 20%; ~15-min
+stages; Fire at Stage 1 level 2; overflow fizzle with points; per-stage bests;
+the wizard roster, powers, familiars and wardrobe removed (art and code).
+Practice has every stage open for testing. Bot calibration with a spell-casting
+bot in docs/calibration-2026-11-17.md.
+
+---
+
 ## 2026-11-17 — Stage campaign
 
 **Done** (D-047, v0.19.0): campaign rebuilt as 2 modes × 5 stages × 20 levels

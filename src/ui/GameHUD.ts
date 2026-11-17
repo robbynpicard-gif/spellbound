@@ -522,4 +522,31 @@ export class GameHUD {
   denySpell(spell: SpellId): void {
     this.scrolls[spell]?.deny();
   }
+
+  /** The pool is full and a scroll was turned away: the whole rack flashes red and shakes. */
+  rackFull(): void {
+    const r = LAYOUT.rack;
+    const flash = this.scene.add.rectangle(r.x, r.y, r.width, r.height, PALETTE.crimson, 0.45).setOrigin(0).setDepth(33);
+    flash.setStrokeStyle(4, PALETTE.crimson, 1);
+    this.scene.tweens.add({ targets: flash, alpha: 0, duration: 650, ease: 'Quad.easeIn', onComplete: () => flash.destroy() });
+    for (const id of SPELL_IDS) this.scrolls[id]?.deny();
+  }
+
+  /** A surge: a banner over the field while it lasts. */
+  setSurge(active: boolean): void {
+    if (!active) {
+      if (this.surgeText) this.scene.tweens.add({ targets: this.surgeText, alpha: 0, duration: 400 });
+      return;
+    }
+    this.surgeText ??= this.scene.add
+      .text(LAYOUT.width / 2, LAYOUT.panelY - 150, 'SURGE!', ui(PALETTE.crimson, 30))
+      .setOrigin(0.5)
+      .setShadow(3, 3, hex(PALETTE.midnight), 0, false, true)
+      .setDepth(0.5); // behind the falling words
+    this.scene.tweens.killTweensOf(this.surgeText);
+    this.surgeText.setAlpha(1).setScale(1.4);
+    this.scene.tweens.add({ targets: this.surgeText, scale: 1, duration: 260, ease: 'Back.easeOut' });
+    this.scene.tweens.add({ targets: this.surgeText, alpha: 0.35, duration: 380, yoyo: true, repeat: -1, delay: 300 });
+  }
+  private surgeText: Phaser.GameObjects.Text | undefined;
 }

@@ -1,4 +1,48 @@
-# Calibration report — stage campaign (v0.19.0)
+# Calibration report — stage campaign
+
+## v0.20.0 (D-048): +33% floor, surges, spells needed at the boss
+
+Bots typed steadily at the **stage's target WPM** (the boss pace) and at 90% of
+it, with perfect accuracy, 3 seeds each. "plain" never casts. "spells" casts
+when 7+ words are on screen or a word is near the ward; in standard levels it
+starts with no charges (it only uses scrolls it picks up), and at the boss it
+starts with a full pool of 8 (a run usually arrives with a full pool). Results:
+wins out of 3, average ward left.
+
+### Normal (targets 24/29/35/40/47)
+
+| Stage | L3 plain | L7 plain / spells | L13 plain / spells | L19 plain / spells | Boss plain / spells |
+|---|---|---|---|---|---|
+| 1 | 3/3 100% | 3/3 100% / 3/3 100% | 3/3 97% / 3/3 100% | 3/3 63% / 3/3 100% | 0/3 / 3/3 100% |
+| 2 | 3/3 100% | 3/3 100% / 3/3 100% | 3/3 93% / 3/3 93% | 3/3 85% / 3/3 93% | 0/3 / 3/3 100% |
+| 3 | 3/3 100% | 3/3 100% / 3/3 100% | 3/3 68% / 3/3 56% | 1/3 21% / 2/3 35% | 0/3 / 3/3 100% |
+| 4 | 3/3 100% | 3/3 74% / 3/3 83% | 3/3 35% / 3/3 61% | 3/3 31% / 2/3 58% | 0/3 / 3/3 100% |
+| 5 | 3/3 100% | 3/3 72% / 3/3 95% | 3/3 49% / 3/3 81% | 0/3 / 2/3 53% | 0/3 / 3/3 81% |
+
+At 90% of target, plain typing starts losing levels from about level 13, and
+spells keep most levels winnable.
+
+### Hardcore (targets 33/40/47/53/60)
+
+| Stage | L3 plain | L7 plain / spells | L13 plain / spells | L19 plain / spells | Boss plain / spells |
+|---|---|---|---|---|---|
+| 1 | 3/3 100% | 3/3 100% / 3/3 100% | 3/3 44% / 3/3 100% | 0/3 / 3/3 100% | 0/3 / 3/3 100% |
+| 2 | 3/3 100% | 3/3 52% / 3/3 100% | 1/3 12% / 2/3 54% | 0/3 / 1/3 12% | 0/3 / 3/3 100% |
+| 3 | 3/3 91% | 2/3 29% / 3/3 100% | 1/3 5% / 2/3 62% | 1/3 5% / 2/3 57% | 0/3 / 3/3 100% |
+| 4 | 3/3 75% | 0/3 / 3/3 95% | 0/3 / 3/3 55% | 0/3 / 2/3 67% | 0/3 / 3/3 85% |
+| 5 | 3/3 68% | 0/3 / 3/3 68% | 0/3 / 3/3 100% | — | — |
+
+Hardcore is meant to be punishing: from mid-stage, typing at target speed
+without spells loses, and in Hardcore ward damage also carries between levels.
+This is the main thing to play-test. If it is too much, the levers are surge
+length, the Hardcore fall speed, and the heals.
+
+Bots are perfect typists with no reaction time, so humans will find every
+level harder than these tables suggest.
+
+---
+
+## v0.19.0 (superseded)
 
 Bots played each sampled level in the real engine (seed 7, spells unused):
 
