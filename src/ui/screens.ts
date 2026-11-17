@@ -22,7 +22,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.10.0';
+const APP_VERSION = '0.11.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -38,6 +38,7 @@ export interface MainMenuActions {
   onCampaign(): void;
   onPractice(): void;
   onCredits(): void;
+  onOptions(): void;
 }
 
 /** Menu entries that exist in the GDD but are built in later milestones. */
@@ -71,6 +72,7 @@ export function mainMenuScreen(
           h('span', { class: 'badge' }, 'Coming soon'),
         ),
       ),
+      h('button', { class: 'menu-button', onClick: actions.onOptions }, 'Options'),
       h('button', { class: 'menu-button', onClick: actions.onCredits }, 'Credits'),
     ),
     best &&
@@ -406,6 +408,44 @@ export function creditsScreen(onBack: () => void): Screen {
     focus: back,
     onKey: (event) => {
       if (event.key === 'Escape') onBack();
+    },
+  };
+}
+
+// ───────────────────────── Options ─────────────────────────
+
+export interface AudioToggles {
+  music: boolean;
+  sfx: boolean;
+}
+
+/** The two audio switches as menu buttons (used by Options and the pause menu). */
+export function audioToggleLabels(a: Readonly<AudioToggles>): { music: string; sfx: string } {
+  return { music: `Music: ${a.music ? 'On' : 'Off'}`, sfx: `Sound effects: ${a.sfx ? 'On' : 'Off'}` };
+}
+
+/** Options: music and sound effects, each on or off. */
+export function optionsScreen(
+  a: Readonly<AudioToggles>,
+  actions: { onMusic(): void; onSfx(): void; onBack(): void },
+  focusKey: 'music' | 'sfx' | null = null,
+): Screen {
+  const labels = audioToggleLabels(a);
+  const music = h('button', { class: `menu-button${a.music ? ' primary' : ''}`, onClick: actions.onMusic, attrs: { role: 'switch', 'aria-checked': String(a.music) } }, labels.music);
+  const sfx = h('button', { class: `menu-button${a.sfx ? ' primary' : ''}`, onClick: actions.onSfx, attrs: { role: 'switch', 'aria-checked': String(a.sfx) } }, labels.sfx);
+  const back = h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back');
+  const element = h(
+    'section',
+    { class: 'screen panel options', attrs: { role: 'dialog', 'aria-labelledby': 'options-title' } },
+    h('h2', { class: 'screen-title', attrs: { id: 'options-title' } }, 'Options'),
+    h('p', { class: 'screen-subtitle' }, 'Music and sound effects can be switched separately. You can also change them from the pause menu (Esc).'),
+    h('div', { class: 'menu-list' }, music, sfx, back),
+  );
+  return {
+    element,
+    focus: focusKey === 'music' ? music : focusKey === 'sfx' ? sfx : music,
+    onKey: (event) => {
+      if (event.key === 'Escape') actions.onBack();
     },
   };
 }

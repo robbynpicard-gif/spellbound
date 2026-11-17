@@ -332,9 +332,15 @@ describe('SaveManager', () => {
     expect(reloaded.highestReached).toBe(7);
   });
 
-  it('ignores old word-bank settings (one dictionary now)', () => {
+  it('ignores old word-bank settings and saves the audio switches', () => {
     const old = parseSave(JSON.stringify({ version: 4, campaign: {}, settings: { wordBanks: { fantasy: false, modern: true } } }), TOTAL);
-    expect(old.settings).toEqual({});
+    expect(old.settings).toEqual({ music: true, sfx: true });
+    const storage = new MemoryStorage();
+    const save = new SaveManager(storage, TOTAL);
+    save.setAudio({ music: false });
+    expect(new SaveManager(storage, TOTAL).audio).toEqual({ music: false, sfx: true });
+    const tampered = parseSave(JSON.stringify({ version: 4, campaign: {}, settings: { music: 'no', sfx: false } }), TOTAL);
+    expect(tampered.settings).toEqual({ music: true, sfx: false });
   });
 
   it('migrates a version 3 save (Hardcore starts empty)', () => {

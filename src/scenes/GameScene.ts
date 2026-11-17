@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { audio } from '../audio/Audio';
 import { GameEngine } from '../core/GameEngine';
 import type { GameResult } from '../core/GameEvents';
 import { FONTS, PALETTE, SIMULATION_STEP_MS } from '../core/GameConfig';
@@ -141,6 +142,7 @@ export class GameScene extends Phaser.Scene {
     // The chapter's scene; weather builds level by level, and bosses get their own scene.
     const chapter = this.config.chapter ?? Math.ceil(this.config.level / 5);
     const boss = isSurvival(this.config);
+    audio.setMood(boss ? 'boss' : 'calm');
     this.background = new FieldBackground(this, chapter, boss ? 4 : (this.config.level - 1) % 5, boss);
     this.effects = new Effects(this);
     this.spellFx = new SpellEffects(this);
@@ -317,6 +319,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     ev.on('wordCompleted', ({ word, points, combo }) => {
+      audio.capture(combo);
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
       this.removeView(word.id);
       this.effects.wordDestroyed(x, y, word.text.length, points);
@@ -358,6 +361,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     ev.on('wordBlocked', ({ word }) => {
+      audio.blocked();
       this.removeView(word.id);
       this.spellFx.burst(screenX(word.x), LAYOUT.wardY - 10, PALETTE.shield, 26);
       this.background.flashBlocked();
@@ -371,18 +375,21 @@ export class GameScene extends Phaser.Scene {
     ev.on('slowChanged', ({ stacks }) => this.spellFx.setSlowStacks(stacks));
 
     ev.on('wordMissed', ({ word }) => {
+      audio.miss();
       this.removeView(word.id);
       this.effects.wordBrokeThrough(screenX(word.x), LAYOUT.wardY);
       this.background.flashMiss();
     });
 
     ev.on('typingError', ({ wordId }) => {
+      audio.error();
       if (wordId !== null) this.views.get(wordId)?.flashError();
     });
 
     ev.on('inputChanged', () => this.refreshConsole());
 
     ev.on('submitMissed', ({ wordId }) => {
+      audio.error();
       this.hud.console.reject();
       if (wordId !== null) this.views.get(wordId)?.flashError();
     });
@@ -395,6 +402,7 @@ export class GameScene extends Phaser.Scene {
     ev.on('progressChanged', ({ completed }) => this.hud.setProgress(completed));
 
     ev.on('spellCollected', ({ spell, stored, charges }) => {
+      audio.pickup();
       this.hud.setSpells(charges, stored ? spell : undefined);
       const book = SPELLS[spell].book;
       this.effects.floatText(
@@ -407,6 +415,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     ev.on('spellCast', ({ spell, charges }) => {
+      audio.cast(spell);
       this.hud.setSpells(charges, spell);
       this.hud.console.flash(SPELL_COLORS[spell]);
       this.spellFx.cast(spell);
@@ -419,6 +428,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     ev.on('spellFizzled', ({ spell }) => {
+      audio.error();
       this.hud.denySpell(spell);
       this.hud.console.reject();
     });
@@ -427,6 +437,8 @@ export class GameScene extends Phaser.Scene {
     ev.on('spellCollected', () => this.refreshConsole());
 
     ev.on('gameOver', ({ result, stats }) => {
+      if (result === 'won') audio.fanfare();
+      else audio.defeat();
       this.hud.updateStats(stats, this.engine.state.combo);
       this.input.keyboard!.disableGlobalCapture();
       if (this.duel) {
@@ -534,7 +546,10 @@ export class GameScene extends Phaser.Scene {
     if (key === 'Delete') return this.engine.clearInput();
     if (event.repeat) return; // holding a letter or Enter should not repeat it
     if (key === 'Enter') return this.engine.submit();
-    if (key.length === 1) this.engine.typeChar(key);
+    if (key.length === 1) {
+      audio.key();
+      this.engine.typeChar(key);
+    }
   }
 
   private onPointerDown(pointer: Phaser.Input.Pointer): void {

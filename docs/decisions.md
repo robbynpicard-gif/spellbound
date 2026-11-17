@@ -524,3 +524,15 @@ _2026-11-16 · Accepted (project owner) · amends D-035_
   x 150–1076; the wizard sits at lower left; the typewriter faces the player
   at bottom centre with the paper roll on top and the counter beside it;
   the seal glows behind the typewriter; rack and status bar unchanged.
+
+### D-038 — Music and sound effects, synthesised, on separate switches
+_2026-11-16 · Accepted (project owner)_
+
+- `src/audio/Audio.ts` makes all sound with the Web Audio API (no audio
+  files): a slow, dark D-minor soundtrack (pad, drone, plucked arpeggio, low
+  bells, stone-room reverb) whose arpeggio quickens in boss fights, and sound
+  effects for typing, captures (rising with the combo), errors, misses,
+  barrier blocks, spell pickups, each spell's cast, level cleared and defeat.
+- Music and sound effects are separate buses, each on/off in Options (back on
+  the main menu) and in the pause menu; saved in `settings: { music, sfx }`.
+- Sound starts after the first click or key press (browser rule).

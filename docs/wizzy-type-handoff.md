@@ -1,6 +1,6 @@
 # Wizzy Type: full project handoff
 
-_Snapshot: 2026-11-16, version 0.10.0 (commit f685f8a)._
+_Snapshot: 2026-11-16, version 0.11.0._
 
 ## 1. What it is
 Wizzy Type is a browser typing game that reimagines the old web game *Typing Maniac*. A wizard sits in a gothic study at an enchanted typewriter, and word scrolls drift down past the study's arched windows. You type a word and press **Enter** to capture it before it reaches the window sill (the **ward line**). Each scroll that breaks through damages the ward (its "instability" rises). Some scrolls are **spell scrolls**: capturing one adds a spell charge, and typing the spell's name (e.g. `fire`) plus Enter casts it.
@@ -75,6 +75,9 @@ docs/           GDD, architecture, decisions, development-log, art-direction, lo
 
 Boss levels ramp their speed, spawn rate and on-screen cap up during the fight. Each level's `maxComplexity` is 0.5 for levels 1–3, 1 for levels 4–7, 1.5 for 8–9, 2 for 11–12, 2.5 for 13–14, and uncapped from level 16.
 
+## 3b. Audio (D-038)
+All sound is synthesised in `src/audio/Audio.ts` (Web Audio API, no files). Music: dark D-minor ambient loop (pad, drone, plucked arpeggio, bells, reverb), denser in boss fights. Sound effects: key ticks, capture chime rising with combo, error buzz, miss thud, barrier ring, spell pickup sparkle, a voice per spell cast, level fanfare, defeat. Music and sound effects are separate switches in Options and the pause menu, saved in `settings: { music, sfx }`.
+
 ## 4. Spells (`src/data/spells.json`)
 There are 8 spells, listed below in power order and introduced in this order. All runs share one spell pool (the "mana capacity"), with no per-spell maximum; rarer spells simply drop less often. On the level that introduces a spell, that spell drops more often (`INTRO_DROP_BOOST`). Cast a spell by typing its name plus Enter. No falling word can equal a spell name, start with one, or be the start of one.
 
@@ -96,7 +99,7 @@ Crash was removed. When a level introduces a spell, a pop-up shows its one-line 
 - No brand names and no names from modern fiction (a test checks this).
 - Lengths are 3–12 letters, letters only; only legend names are capitalised.
 - Spell names are excluded.
-- The old Fantasy/Modern word banks and the Options screen were removed.
+- The old Fantasy/Modern word banks were removed; Options now holds the audio switches.
 
 ## 6. Lore (implied, never told; D-032, D-034)
 - `docs/lore.md` is an internal world bible only. The game shows no story text.

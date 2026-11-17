@@ -4,6 +4,13 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Soundtrack and sound effects
+
+**Done** (D-038): synthesised music and sound effects with separate on/off
+switches in Options and the pause menu, saved between visits.
+
+---
+
 ## 2026-11-16 — More scrolls, one dictionary, zoomed-out realistic study
 
 **Done** (D-036, D-037): fall height 560 → 760 (same speeds) and ×1.5 words

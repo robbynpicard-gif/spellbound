@@ -3,6 +3,7 @@ import type { GameResult } from '../core/GameEvents';
 import type { LevelManager } from '../difficulty/LevelManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import { WORDS } from '../data/wordList';
+import { audio } from '../audio/Audio';
 import { isSurvival } from '../difficulty/DifficultyConfig';
 import { SPELL_IDS, type SpellCharges } from '../gameplay/SpellManager';
 import {
@@ -24,7 +25,9 @@ import {
   campaignModeScreen,
   creditsScreen,
   levelClearScreen,
+  audioToggleLabels,
   mainMenuScreen,
+  optionsScreen,
   pauseScreen,
   runOverScreen,
   spellIntroScreen,
@@ -59,11 +62,40 @@ export class App {
           onCampaign: () => this.showCampaignModes(),
           onPractice: () => this.showPracticeSetup(),
           onCredits: () => this.showCredits(),
+          onOptions: () => this.showOptions(),
         },
         this.save.campaign,
         this.save.persistent,
       ),
     );
+  }
+
+  showOptions(focus: 'music' | 'sfx' | null = null): void {
+    this.showBackdrop();
+    this.ui.show(
+      optionsScreen(
+        this.save.audio,
+        {
+          onMusic: () => {
+            this.toggleAudio('music');
+            this.showOptions('music');
+          },
+          onSfx: () => {
+            this.toggleAudio('sfx');
+            this.showOptions('sfx');
+          },
+          onBack: () => this.showMainMenu(),
+        },
+        focus,
+      ),
+    );
+  }
+
+  /** Flip music or sound effects, save it, and apply it at once. */
+  private toggleAudio(which: 'music' | 'sfx'): void {
+    const next = this.save.setAudio({ [which]: !this.save.audio[which] });
+    audio.setMusic(next.music);
+    audio.setSfx(next.sfx);
   }
 
   /** Words for Campaign and Practice. */
@@ -251,7 +283,12 @@ export class App {
     note: string,
   ): void {
     if (!paused) return this.ui.clear();
-    this.ui.show(pauseScreen(label, () => this.gameScene.resumeGame(), options, note));
+    const labels = audioToggleLabels(this.save.audio);
+    const toggles = [
+      { label: labels.music, onClick: () => (this.toggleAudio('music'), this.onPause(true, label, options, note)) },
+      { label: labels.sfx, onClick: () => (this.toggleAudio('sfx'), this.onPause(true, label, options, note)) },
+    ];
+    this.ui.show(pauseScreen(label, () => this.gameScene.resumeGame(), [...options, ...toggles], note));
   }
 
   private startScene(data: GameSceneData): void {
@@ -266,6 +303,7 @@ export class App {
   }
 
   private showBackdrop(): void {
+    audio.setMood('menu');
     this.game.scene.stop(GameScene.KEY);
     if (!this.game.scene.isActive(BackdropScene.KEY)) this.game.scene.start(BackdropScene.KEY);
   }

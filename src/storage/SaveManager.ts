@@ -44,8 +44,13 @@ export interface SaveData {
   /** Player profile. Added within v3 (missing in older v3 saves → defaults). */
   profile: { name: string; duelLevel: number };
   /** Options. Added within v4 (missing → defaults). */
-  /** Player settings (none yet; word banks were removed in D-036). */
-  settings: Record<string, never>;
+  /** Player settings: music and sound effects on/off (D-038). */
+  settings: AudioSettings;
+}
+
+export interface AudioSettings {
+  music: boolean;
+  sfx: boolean;
 }
 
 /** The subset of the Web Storage API we use (lets tests pass a fake). */
@@ -65,7 +70,7 @@ export function emptySave(): SaveData {
     hardcore: emptyCampaignRecords(),
     practice: emptyPractice(),
     profile: { name: '', duelLevel: 1 },
-    settings: {},
+    settings: { music: true, sfx: true },
   };
 }
 
@@ -129,8 +134,9 @@ function parseProfile(raw: unknown, totalLevels: number): SaveData['profile'] {
   };
 }
 
-function parseSettings(_raw: unknown): SaveData['settings'] {
-  return {};
+function parseSettings(raw: unknown): SaveData['settings'] {
+  const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+  return { music: typeof r.music === 'boolean' ? r.music : true, sfx: typeof r.sfx === 'boolean' ? r.sfx : true };
 }
 
 /**
@@ -260,6 +266,17 @@ export class SaveManager {
     this.save.practice.lastLevel = Math.min(Math.max(1, level), this.totalLevels);
     this.save.practice.lastFilter = filter;
     this.write();
+  }
+
+  /** Music and sound effects switches. */
+  get audio(): Readonly<AudioSettings> {
+    return this.save.settings;
+  }
+
+  setAudio(change: Partial<AudioSettings>): Readonly<AudioSettings> {
+    this.save.settings = { ...this.save.settings, ...change };
+    this.write();
+    return this.save.settings;
   }
 
   get profile(): Readonly<SaveData['profile']> {
