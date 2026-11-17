@@ -246,7 +246,7 @@ describe('GameEngine — typing console', () => {
     const engine = makeEngine({ initialFallSpeed: 600 });
     const word = firstWord(engine);
     engine.typeChar(word.text[0]!);
-    for (let i = 0; i < 70 && engine.state.words.includes(word); i++) engine.step();
+    for (let i = 0; i < 95 && engine.state.words.includes(word); i++) engine.step();
     expect(engine.state.input).toBe('');
   });
 });
@@ -332,7 +332,7 @@ describe('GameEngine — instability and game end', () => {
     const missed = vi.fn();
     engine.events.on('wordMissed', missed);
     firstWord(engine);
-    for (let i = 0; i < 61; i++) engine.step();
+    for (let i = 0; i < 80; i++) engine.step();
     expect(engine.state.missed).toBeGreaterThanOrEqual(1);
     expect(engine.state.instability).toBe(25 * engine.state.missed);
     expect(missed).toHaveBeenCalled();

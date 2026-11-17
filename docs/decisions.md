@@ -501,3 +501,26 @@ _2026-11-16 · Accepted (project owner) · replaces D-031's fixed backdrop and D
   The simulation is unchanged, so each word takes the same time to fall.
 - Menus use their own scenes (a tower on a sea cliff; a candlelit library
   for wizard select later).
+
+### D-036 — One dictionary; more scrolls on screen at the same difficulty
+_2026-11-16 · Accepted (project owner) · replaces D-027's word banks_
+
+- The fantasy and modern banks merge into `src/data/words.json` (2,910 words,
+  plus new medieval, nature and everyday words). The Options screen (which
+  only held the word-bank switches) is removed; old saved settings are ignored.
+  Spell cast words stay out of the dictionary.
+- The fall is longer: `FIELD.height` 560 → 760 at the same fall speeds and
+  spawn rates, so each word stays ~36% longer and more are on screen;
+  `maxActiveWords` rises ×1.5 on every level. The typing speed needed (spawn
+  rate) and its scaling are unchanged.
+
+### D-037 — Zoomed-out study in the reference's arrangement, realistic light
+_2026-11-16 · Accepted (project owner) · amends D-035_
+
+- Art from `tools/pixelart/v5/build.py`: albedo × light from every candle,
+  the seal, glowing glass and the moon, with bloom, texture and no outlines;
+  the wizard is shaded from a height field (rounded, rim-lit, face in shadow).
+- Layout (screen px): scrolls fall from y 20 to the sill at 506 across
+  x 150–1076; the wizard sits at lower left; the typewriter faces the player
+  at bottom centre with the paper roll on top and the counter beside it;
+  the seal glows behind the typewriter; rack and status bar unchanged.

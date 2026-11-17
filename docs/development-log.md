@@ -4,6 +4,14 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — More scrolls, one dictionary, zoomed-out realistic study
+
+**Done** (D-036, D-037): fall height 560 → 760 (same speeds) and ×1.5 words
+on screen; one merged 2,910-word dictionary and no word-bank options;
+new layout and realistic lighting for every chapter, boss and menu.
+
+---
+
 ## 2026-11-16 — Art v4 and a longer fall
 
 **Done** (D-034, D-035): lore text removed from the game; new generated art

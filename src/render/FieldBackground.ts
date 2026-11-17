@@ -22,7 +22,7 @@ const CRACKS: readonly (readonly [number, number][])[] = [
 ];
 
 /**
- * The study backdrop, wizard and typewriter layers (decisions.md D-035) plus what reacts to play: the
+ * The study backdrop and the wizard (decisions.md D-037) plus what reacts to play: the
  * ward line words must not reach, a red glow as danger rises, the Arcane
  * Shield, and the runic seal on the wall, which flickers, darkens and
  * cracks as the ward weakens. Never covers the words.
@@ -57,12 +57,10 @@ export class FieldBackground {
         .setOrigin(0)
         .setDepth(-9.5);
     }
-    // The wizard sits behind the typewriter, facing the player (D-035).
-    const front = ART.front(chapter, boss);
+    // The wizard, seated at lower left (D-037).
     if (scene.textures.exists(ART.wizard())) {
       scene.add.image(LAYOUT.wizard.x, LAYOUT.wizard.y, ART.wizard()).setOrigin(0).setScale(ART_SCALE).setDepth(-8.4);
     }
-    if (scene.textures.exists(front)) scene.add.image(0, 0, front).setOrigin(0).setScale(ART_SCALE).setDepth(-8.3);
 
     // Seal deterioration, drawn over the seal in the backdrop.
     this.sealShade = scene.add.graphics().setDepth(-9);

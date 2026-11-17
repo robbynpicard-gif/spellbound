@@ -1,4 +1,3 @@
-import { normalizeWordBanks, type WordBankSettings } from '../data/wordList';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
   applyRunResult,
@@ -45,7 +44,8 @@ export interface SaveData {
   /** Player profile. Added within v3 (missing in older v3 saves → defaults). */
   profile: { name: string; duelLevel: number };
   /** Options. Added within v4 (missing → defaults). */
-  settings: { wordBanks: WordBankSettings };
+  /** Player settings (none yet; word banks were removed in D-036). */
+  settings: Record<string, never>;
 }
 
 /** The subset of the Web Storage API we use (lets tests pass a fake). */
@@ -65,7 +65,7 @@ export function emptySave(): SaveData {
     hardcore: emptyCampaignRecords(),
     practice: emptyPractice(),
     profile: { name: '', duelLevel: 1 },
-    settings: { wordBanks: normalizeWordBanks() },
+    settings: {},
   };
 }
 
@@ -129,10 +129,8 @@ function parseProfile(raw: unknown, totalLevels: number): SaveData['profile'] {
   };
 }
 
-function parseSettings(raw: unknown): SaveData['settings'] {
-  const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
-  const banks = typeof r.wordBanks === 'object' && r.wordBanks !== null ? (r.wordBanks as Record<string, unknown>) : null;
-  return { wordBanks: normalizeWordBanks(banks) };
+function parseSettings(_raw: unknown): SaveData['settings'] {
+  return {};
 }
 
 /**
@@ -262,18 +260,6 @@ export class SaveManager {
     this.save.practice.lastLevel = Math.min(Math.max(1, level), this.totalLevels);
     this.save.practice.lastFilter = filter;
     this.write();
-  }
-
-  /** Which word banks Campaign and Practice use. */
-  get wordBanks(): Readonly<WordBankSettings> {
-    return this.save.settings.wordBanks;
-  }
-
-  /** Change the word banks (at least one always stays on). Returns the settings now in force. */
-  setWordBanks(banks: Partial<WordBankSettings>): Readonly<WordBankSettings> {
-    this.save.settings.wordBanks = normalizeWordBanks({ ...this.save.settings.wordBanks, ...banks });
-    this.write();
-    return this.save.settings.wordBanks;
   }
 
   get profile(): Readonly<SaveData['profile']> {

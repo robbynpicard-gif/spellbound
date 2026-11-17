@@ -166,8 +166,10 @@ def seal(c, magic, rng):
             wdt = 2 + 6 * (1 - t)
             x0, x1 = int(x - wdt), int(x + wdt)
             sm[y, max(0, x0):min(c.w, x1)] += 0.22 * (1 - t) ** 1.2
-    hit = (np.clip(sm, 0, 0.8) > c.bay) & above
-    c.a[hit] = c.a[hit] * 0.45 + col(magic) * 0.55
+    al = (np.clip(sm, 0, 0.6) * above)[..., None]
+    from PIL import Image as _I, ImageFilter as _F
+    al = np.asarray(_I.fromarray((al[..., 0] * 255).astype(np.uint8)).filter(_F.GaussianBlur(2)), float)[..., None] / 255
+    c.a = c.a * (1 - al * 0.6) + col(magic) * 0.6 * al
     c.glow(cx, cy, r * 1.6, magic, 0.55, 1.4, m=above)
     d = np.hypot(xx - cx, (yy - cy) * 1.0)
     for rr, wdt in ((r, 2), (r - 6, 1), (r - 24, 1)):

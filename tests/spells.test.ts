@@ -11,7 +11,7 @@ import {
   SPELL_POOL_SIZE,
   totalCharges,
 } from '../src/gameplay/SpellManager';
-import { clashesWithCastWord, FANTASY_WORDS, MODERN_WORDS, WORDS } from '../src/data/wordList';
+import { ALL_WORDS, clashesWithCastWord, WORDS } from '../src/data/wordList';
 import type { WordState } from '../src/gameplay/Word';
 import { dropWeights, INTRO_DROP_BOOST, SPELLS } from '../src/spells/SpellRegistry';
 
@@ -115,7 +115,7 @@ describe('spell pool', () => {
 
 describe('cast words', () => {
   it('no falling word equals a cast word, starts with one or is the start of one', () => {
-    const clashes = [...FANTASY_WORDS, ...MODERN_WORDS].filter(clashesWithCastWord);
+    const clashes = ALL_WORDS.filter(clashesWithCastWord);
     expect(clashes).toEqual([]);
     expect(WORDS.some(clashesWithCastWord)).toBe(false);
   });

@@ -93,7 +93,7 @@ describe('campaign level data', () => {
 
   it("ends at the old level 10's difficulty", () => {
     const last = levels.filter((l) => !isSurvival(l)).at(-1)!;
-    expect(last).toMatchObject({ initialFallSpeed: 108, spawnInterval: 1000, maxActiveWords: 10 });
+    expect(last).toMatchObject({ initialFallSpeed: 108, spawnInterval: 1000, maxActiveWords: 15 });
   });
 
   it('converts JSON length-weight keys to numbers', () => {
@@ -332,16 +332,9 @@ describe('SaveManager', () => {
     expect(reloaded.highestReached).toBe(7);
   });
 
-  it('saves the word-bank choice and never allows both banks off', () => {
-    const storage = new MemoryStorage();
-    const save = new SaveManager(storage, TOTAL);
-    expect(save.wordBanks).toEqual({ fantasy: true, modern: false });
-    save.setWordBanks({ modern: true });
-    save.setWordBanks({ fantasy: false });
-    expect(new SaveManager(storage, TOTAL).wordBanks).toEqual({ fantasy: false, modern: true });
-    expect(save.setWordBanks({ modern: false })).toEqual({ fantasy: true, modern: false });
-    const tampered = parseSave(JSON.stringify({ version: 4, campaign: {}, settings: { wordBanks: { fantasy: false, modern: 'x' } } }), TOTAL);
-    expect(tampered.settings.wordBanks).toEqual({ fantasy: true, modern: false });
+  it('ignores old word-bank settings (one dictionary now)', () => {
+    const old = parseSave(JSON.stringify({ version: 4, campaign: {}, settings: { wordBanks: { fantasy: false, modern: true } } }), TOTAL);
+    expect(old.settings).toEqual({});
   });
 
   it('migrates a version 3 save (Hardcore starts empty)', () => {

@@ -1,12 +1,4 @@
 import { GAME_TITLE } from '../core/GameConfig';
-import {
-  FANTASY_WORDS,
-  MODERN_WORDS,
-  WORD_BANKS,
-  wordPool,
-  type WordBank,
-  type WordBankSettings,
-} from '../data/wordList';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
@@ -30,7 +22,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.9.0';
+const APP_VERSION = '0.10.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -46,7 +38,6 @@ export interface MainMenuActions {
   onCampaign(): void;
   onPractice(): void;
   onCredits(): void;
-  onOptions(): void;
 }
 
 /** Menu entries that exist in the GDD but are built in later milestones. */
@@ -80,7 +71,6 @@ export function mainMenuScreen(
           h('span', { class: 'badge' }, 'Coming soon'),
         ),
       ),
-      h('button', { class: 'menu-button', onClick: actions.onOptions }, 'Options'),
       h('button', { class: 'menu-button', onClick: actions.onCredits }, 'Credits'),
     ),
     best &&
@@ -393,77 +383,6 @@ export function runOverScreen(
     focus: newRun,
     onKey: (event) => {
       if (event.key === 'Escape') actions.onMenu();
-    },
-  };
-}
-
-// ───────────────────────── Options ─────────────────────────
-
-export interface OptionsActions {
-  onToggle(bank: WordBank, on: boolean): void;
-  onBack(): void;
-}
-
-const BANK_INFO: Record<WordBank, { title: string; detail: string; count: number }> = {
-  fantasy: {
-    title: 'Fantasy dictionary',
-    detail: 'Castles, creatures, wizardry, alchemy and legends of old',
-    count: FANTASY_WORDS.length,
-  },
-  modern: {
-    title: 'Modern dictionary',
-    detail: 'Everyday words: home, school, food, sport, travel',
-    count: MODERN_WORDS.length,
-  },
-};
-
-/** Options: choose the word banks used in Campaign and Practice (at least one stays on). */
-export function optionsScreen(banks: Readonly<WordBankSettings>, actions: OptionsActions): Screen {
-  const onlyOne = WORD_BANKS.filter((b) => banks[b]).length === 1;
-  const toggles = WORD_BANKS.map((bank) => {
-    const info = BANK_INFO[bank];
-    const on = banks[bank];
-    const locked = on && onlyOne;
-    return h(
-      'button',
-      {
-        class: `menu-button bank-toggle${on ? ' on' : ''}`,
-        disabled: locked,
-        onClick: () => actions.onToggle(bank, !on),
-        attrs: {
-          role: 'switch',
-          'aria-checked': String(on),
-          'data-bank': bank,
-          ...(locked ? { title: 'At least one dictionary must stay on' } : {}),
-        },
-      },
-      h('span', { class: 'bank-state' }, on ? 'On' : 'Off'),
-      h('span', { class: 'mode-title' }, info.title),
-      h('span', { class: 'mode-detail' }, `${info.detail} · ${info.count.toLocaleString()} words`),
-    );
-  });
-  const back = h('button', { class: 'menu-button primary', onClick: actions.onBack }, 'Back');
-  const element = h(
-    'section',
-    { class: 'screen panel options', attrs: { role: 'dialog', 'aria-labelledby': 'options-title' } },
-    h('h2', { class: 'screen-title', attrs: { id: 'options-title' } }, 'Options'),
-    h('h3', { class: 'options-heading' }, 'Word bank'),
-    h('p', { class: 'screen-subtitle' }, 'Choose which words fall in Campaign and Endless Practice.'),
-    h('div', { class: 'mode-list' }, ...toggles),
-    h(
-      'p',
-      { class: 'footnote' },
-      `Playing with ${wordPool(banks).length.toLocaleString()} words · At least one dictionary stays on · Wizard Duels always use the Fantasy dictionary`,
-    ),
-    h('div', { class: 'button-row' }, back),
-  );
-  const focusBank = (document.activeElement as HTMLElement | null)?.dataset?.bank;
-  const focus = toggles.find((t) => t.dataset.bank === focusBank && !t.disabled) ?? back;
-  return {
-    element,
-    focus,
-    onKey: (event) => {
-      if (event.key === 'Escape') actions.onBack();
     },
   };
 }

@@ -182,7 +182,7 @@ class Sprite:
     def px(self, mat, x, y):
         if 0 <= x < self.w and 0 <= y < self.h: self.id[y, x] = mat
 
-    def render(self, light=(-1, -1), flat=(), glow=()):
+    def render(self, light=(-1, -1), flat=(), glow=(), outline=True):
         h, w = self.h, self.w
         out = np.zeros((h, w, 4), float)
         bay = bayer(h, w)
@@ -215,8 +215,10 @@ class Sprite:
             pal = np.array(ramp)
             out[m, :3] = pal[t[m]]
             out[m, 3] = 255
-        # selective outline: darkest ramp tone of the neighbour material, or ink at the silhouette
         filled = self.id > 0
+        if not outline:
+            return Image.fromarray(np.clip(out, 0, 255).astype(np.uint8), 'RGBA')
+        # selective outline: darkest ramp tone of the neighbour material, or ink at the silhouette
         edge = filled & (~sh(filled, 1, 0) | ~sh(filled, -1, 0) | ~sh(filled, 0, 1) | ~sh(filled, 0, -1))
         for mi in range(1, len(self.mats)):
             e = edge & (self.id == mi)
@@ -264,3 +266,14 @@ def grade(im, sat=0.74, bright=0.88, gamma=1.10, tint=(0.96, 0.97, 1.06), grit=0
     a[..., :3] = np.clip(rgb * 255, 0, 255)
     out = Image.fromarray(a.astype(np.uint8), 'RGBA')
     return out if rgba else out.convert('RGB')
+
+
+def fbm2(h, w, seed, scale=64, octaves=5, rough=0.55):
+    """2D fractal value noise in 0..1 (bicubic-upsampled random grids)."""
+    rng = np.random.default_rng(seed); out = np.zeros((h, w)); amp = 1.0; tot = 0.0; s = float(scale)
+    for _ in range(octaves):
+        gh, gw = max(2, int(h / s) + 2), max(2, int(w / s) + 2)
+        g = Image.fromarray((rng.random((gh, gw)) * 255).astype(np.uint8))
+        up = np.asarray(g.resize((int(gw * s), int(gh * s)), Image.BICUBIC), float)[:h, :w] / 255.0
+        out += amp * up; tot += amp; amp *= rough; s = max(1.0, s / 2)
+    return out / tot

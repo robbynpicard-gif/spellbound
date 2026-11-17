@@ -43,7 +43,7 @@ WIZARDS = {
 }
 
 
-def draw(spec, view='front', k=1.6):
+def draw(spec, view='front', k=1.6, outline=True, ids=False):
     S = Sprite(96, 128, k)
     robe = S.material(R(spec['robe'], 'b0a0d0')); robe_d = S.material(R(_dk(spec['robe']), 'a090c0'))
     trim = S.material(R(spec['trim'], 'fff0c0')); hat = S.material(R(spec['hatc'], 'b0a0d0'))
@@ -56,7 +56,8 @@ def draw(spec, view='front', k=1.6):
     hi = S.material(G('fff4e0'))
     glows = [glowm, hi]
     game = view == 'game'
-    fx = 0  # face turned toward the typewriter
+    side = view == 'side'
+    fx = 4 if side else 0  # face turned toward the typewriter
 
     # things carried on the back go first
     p = spec['prop']
@@ -79,7 +80,11 @@ def draw(spec, view='front', k=1.6):
     S.poly(robe_d, [(48, 76), (66, 68), (82, 127), (52, 127)])
     S.rect(trim, 46, 74, 50, 122)
     S.rect(leather, 31, 92, 65, 95); S.rect(trim, 46, 91, 50, 96)
-    if game:   # arms reach forward and down to the keys
+    if side:   # turned toward the typewriter, one hand reaching out
+        S.ellipse(robe, [16, 66, 40, 106]); S.ellipse(skin, [20, 98, 30, 107])
+        S.poly(robe, [(56, 68), (70, 70), (92, 88), (86, 98), (60, 90)])
+        S.ellipse(skin, [84, 88, 95, 97])
+    elif game:   # arms reach forward and down to the keys
         S.poly(robe, [(20, 70), (36, 68), (46, 112), (34, 118)])
         S.poly(robe_d, [(60, 68), (76, 70), (62, 118), (50, 112)])
     else:
@@ -101,7 +106,7 @@ def draw(spec, view='front', k=1.6):
         S.ellipse(steel, [14, 60, 38, 78]); S.ellipse(steel, [58, 60, 82, 78])
     S.ellipse(skin, [38 + fx, 44, 58 + fx, 66])
     shadow = S.material(G('3a2a24'))
-    S.rect(shadow, 38, 44, 59, 50)            # the hat or hood shades the brow
+    if spec['eyes'] != 'none': S.rect(shadow, 38, 44, 59, 50)            # the hat or hood shades the brow
     if spec['hair'] and spec['hat'] == 'pointed':
         S.rect(hair, 37 + fx, 44, 59 + fx, 49); S.rect(hair, 37 + fx, 49, 40 + fx, 56)
     if spec['hat'] == 'hood':
@@ -120,13 +125,14 @@ def draw(spec, view='front', k=1.6):
             for x in ex: S.rect(trim, x - 2, 52, x + 3, 56); S.rect(ink, x, 53, x + 1, 55)
             S.rect(trim, ex[0] + 3, 53, ex[1] - 2, 54)
         else:
-            m = {'ink': ink, 'glowfire': glowm, 'glowteal': glowm, 'glowgold': glowm}[spec['eyes']]
-            for x in ex: S.rect(m, x, 53, x + 2, 56)
+            m = {'ink': ink, 'glowfire': glowm, 'glowteal': glowm, 'glowgold': glowm}.get(spec['eyes'])
+            for x in ex:
+                if m: S.rect(m, x, 53, x + 2, 56)
         if spec['beard']:
             S.poly(beard, [(38 + fx, 58), (58 + fx, 58), (56 + fx, 78), (48 + fx, 90), (40 + fx, 78)])
             S.rect(skin, 45 + fx, 60, 51 + fx, 62)
         else:
-            S.rect(robe_d, 46 + fx, 61, 50 + fx, 62)
+            if spec['eyes'] != 'none': S.rect(robe_d, 46 + fx, 61, 50 + fx, 62)
     else:
         for x in (43 + fx, 51 + fx): S.rect(glowm, x, 51, x + 3, 53)
     # hats on top
@@ -147,7 +153,7 @@ def draw(spec, view='front', k=1.6):
                 S.ellipse(prop, [x + fx, 32, x + 10 + fx, 40]); S.rect(robe_d, x + 4 + fx, 38, x + 6 + fx, 42)
                 S.rect(G('ffffff') and skin, x + 3 + fx, 34, x + 4 + fx, 35)
     # held / hovering props
-    hx, hy = 66, 72
+    hx, hy = (6, 70) if side else (66, 72)
     if game: p = None
     if p == 'orb':
         S.ellipse(prop, [hx - 3, hy + 7, hx + 17, hy + 27]); S.ellipse(glowm, [hx - 1, hy + 9, hx + 15, hy + 25]); S.rect(hi, hx + 2, hy + 12, hx + 5, hy + 15)
@@ -169,7 +175,9 @@ def draw(spec, view='front', k=1.6):
         S.rect(steel, hx + 2, hy + 6, hx + 14, hy + 28); S.rect(glowm, hx + 4, hy + 10, hx + 12, hy + 25); S.rect(steel, hx + 7, hy, hx + 9, hy + 6)
     if p == 'mushroom' and not game:
         S.ellipse(prop, [hx, hy + 18, hx + 14, hy + 28]); S.rect(skin, hx + 5, hy + 26, hx + 9, hy + 34)
-    return S.render(light=(-1, -1), glow=tuple(glows), flat=(shadow,))
+    if ids:
+        return S.render(light=(-1, -1), glow=tuple(glows), flat=tuple(range(1, len(S.mats))), outline=False), S.id
+    return S.render(light=(-1, -1), glow=tuple(glows), flat=(shadow,), outline=outline)
 
 
 def _dk(h):

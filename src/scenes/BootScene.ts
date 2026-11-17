@@ -22,17 +22,16 @@ export class BootScene extends Phaser.Scene {
   preload(): void {
     for (const t of ART.themes) {
       this.load.image(`bg-${t}`, `assets/art/backdrop-${t}.png`);
-      this.load.image(`front-${t}`, `assets/art/front-${t}.png`);
     }
     this.load.image(ART.menu, 'assets/art/menu.png');
     this.load.image(ART.library, 'assets/art/library.png');
-    this.load.image(ART.wizard(), 'assets/art/wizard-apprentice-a-game.png');
+    this.load.image(ART.wizard(), 'assets/art/wizard-apprentice-a.png');
     this.load.spritesheet(ART.icons, 'assets/spells/icons.png', { frameWidth: 12, frameHeight: 12 });
   }
 
   create(): void {
     // Pixel art stays crisp when scaled up.
-    const keys = [...ART.themes.flatMap((t) => [`bg-${t}`, `front-${t}`]), ART.menu, ART.library, ART.wizard()];
+    const keys = [...ART.themes.map((t) => `bg-${t}`), ART.menu, ART.library, ART.wizard()];
     for (const key of [...keys, ART.icons]) {
       if (this.textures.exists(key)) this.textures.get(key).setFilter(Phaser.Textures.FilterMode.NEAREST);
     }

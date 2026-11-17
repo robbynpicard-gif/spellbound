@@ -6,7 +6,7 @@
     "requiredWords": 15,
     "initialFallSpeed": 45,
     "spawnInterval": 2200,
-    "maxActiveWords": 5,
+    "maxActiveWords": 8,
     "minWordLength": 3,
     "maxWordLength": 5,
     "wordLengthWeights": {
@@ -31,7 +31,7 @@
     "requiredWords": 16,
     "initialFallSpeed": 49,
     "spawnInterval": 2120,
-    "maxActiveWords": 5,
+    "maxActiveWords": 8,
     "minWordLength": 3,
     "maxWordLength": 5,
     "wordLengthWeights": {
@@ -55,7 +55,7 @@
     "requiredWords": 18,
     "initialFallSpeed": 53,
     "spawnInterval": 2040,
-    "maxActiveWords": 6,
+    "maxActiveWords": 9,
     "minWordLength": 3,
     "maxWordLength": 6,
     "wordLengthWeights": {
@@ -82,7 +82,7 @@
     "requiredWords": 19,
     "initialFallSpeed": 58,
     "spawnInterval": 1960,
-    "maxActiveWords": 6,
+    "maxActiveWords": 9,
     "minWordLength": 3,
     "maxWordLength": 6,
     "wordLengthWeights": {
@@ -108,7 +108,7 @@
     "requiredWords": null,
     "initialFallSpeed": 58,
     "spawnInterval": 1960,
-    "maxActiveWords": 6,
+    "maxActiveWords": 9,
     "minWordLength": 3,
     "maxWordLength": 6,
     "wordLengthWeights": {
@@ -129,7 +129,7 @@
     "ramp": {
       "initialFallSpeed": 66,
       "spawnInterval": 1800,
-      "maxActiveWords": 7
+      "maxActiveWords": 10
     },
     "maxComplexity": 1
   },
@@ -140,7 +140,7 @@
     "requiredWords": 20,
     "initialFallSpeed": 62,
     "spawnInterval": 1880,
-    "maxActiveWords": 6,
+    "maxActiveWords": 9,
     "minWordLength": 4,
     "maxWordLength": 7,
     "wordLengthWeights": {
@@ -168,7 +168,7 @@
     "requiredWords": 22,
     "initialFallSpeed": 66,
     "spawnInterval": 1800,
-    "maxActiveWords": 7,
+    "maxActiveWords": 10,
     "minWordLength": 4,
     "maxWordLength": 7,
     "wordLengthWeights": {
@@ -195,7 +195,7 @@
     "requiredWords": 23,
     "initialFallSpeed": 70,
     "spawnInterval": 1720,
-    "maxActiveWords": 7,
+    "maxActiveWords": 10,
     "minWordLength": 4,
     "maxWordLength": 8,
     "wordLengthWeights": {
@@ -225,7 +225,7 @@
     "requiredWords": 24,
     "initialFallSpeed": 74,
     "spawnInterval": 1640,
-    "maxActiveWords": 7,
+    "maxActiveWords": 10,
     "minWordLength": 4,
     "maxWordLength": 8,
     "wordLengthWeights": {
@@ -254,7 +254,7 @@
     "requiredWords": null,
     "initialFallSpeed": 74,
     "spawnInterval": 1640,
-    "maxActiveWords": 7,
+    "maxActiveWords": 10,
     "minWordLength": 4,
     "maxWordLength": 8,
     "wordLengthWeights": {
@@ -278,7 +278,7 @@
     "ramp": {
       "initialFallSpeed": 83,
       "spawnInterval": 1480,
-      "maxActiveWords": 8
+      "maxActiveWords": 12
     },
     "maxComplexity": 1.5
   },
@@ -289,7 +289,7 @@
     "requiredWords": 26,
     "initialFallSpeed": 79,
     "spawnInterval": 1560,
-    "maxActiveWords": 8,
+    "maxActiveWords": 12,
     "minWordLength": 5,
     "maxWordLength": 9,
     "wordLengthWeights": {
@@ -320,7 +320,7 @@
     "requiredWords": 27,
     "initialFallSpeed": 83,
     "spawnInterval": 1480,
-    "maxActiveWords": 8,
+    "maxActiveWords": 12,
     "minWordLength": 5,
     "maxWordLength": 9,
     "wordLengthWeights": {
@@ -350,7 +350,7 @@
     "requiredWords": 28,
     "initialFallSpeed": 87,
     "spawnInterval": 1400,
-    "maxActiveWords": 8,
+    "maxActiveWords": 12,
     "minWordLength": 5,
     "maxWordLength": 10,
     "wordLengthWeights": {
@@ -383,7 +383,7 @@
     "requiredWords": 30,
     "initialFallSpeed": 91,
     "spawnInterval": 1320,
-    "maxActiveWords": 9,
+    "maxActiveWords": 14,
     "minWordLength": 5,
     "maxWordLength": 10,
     "wordLengthWeights": {
@@ -415,7 +415,7 @@
     "requiredWords": null,
     "initialFallSpeed": 91,
     "spawnInterval": 1320,
-    "maxActiveWords": 9,
+    "maxActiveWords": 14,
     "minWordLength": 5,
     "maxWordLength": 10,
     "wordLengthWeights": {
@@ -442,7 +442,7 @@
     "ramp": {
       "initialFallSpeed": 100,
       "spawnInterval": 1160,
-      "maxActiveWords": 10
+      "maxActiveWords": 15
     },
     "maxComplexity": 2.5
   },
@@ -453,7 +453,7 @@
     "requiredWords": 31,
     "initialFallSpeed": 95,
     "spawnInterval": 1240,
-    "maxActiveWords": 9,
+    "maxActiveWords": 14,
     "minWordLength": 6,
     "maxWordLength": 11,
     "wordLengthWeights": {
@@ -486,7 +486,7 @@
     "requiredWords": 32,
     "initialFallSpeed": 100,
     "spawnInterval": 1160,
-    "maxActiveWords": 9,
+    "maxActiveWords": 14,
     "minWordLength": 6,
     "maxWordLength": 11,
     "wordLengthWeights": {
@@ -518,7 +518,7 @@
     "requiredWords": 34,
     "initialFallSpeed": 104,
     "spawnInterval": 1080,
-    "maxActiveWords": 10,
+    "maxActiveWords": 15,
     "minWordLength": 6,
     "maxWordLength": 12,
     "wordLengthWeights": {
@@ -553,7 +553,7 @@
     "requiredWords": 35,
     "initialFallSpeed": 108,
     "spawnInterval": 1000,
-    "maxActiveWords": 10,
+    "maxActiveWords": 15,
     "minWordLength": 6,
     "maxWordLength": 12,
     "wordLengthWeights": {
@@ -587,7 +587,7 @@
     "requiredWords": null,
     "initialFallSpeed": 108,
     "spawnInterval": 1000,
-    "maxActiveWords": 10,
+    "maxActiveWords": 15,
     "minWordLength": 6,
     "maxWordLength": 12,
     "wordLengthWeights": {
@@ -617,7 +617,7 @@
     "ramp": {
       "initialFallSpeed": 118,
       "spawnInterval": 900,
-      "maxActiveWords": 11
+      "maxActiveWords": 16
     }
   }
 ]
