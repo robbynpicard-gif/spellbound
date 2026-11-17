@@ -624,3 +624,21 @@ _2026-11-17 · Accepted (project owner); art is placeholder until the art style 
   Storm's Edge. Results show the journey strip.
 - Domain backdrops are recolours of the tower study for now; real domain art
   waits for the art-style decision.
+
+### D-045 — Roster shelved; weighty spells; rounder sound, brassy typewriter
+_2026-11-17 · Accepted (project owner)_
+
+- The wizard roster, sigil powers and wardrobes are shelved (switched off by
+  `WIZARD_ROSTER` in App.ts; code kept). Campaign starts straight away. The
+  direction instead: one wizard that belongs to the player and grows with them
+  (plan to be agreed).
+- Every cast is a moment: 140 ms hit-stop, the spell's name slams in, a
+  shockwave rolls out from the seal, the camera kicks, the score ducks under a
+  sub-bass drop. Each spell has its own big effect: a wall of flame
+  (Incineration), ice crystals and snow (Frostbinding), a flash and thunder
+  (Chain Lightning), a great clock turning back (Temporal Distortion), a rising
+  wall of light (Arcane Shield), ink ripples (Transmutation), a gust and ward
+  glow (Arcane Purge), a golden crescent sweep (Harvest).
+- Sound: all effects pass through a gentle low-pass with extra low end; square
+  waves and bright noise replaced with rounder voices. The typewriter key is now
+  a wooden thunk, a brass typebar ring and a mechanical clunk.

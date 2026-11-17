@@ -4,6 +4,13 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-17 — Back to the core: weighty spells, rounder sound
+
+**Done** (D-045, v0.17.0): roster shelved; big cast moments and per-spell
+effects; rounder effects; brassy, clunky typewriter.
+
+---
+
 ## 2026-11-17 — Freeze fix, roster, wardrobes, journey
 
 **Done** (D-043, D-044, v0.16.0): fixed the end-of-level freeze (found by

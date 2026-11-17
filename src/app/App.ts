@@ -40,6 +40,13 @@ import { featsFrom, loadout, type Slot } from '../gameplay/Cosmetics';
 import { DOMAINS, WIZARDS, type WizardId } from '../gameplay/Wizards';
 
 /**
+ * The wizard roster (D-042, D-043) is shelved (D-045): Campaign starts straight
+ * away with the player's own wizard and the classic rules. The roster, sigil
+ * powers and wardrobes stay in the code, switched off here.
+ */
+const WIZARD_ROSTER = false;
+
+/**
  * Top-level flow between screens.
  * - Campaign is a single run (D-016, docs/plans/campaign-v2.md), in Normal or
  *   Hardcore: Level 1 → Level cleared (boss: choose a reward) → … → Run over.
@@ -110,7 +117,7 @@ export class App {
 
   showStats(): void {
     this.showBackdrop();
-    this.ui.show(statsScreen(this.save.lifetime, () => this.showMainMenu()));
+    this.ui.show(statsScreen(this.save.lifetime, () => this.showMainMenu(), WIZARD_ROSTER));
   }
 
   showCredits(): void {
@@ -125,7 +132,7 @@ export class App {
     this.showBackdrop();
     this.ui.show(
       campaignModeScreen(this.save.records('normal'), this.save.records('hardcore'), this.campaign.count, {
-        onStart: (mode) => this.showWizardSelect(mode),
+        onStart: (mode) => (WIZARD_ROSTER ? this.showWizardSelect(mode) : this.startNewRun(mode, 'apprentice')),
         onBack: () => this.showMainMenu(),
       }),
     );
@@ -181,7 +188,7 @@ export class App {
     const config = this.levelFor(run, run.level);
     this.save.noteLevelReached(run.level, run.mode);
     const modeLabel = run.mode === 'hardcore' ? ' · Hardcore' : '';
-    const label = `Level ${config.level} of ${this.campaign.count} · ${config.name}${modeLabel} · ${WIZARDS[run.wizard].name}`;
+    const label = `Level ${config.level} of ${this.campaign.count} · ${config.name}${modeLabel}${WIZARD_ROSTER ? ` · ${WIZARDS[run.wizard].name}` : ''}`;
     const held = SPELL_IDS.filter((id) => run.spellCharges[id] > 0);
     const known = knownSpellsAt(this.campaign.all, run.level);
 
@@ -192,8 +199,8 @@ export class App {
       hardcore: run.mode === 'hardcore',
       initialInstability: run.instability,
       initialCombo: run.combo,
-      wizard: run.wizard,
-      loadout: loadout(run.wizard, this.save.wardrobe(run.wizard)),
+      wizard: WIZARD_ROSTER ? run.wizard : undefined,
+      loadout: WIZARD_ROSTER ? loadout(run.wizard, this.save.wardrobe(run.wizard)) : undefined,
       knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
       spellIntro: config.introducesSpell ?? null,
       words: this.words,
@@ -239,13 +246,13 @@ export class App {
 
     // Mastery: every point scored with this wizard counts; feats unlock the rest.
     const gained = Math.max(0, stats.score);
-    const unlocked = this.save.awardMastery(run.wizard, gained, featsFrom(stats, result === 'won', runOver && victory));
+    const unlocked = WIZARD_ROSTER ? this.save.awardMastery(run.wizard, gained, featsFrom(stats, result === 'won', runOver && victory)) : [];
     const nextLevel = this.levelFor(run, run.level);
     const mastery = h(
       'div',
       null,
       journeyStrip(run.wizard, runOver ? (clearedLevel.chapter ?? 1) : (nextLevel.chapter ?? Math.ceil(nextLevel.level / 5))),
-      masteryPanel(run.wizard, this.save.wardrobe(run.wizard), gained, unlocked),
+      WIZARD_ROSTER ? masteryPanel(run.wizard, this.save.wardrobe(run.wizard), gained, unlocked) : null,
     );
 
     if (!runOver) {
@@ -274,7 +281,7 @@ export class App {
     this.ui.show(
       runOverScreen(summary, outcome, clearedLevel, this.campaign.count, {
         onNewRun: () => this.startNewRun(run.mode, run.wizard),
-        onChangeWizard: () => this.showWizardSelect(run.mode),
+        onChangeWizard: WIZARD_ROSTER ? () => this.showWizardSelect(run.mode) : undefined,
         extra: mastery,
         onMenu: () => this.showMainMenu(),
         mode: run.mode,

@@ -263,7 +263,7 @@ function section(title: string, ...stats: HTMLElement[]): HTMLElement {
   return h('div', { class: 'stats-section' }, h('h3', { class: 'stats-heading' }, title), h('dl', { class: 'stat-grid' }, ...stats));
 }
 
-export function statsScreen(life: Readonly<LifetimeStats>, onBack: () => void): Screen {
+export function statsScreen(life: Readonly<LifetimeStats>, onBack: () => void, showWizards = false): Screen {
   const back = h('button', { class: 'menu-button primary', onClick: onBack }, 'Back');
   const totalKeys = life.lettersTyped + life.typos;
   const hours = life.timePlayedMs / 3_600_000;
@@ -320,11 +320,11 @@ export function statsScreen(life: Readonly<LifetimeStats>, onBack: () => void): 
         stat('Letters typed', life.lettersTyped),
         stat('Typos', life.typos),
         stat('Accuracy', totalKeys === 0 ? '—' : percent(life.lettersTyped / totalKeys)),
-        stat('Wizard powers', life.powersUsed),
+        ...(showWizards ? [stat('Wizard powers', life.powersUsed)] : []),
       ),
       section('Bonuses earned', ...bonuses),
       section('Spells cast', ...spells),
-      section('Wizards (best run)', ...wizards),
+      showWizards ? section('Wizards (best run)', ...wizards) : null,
     ),
     h('div', { class: 'button-row' }, back),
   );

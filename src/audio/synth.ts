@@ -141,6 +141,14 @@ export class Synth {
     }
   }
 
+  /** A short brass strike (a typebar on the platen): inharmonic partials, quick decay, a little body. */
+  brass(out: AudioNode, t: number, freq: number, dur: number, vol: number): void {
+    for (const [mult, v, d] of [[1, 1, 1], [1.52, 0.6, 0.8], [2.37, 0.38, 0.6], [3.14, 0.18, 0.45]] as const) {
+      this.tone(out, t, freq * mult, dur * d, vol * v * 0.45, { attack: 0.002, filter: { type: 'lowpass', freq: 3200 }, send: 0.06 });
+    }
+    this.tone(out, t, freq * 0.5, dur * 0.8, vol * 0.2, { type: 'triangle', attack: 0.003, filter: { type: 'lowpass', freq: 900 } });
+  }
+
   /** Sung "aah": detuned saws through two vowel formants. */
   choir(out: AudioNode, t: number, freq: number, dur: number, vol: number, send = 0.5): void {
     const ctx = this.ctx;

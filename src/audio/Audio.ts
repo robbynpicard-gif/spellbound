@@ -65,7 +65,17 @@ class AudioEngine {
     this.musicBus.gain.value = this.musicOn ? 0.6 : 0;
     this.sfxBus.gain.value = this.sfxOn ? 0.75 : 0;
     this.musicBus.connect(master);
-    this.sfxBus.connect(master);
+    // Every effect passes through a gentle low-pass and a little extra low end:
+    // rounder, warmer, never piercing (D-045).
+    const round = ctx.createBiquadFilter();
+    round.type = 'lowpass';
+    round.frequency.value = 4600;
+    round.Q.value = 0.5;
+    const warm = ctx.createBiquadFilter();
+    warm.type = 'lowshelf';
+    warm.frequency.value = 220;
+    warm.gain.value = 3;
+    this.sfxBus.connect(round).connect(warm).connect(master);
     const wet = ctx.createGain();
     wet.gain.value = 0.3;
     wet.connect(master);
@@ -137,35 +147,44 @@ class AudioEngine {
 
   // ───────────────────────── typing ─────────────────────────
 
-  /** A typewriter key: a sharp strike, a wooden thock, then the typebar's clack against the platen. */
+  /**
+   * A typewriter key, brassy and clunky (D-045): the key goes down with a
+   * wooden thunk, the brass typebar swings up and rings against the platen,
+   * and the mechanism knocks back into place.
+   */
   key(): void {
     if (!this.ready) return;
     const now = this.t;
     if (this.clock === null && now - this.lastKey < 0.025 && now > this.lastKey) return;
     this.lastKey = now;
     const sy = this.sy, out = this.sfxBus;
-    sy.noiseHit(out, now, 0.012, this.vary(0.32, 0.15), { type: 'bandpass', freq: this.vary(3200, 0.12), q: 1.4 });
-    sy.tone(out, now, this.vary(190, 0.06), 0.045, this.vary(0.16, 0.15), { glideTo: 120, filter: { type: 'lowpass', freq: 900 } });
-    const clack = now + this.vary(0.022, 0.25);
-    sy.noiseHit(out, clack, 0.02, this.vary(0.22, 0.2), { type: 'highpass', freq: this.vary(1900, 0.1) });
-    sy.tone(out, clack, this.vary(820, 0.05), 0.03, 0.04, { type: 'square', filter: { type: 'bandpass', freq: 1200, q: 6 } });
+    const p = this.vary(1, 0.05);
+    // 1. the key travels down: a low, round thunk
+    sy.tone(out, now, 118 * p, 0.09, this.vary(0.26, 0.12), { glideTo: 74 * p, attack: 0.004, filter: { type: 'lowpass', freq: 600 } });
+    sy.noiseHit(out, now, 0.05, this.vary(0.12, 0.2), { type: 'lowpass', freq: 700, q: 0.7 });
+    // 2. the brass typebar strikes: a short, inharmonic metal ring
+    const strike = now + this.vary(0.02, 0.2);
+    sy.brass(out, strike, 560 * p, this.vary(0.075, 0.15), 0.16);
+    sy.noiseHit(out, strike, 0.018, this.vary(0.11, 0.2), { type: 'bandpass', freq: 1500 * p, q: 1.1 });
+    // 3. the mechanism falls back: a duller clunk
+    sy.tone(out, strike + this.vary(0.035, 0.2), 230 * p, 0.05, 0.07, { type: 'triangle', glideTo: 170 * p, filter: { type: 'lowpass', freq: 900 } });
   }
 
-  /** A slip of the finger: a dull wooden knock (the combo survives it). */
+  /** A slip of the finger: a soft, hollow wooden knock (the combo survives it). */
   typo(): void {
     if (!this.ready) return;
     const now = this.t;
-    this.sy.tone(this.sfxBus, now, 140, 0.09, 0.2, { glideTo: 95, filter: { type: 'lowpass', freq: 700 } });
-    this.sy.noiseHit(this.sfxBus, now, 0.04, 0.1, { type: 'bandpass', freq: 600, q: 2 });
+    this.sy.tone(this.sfxBus, now, 150, 0.12, 0.22, { glideTo: 105, attack: 0.008, filter: { type: 'lowpass', freq: 600 } });
+    this.sy.tone(this.sfxBus, now + 0.06, 120, 0.1, 0.12, { glideTo: 90, attack: 0.008, filter: { type: 'lowpass', freq: 500 } });
   }
 
-  /** Enter on a wrong word: crumpled paper and a falling two-note sigh. */
+  /** Enter on a wrong word: the carriage jams (a dull brass clunk) and a soft falling sigh. */
   wrongEntry(): void {
     if (!this.ready) return;
     const now = this.t;
-    for (let k = 0; k < 5; k++) this.sy.noiseHit(this.sfxBus, now + k * 0.025 + Math.random() * 0.01, 0.03, 0.12, { type: 'bandpass', freq: 2500 + Math.random() * 2500, q: 2 });
-    this.sy.tone(this.sfxBus, now + 0.04, midi(69), 0.25, 0.09, { type: 'triangle' });
-    this.sy.tone(this.sfxBus, now + 0.18, midi(66), 0.35, 0.08, { type: 'triangle', glideTo: midi(64) });
+    this.sy.brass(this.sfxBus, now, 300, 0.12, 0.25);
+    this.sy.noiseHit(this.sfxBus, now, 0.12, 0.12, { type: 'lowpass', freq: 900 });
+    this.sy.tone(this.sfxBus, now + 0.08, midi(62), 0.35, 0.08, { type: 'sine', attack: 0.02, glideTo: midi(57), send: 0.3 });
   }
 
   /** Kept for older call sites. */
@@ -183,19 +202,22 @@ class AudioEngine {
   capture(combo: number, bonuses: readonly string[] = []): void {
     if (!this.ready) return;
     const sy = this.sy, out = this.sfxBus, now = this.t;
-    sy.tone(out, now, 120, 0.08, 0.18, { glideTo: 70, filter: { type: 'lowpass', freq: 500 } });
-    sy.noiseHit(out, now, 0.05, 0.1, { type: 'bandpass', freq: 1400, q: 1 });
+    // the stamp: a round, padded thump
+    sy.tone(out, now, 105, 0.12, 0.24, { glideTo: 62, attack: 0.006, filter: { type: 'lowpass', freq: 400 } });
+    sy.noiseHit(out, now, 0.06, 0.08, { type: 'lowpass', freq: 1100 });
+    // the climbing note: a soft mallet tone, one step higher each word of the combo
     const step = Math.max(0, combo - 1);
     const n = PENTA[Math.min(PENTA.length - 1, step % 12)]! + (step >= 12 ? 12 : 0);
-    sy.tone(out, now + 0.01, midi(n), 0.6, 0.14, { type: 'triangle', send: 0.35 });
-    sy.tone(out, now + 0.01, midi(n + 12), 0.4, 0.05, { type: 'sine', send: 0.35 });
+    sy.tone(out, now + 0.01, midi(n), 0.7, 0.13, { type: 'sine', attack: 0.012, send: 0.35 });
+    sy.tone(out, now + 0.01, midi(n), 0.35, 0.05, { type: 'triangle', attack: 0.012, filter: { type: 'lowpass', freq: 2200 }, send: 0.3 });
+    sy.tone(out, now + 0.01, midi(n + 12), 0.4, 0.03, { type: 'sine', attack: 0.015, send: 0.35 });
     const special = bonuses.filter((b) => b !== 'perfect' && b !== 'quick');
     special.forEach((_, k) => {
-      const tn = midi(PENTA[Math.min(PENTA.length - 1, 6 + k * 2)]! + 12);
-      sy.tone(out, now + 0.09 + k * 0.06 * (1 - k * 0.1), tn, 0.25, 0.06, { type: 'sine', send: 0.4 });
+      const tn = midi(PENTA[Math.min(PENTA.length - 1, 6 + k * 2)]!);
+      sy.tone(out, now + 0.09 + k * 0.06, tn, 0.35, 0.06, { type: 'sine', attack: 0.01, send: 0.45 });
     });
-    if (bonuses.includes('clutch')) sy.bell(out, now + 0.05, midi(93), 0.06, 0.5, 1.6);
-    if (bonuses.includes('sweep')) [0, 2, 4, 5, 7].forEach((s, k) => sy.tone(out, now + 0.1 + k * 0.05, midi(PENTA[s + 5]! + 12), 0.5, 0.06, { type: 'triangle', send: 0.5 }));
+    if (bonuses.includes('clutch')) sy.bell(out, now + 0.05, midi(81), 0.05, 0.5, 1.8);
+    if (bonuses.includes('sweep')) [0, 2, 4, 5, 7].forEach((st, k) => sy.tone(out, now + 0.1 + k * 0.06, midi(PENTA[st + 5]!), 0.6, 0.06, { type: 'sine', attack: 0.01, send: 0.5 }));
   }
 
   /** A new multiplier tier: a brass stab and a bell, grander each tier, in the music's key. */
@@ -204,7 +226,7 @@ class AudioEngine {
     const sy = this.sy, out = this.sfxBus, now = this.t;
     const chord = [62, 65, 69, 74, 77].slice(0, 2 + tier);
     chord.forEach((n, k) => {
-      sy.tone(out, now + k * 0.045, midi(n - 12), 0.55, 0.08, { type: 'sawtooth', attack: 0.02, filter: { type: 'lowpass', freq: 600, to: 2400 + tier * 600 }, send: 0.3 });
+      sy.tone(out, now + k * 0.045, midi(n - 12), 0.55, 0.08, { type: 'sawtooth', attack: 0.02, filter: { type: 'lowpass', freq: 500, to: 1600 + tier * 400 }, send: 0.3 });
       sy.tone(out, now + k * 0.045, midi(n), 0.45, 0.05, { type: 'triangle', send: 0.3 });
     });
     sy.bell(out, now + chord.length * 0.045, midi(tier >= 3 ? 86 : 81), 0.1, 0.5, 2.8);
@@ -221,90 +243,110 @@ class AudioEngine {
 
   // ───────────────────────── harm ─────────────────────────
 
-  /** A scroll broke through the ward: a stone crack, a low boom, the ward humming. */
+  /** A scroll broke through the ward: a heavy stone thud, a crumble, the ward groaning. */
   miss(): void {
     if (!this.ready) return;
     const sy = this.sy, out = this.sfxBus, now = this.t;
-    sy.noiseHit(out, now, 0.12, 0.35, { type: 'highpass', freq: 1800 });
-    for (let k = 0; k < 4; k++) sy.noiseHit(out, now + 0.02 + k * 0.03, 0.03, 0.18, { type: 'bandpass', freq: 3000 + Math.random() * 3000, q: 3 });
-    sy.tone(out, now, 72, 0.7, 0.4, { glideTo: 38, filter: { type: 'lowpass', freq: 220 }, send: 0.3 });
-    sy.tone(out, now + 0.05, midi(63), 0.9, 0.05, { type: 'sawtooth', drive: 3, filter: { type: 'bandpass', freq: 900, q: 3 }, send: 0.4 });
+    sy.tone(out, now, 64, 0.8, 0.5, { glideTo: 34, attack: 0.005, filter: { type: 'lowpass', freq: 200 }, send: 0.3 });
+    sy.noiseHit(out, now, 0.25, 0.28, { type: 'lowpass', freq: 1200, to: 300 });
+    for (let k = 0; k < 5; k++) sy.noiseHit(out, now + 0.06 + k * 0.05, 0.05, 0.1, { type: 'bandpass', freq: 600 + Math.random() * 700, q: 1.5 });
+    sy.tone(out, now + 0.05, midi(39), 1.2, 0.07, { type: 'triangle', attack: 0.15, filter: { type: 'lowpass', freq: 500 }, send: 0.4 });
   }
 
-  /** A miss stopped by the barrier: a ringing shield. */
+  /** A miss stopped by the barrier: a deep, ringing shield. */
   blocked(): void {
     if (!this.ready) return;
     const now = this.t;
-    this.sy.noiseHit(this.sfxBus, now, 0.06, 0.25, { type: 'highpass', freq: 2500 });
-    this.sy.bell(this.sfxBus, now, midi(74), 0.1, 0.5, 2.2);
+    this.sy.noiseHit(this.sfxBus, now, 0.1, 0.18, { type: 'lowpass', freq: 1500 });
+    this.sy.bell(this.sfxBus, now, midi(62), 0.1, 0.5, 2.4);
+    this.sy.tone(this.sfxBus, now, 90, 0.5, 0.2, { glideTo: 60, filter: { type: 'lowpass', freq: 300 } });
   }
 
-  /** A spell scroll captured: parchment unrolling and a rising shimmer. */
+  /** A spell scroll captured: parchment unrolling and a rising, rounded shimmer. */
   pickup(): void {
     if (!this.ready) return;
     const sy = this.sy, out = this.sfxBus, now = this.t;
-    sy.noiseHit(out, now, 0.25, 0.1, { type: 'bandpass', freq: 1800, to: 4200, q: 1.5 });
-    [0, 2, 4, 5].forEach((s, k) => sy.tone(out, now + 0.05 + k * 0.05, midi(PENTA[s + 4]! + 12), 0.4, 0.06, { type: 'triangle', send: 0.5 }));
+    sy.noiseHit(out, now, 0.28, 0.08, { type: 'bandpass', freq: 900, to: 2400, q: 1.2 }, { attack: 0.03 });
+    [0, 2, 4, 5].forEach((st, k) => sy.tone(out, now + 0.05 + k * 0.06, midi(PENTA[st + 4]!), 0.5, 0.06, { type: 'sine', attack: 0.01, send: 0.5 }));
   }
 
   // ───────────────────────── spells ─────────────────────────
 
-  /** Casting: each spell sounds like its element. */
+  /**
+   * The weight under every cast (D-045): the score ducks, a deep sub-bass
+   * drop lands, and air rushes in. The element plays on top.
+   */
+  private castImpact(now: number, size = 1): void {
+    const sy = this.sy, out = this.sfxBus;
+    this.music.duck(now, 0.65, 1.3 * size);
+    sy.noiseHit(out, now - 0.0, 0.25, 0.14 * size, { type: 'lowpass', freq: 300, to: 2000, q: 0.7 }, { attack: 0.2, curve: 'lin' });   // the inhale
+    sy.tone(out, now + 0.2, 82, 1.1 * size, 0.55 * size, { glideTo: 32, attack: 0.004, filter: { type: 'lowpass', freq: 160 }, send: 0.25 });   // the drop
+    sy.noiseHit(out, now + 0.2, 0.6 * size, 0.22 * size, { type: 'lowpass', freq: 900, to: 120 }, { send: 0.4 });
+  }
+
+  /** Casting: each spell sounds like its element, with real weight under it. */
   cast(spell: SpellId): void {
     if (!this.ready) return;
     const sy = this.sy, out = this.sfxBus, now = this.t;
+    const big = spell === 'fire' || spell === 'harvest' || spell === 'wind' ? 1.25 : 1;
+    this.castImpact(now, big);
+    const t = now + 0.2; // the element lands with the drop
     switch (spell) {
       case 'fire': {
-        sy.noiseHit(out, now, 0.6, 0.35, { type: 'bandpass', freq: 300, to: 3000, q: 0.8 }, { attack: 0.03 }); // ignition whoosh
-        sy.noiseHit(out, now + 0.1, 1.6, 0.3, { type: 'lowpass', freq: 600, to: 200 }, { attack: 0.2, curve: 'lin', send: 0.3 }); // roar
-        for (let k = 0; k < 28; k++) {
-          const tt = now + 0.1 + Math.random() * 1.5; // crackle
-          sy.noiseHit(out, tt, 0.006 + Math.random() * 0.01, 0.15 + Math.random() * 0.2, { type: 'highpass', freq: 1500 + Math.random() * 4000 });
-        }
-        sy.tone(out, now, 80, 1.2, 0.18, { type: 'sawtooth', glideTo: 55, filter: { type: 'lowpass', freq: 300 }, drive: 2 });
+        sy.noiseHit(out, t, 0.7, 0.4, { type: 'bandpass', freq: 200, to: 1600, q: 0.7 }, { attack: 0.04 });                // ignition whoosh
+        sy.noiseHit(out, t + 0.1, 2.4, 0.34, { type: 'lowpass', freq: 520, to: 140 }, { attack: 0.25, curve: 'lin', send: 0.35 }); // roar
+        for (let k = 0; k < 34; k++)
+          sy.noiseHit(out, t + 0.1 + Math.random() * 2, 0.012 + Math.random() * 0.02, 0.1 + Math.random() * 0.12, { type: 'bandpass', freq: 900 + Math.random() * 1800, q: 1.2 }); // crackle
+        sy.tone(out, t, 70, 1.6, 0.22, { type: 'sawtooth', glideTo: 46, filter: { type: 'lowpass', freq: 220 }, drive: 2 });
         break;
       }
       case 'ice': {
-        for (let k = 0; k < 14; k++) sy.noiseHit(out, now + k * 0.025 + Math.random() * 0.02, 0.015, 0.2, { type: 'highpass', freq: 5000 + Math.random() * 3000 }); // freezing crackle
-        [93, 98, 101, 105].forEach((n, k) => sy.tone(out, now + 0.15 + k * 0.07, midi(n) * 1.007, 1.6, 0.05, { type: 'sine', send: 0.6 })); // glassy chimes
-        sy.tone(out, now + 0.3, 420, 1.0, 0.04, { type: 'sawtooth', glideTo: 260, filter: { type: 'bandpass', freq: 900, q: 8 } }); // creak
+        for (let k = 0; k < 16; k++) sy.noiseHit(out, t + k * 0.03 + Math.random() * 0.02, 0.03, 0.14, { type: 'bandpass', freq: 1800 + Math.random() * 1400, q: 2 }); // freezing crunch
+        sy.noiseHit(out, t, 1.6, 0.16, { type: 'bandpass', freq: 700, to: 1800, q: 1.5 }, { attack: 0.3, curve: 'lin', send: 0.5 }); // cold wind
+        [81, 86, 89, 93].forEach((n, k) => sy.bell(out, t + 0.2 + k * 0.09, midi(n), 0.05, 0.7, 2.6));                       // glass chimes
+        sy.tone(out, t + 0.3, 300, 1.2, 0.05, { type: 'triangle', glideTo: 200, filter: { type: 'bandpass', freq: 600, q: 6 } }); // creak
         break;
       }
       case 'shock': {
-        sy.tone(out, now, 58, 0.7, 0.16, { type: 'square', drive: 6, filter: { type: 'bandpass', freq: 1200, q: 1 } }); // electric buzz
+        sy.noiseHit(out, t, 1.8, 0.4, { type: 'lowpass', freq: 1400, to: 140 }, { send: 0.5 });                               // thunder
+        sy.tone(out, t, 55, 0.9, 0.2, { type: 'sawtooth', drive: 3, filter: { type: 'lowpass', freq: 700 } });                // electric buzz
         for (let k = 0; k < 6; k++) {
-          const tt = now + 0.05 + k * 0.08 + Math.random() * 0.04;
-          sy.tone(out, tt, 2400 + Math.random() * 1500, 0.06, 0.08, { type: 'square', glideTo: 300, drive: 4 }); // zaps
-          sy.noiseHit(out, tt, 0.03, 0.2, { type: 'highpass', freq: 3500 });
+          const tt = t + k * 0.08 + Math.random() * 0.04;
+          sy.tone(out, tt, 1400 + Math.random() * 600, 0.08, 0.06, { type: 'triangle', glideTo: 200, drive: 2, filter: { type: 'lowpass', freq: 2600 } });
         }
-        sy.noiseHit(out, now, 0.4, 0.15, { type: 'bandpass', freq: 5000, q: 0.6 });
         break;
       }
       case 'slow': {
-        sy.tone(out, now, midi(74), 1.3, 0.12, { type: 'sawtooth', glideTo: midi(50), filter: { type: 'lowpass', freq: 2400, to: 400 }, send: 0.4 }); // tape stop
-        [0, 0.45, 1.0, 1.65].forEach((dt, k) => sy.noiseHit(out, now + dt, 0.03, 0.12 - k * 0.02, { type: 'bandpass', freq: 1500, q: 5 })); // slowing tick-tock
+        sy.tone(out, t, midi(62), 1.8, 0.14, { type: 'sawtooth', glideTo: midi(38), filter: { type: 'lowpass', freq: 1800, to: 300 }, send: 0.45 }); // tape stop
+        sy.tone(out, t, midi(57), 1.8, 0.1, { type: 'sawtooth', glideTo: midi(33), filter: { type: 'lowpass', freq: 1400, to: 250 }, send: 0.45 });
+        [0, 0.5, 1.15, 1.95].forEach((dt, k) => {                                                                              // a great clock, slowing
+          sy.tone(out, t + dt, k % 2 ? 180 : 140, 0.18, 0.2 - k * 0.03, { type: 'triangle', glideTo: 110, filter: { type: 'lowpass', freq: 700 }, send: 0.4 });
+        });
         break;
       }
       case 'barrier': {
-        sy.tone(out, now, midi(38), 1.2, 0.12, { type: 'sawtooth', attack: 0.25, filter: { type: 'lowpass', freq: 400, to: 1200 } }); // rising hum
-        sy.bell(out, now + 0.25, midi(50), 0.16, 0.6, 3.2); // gong
+        sy.tone(out, t, midi(38), 1.6, 0.16, { type: 'sawtooth', attack: 0.3, filter: { type: 'lowpass', freq: 300, to: 900 } }); // rising hum
+        sy.bell(out, t + 0.3, midi(38), 0.2, 0.6, 4);                                                                               // a great gong
+        sy.noiseHit(out, t + 0.3, 1.2, 0.08, { type: 'bandpass', freq: 1200, q: 0.8 }, { attack: 0.05, send: 0.6 });                // shimmer
         break;
       }
       case 'alter': {
-        sy.noiseHit(out, now, 0.5, 0.18, { type: 'bandpass', freq: 800, to: 5000, q: 2 }, { attack: 0.45, curve: 'lin' }); // reversed swell
-        sy.tone(out, now, midi(69), 0.55, 0.08, { type: 'sine', attack: 0.45, glideTo: midi(81), send: 0.5 });
-        for (let k = 0; k < 3; k++) sy.noiseHit(out, now + 0.5 + k * 0.07, 0.05, 0.12, { type: 'bandpass', freq: 2500, q: 1.5 }); // page flips
+        sy.noiseHit(out, t - 0.15, 0.6, 0.18, { type: 'bandpass', freq: 500, to: 2600, q: 1.5 }, { attack: 0.5, curve: 'lin' }); // reversed swell
+        sy.tone(out, t, midi(62), 0.9, 0.09, { type: 'sine', attack: 0.4, glideTo: midi(74), send: 0.6 });
+        sy.tone(out, t, midi(69), 0.9, 0.06, { type: 'sine', attack: 0.4, glideTo: midi(81), send: 0.6 });
+        for (let k = 0; k < 6; k++) sy.noiseHit(out, t + 0.45 + k * 0.05, 0.05, 0.09, { type: 'bandpass', freq: 1600 + k * 120, q: 1.3 }); // pages riffle
         break;
       }
       case 'wind': {
-        sy.noiseHit(out, now, 1.8, 0.3, { type: 'bandpass', freq: 250, to: 1400, q: 3 }, { attack: 0.4, curve: 'lin', send: 0.4 }); // gust
-        sy.noiseHit(out, now + 0.3, 1.4, 0.18, { type: 'bandpass', freq: 1400, to: 500, q: 4 }, { attack: 0.3, curve: 'lin' });
-        sy.tone(out, now + 0.2, midi(86), 1.2, 0.03, { type: 'sine', attack: 0.4, glideTo: midi(81), send: 0.5 }); // whistle
+        sy.noiseHit(out, t, 2.4, 0.38, { type: 'bandpass', freq: 180, to: 1000, q: 2.5 }, { attack: 0.4, curve: 'lin', send: 0.5 }); // gust
+        sy.noiseHit(out, t + 0.4, 1.8, 0.22, { type: 'bandpass', freq: 1000, to: 350, q: 3 }, { attack: 0.3, curve: 'lin' });
+        for (const n of [62, 69, 74]) sy.choir(out, t + 0.5, midi(n), 1.8, 0.03, 0.7);                                            // the ward breathes again
         break;
       }
       case 'harvest': {
-        for (let k = 0; k < 8; k++) sy.noiseHit(out, now + k * 0.06, 0.06, 0.1, { type: 'bandpass', freq: 2000 + k * 300, q: 1.2 }); // gathering pages
-        [0, 2, 4, 5, 7].forEach((s, k) => sy.tone(out, now + 0.1 + k * 0.08, midi(PENTA[s + 2]!), 0.6, 0.07, { type: 'triangle', send: 0.5 }));
+        sy.noiseHit(out, t, 0.6, 0.3, { type: 'bandpass', freq: 400, to: 2000, q: 1 }, { attack: 0.05, curve: 'lin' });           // the sweep
+        [0, 2, 4, 5, 7, 9].forEach((st, k) => sy.tone(out, t + 0.15 + k * 0.08, midi(PENTA[st]!), 0.9, 0.08, { type: 'sine', attack: 0.01, send: 0.55 }));
+        for (const n of [62, 66, 69, 74]) sy.choir(out, t + 0.3, midi(n), 2, 0.03, 0.7);
         break;
       }
     }
@@ -377,7 +419,7 @@ class AudioEngine {
     if (!this.ready) return;
     const now = this.t;
     const n = PENTA[Math.min(PENTA.length - 1, 6 + Math.floor(progress * 6))]! + 12;
-    this.sy.tone(this.sfxBus, now, midi(n), 0.05, 0.018, { type: 'square', filter: { type: 'lowpass', freq: 3000 } });
+    this.sy.tone(this.sfxBus, now, midi(n), 0.06, 0.03, { type: 'triangle', attack: 0.003, filter: { type: 'lowpass', freq: 1800 } });
   }
 
   // ───────────────────────── moments ─────────────────────────
@@ -436,8 +478,8 @@ class AudioEngine {
   click(): void {
     if (!this.ready) return;
     const now = this.t;
-    this.sy.noiseHit(this.sfxBus, now, 0.02, 0.15, { type: 'bandpass', freq: 2200, q: 1.5 });
-    this.sy.tone(this.sfxBus, now, midi(74), 0.12, 0.04, { type: 'triangle' });
+    this.sy.noiseHit(this.sfxBus, now, 0.03, 0.1, { type: 'bandpass', freq: 1200, q: 1.2 });
+    this.sy.tone(this.sfxBus, now, midi(62), 0.15, 0.05, { type: 'sine', attack: 0.005 });
   }
 }
 

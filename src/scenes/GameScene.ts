@@ -120,6 +120,8 @@ export class GameScene extends Phaser.Scene {
   private wizard: WizardId | null = null;
   private power: WizardPower | null = null;
   private loadout: Loadout | null = null;
+  /** A brief freeze of game time when a spell is cast, so the moment lands (D-045). */
+  private hitStopMs = 0;
   private familiar: Familiar | null = null;
 
   constructor() {
@@ -256,6 +258,11 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    if (this.hitStopMs > 0) {
+      this.hitStopMs -= frame;
+      for (const view of this.views.values()) view.sync(1);
+      return;
+    }
     this.accumulator += frame;
     while (this.accumulator >= SIMULATION_STEP_MS && this.engine.status === 'playing') {
       this.engine.step();
@@ -506,6 +513,7 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('spellCast', ({ spell, charges }) => {
       audio.cast(spell);
+      if (!this.duel) this.hitStopMs = 140;
       this.hud.setSpells(charges, spell);
       this.hud.console.flash(SPELL_COLORS[spell]);
       this.spellFx.cast(spell);
