@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { GameEngine, MAX_INPUT_LENGTH, type EngineOptions } from '../src/core/GameEngine';
 import type { DifficultyConfig } from '../src/difficulty/DifficultyConfig';
 import type { WordState } from '../src/gameplay/Word';
+import { scoreWord, type Bonus } from '../src/gameplay/ScoringSystem';
 
 const TEST_WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist'];
 
@@ -24,12 +25,12 @@ const BASE_CONFIG: DifficultyConfig = {
   spellDropChance: 0,
 };
 
-function makeOptions(overrides: Partial<DifficultyConfig> = {}, seed = 1, words = TEST_WORDS): EngineOptions {
-  return { config: { ...BASE_CONFIG, ...overrides }, seed, words };
+function makeOptions(overrides: Partial<DifficultyConfig> = {}, seed = 1, words = TEST_WORDS, extra: Partial<EngineOptions> = {}): EngineOptions {
+  return { config: { ...BASE_CONFIG, ...overrides }, seed, words, ...extra };
 }
 
-function makeEngine(overrides: Partial<DifficultyConfig> = {}, seed = 1, words = TEST_WORDS): GameEngine {
-  return new GameEngine(makeOptions(overrides, seed, words));
+function makeEngine(overrides: Partial<DifficultyConfig> = {}, seed = 1, words = TEST_WORDS, extra: Partial<EngineOptions> = {}): GameEngine {
+  return new GameEngine(makeOptions(overrides, seed, words, extra));
 }
 
 /** Step until at least `count` words are on the field. */
@@ -100,7 +101,11 @@ describe('GameEngine — typing console', () => {
 
     expect(engine.state.words).not.toContain(word);
     expect(engine.state.completed).toBe(1);
-    expect(engine.state.score).toBe(word.text.length * 10);
+    const { points, bonuses, multiplier } = completed.mock.calls[0]![0];
+    expect(multiplier).toBe(1);
+    expect(points).toBe(scoreWord(word.text.length, 1, bonuses));
+    expect(bonuses.some((b: Bonus) => b.id === 'perfect')).toBe(true);
+    expect(engine.state.score).toBe(points);
     expect(engine.state.input).toBe('');
     expect(engine.state.targetId).toBeNull();
     expect(completed).toHaveBeenCalledOnce();
@@ -135,15 +140,15 @@ describe('GameEngine — typing console', () => {
     expect(b.typed).toBe(0);
   });
 
-  it('a key that breaks the match is an error: attempted word speeds up once, combo resets', () => {
-    const engine = makeEngine();
+  it('a key that breaks the match is an error: attempted word speeds up once; the combo is kept', () => {
+    const engine = makeEngine({}, 1, TEST_WORDS, { initialCombo: 7 });
     const word = firstWord(engine);
     engine.typeChar(word.text[0]!);
     const speedBefore = word.speed;
 
     engine.typeChar('z'); // no test word has 'z' as a second letter
     expect(engine.state.errors).toBe(1);
-    expect(engine.state.combo).toBe(0);
+    expect(engine.state.combo).toBe(7);
     expect(word.speed).toBe(speedBefore + 30);
     expect(engine.state.targetId).toBe(word.id);
     expect(word.typed).toBe(1);
@@ -232,14 +237,31 @@ describe('GameEngine — typing console', () => {
     expect(engine.state.pinnedId).toBeNull();
   });
 
-  it('combo grows with clean words and boosts points', () => {
-    const engine = makeEngine({ spawnInterval: 10 });
-    stepUntilWords(engine, 3);
-    const words = [...engine.state.words];
-    for (const w of words) typeWord(engine, w.text);
-    expect(engine.state.combo).toBe(3);
-    const expected = words.reduce((sum, w, i) => sum + Math.round(w.text.length * 10 * (1 + i * 0.05)), 0);
-    expect(engine.state.score).toBe(expected);
+  it('combo grows with clean words and climbs multiplier tiers', () => {
+    const engine = makeEngine({ spawnInterval: 10, maxActiveWords: 8 });
+    const tiers = vi.fn();
+    const mults: number[] = [];
+    engine.events.on('tierChanged', tiers);
+    engine.events.on('wordCompleted', ({ multiplier }) => mults.push(multiplier));
+    for (let k = 0; k < 6; k++) {
+      stepUntilWords(engine, 1);
+      typeWord(engine, engine.state.words[0]!.text);
+    }
+    expect(engine.state.combo).toBe(6);
+    expect(mults).toEqual([1, 1, 1, 1, 2, 2]);
+    expect(tiers).toHaveBeenCalledWith({ tier: 1, multiplier: 2, up: true });
+  });
+
+  it('a wrong entry drops one tier; a miss resets the combo; the combo carries in from the last level', () => {
+    const engine = makeEngine({ initialFallSpeed: 600, spawnInterval: 2000 }, 1, TEST_WORDS, { initialCombo: 30 });
+    expect(engine.state.combo).toBe(30); // ×5
+    const word = firstWord(engine);
+    type(engine, word.text.slice(0, 2));
+    engine.submit(); // wrong entry
+    expect(engine.state.combo).toBe(12); // start of ×3
+    for (let i = 0; i < 400 && engine.state.missed === 0; i++) engine.step();
+    expect(engine.state.combo).toBe(0);
+    expect(engine.stats().endCombo).toBe(0);
   });
 
   it('a word that falls through while being typed empties the console', () => {
@@ -426,5 +448,57 @@ describe('GameEngine — identical word sequence for every player (GDD §15.1)',
     const n = Math.min(fastWords.length, idleWords.length);
     expect(n).toBeGreaterThan(10);
     expect(fastWords.slice(0, n)).toEqual(idleWords.slice(0, n));
+  });
+});
+
+describe('GameEngine — bonuses (D-040)', () => {
+  function captureIds(engine: GameEngine): string[][] {
+    const out: string[][] = [];
+    engine.events.on('wordCompleted', ({ bonuses }) => out.push(bonuses.map((b) => b.id)));
+    return out;
+  }
+
+  it('Perfect is lost to a typo (fixed with Backspace), not the combo', () => {
+    const engine = makeEngine();
+    const ids = captureIds(engine);
+    const word = firstWord(engine);
+    engine.typeChar(word.text[0]!);
+    engine.typeChar('z');
+    engine.backspace();
+    type(engine, word.text.slice(1));
+    engine.submit();
+    expect(engine.state.completed).toBe(1);
+    expect(ids[0]).not.toContain('perfect');
+    expect(engine.state.combo).toBe(1);
+  });
+
+  it('Alliteration and Librarian chains, Quick and Clutch zones', () => {
+    const engine = makeEngine({ spawnInterval: 10, maxActiveWords: 8 });
+    const ids = captureIds(engine);
+    stepUntilWords(engine, 3);
+    const [a, b, c] = engine.state.words as [WordState, WordState, WordState];
+    setText(a, 'mist');
+    setText(b, 'moth');
+    setText(c, 'myth');
+    a.y = 10; // quick
+    c.y = 0.9 * 760; // clutch
+    for (const w of ['mist', 'moth', 'myth']) typeWord(engine, w);
+    expect(ids[0]).toContain('quick');
+    expect(ids[1]).toContain('alliteration');
+    expect(ids[2]).toEqual(expect.arrayContaining(['alliteration', 'librarian', 'clutch', 'volley']));
+  });
+
+  it('a level won without misses earns Flawless on top of its score', () => {
+    const engine = makeEngine({ requiredWords: 2, spawnInterval: 10 });
+    const level = vi.fn();
+    engine.events.on('levelBonuses', level);
+    for (let k = 0; k < 2; k++) {
+      stepUntilWords(engine, 1);
+      typeWord(engine, engine.state.words[0]!.text);
+    }
+    expect(engine.state.status).toBe('won');
+    const { bonuses, total } = level.mock.calls[0]![0];
+    expect(bonuses.map((b: Bonus) => b.id)).toContain('flawless');
+    expect(engine.stats().levelBonuses.reduce((s, b) => s + b.points, 0)).toBe(total);
   });
 });

@@ -55,6 +55,8 @@ export interface CampaignRun {
   levelsCleared: number;
   /** Spell charges carried into the next level. */
   spellCharges: SpellCharges;
+  /** Combo carried into the next level (D-040): a run's streak continues across levels. */
+  combo: number;
   totals: RunTotals;
 }
 
@@ -99,6 +101,7 @@ export function startRun(mode: CampaignMode = 'normal'): CampaignRun {
     score: 0,
     levelsCleared: 0,
     spellCharges: emptyCharges(),
+    combo: 0,
     totals: { completed: 0, missed: 0, correctChars: 0, errors: 0, elapsedMs: 0, maxCombo: 0 },
   };
 }
@@ -129,6 +132,7 @@ export function recordLevel(
   t.maxCombo = Math.max(t.maxCombo, stats.maxCombo);
   run.score += stats.score;
   run.spellCharges = sanitizeCharges(chargesAfter);
+  run.combo = result === 'won' ? Math.max(0, stats.endCombo ?? 0) : 0;
   if (run.mode === 'hardcore') {
     const heal = cleared && isSurvival(cleared) && result === 'won' ? HARDCORE_BOSS_HEAL : 0;
     run.instability = Math.max(0, Math.min(100, instabilityAfter) - heal);

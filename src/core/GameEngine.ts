@@ -1,6 +1,24 @@
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { InstabilityManager } from '../gameplay/InstabilityManager';
-import { accuracyOf, wordPoints, wpmOf, type GameStats } from '../gameplay/ScoringSystem';
+import {
+  accuracyOf,
+  BONUS_RATES as B,
+  CLUTCH_ZONE,
+  comboAfterWrongEntry,
+  METRONOME_CV,
+  METRONOME_KEYS,
+  multiplierOf,
+  QUICK_ZONE,
+  scoreWord,
+  tierOf,
+  VOLLEY_TICKS,
+  wordPoints,
+  wpmOf,
+  type Bonus,
+  type BonusId,
+  type GameStats,
+} from '../gameplay/ScoringSystem';
+import { wordComplexity } from '../gameplay/WordGenerator';
 import {
   addCharge,
   consumeCharge,
@@ -44,6 +62,8 @@ export interface EngineOptions {
   hardcore?: boolean;
   /** Instability to start with (Hardcore carries it from level to level). */
   initialInstability?: number;
+  /** Combo carried in from the previous level of a Campaign run (D-040). */
+  initialCombo?: number;
 }
 
 /** The pace a level is running at right now (boss levels speed up over time). */
@@ -94,6 +114,7 @@ export class GameEngine {
   private readonly speedRng: SeededRandom;
   /** 3–4 letter words Transmutation can turn long words into. */
   private readonly shortWords: readonly string[];
+  private awardedLevelBonuses: Bonus[] = [];
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
   private readonly easyGenerator: WordGenerator | null;
   private readonly log: Command[] = [];
@@ -109,6 +130,7 @@ export class GameEngine {
     this.hardcore = options.hardcore === true;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
     this.instability = new InstabilityManager(options.initialInstability ?? 0);
+    const carried = Math.max(0, Math.floor(options.initialCombo ?? 0));
     this.shortWords = options.words.filter((w) => w.length >= SHORT_WORD_MIN && w.length <= SHORT_WORD_MAX);
     let easy: WordGenerator | null = null;
     try {
@@ -127,6 +149,9 @@ export class GameEngine {
     }
     this.easyGenerator = easy;
     this.s = createInitialState(sanitizeCharges(options.initialSpells), this.instability.value);
+    this.s.combo = carried;
+    this.s.maxCombo = carried;
+    this.s.peakMultiplier = multiplierOf(carried);
     this.spellContext = this.createSpellContext();
   }
 
@@ -327,6 +352,8 @@ export class GameEngine {
     const s = this.s;
     const wasValid = this.isValid(s.input);
     s.input += char;
+    s.keyTicks.push(s.tick);
+    if (s.keyTicks.length > METRONOME_KEYS + 1) s.keyTicks.shift();
     this.retarget();
 
     if (this.isValid(s.input)) {
@@ -340,9 +367,10 @@ export class GameEngine {
     // the match is an error (one slip = one error, as in typing tests);
     // further letters typed after it are neither correct nor extra errors.
     const attempted = wasValid ? this.target : null;
+    // A typo costs the word its Perfect bonus (and speeds it up), not the combo:
+    // fixing it with Backspace keeps the chain alive (D-040).
     if (wasValid) {
       s.errors++;
-      s.combo = 0;
       if (attempted) this.penalize(attempted);
     }
     this.events.emit('typingError', { wordId: attempted?.id ?? this.s.targetId, char });
@@ -373,7 +401,8 @@ export class GameEngine {
     // guess what the player meant and treat it as a missed submission.
     // A word already penalised for a typo in this same entry isn't penalised again.
     const guess = pinned ?? guessIntendedWord(s.words, input);
-    s.combo = 0;
+    // A wrong entry drops the multiplier one tier (D-040).
+    this.setCombo(comboAfterWrongEntry(s.combo));
     if (!guess) s.errors++;
     else if (guess.id !== s.penalizedId) {
       s.errors++;
@@ -551,13 +580,16 @@ export class GameEngine {
     const s = this.s;
     this.removeWord(word);
     s.completed++;
-    s.combo++;
+    this.setCombo(s.combo + 1);
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.completionTicksTotal += s.tick - word.spawnTick;
-    const points = wordPoints(word.text.length, s.combo);
+    const multiplier = multiplierOf(s.combo);
+    const bonuses = this.wordBonuses(word);
+    const points = scoreWord(word.text.length, multiplier, bonuses);
     s.score += points;
+    for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
-    this.events.emit('wordCompleted', { word, points, combo: s.combo });
+    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     this.emitProgress();
     if (word.spell) this.collect(word.spell);
@@ -583,8 +615,9 @@ export class GameEngine {
     }
 
     s.missed++;
-    s.combo = 0;
+    this.setCombo(0);
     s.instability = this.instability.add(this.config.instabilityPerMiss);
+    s.peakInstability = Math.max(s.peakInstability, s.instability);
 
     this.events.emit('wordMissed', { word, instability: s.instability });
     this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
@@ -618,7 +651,102 @@ export class GameEngine {
     if (this.s.status === 'playing' && quota !== null && this.s.completed >= quota) this.end('won');
   }
 
+  /** Sets the combo, reporting a change of multiplier tier. */
+  private setCombo(combo: number): void {
+    const s = this.s;
+    const before = tierOf(s.combo);
+    s.combo = combo;
+    const after = tierOf(combo);
+    if (after !== before) {
+      const multiplier = multiplierOf(combo);
+      s.peakMultiplier = Math.max(s.peakMultiplier, multiplier);
+      this.events.emit('tierChanged', { tier: after, multiplier, up: after > before });
+    }
+  }
+
+  /** Bonuses a captured word earns (D-040). The word has already left the field. */
+  private wordBonuses(word: WordState): Bonus[] {
+    const s = this.s;
+    const out: Bonus[] = [];
+    const add = (id: BonusId, rate: number, count = 1, points = 0): void => {
+      out.push({ id, rate, count, points });
+    };
+    const depth = word.y / this.field.height;
+    if (word.errors === 0) add('perfect', B.perfect);
+    if (depth <= QUICK_ZONE) add('quick', B.quick);
+    if (depth >= CLUTCH_ZONE) add('clutch', B.clutch);
+    const arcane = wordComplexity(word.match);
+    if (arcane > 0) add('arcane', Math.min(B.arcaneMax, arcane * B.arcanePerPoint));
+    if (word.text.length >= B.longFrom) add('long', B.long);
+    if (word.text[0] !== word.match[0]) add('name', B.name);
+
+    // Volley: several captures in quick succession.
+    s.recentCaptures = s.recentCaptures.filter((t) => s.tick - t <= VOLLEY_TICKS);
+    s.recentCaptures.push(s.tick);
+    const volley = s.recentCaptures.length;
+    if (volley >= 3) add('volley', Math.min(B.volleyMax, (volley - 2) * B.volleyPer), volley);
+
+    // Alliteration: same first letter as the previous capture.
+    const first = word.match[0]!;
+    s.alliterationChain = first === s.alliterationLetter ? s.alliterationChain + 1 : 1;
+    s.alliterationLetter = first;
+    if (s.alliterationChain >= 2)
+      add('alliteration', Math.min(B.alliterationMax, (s.alliterationChain - 1) * B.alliterationPer), s.alliterationChain);
+
+    // Librarian: captures in alphabetical order.
+    s.librarianChain = s.lastCaptured !== '' && word.match > s.lastCaptured ? s.librarianChain + 1 : 1;
+    s.lastCaptured = word.match;
+    if (s.librarianChain >= 3)
+      add('librarian', Math.min(B.librarianMax, (s.librarianChain - 2) * B.librarianPer), s.librarianChain);
+
+    // Metronome: an even typing rhythm over the last keystrokes.
+    if (s.keyTicks.length > METRONOME_KEYS) {
+      const gaps = s.keyTicks.slice(1).map((t, i) => t - s.keyTicks[i]!);
+      const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+      const sd = Math.sqrt(gaps.reduce((a, g) => a + (g - mean) ** 2, 0) / gaps.length);
+      if (mean > 0 && sd / mean < METRONOME_CV) add('metronome', B.metronome);
+    }
+
+    // Clean Sweep: the screen is empty after 3+ captures.
+    s.sweepCount++;
+    if (s.words.length === 0) {
+      if (s.sweepCount >= 3) add('sweep', 0, s.sweepCount, B.sweepPoints);
+      s.sweepCount = 0;
+    }
+    return out;
+  }
+
+  /** End-of-level bonuses for a won level, added to the score (D-040). */
+  private levelBonuses(): Bonus[] {
+    const s = this.s;
+    const out: Bonus[] = [];
+    const levelScore = s.score;
+    if (levelScore <= 0) return out;
+    const award = (id: BonusId, fraction: number): void => {
+      out.push({ id, rate: 0, count: 1, points: Math.round(levelScore * fraction) });
+    };
+    if (s.missed === 0) award('flawless', B.flawless);
+    const quota = this.config.requiredWords;
+    if (quota !== null && this.config.survivalMs == null) {
+      const parTicks = (quota * this.config.spawnInterval + 4000) / SIMULATION_STEP_MS;
+      if (s.tick <= parTicks) award('underPar', B.underPar);
+    }
+    if (s.peakInstability >= 75) award('comeback', B.comeback);
+    return out;
+  }
+
   private end(result: GameResult): void {
+    if (result === 'won') {
+      const bonuses = this.levelBonuses();
+      if (bonuses.length > 0) {
+        this.awardedLevelBonuses = bonuses;
+        const total = bonuses.reduce((sum, b) => sum + b.points, 0);
+        this.s.score += total;
+        for (const b of bonuses) this.s.bonusCounts[b.id] = (this.s.bonusCounts[b.id] ?? 0) + 1;
+        this.events.emit('levelBonuses', { bonuses, total });
+        this.events.emit('scoreChanged', { score: this.s.score, combo: this.s.combo });
+      }
+    }
     this.s.status = result;
     this.events.emit('gameOver', { result, stats: this.stats() });
   }
@@ -782,6 +910,10 @@ export class GameEngine {
       accuracy: accuracyOf(s.correctChars, s.errors),
       wpm: wpmOf(s.correctChars, elapsedMs),
       maxCombo: s.maxCombo,
+      endCombo: s.combo,
+      peakMultiplier: s.peakMultiplier,
+      bonusCounts: { ...s.bonusCounts },
+      levelBonuses: [...this.awardedLevelBonuses],
       elapsedMs,
       averageCompletionMs:
         s.completed === 0 ? 0 : (s.completionTicksTotal / s.completed) * SIMULATION_STEP_MS,

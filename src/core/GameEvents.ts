@@ -1,3 +1,4 @@
+import type { Bonus } from '../gameplay/ScoringSystem';
 import type { WordState } from '../gameplay/Word';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
@@ -10,7 +11,11 @@ export interface GameEvents {
   wordSpawned: { word: WordState };
   /** A correct character was typed on the target word. */
   wordProgress: { word: WordState };
-  wordCompleted: { word: WordState; points: number; combo: number };
+  wordCompleted: { word: WordState; points: number; combo: number; multiplier: number; bonuses: Bonus[] };
+  /** The combo multiplier moved to another tier (up on a streak; down on a wrong entry or a miss). */
+  tierChanged: { tier: number; multiplier: number; up: boolean };
+  /** End-of-level bonuses (Flawless, Under Par, Comeback), already added to the score. */
+  levelBonuses: { bonuses: Bonus[]; total: number };
   wordMissed: { word: WordState; instability: number };
   /** Words destroyed by Incineration (not typed; no points, no progress). */
   wordsBurned: { words: WordState[] };

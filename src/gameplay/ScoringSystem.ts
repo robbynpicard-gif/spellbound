@@ -1,22 +1,118 @@
 /**
- * Basic scoring (Milestone 1). Longer words are worth more, and a combo of
- * clean consecutive words adds a bonus of up to +100%.
- *
- * The original game's exact scoring is not yet verified
- * (original-game-research.md #8), so these numbers are a starting point.
+ * Scoring (decisions.md D-040). A word is worth 10 points per letter, plus
+ * bonuses, times the combo multiplier. The multiplier climbs in tiers as clean
+ * words chain together:
+ *   ×1 → ×2 at 5 words → ×3 at 12 → ×5 at 25 → ×10 at 45.
+ * Mistakes cost different amounts:
+ *   - a typo fixed before Enter: the combo continues (the word just isn't "Perfect");
+ *   - Enter on a wrong or misspelled word: down one tier;
+ *   - a word breaking through the ward: the combo resets.
  */
 export const SCORING = {
   pointsPerLetter: 10,
-  /** Bonus per combo step after the first word. */
-  comboBonusPerStep: 0.05,
-  /** Bonus is capped at this (1.0 = double points). */
-  maxComboBonus: 1.0,
 } as const;
 
-/** Points for completing a word of `length` letters as the `combo`-th clean word in a row. */
+export const TIERS = [
+  { at: 0, mult: 1 },
+  { at: 5, mult: 2 },
+  { at: 12, mult: 3 },
+  { at: 25, mult: 5 },
+  { at: 45, mult: 10 },
+] as const;
+
+/** Tier index (0–4) for a combo count. */
+export function tierOf(combo: number): number {
+  let t = 0;
+  for (let i = 0; i < TIERS.length; i++) if (combo >= TIERS[i]!.at) t = i;
+  return t;
+}
+
+export function multiplierOf(combo: number): number {
+  return TIERS[tierOf(combo)]!.mult;
+}
+
+/** The combo after a wrong entry: the start of the tier below (0 from the first tier). */
+export function comboAfterWrongEntry(combo: number): number {
+  const t = tierOf(combo);
+  return t === 0 ? 0 : TIERS[t - 1]!.at;
+}
+
+/** Points for a `length`-letter word at `combo`, before bonuses. */
 export function wordPoints(length: number, combo: number): number {
-  const bonus = Math.min(Math.max(combo - 1, 0) * SCORING.comboBonusPerStep, SCORING.maxComboBonus);
-  return Math.round(length * SCORING.pointsPerLetter * (1 + bonus));
+  return length * SCORING.pointsPerLetter * multiplierOf(combo);
+}
+
+export type BonusId =
+  | 'perfect'
+  | 'quick'
+  | 'clutch'
+  | 'arcane'
+  | 'long'
+  | 'name'
+  | 'volley'
+  | 'alliteration'
+  | 'librarian'
+  | 'metronome'
+  | 'sweep'
+  | 'flawless'
+  | 'underPar'
+  | 'comeback';
+
+export const BONUS_IDS: readonly BonusId[] = [
+  'perfect', 'quick', 'clutch', 'arcane', 'long', 'name', 'volley', 'alliteration', 'librarian', 'metronome', 'sweep',
+  'flawless', 'underPar', 'comeback',
+];
+
+/** A bonus earned on a word (`rate` is a fraction of the base) or at the end of a level (`points`). */
+export interface Bonus {
+  id: BonusId;
+  /** Chain length for chained bonuses (Volley, Alliteration, Librarian); 1 otherwise. */
+  count: number;
+  rate: number;
+  points: number;
+}
+
+export const BONUS_RATES = {
+  perfect: 0.25,
+  quick: 0.2,
+  clutch: 0.5,
+  /** Per point of word complexity (rare letters, consonant clusters). */
+  arcanePerPoint: 0.15,
+  arcaneMax: 0.6,
+  long: 0.2,
+  /** Long means at least this many letters. */
+  longFrom: 9,
+  name: 0.3,
+  volleyPer: 0.1,
+  volleyMax: 0.5,
+  alliterationPer: 0.15,
+  alliterationMax: 0.6,
+  librarianPer: 0.1,
+  librarianMax: 0.5,
+  metronome: 0.15,
+  /** Clean Sweep: flat points (× multiplier) for emptying the screen after 3+ captures. */
+  sweepPoints: 100,
+  /** End-of-level bonuses, as fractions of the points scored in the level. */
+  flawless: 0.25,
+  underPar: 0.15,
+  comeback: 0.2,
+} as const;
+
+/** Quick: captured in the top part of the field; Clutch: in the last part, just before the ward. */
+export const QUICK_ZONE = 0.3;
+export const CLUTCH_ZONE = 0.85;
+/** Volley: captures within this many ticks of each other (2 s). */
+export const VOLLEY_TICKS = 120;
+/** Metronome: this many recent keystrokes with even spacing (coefficient of variation below the limit). */
+export const METRONOME_KEYS = 16;
+export const METRONOME_CV = 0.3;
+
+/** Total points for a word: base × (1 + bonus rates) × multiplier, plus flat bonuses × multiplier. */
+export function scoreWord(length: number, multiplier: number, bonuses: readonly Bonus[]): number {
+  const base = length * SCORING.pointsPerLetter;
+  const rate = bonuses.reduce((sum, b) => sum + b.rate, 0);
+  const flat = bonuses.reduce((sum, b) => sum + b.points, 0);
+  return Math.round(base * (1 + rate) * multiplier + flat * multiplier);
 }
 
 export interface GameStats {
@@ -30,6 +126,14 @@ export interface GameStats {
   /** Words per minute, using the standard 5 characters = 1 word. */
   wpm: number;
   maxCombo: number;
+  /** Combo at the end of the level (carried into the next level of a Campaign run). */
+  endCombo: number;
+  /** Highest multiplier reached. */
+  peakMultiplier: number;
+  /** How many times each bonus was earned. */
+  bonusCounts: Partial<Record<BonusId, number>>;
+  /** End-of-level bonuses awarded (already included in `score`). */
+  levelBonuses: Bonus[];
   elapsedMs: number;
   /** Average time from a word appearing to being completed. */
   averageCompletionMs: number;

@@ -4,6 +4,14 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-17 — Scoring rewrite: multipliers, bonuses, finale
+
+**Done** (D-040): tiered combo multiplier carried through a run, three-way
+mistake rule, eleven word bonuses and three level bonuses with pop-ups and
+quips, tier-up fanfares, and a choir-and-confetti finale on every level won.
+
+---
+
 ## 2026-11-16 — Soundtrack and sound effects
 
 **Done** (D-038): synthesised music and sound effects with separate on/off

@@ -4,7 +4,7 @@ import { ALL_WORDS, WORDS } from '../src/data/wordList';
 import { editDistance, guessIntendedWord } from '../src/gameplay/TargetManager';
 import type { WordState } from '../src/gameplay/Word';
 import { instabilityStage, InstabilityManager } from '../src/gameplay/InstabilityManager';
-import { accuracyOf, wordPoints, wpmOf } from '../src/gameplay/ScoringSystem';
+import { accuracyOf, comboAfterWrongEntry, multiplierOf, scoreWord, wordPoints, wpmOf } from '../src/gameplay/ScoringSystem';
 import { WordGenerator } from '../src/gameplay/WordGenerator';
 import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
 
@@ -110,11 +110,23 @@ describe('WordGenerator', () => {
 });
 
 describe('scoring', () => {
-  it('rewards length and caps the combo bonus at double', () => {
+  it('multiplier tiers: ×1, ×2 at 5, ×3 at 12, ×5 at 25, ×10 at 45', () => {
+    expect([0, 4, 5, 11, 12, 24, 25, 44, 45, 999].map(multiplierOf)).toEqual([1, 1, 2, 2, 3, 3, 5, 5, 10, 10]);
     expect(wordPoints(5, 1)).toBe(50);
-    expect(wordPoints(5, 2)).toBe(53); // +5%
-    expect(wordPoints(5, 21)).toBe(100);
-    expect(wordPoints(5, 999)).toBe(100);
+    expect(wordPoints(5, 30)).toBe(250);
+  });
+
+  it('a wrong entry drops to the start of the tier below', () => {
+    expect(comboAfterWrongEntry(3)).toBe(0);
+    expect(comboAfterWrongEntry(9)).toBe(0);
+    expect(comboAfterWrongEntry(14)).toBe(5);
+    expect(comboAfterWrongEntry(60)).toBe(25);
+  });
+
+  it('bonus rates add to the base, flat bonuses are multiplied too', () => {
+    expect(scoreWord(5, 1, [])).toBe(50);
+    expect(scoreWord(5, 2, [{ id: 'perfect', rate: 0.25, count: 1, points: 0 }])).toBe(125);
+    expect(scoreWord(5, 3, [{ id: 'sweep', rate: 0, count: 4, points: 100 }])).toBe(450);
   });
 
   it('computes accuracy and WPM', () => {

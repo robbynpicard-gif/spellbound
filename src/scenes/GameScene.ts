@@ -9,6 +9,7 @@ import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfi
 import type { GameStats } from '../gameplay/ScoringSystem';
 import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { Effects } from '../render/Effects';
+import { Celebrations } from '../render/Celebrations';
 import { FieldBackground } from '../render/FieldBackground';
 import { hex, LAYOUT, screenX, screenY, SPELL_COLORS } from '../render/layout';
 import { SpellEffects } from '../render/SpellEffects';
@@ -41,6 +42,8 @@ export interface GameSceneData {
   hardcore?: boolean;
   /** Instability carried in (Hardcore). */
   initialInstability?: number;
+  /** Combo carried from the previous Campaign level. */
+  initialCombo?: number;
   /** Spells to show in the HUD (default: those this level can drop, plus any held). */
   knownSpells?: readonly SpellId[];
   /** Campaign: introduce this spell with a pop-up before the level starts. */
@@ -93,6 +96,7 @@ export class GameScene extends Phaser.Scene {
   private readonly views = new Map<number, WordView>();
   private background!: FieldBackground;
   private effects!: Effects;
+  private celebrate!: Celebrations;
   private spellFx!: SpellEffects;
   private hud!: GameHUD;
   private accumulator = 0;
@@ -125,6 +129,7 @@ export class GameScene extends Phaser.Scene {
       initialSpells: data.initialSpells,
       hardcore: data.hardcore,
       initialInstability: data.initialInstability,
+      initialCombo: data.initialCombo,
     });
     this.views.clear();
     this.accumulator = 0;
@@ -145,6 +150,7 @@ export class GameScene extends Phaser.Scene {
     audio.setMood(boss ? 'boss' : 'calm');
     this.background = new FieldBackground(this, chapter, boss ? 4 : (this.config.level - 1) % 5, boss);
     this.effects = new Effects(this);
+    this.celebrate = new Celebrations(this);
     this.spellFx = new SpellEffects(this);
     this.hud = new GameHUD(
       this,
@@ -318,11 +324,12 @@ export class GameScene extends Phaser.Scene {
       this.views.set(word.id, new WordView(this, word));
     });
 
-    ev.on('wordCompleted', ({ word, points, combo }) => {
-      audio.capture(combo);
+    ev.on('wordCompleted', ({ word, points, combo, multiplier, bonuses }) => {
+      audio.capture(combo, bonuses.map((b) => b.id));
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
       this.removeView(word.id);
-      this.effects.wordDestroyed(x, y, word.text.length, points);
+      this.effects.wordDestroyed(x, y, word.text.length, points, multiplier);
+      this.celebrate.wordBonuses(x, y, bonuses);
       this.hud.console.flash(PALETTE.gold);
       if (combo > 1) this.hud.pulseCombo();
     });
@@ -436,8 +443,20 @@ export class GameScene extends Phaser.Scene {
     // Charges change the console's "↵ cast" hint.
     ev.on('spellCollected', () => this.refreshConsole());
 
+    ev.on('tierChanged', ({ tier, multiplier, up }) => {
+      this.hud.tierChanged(up);
+      if (up) {
+        audio.tierUp(tier);
+        this.celebrate.tierUp(multiplier, tier);
+      } else audio.tierDown();
+    });
+
     ev.on('gameOver', ({ result, stats }) => {
-      if (result === 'won') audio.fanfare();
+      let finaleMs = 0;
+      if (result === 'won' && !this.duel) {
+        audio.finale(isSurvival(this.config));
+        finaleMs = this.celebrate.finale(isSurvival(this.config), stats.levelBonuses, stats.score);
+      } else if (result === 'won') audio.fanfare();
       else audio.defeat();
       this.hud.updateStats(stats, this.engine.state.combo);
       this.input.keyboard!.disableGlobalCapture();
@@ -456,7 +475,7 @@ export class GameScene extends Phaser.Scene {
       }
       const spells = { ...this.engine.state.spells };
       const instability = this.engine.state.instability;
-      this.time.delayedCall(RESULTS_DELAY_MS, () => this.hooks.onGameOver(result, stats, spells, instability));
+      this.time.delayedCall(Math.max(RESULTS_DELAY_MS, finaleMs), () => this.hooks.onGameOver(result, stats, spells, instability));
     });
   }
 

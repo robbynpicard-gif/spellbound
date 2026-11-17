@@ -143,6 +143,7 @@ export class App {
       scoreOffset: run.score,
       hardcore: run.mode === 'hardcore',
       initialInstability: run.instability,
+      initialCombo: run.combo,
       knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
       spellIntro: config.introducesSpell ?? null,
       words: this.words,

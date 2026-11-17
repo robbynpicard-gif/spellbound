@@ -27,6 +27,10 @@ function stats(extra: Partial<GameStats> = {}): GameStats {
     maxCombo: 9,
     elapsedMs: 90_000,
     averageCompletionMs: 4000,
+    endCombo: 0,
+    peakMultiplier: 1,
+    bonusCounts: {},
+    levelBonuses: [],
     ...extra,
   };
 }

@@ -22,7 +22,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.12.0';
+const APP_VERSION = '0.13.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -308,7 +308,7 @@ export function levelClearScreen(
       stat('Accuracy', percent(stats.accuracy)),
       stat('WPM', Math.round(stats.wpm)),
       stat('Missed', stats.missed),
-      stat('Best combo', `×${stats.maxCombo}`),
+      stat('Best combo', `${stats.maxCombo} words · ×${stats.peakMultiplier}`),
       stat('Time', formatTime(stats.elapsedMs)),
     ),
     run.mode === 'hardcore' &&
@@ -369,7 +369,7 @@ export function runOverScreen(
       stat('WPM', Math.round(summary.wpm)),
       stat('Words', summary.completed),
       stat('Missed', summary.missed),
-      stat('Best combo', `×${summary.maxCombo}`),
+      stat('Best combo', `${summary.maxCombo} words`),
       stat('Time', formatTime(summary.elapsedMs)),
     ),
     h('p', { class: outcome.isNewBest && outcome.previousBest !== null ? 'reward' : 'personal-best' }, bestLine),

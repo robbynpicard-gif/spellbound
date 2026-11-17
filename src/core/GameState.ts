@@ -1,3 +1,4 @@
+import type { BonusId } from '../gameplay/ScoringSystem';
 import type { WordState } from '../gameplay/Word';
 import { emptyCharges, type SpellCharges } from '../gameplay/SpellManager';
 
@@ -52,6 +53,23 @@ export interface GameState {
   barrier: number;
   /** Words stopped by Arcane Shield (they did no harm). */
   blocked: number;
+  // ── scoring chains (decisions.md D-040) ──
+  /** Ticks of recent captures (Volley). */
+  recentCaptures: number[];
+  /** First letter and length of the current Alliteration chain. */
+  alliterationLetter: string;
+  alliterationChain: number;
+  /** Last captured word and length of the current alphabetical (Librarian) chain. */
+  lastCaptured: string;
+  librarianChain: number;
+  /** Ticks of recent keystrokes (Metronome). */
+  keyTicks: number[];
+  /** Captures since the screen was last empty (Clean Sweep). */
+  sweepCount: number;
+  peakMultiplier: number;
+  /** Highest instability reached this level (Comeback). */
+  peakInstability: number;
+  bonusCounts: Partial<Record<BonusId, number>>;
 }
 
 /** Delay before the very first word appears, so the player can get ready. */
@@ -85,5 +103,15 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     slowFactor: 1,
     barrier: 0,
     blocked: 0,
+    recentCaptures: [],
+    alliterationLetter: '',
+    alliterationChain: 0,
+    lastCaptured: '',
+    librarianChain: 0,
+    keyTicks: [],
+    sweepCount: 0,
+    peakMultiplier: 1,
+    peakInstability: instability,
+    bonusCounts: {},
   };
 }

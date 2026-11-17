@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { multiplierOf, tierOf } from '../gameplay/ScoringSystem';
 import { FONTS, PALETTE } from '../core/GameConfig';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
@@ -12,6 +13,8 @@ const PAPER = 0xd6ba8c;
 const PAPER_DARK = 0xb4966a;
 const SLOT_EMPTY = 0x8a7458;
 const LABEL = 0xe6d6b4;
+/** Combo plate colour per multiplier tier: ×1 parchment, ×2 teal, ×3 gold, ×5 magenta, ×10 crimson. */
+const TIER_COLORS = [0xe6d6b4, 0x5ad0c0, 0xe6a03c, 0xe25cc4, 0xff5a4a] as const;
 
 /** Ward bar colour by health: magenta when healthy, then amber, ember, red. */
 const WARD_COLORS: Record<InstabilityStage, number> = {
@@ -302,8 +305,9 @@ export class GameHUD {
         this.scene.tweens.add({ targets: this.counterGlow, alpha: 0, duration: 400 });
       }
     }
-    this.comboText.setText(`COMBO ×${combo}`).setColor(hex(combo >= 5 ? PALETTE.gold : PALETTE.magentaGlow));
-    this.scoreText.setText(`SCORE ${score.toLocaleString()} · COMBO ×${combo}`);
+    const tier = tierOf(combo);
+    this.comboText.setText(`×${multiplierOf(combo)} · ${combo}`).setColor(hex(TIER_COLORS[tier]!));
+    this.scoreText.setText(`SCORE ${score.toLocaleString()} · COMBO ${combo}`);
     const acc = stats ? Math.round(stats.accuracy * 100) : 100;
     const wpm = stats ? Math.round(stats.wpm) : 0;
     this.accuracyText.setText(`${acc}% ACCURACY · ${wpm} WPM`);
@@ -311,6 +315,14 @@ export class GameHUD {
 
   pulseCombo(): void {
     this.scene.tweens.add({ targets: this.comboText, scale: { from: 1.25, to: 1 }, duration: 200 });
+  }
+
+  /** A new multiplier tier: the combo plate swells (up) or shudders (down). */
+  tierChanged(up: boolean): void {
+    this.scene.tweens.killTweensOf(this.comboText);
+    this.comboText.setScale(1).setAngle(0);
+    if (up) this.scene.tweens.add({ targets: this.comboText, scale: { from: 1.8, to: 1 }, duration: 450, ease: 'Back.Out' });
+    else this.scene.tweens.add({ targets: this.comboText, angle: { from: -8, to: 0 }, duration: 300, ease: 'Bounce.Out' });
   }
 
   /** Replace the level label (e.g. the duel timer). */

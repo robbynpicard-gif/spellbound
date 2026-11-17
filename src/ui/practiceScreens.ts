@@ -167,7 +167,7 @@ export function practiceResultsScreen(
       stat('Accuracy', percent(stats.accuracy), 'bestAccuracy', `Best ${pct(r.bestAccuracy)}`),
       stat('WPM', String(Math.round(stats.wpm)), 'bestWpm', `Best ${Math.round(r.bestWpm)}`),
       stat('Avg. time per word', secs(stats.averageCompletionMs), 'fastestAverageMs', `Best ${secs(r.fastestAverageMs)}`),
-      stat('Best combo', `×${stats.maxCombo}`, 'bestCombo', `Best ×${r.bestCombo}`),
+      stat('Best combo', `${stats.maxCombo} words · ×${stats.peakMultiplier}`, 'bestCombo', `Best ${r.bestCombo}`),
     ),
     h(
       'p',

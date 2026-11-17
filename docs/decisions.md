@@ -546,3 +546,20 @@ _2026-11-16 · Accepted (project owner)_
 - Alter: long words on screen become short ones for good, and for 8 s every
   new word is short and easy (3–5 letters, complexity ≤ 0.5). Then new words
   return to the level's difficulty. The window pauses while frozen.
+
+### D-040 — Combo multiplier tiers, bonuses, and an over-the-top finale
+_2026-11-17 · Accepted (project owner)_
+
+- Points: 10 per letter × (1 + bonus rates) × multiplier, plus flat bonuses ×
+  multiplier. Multiplier tiers by combo: ×1, ×2 at 5, ×3 at 12, ×5 at 25,
+  ×10 at 45. In a Campaign run the combo carries from level to level.
+- Mistakes: a typo fixed before Enter keeps the combo (the word loses
+  Perfect); Enter on a wrong word drops one tier; a miss resets the combo.
+- Word bonuses: Perfect, Quick (top 30% of the fall), Clutch (last 15%),
+  Arcane word (complexity), Long word (9+), Name-Caller, Volley (3+ in 2 s),
+  Alliteration (same first letter chain), Librarian (alphabetical chain),
+  Metronome (even rhythm), Clean Sweep (screen emptied after 3+).
+- Level bonuses on a win: Flawless (no misses, +25% of the level's points),
+  Under Par (+15%), Comeback (ward reached critical, +20%).
+- Tone: the world is serious; the celebrations are absurdly grand (Latin
+  banners, choir, organ, confetti, deadpan quips) — "serious, but becomes silly".

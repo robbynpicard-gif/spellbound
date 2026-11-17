@@ -245,13 +245,107 @@ class AudioEngine {
     this.tone(180 + Math.random() * 30, 0.03, 0.08, 'square');
   }
 
-  /** A scroll captured: a bright chime that climbs with the combo. */
-  capture(combo: number): void {
+  /** A scroll captured: a bright chime that climbs with the combo, with a flourish for special bonuses. */
+  capture(combo: number, bonuses: readonly string[] = []): void {
     if (!this.ready) return;
-    const i = Math.min(SCALE.length - 3, 6 + Math.min(combo, 8));
+    const i = Math.min(SCALE.length - 3, 6 + (combo % 9));
     this.tone(SCALE[i]! * 2, 0.5, 0.16, 'triangle');
     this.tone(SCALE[i + 2]! * 2, 0.6, 0.12, 'sine', undefined, 0.06);
     this.hiss(0.25, 0.08, 6000, 9000, 'highpass');
+    const special = bonuses.filter((b) => b !== 'perfect' && b !== 'quick').length;
+    if (special > 0) [0, 2, 4].slice(0, Math.min(3, special + 1)).forEach((s, k) => this.tone(SCALE[9 + s]! * 2, 0.35, 0.07, 'sine', undefined, 0.1 + k * 0.05));
+    if (bonuses.includes('clutch')) this.bell(this.ctx!.currentTime + 0.05, 880, 0.08, this.sfxBus);
+    if (bonuses.includes('sweep')) [0, 4, 7, 11, 14].forEach((s, k) => this.tone(SCALE[Math.min(14, s)]! * 2, 0.5, 0.08, 'triangle', undefined, k * 0.06));
+  }
+
+  /** A new multiplier tier: a rising brass-and-bell sting, grander each tier. */
+  tierUp(tier: number): void {
+    if (!this.ready) return;
+    const t = this.ctx!.currentTime;
+    const steps = [0, 2, 4, 7, 9].slice(0, 2 + tier);
+    steps.forEach((s, k) => {
+      this.tone(SCALE[s + 2]!, 0.5, 0.12, 'sawtooth', undefined, k * 0.07);
+      this.tone(SCALE[s + 2]! * 2, 0.5, 0.06, 'triangle', undefined, k * 0.07);
+    });
+    this.bell(t + steps.length * 0.07, SCALE[9]! * (tier >= 3 ? 2 : 1), 0.12, this.sfxBus);
+    if (tier >= 4) this.hiss(1.2, 0.2, 200, 6000, 'bandpass', 0.1);
+  }
+
+  /** The multiplier slipped a tier: a deflating slide. */
+  tierDown(): void {
+    if (!this.ready) return;
+    this.tone(330, 0.5, 0.12, 'sawtooth', 120);
+  }
+
+  /** The level is won: choir, organ, bells and a timpani roll. Absolutely necessary. */
+  finale(boss = false): void {
+    if (!this.ready) return;
+    const ctx = this.ctx!;
+    const t0 = ctx.currentTime + 0.05;
+    const chords = boss
+      ? [[146.83, 220.0, 293.66, 349.23], [116.54, 174.61, 233.08, 293.66], [130.81, 196.0, 261.63, 329.63], [146.83, 220.0, 293.66, 369.99]]
+      : [[146.83, 220.0, 293.66, 349.23], [196.0, 246.94, 293.66, 392.0], [220.0, 277.18, 329.63, 440.0], [146.83, 220.0, 293.66, 369.99]];
+    const lens = [0.7, 0.7, 0.9, 2.6];
+    let t = t0;
+    chords.forEach((chord, ci) => {
+      const len = lens[ci]!;
+      for (const f of chord) {
+        // Choir: detuned saws through an "aah" vowel (two formant filters).
+        for (const det of [-9, 0, 9]) {
+          const o = ctx.createOscillator();
+          o.type = 'sawtooth';
+          o.frequency.value = f * 2;
+          o.detune.value = det;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.035, t + 0.08);
+          g.gain.setValueAtTime(0.035, t + len - 0.1);
+          g.gain.linearRampToValueAtTime(0, t + len + (ci === 3 ? 1.2 : 0.05));
+          for (const [freq, q] of [[800, 6], [1200, 8]] as const) {
+            const bp = ctx.createBiquadFilter();
+            bp.type = 'bandpass';
+            bp.frequency.value = freq;
+            bp.Q.value = q;
+            o.connect(bp).connect(g);
+          }
+          g.connect(this.sfxBus);
+          g.connect(this.reverb);
+          o.start(t);
+          o.stop(t + len + 1.4);
+        }
+        // Organ: pure octaves underneath.
+        for (const mult of [0.5, 1]) {
+          const o = ctx.createOscillator();
+          o.type = 'square';
+          o.frequency.value = f * mult;
+          const g = ctx.createGain();
+          const lp = ctx.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.frequency.value = 1400;
+          g.gain.setValueAtTime(0, t);
+          g.gain.linearRampToValueAtTime(0.018, t + 0.03);
+          g.gain.linearRampToValueAtTime(0, t + len + (ci === 3 ? 1 : 0.05));
+          o.connect(lp).connect(g);
+          g.connect(this.sfxBus);
+          g.connect(this.reverb);
+          o.start(t);
+          o.stop(t + len + 1.2);
+        }
+      }
+      // Timpani on each chord, bells on the last.
+      const boom = ctx.createOscillator();
+      const bg = ctx.createGain();
+      boom.type = 'sine';
+      boom.frequency.setValueAtTime(chord[0]! / 2, t);
+      boom.frequency.exponentialRampToValueAtTime(chord[0]! / 2.6, t + 0.6);
+      bg.gain.setValueAtTime(0.3, t);
+      bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      boom.connect(bg).connect(this.sfxBus);
+      boom.start(t);
+      boom.stop(t + 1);
+      if (ci === 3) for (let k = 0; k < 4; k++) this.bell(t + k * 0.18, chord[k]! * 4, 0.07, this.sfxBus);
+      t += len;
+    });
   }
 
   /** A wrong key or an Enter that matched nothing. */

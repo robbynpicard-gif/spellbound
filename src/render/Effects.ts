@@ -30,10 +30,12 @@ export class Effects {
       .setDepth(20);
   }
 
-  wordDestroyed(x: number, y: number, length: number, points: number): void {
-    this.goldBurst.explode(10 + length * 3, x, y);
-    this.arcaneBurst.explode(8 + length * 2, x, y);
-    this.floatText(x, y, `+${points}`, PALETTE.gold);
+  wordDestroyed(x: number, y: number, length: number, points: number, multiplier = 1): void {
+    const more = Math.min(4, Math.log2(multiplier) + 1);
+    this.goldBurst.explode(Math.round((10 + length * 3) * more), x, y);
+    this.arcaneBurst.explode(Math.round((8 + length * 2) * more), x, y);
+    const label = multiplier > 1 ? `+${points.toLocaleString()}  ×${multiplier}` : `+${points}`;
+    this.floatText(x, y, label, PALETTE.gold, 22 + Math.round(more * 3));
   }
 
   /** Short text that rises and fades (points, "+1 Fire", …). */
