@@ -305,6 +305,8 @@ export class App {
 
   private showBackdrop(): void {
     audio.setMood('menu');
+    audio.setStress(0);
+    audio.setHeat(0);
     this.game.scene.stop(GameScene.KEY);
     if (!this.game.scene.isActive(BackdropScene.KEY)) this.game.scene.start(BackdropScene.KEY);
   }

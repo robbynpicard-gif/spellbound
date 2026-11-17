@@ -4,6 +4,15 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-17 — Sound rebuild and options report
+
+**Done** (D-041): dynamic score with stress and heat, bar-quantised
+transitions, rebuilt typewriter, capture, mistake and elemental spell sounds.
+**Proposed:** docs/plans/options-2026-11-17.md (art styles, wizards, cosmetics,
+environments, sound questions).
+
+---
+
 ## 2026-11-17 — Scoring rewrite: multipliers, bonuses, finale
 
 **Done** (D-040): tiered combo multiplier carried through a run, three-way

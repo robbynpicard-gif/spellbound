@@ -6,7 +6,7 @@ import { FONTS, PALETTE, SIMULATION_STEP_MS } from '../core/GameConfig';
 import { createSeed } from '../core/Random';
 import { WORDS } from '../data/wordList';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
-import type { GameStats } from '../gameplay/ScoringSystem';
+import { tierOf, type GameStats } from '../gameplay/ScoringSystem';
 import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { Effects } from '../render/Effects';
 import { Celebrations } from '../render/Celebrations';
@@ -148,6 +148,9 @@ export class GameScene extends Phaser.Scene {
     const chapter = this.config.chapter ?? Math.ceil(this.config.level / 5);
     const boss = isSurvival(this.config);
     audio.setMood(boss ? 'boss' : 'calm');
+    audio.setStress(instabilityStage(this.engine.state.instability));
+    audio.setHeat(tierOf(this.engine.state.combo));
+    audio.levelStart();
     this.background = new FieldBackground(this, chapter, boss ? 4 : (this.config.level - 1) % 5, boss);
     this.effects = new Effects(this);
     this.celebrate = new Celebrations(this);
@@ -389,14 +392,14 @@ export class GameScene extends Phaser.Scene {
     });
 
     ev.on('typingError', ({ wordId }) => {
-      audio.error();
+      audio.typo();
       if (wordId !== null) this.views.get(wordId)?.flashError();
     });
 
     ev.on('inputChanged', () => this.refreshConsole());
 
     ev.on('submitMissed', ({ wordId }) => {
-      audio.error();
+      audio.wrongEntry();
       this.hud.console.reject();
       if (wordId !== null) this.views.get(wordId)?.flashError();
     });
@@ -404,6 +407,7 @@ export class GameScene extends Phaser.Scene {
     ev.on('instabilityChanged', ({ value, stage }) => {
       this.hud.setInstability(value, stage);
       this.background.setStage(stage);
+      audio.setStress(stage);
     });
 
     ev.on('progressChanged', ({ completed }) => this.hud.setProgress(completed));
@@ -448,7 +452,7 @@ export class GameScene extends Phaser.Scene {
       if (up) {
         audio.tierUp(tier);
         this.celebrate.tierUp(multiplier, tier);
-      } else audio.tierDown();
+      } else audio.tierDown(tier);
     });
 
     ev.on('gameOver', ({ result, stats }) => {

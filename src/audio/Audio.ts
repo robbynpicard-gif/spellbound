@@ -1,431 +1,372 @@
 import type { SpellId } from '../gameplay/SpellManager';
+import { Music, type Mood } from './Music';
+import { midi, Synth } from './synth';
+
+export type { Mood } from './Music';
 
 /**
- * Music and sound effects, synthesised with the Web Audio API (no audio files;
- * decisions.md D-038). Two buses, music and sfx, each switched on/off on its
- * own. Browsers only allow sound after a click or key press, so the context is
- * created by `unlock()` on the first user gesture.
+ * All sound (decisions.md D-038, D-041): a dynamic score plus sound effects,
+ * synthesised with the Web Audio API. Music and sound effects are separate
+ * buses, switched independently. Browsers allow sound only after a click or key
+ * press, so the context is created by `unlock()` on the first gesture.
+ *
+ * Sound-effect principles:
+ * - Everything is tuned to the score (D minor pentatonic), so effects sit
+ *   inside the music instead of on top of it.
+ * - Rewards rise: each capture in a combo plays the next note up the scale
+ *   (Peggle's rising bounce, Balatro's climbing ticks); a miss resets it.
+ * - Repetition is varied: every key and capture has small random changes in
+ *   pitch, level and timing, so a thousand keystrokes never sound identical.
+ * - Mistakes are soft and wooden, never harsh: the game should feel fair.
+ * - Spells sound like their element: fire crackles, ice cracks and chimes,
+ *   shock buzzes, wind gusts.
  */
-export type Mood = 'menu' | 'calm' | 'boss';
 
-/** D natural minor, around D3–D5 (Hz). */
-const SCALE = [146.83, 164.81, 174.61, 196.0, 220.0, 233.08, 261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 466.16, 523.25, 587.33];
-/** Chord roots for the slow progression: Dm · B♭ · Gm · A (low octave). */
-const PROGRESSION = [
-  [73.42, 110.0, 146.83, 174.61],
-  [58.27, 87.31, 116.54, 146.83],
-  [49.0, 73.42, 98.0, 116.54],
-  [55.0, 82.41, 110.0, 138.59],
-];
-const BAR_SECONDS = 6;
+/** D minor pentatonic over three octaves (MIDI), for anything that climbs. */
+const PENTA = [62, 65, 67, 69, 72, 74, 77, 79, 81, 84, 86, 89, 91, 93, 96];
 
 class AudioEngine {
-  private ctx: AudioContext | null = null;
+  private ctx: BaseAudioContext | null = null;
+  private sy!: Synth;
+  private music!: Music;
   private musicBus!: GainNode;
   private sfxBus!: GainNode;
-  private reverb!: ConvolverNode;
-  private noise!: AudioBuffer;
   private musicOn = true;
   private sfxOn = true;
-  private mood: Mood = 'menu';
-  private timer: number | null = null;
-  private nextBar = 0;
-  private bar = 0;
+  private pending: { mood: Mood; stress: number; heat: number } = { mood: 'menu', stress: 0, heat: 0 };
   private lastKey = 0;
 
   /** Call from any user gesture; safe to call repeatedly. */
   unlock(): void {
-    if (this.ctx) {
-      if (this.ctx.state === 'suspended') void this.ctx.resume();
+    const live = this.ctx as AudioContext | null;
+    if (live) {
+      if (live.state === 'suspended') void live.resume();
       return;
     }
     const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return;
     const ctx = new Ctx();
-    this.ctx = ctx;
-    // Some browsers create the context suspended even inside a gesture.
     if (ctx.state === 'suspended') void ctx.resume();
+    this.attach(ctx, true);
+  }
+
+  /** Wires the buses and starts the score. `realtime` false is for offline rendering (samples, tests). */
+  attach(ctx: BaseAudioContext, realtime: boolean): void {
+    this.ctx = ctx;
     const master = ctx.createGain();
-    master.gain.value = 0.8;
+    master.gain.value = 0.85;
     const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -16;
+    comp.ratio.value = 3;
     master.connect(comp).connect(ctx.destination);
     this.musicBus = ctx.createGain();
     this.sfxBus = ctx.createGain();
-    this.musicBus.gain.value = this.musicOn ? 0.55 : 0;
-    this.sfxBus.gain.value = this.sfxOn ? 0.7 : 0;
+    this.musicBus.gain.value = this.musicOn ? 0.6 : 0;
+    this.sfxBus.gain.value = this.sfxOn ? 0.75 : 0;
     this.musicBus.connect(master);
     this.sfxBus.connect(master);
-    // A long, dark stone-room reverb from decaying noise.
-    this.reverb = ctx.createConvolver();
-    const len = ctx.sampleRate * 3.2;
-    const ir = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let c = 0; c < 2; c++) {
-      const d = ir.getChannelData(c);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len) ** 3;
-    }
-    this.reverb.buffer = ir;
     const wet = ctx.createGain();
-    wet.gain.value = 0.35;
-    this.reverb.connect(wet).connect(master);
-    this.noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
-    const n = this.noise.getChannelData(0);
-    for (let i = 0; i < n.length; i++) n[i] = Math.random() * 2 - 1;
-    this.startMusic();
+    wet.gain.value = 0.3;
+    wet.connect(master);
+    this.sy = new Synth(ctx, wet);
+    this.music = new Music(this.sy, this.musicBus);
+    this.music.set(this.pending);
+    this.music.start(ctx.currentTime + 0.1, realtime);
   }
+
+  /** Offline rendering: schedule the score up to `time`. */
+  renderMusicUntil(time: number): void {
+    this.music?.scheduleUntil(time);
+  }
+
+  /** Offline rendering: pretend "now" is `time` for the next sound effect. */
+  at(time: number): this {
+    this.clock = time;
+    return this;
+  }
+
+  private clock: number | null = null;
 
   setMusic(on: boolean): void {
     this.musicOn = on;
-    if (this.ctx) this.musicBus.gain.setTargetAtTime(on ? 0.55 : 0, this.ctx.currentTime, 0.3);
+    if (this.ctx) this.musicBus.gain.setTargetAtTime(on ? 0.6 : 0, this.ctx.currentTime, 0.3);
   }
 
   setSfx(on: boolean): void {
     this.sfxOn = on;
-    if (this.ctx) this.sfxBus.gain.setTargetAtTime(on ? 0.7 : 0, this.ctx.currentTime, 0.05);
+    if (this.ctx) this.sfxBus.gain.setTargetAtTime(on ? 0.75 : 0, this.ctx.currentTime, 0.05);
   }
 
-  /** Menu: sparse; calm: a level; boss: faster arpeggio, brighter. */
+  /** Menu, a level, or a boss: changes tempo and ensemble at the next bar. */
   setMood(mood: Mood): void {
-    this.mood = mood;
+    this.update({ mood });
   }
 
-  // ───────────────────────── music ─────────────────────────
-
-  private startMusic(): void {
-    if (!this.ctx || this.timer !== null) return;
-    this.nextBar = this.ctx.currentTime + 0.1;
-    this.timer = window.setInterval(() => this.schedule(), 250);
+  /** The ward's instability stage (0–4): darkens the score bar by bar. */
+  setStress(stage: number): void {
+    this.update({ stress: Math.min(3, Math.max(0, stage)) });
   }
 
-  private schedule(): void {
-    const ctx = this.ctx;
-    if (!ctx) return;
-    while (this.nextBar < ctx.currentTime + 1.5) {
-      this.playBar(this.nextBar, PROGRESSION[this.bar % PROGRESSION.length]!);
-      this.nextBar += BAR_SECONDS;
-      this.bar++;
+  /** The combo multiplier tier (0–4): brightens the score. */
+  setHeat(tier: number): void {
+    this.update({ heat: Math.min(4, Math.max(0, tier)) });
+  }
+
+  private update(change: Partial<{ mood: Mood; stress: number; heat: number }>): void {
+    this.pending = { ...this.pending, ...change };
+    this.music?.set(change);
+  }
+
+  private get t(): number {
+    if (this.clock !== null) {
+      const c = this.clock;
+      this.clock = null;
+      return c;
     }
+    return this.ctx!.currentTime;
   }
-
-  private playBar(t: number, chord: number[]): void {
-    const ctx = this.ctx!;
-    // Pad: detuned saws through a slow low-pass, swelling in and out.
-    const padOut = ctx.createGain();
-    padOut.gain.setValueAtTime(0, t);
-    padOut.gain.linearRampToValueAtTime(0.07, t + 2);
-    padOut.gain.linearRampToValueAtTime(0.06, t + BAR_SECONDS - 1);
-    padOut.gain.linearRampToValueAtTime(0, t + BAR_SECONDS + 0.8);
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.setValueAtTime(this.mood === 'boss' ? 900 : 500, t);
-    lp.frequency.linearRampToValueAtTime(this.mood === 'boss' ? 1400 : 750, t + BAR_SECONDS / 2);
-    lp.frequency.linearRampToValueAtTime(this.mood === 'boss' ? 900 : 500, t + BAR_SECONDS);
-    padOut.connect(lp);
-    lp.connect(this.musicBus);
-    lp.connect(this.reverb);
-    for (const f of chord) {
-      for (const detune of [-7, 7]) {
-        const o = ctx.createOscillator();
-        o.type = 'sawtooth';
-        o.frequency.value = f;
-        o.detune.value = detune;
-        o.connect(padOut);
-        o.start(t);
-        o.stop(t + BAR_SECONDS + 1);
-      }
-    }
-    // Drone: the low root, a sine an octave below.
-    const drone = ctx.createOscillator();
-    const dg = ctx.createGain();
-    drone.type = 'sine';
-    drone.frequency.value = chord[0]! / 2;
-    dg.gain.setValueAtTime(0, t);
-    dg.gain.linearRampToValueAtTime(0.12, t + 1);
-    dg.gain.linearRampToValueAtTime(0, t + BAR_SECONDS + 0.5);
-    drone.connect(dg).connect(this.musicBus);
-    drone.start(t);
-    drone.stop(t + BAR_SECONDS + 0.6);
-    // Plucked arpeggio from the scale, denser in a boss fight.
-    const steps = this.mood === 'boss' ? 16 : this.mood === 'calm' ? 8 : 4;
-    for (let i = 0; i < steps; i++) {
-      if (Math.random() < (this.mood === 'menu' ? 0.45 : 0.25)) continue;
-      const note = SCALE[Math.floor(Math.random() * SCALE.length)]!;
-      this.pluck(t + (i * BAR_SECONDS) / steps, note, this.mood === 'boss' ? 0.05 : 0.07);
-    }
-    // A low bell at the start of every other bar.
-    if (this.bar % 2 === 0) this.bell(t, chord[1]! * 2, 0.06);
-  }
-
-  private pluck(t: number, f: number, vol: number): void {
-    const ctx = this.ctx!;
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = 'triangle';
-    o.frequency.value = f;
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(vol, t + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.4);
-    o.connect(g);
-    g.connect(this.musicBus);
-    g.connect(this.reverb);
-    o.start(t);
-    o.stop(t + 1.5);
-  }
-
-  private bell(t: number, f: number, vol: number, bus: GainNode = this.musicBus): void {
-    const ctx = this.ctx!;
-    for (const [mult, v] of [[1, 1], [2.76, 0.4], [5.4, 0.2]] as const) {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.type = 'sine';
-      o.frequency.value = f * mult;
-      g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(vol * v, t + 0.005);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.5 / mult);
-      o.connect(g);
-      g.connect(bus);
-      g.connect(this.reverb);
-      o.start(t);
-      o.stop(t + 2.6);
-    }
-  }
-
-  // ───────────────────────── sound effects ─────────────────────────
 
   private get ready(): boolean {
     return this.ctx !== null && this.sfxOn;
   }
 
-  private tone(f: number, dur: number, vol: number, type: OscillatorType = 'sine', glideTo?: number, delay = 0): void {
-    const ctx = this.ctx!;
-    const t = ctx.currentTime + delay;
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(f, t);
-    if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, t + dur);
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(vol, t + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g);
-    g.connect(this.sfxBus);
-    g.connect(this.reverb);
-    o.start(t);
-    o.stop(t + dur + 0.05);
+  private vary(x: number, amount: number): number {
+    return x * (1 + (Math.random() * 2 - 1) * amount);
   }
 
-  private hiss(dur: number, vol: number, from: number, to: number, type: BiquadFilterType = 'bandpass', delay = 0): void {
-    const ctx = this.ctx!;
-    const t = ctx.currentTime + delay;
-    const src = ctx.createBufferSource();
-    src.buffer = this.noise;
-    src.loop = true;
-    const f = ctx.createBiquadFilter();
-    f.type = type;
-    f.Q.value = 1.2;
-    f.frequency.setValueAtTime(from, t);
-    f.frequency.exponentialRampToValueAtTime(to, t + dur);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(vol, t + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    src.connect(f).connect(g);
-    g.connect(this.sfxBus);
-    g.connect(this.reverb);
-    src.start(t);
-    src.stop(t + dur + 0.05);
-  }
+  // ───────────────────────── typing ─────────────────────────
 
-  /** A typewriter key: a short filtered tick (rate-limited). */
+  /** A typewriter key: a sharp strike, a wooden thock, then the typebar's clack against the platen. */
   key(): void {
     if (!this.ready) return;
-    const now = this.ctx!.currentTime;
-    if (now - this.lastKey < 0.03) return;
+    const now = this.t;
+    if (this.clock === null && now - this.lastKey < 0.025 && now > this.lastKey) return;
     this.lastKey = now;
-    this.hiss(0.035, 0.25, 3200 + Math.random() * 800, 1800, 'bandpass');
-    this.tone(180 + Math.random() * 30, 0.03, 0.08, 'square');
+    const sy = this.sy, out = this.sfxBus;
+    sy.noiseHit(out, now, 0.012, this.vary(0.32, 0.15), { type: 'bandpass', freq: this.vary(3200, 0.12), q: 1.4 });
+    sy.tone(out, now, this.vary(190, 0.06), 0.045, this.vary(0.16, 0.15), { glideTo: 120, filter: { type: 'lowpass', freq: 900 } });
+    const clack = now + this.vary(0.022, 0.25);
+    sy.noiseHit(out, clack, 0.02, this.vary(0.22, 0.2), { type: 'highpass', freq: this.vary(1900, 0.1) });
+    sy.tone(out, clack, this.vary(820, 0.05), 0.03, 0.04, { type: 'square', filter: { type: 'bandpass', freq: 1200, q: 6 } });
   }
 
-  /** A scroll captured: a bright chime that climbs with the combo, with a flourish for special bonuses. */
+  /** A slip of the finger: a dull wooden knock (the combo survives it). */
+  typo(): void {
+    if (!this.ready) return;
+    const now = this.t;
+    this.sy.tone(this.sfxBus, now, 140, 0.09, 0.2, { glideTo: 95, filter: { type: 'lowpass', freq: 700 } });
+    this.sy.noiseHit(this.sfxBus, now, 0.04, 0.1, { type: 'bandpass', freq: 600, q: 2 });
+  }
+
+  /** Enter on a wrong word: crumpled paper and a falling two-note sigh. */
+  wrongEntry(): void {
+    if (!this.ready) return;
+    const now = this.t;
+    for (let k = 0; k < 5; k++) this.sy.noiseHit(this.sfxBus, now + k * 0.025 + Math.random() * 0.01, 0.03, 0.12, { type: 'bandpass', freq: 2500 + Math.random() * 2500, q: 2 });
+    this.sy.tone(this.sfxBus, now + 0.04, midi(69), 0.25, 0.09, { type: 'triangle' });
+    this.sy.tone(this.sfxBus, now + 0.18, midi(66), 0.35, 0.08, { type: 'triangle', glideTo: midi(64) });
+  }
+
+  /** Kept for older call sites. */
+  error(): void {
+    this.typo();
+  }
+
+  // ───────────────────────── rewards ─────────────────────────
+
+  /**
+   * A scroll captured: an inked stamp, then a chime one step higher than the
+   * last (the combo climbs the scale), then a tick per bonus, each a little
+   * higher and quicker.
+   */
   capture(combo: number, bonuses: readonly string[] = []): void {
     if (!this.ready) return;
-    const i = Math.min(SCALE.length - 3, 6 + (combo % 9));
-    this.tone(SCALE[i]! * 2, 0.5, 0.16, 'triangle');
-    this.tone(SCALE[i + 2]! * 2, 0.6, 0.12, 'sine', undefined, 0.06);
-    this.hiss(0.25, 0.08, 6000, 9000, 'highpass');
-    const special = bonuses.filter((b) => b !== 'perfect' && b !== 'quick').length;
-    if (special > 0) [0, 2, 4].slice(0, Math.min(3, special + 1)).forEach((s, k) => this.tone(SCALE[9 + s]! * 2, 0.35, 0.07, 'sine', undefined, 0.1 + k * 0.05));
-    if (bonuses.includes('clutch')) this.bell(this.ctx!.currentTime + 0.05, 880, 0.08, this.sfxBus);
-    if (bonuses.includes('sweep')) [0, 4, 7, 11, 14].forEach((s, k) => this.tone(SCALE[Math.min(14, s)]! * 2, 0.5, 0.08, 'triangle', undefined, k * 0.06));
+    const sy = this.sy, out = this.sfxBus, now = this.t;
+    sy.tone(out, now, 120, 0.08, 0.18, { glideTo: 70, filter: { type: 'lowpass', freq: 500 } });
+    sy.noiseHit(out, now, 0.05, 0.1, { type: 'bandpass', freq: 1400, q: 1 });
+    const step = Math.max(0, combo - 1);
+    const n = PENTA[Math.min(PENTA.length - 1, step % 12)]! + (step >= 12 ? 12 : 0);
+    sy.tone(out, now + 0.01, midi(n), 0.6, 0.14, { type: 'triangle', send: 0.35 });
+    sy.tone(out, now + 0.01, midi(n + 12), 0.4, 0.05, { type: 'sine', send: 0.35 });
+    const special = bonuses.filter((b) => b !== 'perfect' && b !== 'quick');
+    special.forEach((_, k) => {
+      const tn = midi(PENTA[Math.min(PENTA.length - 1, 6 + k * 2)]! + 12);
+      sy.tone(out, now + 0.09 + k * 0.06 * (1 - k * 0.1), tn, 0.25, 0.06, { type: 'sine', send: 0.4 });
+    });
+    if (bonuses.includes('clutch')) sy.bell(out, now + 0.05, midi(93), 0.06, 0.5, 1.6);
+    if (bonuses.includes('sweep')) [0, 2, 4, 5, 7].forEach((s, k) => sy.tone(out, now + 0.1 + k * 0.05, midi(PENTA[s + 5]! + 12), 0.5, 0.06, { type: 'triangle', send: 0.5 }));
   }
 
-  /** A new multiplier tier: a rising brass-and-bell sting, grander each tier. */
+  /** A new multiplier tier: a brass stab and a bell, grander each tier, in the music's key. */
   tierUp(tier: number): void {
     if (!this.ready) return;
-    const t = this.ctx!.currentTime;
-    const steps = [0, 2, 4, 7, 9].slice(0, 2 + tier);
-    steps.forEach((s, k) => {
-      this.tone(SCALE[s + 2]!, 0.5, 0.12, 'sawtooth', undefined, k * 0.07);
-      this.tone(SCALE[s + 2]! * 2, 0.5, 0.06, 'triangle', undefined, k * 0.07);
+    const sy = this.sy, out = this.sfxBus, now = this.t;
+    const chord = [62, 65, 69, 74, 77].slice(0, 2 + tier);
+    chord.forEach((n, k) => {
+      sy.tone(out, now + k * 0.045, midi(n - 12), 0.55, 0.08, { type: 'sawtooth', attack: 0.02, filter: { type: 'lowpass', freq: 600, to: 2400 + tier * 600 }, send: 0.3 });
+      sy.tone(out, now + k * 0.045, midi(n), 0.45, 0.05, { type: 'triangle', send: 0.3 });
     });
-    this.bell(t + steps.length * 0.07, SCALE[9]! * (tier >= 3 ? 2 : 1), 0.12, this.sfxBus);
-    if (tier >= 4) this.hiss(1.2, 0.2, 200, 6000, 'bandpass', 0.1);
+    sy.bell(out, now + chord.length * 0.045, midi(tier >= 3 ? 86 : 81), 0.1, 0.5, 2.8);
+    if (tier >= 4) sy.noiseHit(out, now, 1.4, 0.18, { type: 'bandpass', freq: 400, to: 7000, q: 0.7 }, { attack: 0.05, send: 0.5 });
+    this.setHeat(tier);
   }
 
-  /** The multiplier slipped a tier: a deflating slide. */
-  tierDown(): void {
+  /** The multiplier slipped a tier: a muted slide down. */
+  tierDown(tier = 0): void {
     if (!this.ready) return;
-    this.tone(330, 0.5, 0.12, 'sawtooth', 120);
+    this.sy.tone(this.sfxBus, this.t, midi(57), 0.5, 0.1, { type: 'sawtooth', glideTo: midi(45), filter: { type: 'lowpass', freq: 900 } });
+    this.setHeat(tier);
   }
 
-  /** The level is won: choir, organ, bells and a timpani roll. Absolutely necessary. */
+  // ───────────────────────── harm ─────────────────────────
+
+  /** A scroll broke through the ward: a stone crack, a low boom, the ward humming. */
+  miss(): void {
+    if (!this.ready) return;
+    const sy = this.sy, out = this.sfxBus, now = this.t;
+    sy.noiseHit(out, now, 0.12, 0.35, { type: 'highpass', freq: 1800 });
+    for (let k = 0; k < 4; k++) sy.noiseHit(out, now + 0.02 + k * 0.03, 0.03, 0.18, { type: 'bandpass', freq: 3000 + Math.random() * 3000, q: 3 });
+    sy.tone(out, now, 72, 0.7, 0.4, { glideTo: 38, filter: { type: 'lowpass', freq: 220 }, send: 0.3 });
+    sy.tone(out, now + 0.05, midi(63), 0.9, 0.05, { type: 'sawtooth', drive: 3, filter: { type: 'bandpass', freq: 900, q: 3 }, send: 0.4 });
+  }
+
+  /** A miss stopped by the barrier: a ringing shield. */
+  blocked(): void {
+    if (!this.ready) return;
+    const now = this.t;
+    this.sy.noiseHit(this.sfxBus, now, 0.06, 0.25, { type: 'highpass', freq: 2500 });
+    this.sy.bell(this.sfxBus, now, midi(74), 0.1, 0.5, 2.2);
+  }
+
+  /** A spell scroll captured: parchment unrolling and a rising shimmer. */
+  pickup(): void {
+    if (!this.ready) return;
+    const sy = this.sy, out = this.sfxBus, now = this.t;
+    sy.noiseHit(out, now, 0.25, 0.1, { type: 'bandpass', freq: 1800, to: 4200, q: 1.5 });
+    [0, 2, 4, 5].forEach((s, k) => sy.tone(out, now + 0.05 + k * 0.05, midi(PENTA[s + 4]! + 12), 0.4, 0.06, { type: 'triangle', send: 0.5 }));
+  }
+
+  // ───────────────────────── spells ─────────────────────────
+
+  /** Casting: each spell sounds like its element. */
+  cast(spell: SpellId): void {
+    if (!this.ready) return;
+    const sy = this.sy, out = this.sfxBus, now = this.t;
+    switch (spell) {
+      case 'fire': {
+        sy.noiseHit(out, now, 0.6, 0.35, { type: 'bandpass', freq: 300, to: 3000, q: 0.8 }, { attack: 0.03 }); // ignition whoosh
+        sy.noiseHit(out, now + 0.1, 1.6, 0.3, { type: 'lowpass', freq: 600, to: 200 }, { attack: 0.2, curve: 'lin', send: 0.3 }); // roar
+        for (let k = 0; k < 28; k++) {
+          const tt = now + 0.1 + Math.random() * 1.5; // crackle
+          sy.noiseHit(out, tt, 0.006 + Math.random() * 0.01, 0.15 + Math.random() * 0.2, { type: 'highpass', freq: 1500 + Math.random() * 4000 });
+        }
+        sy.tone(out, now, 80, 1.2, 0.18, { type: 'sawtooth', glideTo: 55, filter: { type: 'lowpass', freq: 300 }, drive: 2 });
+        break;
+      }
+      case 'ice': {
+        for (let k = 0; k < 14; k++) sy.noiseHit(out, now + k * 0.025 + Math.random() * 0.02, 0.015, 0.2, { type: 'highpass', freq: 5000 + Math.random() * 3000 }); // freezing crackle
+        [93, 98, 101, 105].forEach((n, k) => sy.tone(out, now + 0.15 + k * 0.07, midi(n) * 1.007, 1.6, 0.05, { type: 'sine', send: 0.6 })); // glassy chimes
+        sy.tone(out, now + 0.3, 420, 1.0, 0.04, { type: 'sawtooth', glideTo: 260, filter: { type: 'bandpass', freq: 900, q: 8 } }); // creak
+        break;
+      }
+      case 'shock': {
+        sy.tone(out, now, 58, 0.7, 0.16, { type: 'square', drive: 6, filter: { type: 'bandpass', freq: 1200, q: 1 } }); // electric buzz
+        for (let k = 0; k < 6; k++) {
+          const tt = now + 0.05 + k * 0.08 + Math.random() * 0.04;
+          sy.tone(out, tt, 2400 + Math.random() * 1500, 0.06, 0.08, { type: 'square', glideTo: 300, drive: 4 }); // zaps
+          sy.noiseHit(out, tt, 0.03, 0.2, { type: 'highpass', freq: 3500 });
+        }
+        sy.noiseHit(out, now, 0.4, 0.15, { type: 'bandpass', freq: 5000, q: 0.6 });
+        break;
+      }
+      case 'slow': {
+        sy.tone(out, now, midi(74), 1.3, 0.12, { type: 'sawtooth', glideTo: midi(50), filter: { type: 'lowpass', freq: 2400, to: 400 }, send: 0.4 }); // tape stop
+        [0, 0.45, 1.0, 1.65].forEach((dt, k) => sy.noiseHit(out, now + dt, 0.03, 0.12 - k * 0.02, { type: 'bandpass', freq: 1500, q: 5 })); // slowing tick-tock
+        break;
+      }
+      case 'barrier': {
+        sy.tone(out, now, midi(38), 1.2, 0.12, { type: 'sawtooth', attack: 0.25, filter: { type: 'lowpass', freq: 400, to: 1200 } }); // rising hum
+        sy.bell(out, now + 0.25, midi(50), 0.16, 0.6, 3.2); // gong
+        break;
+      }
+      case 'alter': {
+        sy.noiseHit(out, now, 0.5, 0.18, { type: 'bandpass', freq: 800, to: 5000, q: 2 }, { attack: 0.45, curve: 'lin' }); // reversed swell
+        sy.tone(out, now, midi(69), 0.55, 0.08, { type: 'sine', attack: 0.45, glideTo: midi(81), send: 0.5 });
+        for (let k = 0; k < 3; k++) sy.noiseHit(out, now + 0.5 + k * 0.07, 0.05, 0.12, { type: 'bandpass', freq: 2500, q: 1.5 }); // page flips
+        break;
+      }
+      case 'wind': {
+        sy.noiseHit(out, now, 1.8, 0.3, { type: 'bandpass', freq: 250, to: 1400, q: 3 }, { attack: 0.4, curve: 'lin', send: 0.4 }); // gust
+        sy.noiseHit(out, now + 0.3, 1.4, 0.18, { type: 'bandpass', freq: 1400, to: 500, q: 4 }, { attack: 0.3, curve: 'lin' });
+        sy.tone(out, now + 0.2, midi(86), 1.2, 0.03, { type: 'sine', attack: 0.4, glideTo: midi(81), send: 0.5 }); // whistle
+        break;
+      }
+      case 'harvest': {
+        for (let k = 0; k < 8; k++) sy.noiseHit(out, now + k * 0.06, 0.06, 0.1, { type: 'bandpass', freq: 2000 + k * 300, q: 1.2 }); // gathering pages
+        [0, 2, 4, 5, 7].forEach((s, k) => sy.tone(out, now + 0.1 + k * 0.08, midi(PENTA[s + 2]!), 0.6, 0.07, { type: 'triangle', send: 0.5 }));
+        break;
+      }
+    }
+  }
+
+  // ───────────────────────── moments ─────────────────────────
+
+  /** A level begins: the carriage returns with a zing and a clunk. */
+  levelStart(): void {
+    if (!this.ready) return;
+    const now = this.t;
+    this.sy.noiseHit(this.sfxBus, now, 0.35, 0.16, { type: 'bandpass', freq: 1200, to: 3200, q: 3 }, { attack: 0.02, curve: 'lin' });
+    this.sy.tone(this.sfxBus, now + 0.36, 160, 0.12, 0.25, { glideTo: 90, filter: { type: 'lowpass', freq: 800 } });
+    this.sy.bell(this.sfxBus, now + 0.4, midi(86), 0.05, 0.3, 1.2);
+  }
+
+  /** The level is won: the typewriter bell, then choir, organ, timpani and bells over the ducked score. */
   finale(boss = false): void {
     if (!this.ready) return;
-    const ctx = this.ctx!;
-    const t0 = ctx.currentTime + 0.05;
+    const sy = this.sy, out = this.sfxBus;
+    const t0 = this.t + 0.05;
+    this.music.duck(t0, 0.8, 4.2);
+    sy.bell(out, t0, midi(93), 0.12, 0.3, 1.5); // ding!
     const chords = boss
-      ? [[146.83, 220.0, 293.66, 349.23], [116.54, 174.61, 233.08, 293.66], [130.81, 196.0, 261.63, 329.63], [146.83, 220.0, 293.66, 369.99]]
-      : [[146.83, 220.0, 293.66, 349.23], [196.0, 246.94, 293.66, 392.0], [220.0, 277.18, 329.63, 440.0], [146.83, 220.0, 293.66, 369.99]];
-    const lens = [0.7, 0.7, 0.9, 2.6];
-    let t = t0;
+      ? [[50, 57, 62, 65], [46, 53, 58, 62], [48, 55, 60, 64], [50, 57, 62, 66]]
+      : [[50, 57, 62, 65], [55, 59, 62, 67], [57, 61, 64, 69], [50, 57, 62, 66]];
+    const lens = [0.6, 0.6, 0.8, 2.6];
+    let t = t0 + 0.25;
     chords.forEach((chord, ci) => {
       const len = lens[ci]!;
-      for (const f of chord) {
-        // Choir: detuned saws through an "aah" vowel (two formant filters).
-        for (const det of [-9, 0, 9]) {
-          const o = ctx.createOscillator();
-          o.type = 'sawtooth';
-          o.frequency.value = f * 2;
-          o.detune.value = det;
-          const g = ctx.createGain();
-          g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(0.035, t + 0.08);
-          g.gain.setValueAtTime(0.035, t + len - 0.1);
-          g.gain.linearRampToValueAtTime(0, t + len + (ci === 3 ? 1.2 : 0.05));
-          for (const [freq, q] of [[800, 6], [1200, 8]] as const) {
-            const bp = ctx.createBiquadFilter();
-            bp.type = 'bandpass';
-            bp.frequency.value = freq;
-            bp.Q.value = q;
-            o.connect(bp).connect(g);
-          }
-          g.connect(this.sfxBus);
-          g.connect(this.reverb);
-          o.start(t);
-          o.stop(t + len + 1.4);
-        }
-        // Organ: pure octaves underneath.
-        for (const mult of [0.5, 1]) {
-          const o = ctx.createOscillator();
-          o.type = 'square';
-          o.frequency.value = f * mult;
-          const g = ctx.createGain();
-          const lp = ctx.createBiquadFilter();
-          lp.type = 'lowpass';
-          lp.frequency.value = 1400;
-          g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(0.018, t + 0.03);
-          g.gain.linearRampToValueAtTime(0, t + len + (ci === 3 ? 1 : 0.05));
-          o.connect(lp).connect(g);
-          g.connect(this.sfxBus);
-          g.connect(this.reverb);
-          o.start(t);
-          o.stop(t + len + 1.2);
-        }
+      for (const n of chord) {
+        sy.choir(out, t, midi(n + 12), len + (ci === 3 ? 1.4 : 0.1), 0.035, 0.6);
+        for (const oct of [-12, 0]) sy.tone(out, t, midi(n + oct), len + (ci === 3 ? 1 : 0), 0.016, { type: 'square', attack: 0.03, hold: len * 0.6, filter: { type: 'lowpass', freq: 1500 }, send: 0.5 });
       }
-      // Timpani on each chord, bells on the last.
-      const boom = ctx.createOscillator();
-      const bg = ctx.createGain();
-      boom.type = 'sine';
-      boom.frequency.setValueAtTime(chord[0]! / 2, t);
-      boom.frequency.exponentialRampToValueAtTime(chord[0]! / 2.6, t + 0.6);
-      bg.gain.setValueAtTime(0.3, t);
-      bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
-      boom.connect(bg).connect(this.sfxBus);
-      boom.start(t);
-      boom.stop(t + 1);
-      if (ci === 3) for (let k = 0; k < 4; k++) this.bell(t + k * 0.18, chord[k]! * 4, 0.07, this.sfxBus);
+      sy.tone(out, t, midi(chord[0]! - 24), 0.9, 0.35, { glideTo: midi(chord[0]! - 28), filter: { type: 'lowpass', freq: 220 }, send: 0.3 }); // timpani
+      if (ci === 3) chord.forEach((n, k) => sy.bell(out, t + k * 0.16, midi(n + 24), 0.07, 0.6, 3));
       t += len;
     });
   }
 
-  /** A wrong key or an Enter that matched nothing. */
-  error(): void {
-    if (!this.ready) return;
-    this.tone(110, 0.16, 0.14, 'sawtooth', 80);
-  }
-
-  /** A scroll broke through the ward: a dull thud and a crack. */
-  miss(): void {
-    if (!this.ready) return;
-    this.tone(70, 0.5, 0.35, 'sine', 40);
-    this.hiss(0.35, 0.25, 900, 200, 'lowpass');
-  }
-
-  /** A miss stopped by the barrier: a metallic ring. */
-  blocked(): void {
-    if (!this.ready) return;
-    this.bell(this.ctx!.currentTime, 520, 0.12, this.sfxBus);
-  }
-
-  /** A spell scroll captured: a rising sparkle. */
-  pickup(): void {
-    if (!this.ready) return;
-    [0, 2, 4, 7].forEach((step, k) => this.tone(SCALE[7 + step]! * 2, 0.35, 0.1, 'triangle', undefined, k * 0.05));
-  }
-
-  /** Casting: a whoosh plus a voice for each spell. */
-  cast(spell: SpellId): void {
-    if (!this.ready) return;
-    this.hiss(0.6, 0.18, 400, 4000, 'bandpass');
-    switch (spell) {
-      case 'fire':
-        this.hiss(1.0, 0.35, 300, 2500, 'lowpass');
-        this.tone(90, 0.8, 0.2, 'sawtooth', 60);
-        break;
-      case 'ice':
-        [0, 4, 7, 11].forEach((s, k) => this.tone(SCALE[Math.min(14, 7 + s)]! * 2, 1.2, 0.08, 'sine', undefined, k * 0.04));
-        break;
-      case 'slow':
-        this.tone(440, 1.2, 0.14, 'triangle', 180);
-        break;
-      case 'barrier':
-        this.bell(this.ctx!.currentTime, 260, 0.16, this.sfxBus);
-        break;
-      case 'shock':
-        this.hiss(0.3, 0.3, 5000, 1500, 'highpass');
-        this.tone(1200, 0.25, 0.08, 'square', 300);
-        break;
-      case 'alter':
-        this.tone(330, 0.6, 0.12, 'sine', 660);
-        this.tone(495, 0.6, 0.08, 'sine', 247, 0.1);
-        break;
-      case 'wind':
-        this.hiss(1.4, 0.3, 300, 1200, 'bandpass');
-        break;
-      case 'harvest':
-        [0, 2, 4, 5, 7].forEach((s, k) => this.tone(SCALE[s + 5]! * 2, 0.6, 0.1, 'triangle', undefined, k * 0.07));
-        break;
-    }
-  }
-
-  /** Level cleared or the run won: a short rising phrase. */
+  /** Simple win (duels): a short rising phrase. */
   fanfare(): void {
     if (!this.ready) return;
-    [0, 2, 4, 7].forEach((s, k) => this.tone(SCALE[s + 4]!, 0.7, 0.14, 'triangle', undefined, k * 0.14));
-    this.bell(this.ctx!.currentTime + 0.56, SCALE[11]!, 0.1, this.sfxBus);
+    const now = this.t;
+    [0, 2, 4, 7].forEach((s, k) => this.sy.tone(this.sfxBus, now + k * 0.14, midi(PENTA[s]!), 0.7, 0.12, { type: 'triangle', send: 0.4 }));
   }
 
-  /** Run lost: a slow falling phrase. */
+  /** Run lost: the score collapses into a low, slow fall. */
   defeat(): void {
     if (!this.ready) return;
-    [7, 5, 4, 0].forEach((s, k) => this.tone(SCALE[s]!, 0.9, 0.14, 'sawtooth', undefined, k * 0.25));
-    this.tone(55, 2, 0.2, 'sine', 35, 0.9);
+    const now = this.t;
+    this.music.duck(now, 0.9, 3.5);
+    [69, 65, 62, 57].forEach((n, k) => this.sy.tone(this.sfxBus, now + k * 0.3, midi(n), 1.0, 0.1, { type: 'sawtooth', filter: { type: 'lowpass', freq: 900, to: 300 }, send: 0.5 }));
+    this.sy.tone(this.sfxBus, now + 1.0, 55, 2.4, 0.3, { glideTo: 30, filter: { type: 'lowpass', freq: 200 } });
+    this.sy.noiseHit(this.sfxBus, now + 1.0, 2.5, 0.12, { type: 'lowpass', freq: 800, to: 120 }, { curve: 'lin', send: 0.5 });
   }
 
-  /** A menu button. */
+  /** A menu button: a soft paper tap. */
   click(): void {
     if (!this.ready) return;
-    this.tone(660, 0.06, 0.06, 'triangle');
+    const now = this.t;
+    this.sy.noiseHit(this.sfxBus, now, 0.02, 0.15, { type: 'bandpass', freq: 2200, q: 1.5 });
+    this.sy.tone(this.sfxBus, now, midi(74), 0.12, 0.04, { type: 'triangle' });
   }
 }
 

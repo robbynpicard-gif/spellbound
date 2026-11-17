@@ -22,7 +22,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.13.0';
+const APP_VERSION = '0.14.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 

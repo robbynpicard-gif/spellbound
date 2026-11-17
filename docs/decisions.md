@@ -563,3 +563,18 @@ _2026-11-17 · Accepted (project owner)_
   Under Par (+15%), Comeback (ward reached critical, +20%).
 - Tone: the world is serious; the celebrations are absurdly grand (Latin
   banners, choir, organ, confetti, deadpan quips) — "serious, but becomes silly".
+
+### D-041 — Sound rebuild: dynamic score and themed effects
+_2026-11-17 · Accepted (project owner asked for it; details open to review)_
+
+- Score: eleven synced layers (bed, arpeggio, heartbeat, tick, dissonance,
+  wind, bells, choir, fever, ostinato, drums). Two dials move their volumes:
+  stress (ward stage) darkens, heat (multiplier tier) brightens. Changes wait
+  for the next bar line and glide over it; rising stress lands with a swell,
+  recovery with a release chime. Menu / level / boss change tempo on a bar.
+- Effects are tuned to D minor pentatonic. Captures climb the scale with the
+  combo; bonuses add quicker, higher ticks. Typo = wooden knock, wrong word =
+  crumpled paper, miss = stone crack and boom. Each spell sounds like its
+  element. Level start = carriage return; level won = bell, then choir,
+  organ, timpani over the ducked score.
+- Code: src/audio/synth.ts (voices), Music.ts (score), Audio.ts (effects and API).
