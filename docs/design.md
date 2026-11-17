@@ -77,6 +77,12 @@ Each kind of mistake is handled differently:
 
 See docs/clean-streak-report.md.
 
+### Spell scrolls when mana is full — Confirmed (owner, 2026-11-17), not built yet
+
+The spell pool holds 8 charges in total. Claiming a scroll while the pool is full
+must show a clear visual signal that the spell was **not** added. Today the
+only signal is a small "Mana full" float. How it looks is still to be chosen.
+
 ## 4. Art and sound — Confirmed
 
 - Pixel art at 640×360, shown at 2× with nearest-neighbour filtering. Never blur
@@ -89,7 +95,10 @@ See docs/clean-streak-report.md.
 ## 5. Other modes — Confirmed
 
 - **Endless Practice:** pick a mode, stage and level you have reached. Same
-  speed as the Campaign, with no end.
+  speed as the Campaign, with no end. **Testing build (owner, 2026-11-17):**
+  every stage and level is open in Practice (`PRACTICE_UNLOCK_ALL` in
+  src/app/flags.ts). Before release, set it to false so Practice is locked
+  behind Campaign progress again.
 - **Duels:** use the 100 Normal levels in order ("Stage s · Level n").
 
 ## 6. Under discussion — Proposals, not approved

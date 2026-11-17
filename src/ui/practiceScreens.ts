@@ -1,3 +1,4 @@
+import { PRACTICE_UNLOCK_ALL } from '../app/flags';
 import { averageWordLength, isSurvival } from '../difficulty/DifficultyConfig';
 import { levelWpm, STAGE_COUNT, STAGE_NAMES, stageLevels } from '../difficulty/Stages';
 import type { CampaignMode } from '../modes/CampaignMode';
@@ -136,7 +137,9 @@ export function practiceSetupScreen(
     h(
       'p',
       { class: 'screen-subtitle' },
-      'Exactly the same speed as the Campaign level, forever. Levels open as you reach them in Campaign.',
+      PRACTICE_UNLOCK_ALL
+        ? 'Exactly the same speed as the Campaign level, forever. Testing build: every stage and level is open.'
+        : 'Exactly the same speed as the Campaign level, forever. Levels open as you reach them in Campaign.',
     ),
     tabs,
     h('fieldset', { class: 'filter-group' }, h('legend', null, 'Specials'), ...radios),

@@ -25,6 +25,7 @@ import {
   stageSelectScreen,
 } from '../ui/screens';
 import type { UIRoot } from '../ui/UIRoot';
+import { PRACTICE_UNLOCK_ALL } from './flags';
 import { journeyStrip, statsScreen } from '../ui/wizardScreens';
 
 /**
@@ -227,6 +228,7 @@ export class App {
 
   /** Highest level reached in a stage, or 0 if the stage isn't open yet. */
   private reached(mode: CampaignMode, stage: number): number {
+    if (PRACTICE_UNLOCK_ALL) return STAGE_LEVELS;
     return this.save.stageUnlocked(mode, stage) ? this.save.records(mode, stage).highestReached : 0;
   }
 
