@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GameEngine, type EngineOptions } from '../src/core/GameEngine';
 import type { DifficultyConfig } from '../src/difficulty/DifficultyConfig';
-import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
 import {
   multiplierOf,
   nextStreakMilestone,
@@ -15,7 +14,7 @@ import {
 } from '../src/gameplay/ScoringSystem';
 import { emptyCharges } from '../src/gameplay/SpellManager';
 import type { WordState } from '../src/gameplay/Word';
-import { chapterOf, recordLevel, startRun } from '../src/modes/CampaignMode';
+import { recordLevel, startRun } from '../src/modes/CampaignMode';
 
 // Words that never start with x, so typing 'x' is always a typo.
 const WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist', 'lantern', 'bramble', 'cauldron', 'moth'];
@@ -247,7 +246,6 @@ describe('Clean Streak: scoring', () => {
 });
 
 describe('Clean Streak: carried within a chapter, reset at a new chapter', () => {
-  const levels = CAMPAIGN_LEVELS.all;
   const stats = (endCleanStreak: number, endCombo = 20): GameStats => ({
     score: 100,
     completed: 10,
@@ -267,25 +265,18 @@ describe('Clean Streak: carried within a chapter, reset at a new chapter', () =>
     peakCleanStreak: endCleanStreak,
   });
   const play = (run: ReturnType<typeof startRun>, streak: number) =>
-    recordLevel(run, 'won', stats(streak), emptyCharges(), levels.length, 0, levels[run.level - 1], levels[run.level]);
+    recordLevel(run, 'won', stats(streak), emptyCharges(), 0);
 
-  it('chapters are five levels, the fifth a boss', () => {
-    expect(levels.slice(0, 5).map(chapterOf)).toEqual([1, 1, 1, 1, 1]);
-    expect(chapterOf(levels[5]!)).toBe(2);
-  });
-
-  it('carries between levels of a chapter and resets when the next chapter starts', () => {
-    const run = startRun('normal');
+  it('carries across all 20 levels of a stage, including into the boss', () => {
+    const run = startRun('normal', 2);
     play(run, 8); // level 1 → 2
     expect(run.cleanStreak).toBe(8);
-    play(run, 20); // 2 → 3
-    play(run, 30); // 3 → 4
-    play(run, 40); // 4 → 5 (the boss)
-    expect(run.cleanStreak).toBe(40);
-    play(run, 55); // boss cleared → level 6, chapter 2
-    expect(run.level).toBe(6);
-    expect(run.cleanStreak).toBe(0);
+    for (let n = 2; n < 20; n++) play(run, 8 + n * 10);
+    expect(run.level).toBe(20);
+    expect(run.cleanStreak).toBe(198);
     expect(run.combo).toBe(20); // combo carry is unchanged
+    // The next stage is a new run, so its streak starts at 0.
+    expect(startRun('normal', 3).cleanStreak).toBe(0);
   });
 
   it('Normal and Hardcore runs keep their own streaks', () => {
@@ -299,7 +290,7 @@ describe('Clean Streak: carried within a chapter, reset at a new chapter', () =>
 
   it('a lost level ends the run with no streak to carry', () => {
     const run = startRun('normal');
-    recordLevel(run, 'lost', stats(9), emptyCharges(), levels.length, 0, levels[0], levels[1]);
+    recordLevel(run, 'lost', stats(9), emptyCharges(), 0);
     expect(run.cleanStreak).toBe(0);
   });
 

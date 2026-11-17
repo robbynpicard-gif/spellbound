@@ -11,7 +11,7 @@ import {
   practiceLevels,
   type PracticeRecord,
 } from '../src/modes/PracticeMode';
-import { parseSave, SaveManager, type StorageLike } from '../src/storage/SaveManager';
+import { parseSave, SAVE_VERSION, SaveManager, type StorageLike } from '../src/storage/SaveManager';
 
 const TOTAL = CAMPAIGN_LEVELS.count;
 
@@ -133,7 +133,7 @@ describe('practice levels', () => {
   it('offers levels reached in Campaign only', () => {
     expect(practiceLevels(1, TOTAL)).toEqual([1]);
     expect(practiceLevels(5, TOTAL)).toEqual([1, 2, 3, 4, 5]);
-    expect(practiceLevels(99, TOTAL)).toHaveLength(TOTAL);
+    expect(practiceLevels(99, 20)).toHaveLength(20);
   });
 });
 
@@ -162,44 +162,37 @@ describe('practice records', () => {
     expect(records.k!.fastestAverageMs).toBe(0);
   });
 
-  it('keys records by level and specials setting', () => {
-    expect(practiceKey(4, 'none')).toBe('4:none');
+  it('keys records by mode, stage, level and specials setting', () => {
+    expect(practiceKey({ mode: 'hardcore', stage: 2, level: 4 }, 'none')).toBe('hardcore:2:4:none');
   });
 
   it('are stored separately from Campaign and survive a reload', () => {
     const storage = new MemoryStorage();
     const save = new SaveManager(storage, TOTAL);
-    save.notePracticeChoice(3, 'none');
-    save.recordPractice(3, 'none', stats());
+    const pick = { mode: 'normal', stage: 1, level: 3 } as const;
+    save.notePracticeChoice(pick, 'none');
+    save.recordPractice(pick, 'none', stats());
 
     const reloaded = new SaveManager(storage, TOTAL);
-    expect(reloaded.practice.records['3:none']!.bestScore).toBe(1000);
-    expect(reloaded.practice).toMatchObject({ lastLevel: 3, lastFilter: 'none' });
-    expect(reloaded.campaign.bestRun).toBeNull();
-    expect(reloaded.campaign.highestReached).toBe(1);
+    expect(reloaded.practice.records['normal:1:3:none']!.bestScore).toBe(1000);
+    expect(reloaded.practice).toMatchObject({ last: pick, lastFilter: 'none' });
+    expect(reloaded.records('normal', 1).bestRun).toBeNull();
+    expect(reloaded.records('normal', 1).highestReached).toBe(1);
   });
 
-  it('migrates a version 2 save, keeping campaign records', () => {
-    const v2 = JSON.stringify({
-      version: 2,
-      campaign: { highestReached: 5, bestRun: null, runsStarted: 6, runsCompleted: 0 },
-    });
-    const save = parseSave(v2, TOTAL);
-    expect(save.version).toBe(4);
-    expect(save.campaign).toMatchObject({ highestReached: 5, runsStarted: 6 });
-    expect(save.practice.records).toEqual({});
-  });
-
-  it('drops malformed practice entries', () => {
+  it('drops old-style and malformed practice entries', () => {
     const raw = JSON.stringify({
-      version: 3,
-      campaign: {},
-      practice: { lastFilter: 'bogus', lastLevel: 77, records: { nonsense: { bestScore: 5 }, '2:none': { bestScore: -4, bestAccuracy: 3 } } },
+      version: SAVE_VERSION,
+      practice: {
+        lastFilter: 'bogus',
+        last: { mode: 'hardcore', stage: 9, level: 77 },
+        records: { nonsense: { bestScore: 5 }, '2:none': { bestScore: 5 }, 'normal:2:3:none': { bestScore: -4, bestAccuracy: 3 } },
+      },
     });
     const save = parseSave(raw, TOTAL);
     expect(save.practice.lastFilter).toBe('original');
-    expect(save.practice.lastLevel).toBe(TOTAL);
-    expect(Object.keys(save.practice.records)).toEqual(['2:none']);
-    expect(save.practice.records['2:none']).toMatchObject({ bestScore: 0, bestAccuracy: 1 });
+    expect(save.practice.last).toEqual({ mode: 'hardcore', stage: 5, level: 20 });
+    expect(Object.keys(save.practice.records)).toEqual(['normal:2:3:none']);
+    expect(save.practice.records['normal:2:3:none']).toMatchObject({ bestScore: 0, bestAccuracy: 1 });
   });
 });

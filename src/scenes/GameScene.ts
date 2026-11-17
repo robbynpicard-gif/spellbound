@@ -17,7 +17,8 @@ import { WordView } from '../render/WordView';
 import { SPELLS } from '../spells/SpellRegistry';
 import { GameHUD } from '../ui/GameHUD';
 import { instabilityStage } from '../gameplay/InstabilityManager';
-import { chapterName, WIZARDS, type WizardId } from '../gameplay/Wizards';
+import { WIZARDS, type WizardId } from '../gameplay/Wizards';
+import { STAGE_NAMES } from '../difficulty/Stages';
 import { WizardPower } from '../render/WizardPower';
 import { Familiar } from '../render/Familiar';
 import { StreakFeedback } from '../render/StreakFeedback';
@@ -185,7 +186,7 @@ export class GameScene extends Phaser.Scene {
     audio.setStress(instabilityStage(this.engine.state.instability));
     audio.setHeat(tierOf(this.engine.state.combo));
     audio.levelStart();
-    this.background = new FieldBackground(this, chapter, boss ? 4 : (this.config.level - 1) % 5, boss, this.wizard ?? 'apprentice', this.loadout?.outfit ?? 'a');
+    this.background = new FieldBackground(this, chapter, boss ? 4 : Math.min(3, Math.floor(((this.config.stageLevel ?? this.config.level) - 1) / 5)), boss, this.wizard ?? 'apprentice', this.loadout?.outfit ?? 'a');
     this.power = this.wizard ? new WizardPower(this, this.wizard) : null;
     this.familiar = this.loadout && this.loadout.familiar >= 0 ? new Familiar(this, this.loadout.familiar) : null;
 
@@ -655,10 +656,10 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setShadow(4, 4, hex(PALETTE.midnight), 0, false, true)
       .setDepth(40);
-    const chapterNo = this.config.chapter ?? Math.ceil(this.config.level / 5);
+    const stageNo = this.config.stage ?? this.config.chapter ?? 1;
     if (!this.duel) {
       const where = this.add
-        .text(cx, cy - 74, chapterName(this.wizard, chapterNo).toUpperCase(), {
+        .text(cx, cy - 74, `STAGE ${stageNo} OF ${STAGE_NAMES.length}`, {
           fontFamily: FONTS.gameplay,
           fontSize: '20px',
           fontStyle: '700',

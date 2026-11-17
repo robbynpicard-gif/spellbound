@@ -4,8 +4,8 @@ import { isSpellId, type SpellId } from '../gameplay/SpellManager';
  * Everything that makes one level harder or easier than another.
  *
  * Campaign, Practice and multiplayer all read these same objects; no mode
- * calculates its own difficulty. Campaign levels live in src/data/levels.json
- * and are checked by validateLevels() when the game loads.
+ * calculates its own difficulty. Campaign levels are generated per stage in
+ * src/difficulty/Stages.ts and checked by validateLevels() when the game loads.
  */
 export interface DifficultyConfig {
   level: number;
@@ -55,7 +55,11 @@ export interface DifficultyConfig {
    * the Campaign level's quota here so speeds match exactly).
    */
   rampWords?: number | null;
-  /** Campaign chapter (1–4). Display only. */
+  /** Campaign stage (1–5) this level belongs to (D-047). */
+  stage?: number;
+  /** Duels: the level's number within its stage (`level` is then 1–100). */
+  stageLevel?: number;
+  /** Which set of backdrop art to use (1–4). Display only. */
   chapter?: number;
   /**
    * The spell this level introduces: the Campaign shows a pop-up about it

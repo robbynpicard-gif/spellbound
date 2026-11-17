@@ -1,10 +1,9 @@
-import levelsData from '../data/levels.json';
-import { validateLevels } from './DifficultyConfig';
+import { duelLevels } from './Stages';
 import { LevelManager } from './LevelManager';
 
 /**
- * The campaign levels, loaded from src/data/levels.json and validated at
- * start-up. To add a level, append an entry to that file — no code changes.
- * Endless Practice (Milestone 4) will reuse these exact objects.
+ * Wizard Duels (and the duel server) choose from one flat list: the 100
+ * Normal-mode levels, numbered 1–100. The Campaign itself is organised in
+ * stages: see Stages.ts.
  */
-export const CAMPAIGN_LEVELS = new LevelManager(validateLevels(levelsData));
+export const CAMPAIGN_LEVELS = new LevelManager(duelLevels());

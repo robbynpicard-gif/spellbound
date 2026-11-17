@@ -2,7 +2,6 @@ import { GAME_TITLE } from '../core/GameConfig';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
-  poolFull,
   SPELL_IDS,
   SPELL_POOL_SIZE,
   totalCharges,
@@ -10,7 +9,8 @@ import {
   type SpellId,
 } from '../gameplay/SpellManager';
 import {
-  HARDCORE_BOSS_HEAL,
+  HARDCORE_HEAL,
+  HARDCORE_HEAL_LEVELS,
   type CampaignMode,
   type CampaignRecords,
   type CampaignRun,
@@ -18,12 +18,13 @@ import {
   type RunSummary,
 } from '../modes/CampaignMode';
 import { hex, SPELL_COLORS } from '../render/layout';
+import { STAGE_COUNT, STAGE_LEVELS, STAGE_NAMES } from '../difficulty/Stages';
 import { SPELLS } from '../spells/SpellRegistry';
 import { WIZARDS } from '../gameplay/Wizards';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.18.0';
+const APP_VERSION = '0.19.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -49,13 +50,8 @@ const UPCOMING: [label: string, milestone: string][] = [
   ['Spellbook', 'Milestone 6'],
 ];
 
-export function mainMenuScreen(
-  actions: MainMenuActions,
-  records: Readonly<CampaignRecords>,
-  persistent: boolean,
-): Screen {
+export function mainMenuScreen(actions: MainMenuActions, bestScore: number | null, persistent: boolean): Screen {
   const campaign = h('button', { class: 'menu-button primary', onClick: actions.onCampaign }, 'Campaign');
-  const best = records.bestRun;
 
   const element = h(
     'section',
@@ -78,13 +74,7 @@ export function mainMenuScreen(
       h('button', { class: 'menu-button', onClick: actions.onOptions }, 'Options'),
       h('button', { class: 'menu-button', onClick: actions.onCredits }, 'Credits'),
     ),
-    best &&
-      h(
-        'p',
-        { class: 'best-run' },
-        `Best run: ${best.score.toLocaleString()} · `,
-        best.victory ? 'all levels cleared' : `reached level ${best.reachedLevel}`,
-      ),
+    bestScore !== null && h('p', { class: 'best-run' }, `Best stage run: ${bestScore.toLocaleString()}`),
     h(
       'p',
       { class: 'footnote' },
@@ -122,59 +112,89 @@ export function pauseScreen(label: string, onResume: () => void, options: PauseO
   return { element, focus: resume };
 }
 
-// ───────────────────────── Campaign mode choice ─────────────────────────
+// ───────────────────────── Campaign: choose a stage ─────────────────────────
 
-export interface ModeSelectActions {
-  onStart(mode: CampaignMode): void;
+export interface StageSelectActions {
+  onStart(mode: CampaignMode, stage: number): void;
+  onContinue(): void;
   onBack(): void;
 }
 
-function bestLine(records: Readonly<CampaignRecords>): string {
-  const best = records.bestRun;
-  if (!best) return 'No runs recorded yet';
-  return `Best: ${best.score.toLocaleString()} · ${best.victory ? 'all levels cleared' : `reached level ${best.reachedLevel}`}`;
+export interface StageInfo {
+  records: Readonly<CampaignRecords>;
+  unlocked: boolean;
 }
 
-/** Campaign → choose Normal or Hardcore. */
-export function campaignModeScreen(
-  normal: Readonly<CampaignRecords>,
-  hardcore: Readonly<CampaignRecords>,
-  totalLevels: number,
-  actions: ModeSelectActions,
+function stageBest(records: Readonly<CampaignRecords>): string {
+  const best = records.bestRun;
+  if (records.runsCompleted > 0 && best) return `✓ Cleared · best ${best.score.toLocaleString()}`;
+  if (best) return `Best ${best.score.toLocaleString()} · reached level ${records.highestReached}`;
+  return 'Not played yet';
+}
+
+/**
+ * Campaign → choose a mode and a stage (D-047). Each stage is a 20-level run
+ * ending in a boss; clearing it opens the next. A run in progress can be
+ * continued.
+ */
+export function stageSelectScreen(
+  info: (mode: CampaignMode, stage: number) => StageInfo,
+  saved: Readonly<CampaignRun> | null,
+  notice: boolean,
+  actions: StageSelectActions,
 ): Screen {
-  const card = (mode: CampaignMode, detail: string, records: Readonly<CampaignRecords>) =>
+  const column = (mode: CampaignMode, detail: string) =>
     h(
-      'button',
-      { class: `menu-button mode-card ${mode}${mode === 'normal' ? ' primary' : ''}`, onClick: () => actions.onStart(mode) },
-      h('span', { class: 'mode-title' }, MODE_TITLES[mode]),
-      h('span', { class: 'mode-detail' }, detail),
-      h('span', { class: 'mode-best' }, bestLine(records)),
+      'div',
+      { class: `stage-column ${mode}` },
+      h('h3', { class: 'mode-title' }, MODE_TITLES[mode]),
+      h('p', { class: 'mode-detail' }, detail),
+      ...Array.from({ length: STAGE_COUNT }, (_, i) => {
+        const stage = i + 1;
+        const { records, unlocked } = info(mode, stage);
+        return h(
+          'button',
+          {
+            class: `menu-button stage-card${records.runsCompleted > 0 ? ' cleared' : ''}`,
+            disabled: !unlocked,
+            attrs: unlocked ? {} : { title: `Clear stage ${stage - 1} to open` },
+            onClick: () => actions.onStart(mode, stage),
+          },
+          h('span', { class: 'stage-name' }, `Stage ${stage} · ${STAGE_NAMES[i]}`),
+          h('span', { class: 'mode-best' }, unlocked ? stageBest(records) : `Locked · clear stage ${stage - 1}`),
+        );
+      }),
     );
-  const normalCard = card('normal', 'Wards are restored at the start of every level.', normal);
+  const cont = saved
+    ? h(
+        'button',
+        { class: 'menu-button primary continue-run', onClick: actions.onContinue },
+        `Continue: ${MODE_TITLES[saved.mode]} · Stage ${saved.stage} · Level ${saved.level}`,
+      )
+    : null;
   const element = h(
     'section',
-    { class: 'screen panel mode-select', attrs: { role: 'dialog', 'aria-labelledby': 'mode-title' } },
+    { class: 'screen panel stage-select', attrs: { role: 'dialog', 'aria-labelledby': 'mode-title' } },
     h('h2', { class: 'screen-title', attrs: { id: 'mode-title' } }, 'Campaign'),
     h(
       'p',
       { class: 'screen-subtitle' },
-      `${totalLevels} levels in 4 chapters · a boss ends each chapter · fall and the run starts over`,
+      `Each stage is a run of ${STAGE_LEVELS} levels ending in a boss · fall and the stage starts over`,
     ),
+    notice ? h('p', { class: 'reward' }, 'The campaign has been rebuilt into stages, so earlier campaign and practice records were cleared.') : null,
+    cont,
     h(
       'div',
-      { class: 'mode-list' },
-      normalCard,
-      card(
-        'hardcore',
-        `Ward damage carries through the whole run. Each boss heals ${HARDCORE_BOSS_HEAL}%; Wind only halves it.`,
-        hardcore,
-      ),
+      { class: 'stage-columns' },
+      column('normal', 'The ward is restored at the start of every level.'),
+      column('hardcore', `Ward damage carries through the stage; levels ${HARDCORE_HEAL_LEVELS.join(', ')} heal ${HARDCORE_HEAL}%.`),
     ),
     h('div', { class: 'button-row' }, h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back')),
   );
+  const first = cont ?? element.querySelector<HTMLElement>('.stage-card:not([disabled])')!;
   return {
     element,
-    focus: normalCard,
+    focus: first,
     onKey: (event) => {
       if (event.key === 'Escape') actions.onBack();
     },
@@ -221,90 +241,22 @@ function spellSummary(charges: SpellCharges): HTMLElement {
   );
 }
 
-/** A boss reward still to be chosen. */
-export interface BossReward {
-  choices: SpellId[];
-  /** Take a spell; with a full pool, `discard` is the spell given up for it. */
-  onClaim(spell: SpellId, discard?: SpellId): void;
-}
-
-function rewardPicker(run: Readonly<CampaignRun>, reward: BossReward, rerender: () => void): HTMLElement {
-  const full = poolFull(run.spellCharges);
-  let picked: SpellId | null = null;
-  const box = h('div', { class: 'boss-reward' });
-
-  const draw = () => {
-    box.replaceChildren();
-    if (picked && full) {
-      box.append(
-        h('p', { class: 'reward' }, `Your mana is full. Release one charge to take ${SPELLS[picked].name}:`),
-        h(
-          'div',
-          { class: 'reward-choices' },
-          ...SPELL_IDS.filter((id) => run.spellCharges[id] > 0).map((id) =>
-            h(
-              'button',
-              { class: 'menu-button spell-choice', attrs: spellStyle(id), onClick: () => (reward.onClaim(picked!, id), rerender()) },
-              `${SPELLS[id].book} ×${run.spellCharges[id]}`,
-            ),
-          ),
-        ),
-        h('div', { class: 'button-row' }, h('button', { class: 'menu-button', onClick: () => ((picked = null), draw()) }, 'Back')),
-      );
-      return;
-    }
-    box.append(
-      h('p', { class: 'reward' }, 'Boss defeated! Choose one spell charge:'),
-      h(
-        'div',
-        { class: 'reward-choices' },
-        ...reward.choices.map((id) =>
-          h(
-            'button',
-            {
-              class: 'menu-button spell-choice',
-              attrs: { ...spellStyle(id), title: SPELLS[id].summary },
-              onClick: () => {
-                if (full) {
-                  picked = id;
-                  draw();
-                } else {
-                  reward.onClaim(id);
-                  rerender();
-                }
-              },
-            },
-            h('span', { class: 'spell-name' }, SPELLS[id].name),
-            h('span', { class: 'mode-detail' }, `type ${id}`),
-          ),
-        ),
-      ),
-    );
-    box.querySelector('button')?.focus({ preventScroll: true });
-  };
-  draw();
-  return box;
-}
-
 export function levelClearScreen(
   cleared: DifficultyConfig,
   next: DifficultyConfig,
   stats: GameStats,
   run: Readonly<CampaignRun>,
   onContinue: () => void,
-  reward?: BossReward | null,
-  rerender?: () => void,
   extra?: HTMLElement | null,
 ): Screen {
-  const button = h('button', { class: 'menu-button primary', onClick: onContinue }, reward ? 'Skip reward and continue' : `Continue to level ${next.level}`);
-  if (reward) button.classList.remove('primary');
-  const boss = isSurvival(cleared);
+  const button = h('button', { class: 'menu-button primary', onClick: onContinue }, `Continue to level ${next.level}`);
+  const healed = run.mode === 'hardcore' && HARDCORE_HEAL_LEVELS.includes(cleared.level);
   const element = h(
     'section',
     { class: 'screen panel results won', attrs: { role: 'dialog', 'aria-labelledby': 'clear-title' } },
-    h('h2', { class: 'screen-title', attrs: { id: 'clear-title' } }, boss ? `Boss Survived · Level ${cleared.level}` : `Level ${cleared.level} Cleared`),
-    h('p', { class: 'screen-subtitle' }, `${cleared.name}${run.mode === 'hardcore' ? ' · Hardcore' : ''}`),
-    h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Run score'), run.score.toLocaleString()),
+    h('h2', { class: 'screen-title', attrs: { id: 'clear-title' } }, `Level ${cleared.level} Cleared`),
+    h('p', { class: 'screen-subtitle' }, `Stage ${run.stage} · ${cleared.name}${run.mode === 'hardcore' ? ' · Hardcore' : ''}`),
+    h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Stage score'), run.score.toLocaleString()),
     h(
       'dl',
       { class: 'stat-grid' },
@@ -313,22 +265,21 @@ export function levelClearScreen(
       stat('WPM', Math.round(stats.wpm)),
       stat('Missed', stats.missed),
       stat('Best combo', `${stats.maxCombo} words · ×${stats.peakMultiplier}`),
+      stat('Clean Streak', `${stats.endCleanStreak ?? 0} (best ${stats.peakCleanStreak ?? 0})`),
       stat('Time', formatTime(stats.elapsedMs)),
     ),
     run.mode === 'hardcore' &&
       h(
         'p',
         { class: 'spell-summary' },
-        `Ward instability carried: ${Math.round(run.instability)}%${boss ? ` (healed ${HARDCORE_BOSS_HEAL}% for surviving the boss)` : ''}`,
+        `Ward instability carried: ${Math.round(run.instability)}%${healed ? ` (healed ${HARDCORE_HEAL}%)` : ''}`,
       ),
     spellSummary(run.spellCharges),
-    reward && rerender ? rewardPicker(run, reward, rerender) : null,
     extra ?? null,
     h('p', { class: 'next-up' }, `Next: Level ${next.level} · ${next.name}${isSurvival(next) ? ' · Boss' : ''}`),
     h('div', { class: 'button-row' }, button),
   );
-  const focus = reward ? (element.querySelector<HTMLElement>('.boss-reward button') ?? button) : button;
-  return { element, focus };
+  return { element, focus: button };
 }
 
 // ───────────────────────── End of run ─────────────────────────
@@ -336,6 +287,10 @@ export function levelClearScreen(
 export interface RunOverActions {
   onNewRun(): void;
   onMenu(): void;
+  /** Victory: play the next stage (absent after the last stage). */
+  onNextStage?(): void;
+  /** Victory: the spell won from the boss (first playable next stage). */
+  spellWon?: SpellId | null;
   onChangeWizard?(): void;
   /** Shown above the buttons (wizard mastery and unlocks). */
   extra?: HTMLElement | null;
@@ -346,16 +301,16 @@ export function runOverScreen(
   summary: RunSummary,
   outcome: RunOutcome,
   lastLevel: DifficultyConfig,
-  totalLevels: number,
   actions: RunOverActions,
 ): Screen {
   const won = summary.victory;
-  const title = won ? 'Victory' : 'Run Over';
+  const stage = summary.stage ?? 1;
+  const title = won ? `Stage ${stage} Cleared` : 'Run Over';
   const mode = MODE_TITLES[actions.mode ?? 'normal'];
   const who = summary.wizard ? `${WIZARDS[summary.wizard].name} · ` : '';
   const subtitle = who + (won
-    ? `${mode} · All ${totalLevels} levels cleared`
-    : `${mode} · Fell on level ${summary.reachedLevel} · ${lastLevel.name} · ${summary.levelsCleared} cleared`);
+    ? `${mode} · ${STAGE_NAMES[stage - 1]} · ${lastLevel.name} defeated`
+    : `${mode} · Stage ${stage} · fell on level ${summary.reachedLevel} · ${summary.levelsCleared} cleared`);
 
   const bestLine =
     outcome.previousBest === null
@@ -364,7 +319,9 @@ export function runOverScreen(
         ? `New best run! (was ${outcome.previousBest.toLocaleString()})`
         : `Best run: ${outcome.previousBest.toLocaleString()}`;
 
-  const newRun = h('button', { class: 'menu-button primary', onClick: actions.onNewRun }, 'New run');
+  const next = won && actions.onNextStage ? h('button', { class: 'menu-button primary', onClick: actions.onNextStage }, `Stage ${stage + 1}`) : null;
+  const newRun = h('button', { class: `menu-button${next ? '' : ' primary'}`, onClick: actions.onNewRun }, won ? 'Play again' : 'Try again');
+  const spell = won && actions.spellWon ? SPELLS[actions.spellWon] : null;
   const element = h(
     'section',
     { class: `screen panel results ${won ? 'won' : 'lost'}`, attrs: { role: 'dialog', 'aria-labelledby': 'run-title' } },
@@ -382,10 +339,19 @@ export function runOverScreen(
       stat('Time', formatTime(summary.elapsedMs)),
     ),
     h('p', { class: outcome.isNewBest && outcome.previousBest !== null ? 'reward' : 'personal-best' }, bestLine),
+    spell
+      ? h(
+          'p',
+          { class: 'reward', attrs: spellStyle(spell.id) },
+          `New spell unlocked: ${spell.name} (type ${spell.id}). You start stage ${stage + 1} with one charge.`,
+        )
+      : null,
+    won && !actions.onNextStage ? h('p', { class: 'reward' }, 'Every stage of this mode is cleared. The world remembers.') : null,
     actions.extra ?? null,
     h(
       'div',
       { class: 'button-row' },
+      next,
       newRun,
       actions.onChangeWizard && h('button', { class: 'menu-button', onClick: actions.onChangeWizard }, 'Change wizard'),
       h('button', { class: 'menu-button', onClick: actions.onMenu }, 'Main menu'),
@@ -393,7 +359,7 @@ export function runOverScreen(
   );
   return {
     element,
-    focus: newRun,
+    focus: next ?? newRun,
     onKey: (event) => {
       if (event.key === 'Escape') actions.onMenu();
     },

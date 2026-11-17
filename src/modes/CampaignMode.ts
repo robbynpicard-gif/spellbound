@@ -1,29 +1,25 @@
 import type { GameResult } from '../core/GameEvents';
 import { accuracyOf, wpmOf, type GameStats } from '../gameplay/ScoringSystem';
-import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import {
   addCharge,
   emptyCharges,
-  poolFull,
   sanitizeCharges,
-  SPELL_IDS,
   type SpellCharges,
-  type SpellId,
 } from '../gameplay/SpellManager';
-import { SPELLS } from '../spells/SpellRegistry';
+import { spellsOfStage, STAGE_LEVELS } from '../difficulty/Stages';
 import type { WizardId } from '../gameplay/Wizards';
 
 /**
- * Campaign = one continuous run (decisions.md D-016, docs/plans/campaign-v2.md):
- * always starts at level 1 and plays straight through 4 chapters. Losing
- * ends the run. Score and spell charges carry from level to level.
+ * Campaign (decisions.md D-047, docs/design.md §4): two modes, each with five
+ * stages. A **run is one stage**: 20 levels, 19 standard and a boss at level
+ * 20. Losing ends the run (the stage starts again from level 1). Beating the
+ * boss clears the stage, unlocks the next one and teaches a new spell.
+ * Score, spell charges, combo and Clean Streak carry from level to level
+ * within the stage; a new stage starts fresh.
  *
- * Two modes:
- * - Normal: instability resets to 0% at the start of each level.
- * - Hardcore: instability carries through the whole run; clearing a boss
- *   heals some of it, and Arcane Purge only halves it.
- *
- * Choosing a level is only possible in Endless Practice.
+ * - Normal: the ward is restored at the start of each level.
+ * - Hardcore: ward damage carries through the stage; clearing levels 5, 10
+ *   and 15 heals some of it, and Arcane Purge only halves it.
  */
 export type CampaignMode = 'normal' | 'hardcore';
 export const CAMPAIGN_MODES: readonly CampaignMode[] = ['normal', 'hardcore'];
@@ -32,10 +28,9 @@ export function isCampaignMode(value: unknown): value is CampaignMode {
   return value === 'normal' || value === 'hardcore';
 }
 
-/** Hardcore: instability removed after surviving a boss level. */
-export const HARDCORE_BOSS_HEAL = 25;
-/** Boss levels offer this many spells to choose one free charge from. */
-export const BOSS_REWARD_CHOICES = 3;
+/** Hardcore: instability removed after clearing each of these levels. */
+export const HARDCORE_HEAL_LEVELS: readonly number[] = [5, 10, 15];
+export const HARDCORE_HEAL = 25;
 export interface RunTotals {
   completed: number;
   missed: number;
@@ -47,6 +42,8 @@ export interface RunTotals {
 
 export interface CampaignRun {
   mode: CampaignMode;
+  /** The stage being played (1–5). */
+  stage: number;
   /** The wizard played this run (D-042). */
   wizard: WizardId;
   /** Level currently being played (or about to be). */
@@ -60,21 +57,14 @@ export interface CampaignRun {
   spellCharges: SpellCharges;
   /** Combo carried into the next level (D-040): a run's streak continues across levels. */
   combo: number;
-  /**
-   * Clean Streak carried into the next level (D-046). It carries between levels
-   * of the same chapter (a chapter is a stage: four levels and its boss) and
-   * starts again at 0 when a new chapter begins.
-   */
+  /** Clean Streak carried into the next level (D-046): it lasts the whole stage. */
   cleanStreak: number;
   totals: RunTotals;
 }
 
-/** The chapter (stage) a Campaign level belongs to. */
-export function chapterOf(level: Pick<DifficultyConfig, 'chapter' | 'level'>): number {
-  return level.chapter ?? Math.ceil(level.level / 5);
-}
-
 export interface RunSummary {
+  /** Stage played (runs recorded before D-047 have none). */
+  stage?: number;
   score: number;
   levelsCleared: number;
   /** Level the run ended on (the last level reached). */
@@ -90,12 +80,13 @@ export interface RunSummary {
   wizard?: WizardId;
 }
 
-/** Long-term campaign records kept in the save file. */
+/** Long-term records for one stage of one mode, kept in the save file. */
 export interface CampaignRecords {
-  /** Furthest level ever reached in a run (unlocks levels for Practice). */
+  /** Furthest level of the stage ever reached (unlocks levels for Practice). */
   highestReached: number;
   bestRun: RunSummary | null;
   runsStarted: number;
+  /** Times the stage was cleared (beating its boss). Over 0 unlocks the next stage. */
   runsCompleted: number;
 }
 
@@ -109,15 +100,23 @@ export function emptyCampaignRecords(): CampaignRecords {
   return { highestReached: 1, bestRun: null, runsStarted: 0, runsCompleted: 0 };
 }
 
-export function startRun(mode: CampaignMode = 'normal', wizard: WizardId = 'apprentice'): CampaignRun {
+/**
+ * A fresh run of one stage. From stage 2 on, the run starts with one charge of
+ * the spell won from the previous stage's boss (D-047).
+ */
+export function startRun(mode: CampaignMode = 'normal', stage = 1, wizard: WizardId = 'apprentice'): CampaignRun {
+  const charges = emptyCharges();
+  const gift = stage > 1 ? spellsOfStage(stage - 1).fromBoss : null;
+  if (gift) addCharge(charges, gift);
   return {
     mode,
+    stage,
     wizard,
     instability: 0,
     level: 1,
     score: 0,
     levelsCleared: 0,
-    spellCharges: emptyCharges(),
+    spellCharges: charges,
     combo: 0,
     cleanStreak: 0,
     totals: { completed: 0, missed: 0, correctChars: 0, errors: 0, elapsedMs: 0, maxCombo: 0 },
@@ -137,11 +136,7 @@ export function recordLevel(
   result: GameResult,
   stats: GameStats,
   chargesAfter: SpellCharges,
-  totalLevels: number,
   instabilityAfter = 0,
-  cleared?: DifficultyConfig,
-  /** The level after `cleared`, to tell whether the next level starts a new chapter. */
-  next?: DifficultyConfig,
 ): { runOver: boolean; victory: boolean } {
   const t = run.totals;
   t.completed += stats.completed;
@@ -152,17 +147,17 @@ export function recordLevel(
   t.maxCombo = Math.max(t.maxCombo, stats.maxCombo);
   run.score += stats.score;
   run.spellCharges = sanitizeCharges(chargesAfter);
-  run.combo = result === 'won' ? Math.max(0, stats.endCombo ?? 0) : 0;
-  const sameChapter = cleared !== undefined && next !== undefined && chapterOf(cleared) === chapterOf(next);
-  run.cleanStreak = result === 'won' && sameChapter ? Math.max(0, stats.endCleanStreak ?? 0) : 0;
+  const won = result === 'won';
+  run.combo = won ? Math.max(0, stats.endCombo ?? 0) : 0;
+  run.cleanStreak = won ? Math.max(0, stats.endCleanStreak ?? 0) : 0;
   if (run.mode === 'hardcore') {
-    const heal = cleared && isSurvival(cleared) && result === 'won' ? HARDCORE_BOSS_HEAL : 0;
+    const heal = won && HARDCORE_HEAL_LEVELS.includes(run.level) ? HARDCORE_HEAL : 0;
     run.instability = Math.max(0, Math.min(100, instabilityAfter) - heal);
   } else run.instability = 0;
 
-  if (result === 'lost') return { runOver: true, victory: false };
+  if (!won) return { runOver: true, victory: false };
   run.levelsCleared++;
-  if (run.level >= totalLevels) return { runOver: true, victory: true };
+  if (run.level >= STAGE_LEVELS) return { runOver: true, victory: true };
   run.level++;
   return { runOver: false, victory: false };
 }
@@ -173,6 +168,7 @@ export function summarizeRun(run: CampaignRun, victory: boolean): RunSummary {
     score: run.score,
     levelsCleared: run.levelsCleared,
     reachedLevel: run.level,
+    stage: run.stage,
     victory,
     accuracy: accuracyOf(t.correctChars, t.errors),
     wpm: wpmOf(t.correctChars, t.elapsedMs),
@@ -196,53 +192,4 @@ export function applyRunResult(records: CampaignRecords, summary: RunSummary): R
   const isNewBest = previousBest === null || summary.score > previousBest;
   if (isNewBest) records.bestRun = { ...summary };
   return { isNewBest, previousBest };
-}
-
-/** Spells unlocked by the time a level is played (every spell available on it or earlier). */
-export function knownSpellsAt(levels: readonly DifficultyConfig[], level: number): SpellId[] {
-  const known = new Set<SpellId>();
-  for (const config of levels) if (config.level <= level) for (const id of config.availableSpells) known.add(id);
-  return SPELL_IDS.filter((id) => known.has(id));
-}
-
-/**
- * The boss reward: up to `count` different spells from those unlocked,
- * picked by drop weight (rarer spells are offered less often). `random`
- * returns a float in [0, 1) — Math.random in the game, a seeded source in tests.
- */
-export function bossRewardChoices(
-  known: readonly SpellId[],
-  random: () => number,
-  count = BOSS_REWARD_CHOICES,
-): SpellId[] {
-  const pool = [...known];
-  const chosen: SpellId[] = [];
-  while (chosen.length < count && pool.length > 0) {
-    const total = pool.reduce((sum, id) => sum + SPELLS[id].dropWeight, 0);
-    let roll = random() * total;
-    let index = pool.length - 1;
-    for (let i = 0; i < pool.length; i++) {
-      roll -= SPELLS[pool[i]!].dropWeight;
-      if (roll < 0) {
-        index = i;
-        break;
-      }
-    }
-    chosen.push(pool.splice(index, 1)[0]!);
-  }
-  return SPELL_IDS.filter((id) => chosen.includes(id));
-}
-
-/**
- * Takes a boss reward (mutates `run`). If the pool is full, `discard` names
- * a held spell to give up for it; without one the reward can't be taken.
- * Returns whether the reward was added.
- */
-export function claimBossReward(run: CampaignRun, spell: SpellId, discard?: SpellId): boolean {
-  const charges = run.spellCharges;
-  if (poolFull(charges)) {
-    if (!discard || charges[discard] <= 0) return false;
-    charges[discard]--;
-  }
-  return addCharge(charges, spell);
 }

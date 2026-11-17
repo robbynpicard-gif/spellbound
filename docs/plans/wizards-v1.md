@@ -1,3 +1,5 @@
+> **Superseded (2026-11-17, D-047).** Kept for history. The current design is docs/design.md.
+
 # Wizard selection — plan v1 (DRAFT, not built)
 
 _2026-11-16. First step toward the roguelite in [lore.md](../lore.md). Art options: design canvas, "Wizards · options A/B" board._

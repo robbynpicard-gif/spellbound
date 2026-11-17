@@ -4,25 +4,16 @@ import type { LevelManager } from '../difficulty/LevelManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import { WORDS } from '../data/wordList';
 import { audio } from '../audio/Audio';
-import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
+import { isSurvival } from '../difficulty/DifficultyConfig';
+import { knownSpells, spellsOfStage, STAGE_COUNT, STAGE_LEVELS, stageLevel } from '../difficulty/Stages';
 import { SPELL_IDS, type SpellCharges } from '../gameplay/SpellManager';
-import {
-  bossRewardChoices,
-  claimBossReward,
-  knownSpellsAt,
-  recordLevel,
-  startRun,
-  summarizeRun,
-  type CampaignMode,
-  type CampaignRun,
-} from '../modes/CampaignMode';
-import { practiceConfig, practiceLevels, type ModifierFilter } from '../modes/PracticeMode';
+import { recordLevel, startRun, summarizeRun, type CampaignMode, type CampaignRun } from '../modes/CampaignMode';
+import { practiceConfig, type ModifierFilter } from '../modes/PracticeMode';
 import { BackdropScene } from '../scenes/BackdropScene';
 import { GameScene, type GameSceneData } from '../scenes/GameScene';
-import type { SaveManager } from '../storage/SaveManager';
+import type { LevelPick, SaveManager } from '../storage/SaveManager';
 import { FILTER_LABELS, practiceResultsScreen, practiceSetupScreen } from '../ui/practiceScreens';
 import {
-  campaignModeScreen,
   creditsScreen,
   levelClearScreen,
   audioToggleLabels,
@@ -31,25 +22,16 @@ import {
   pauseScreen,
   runOverScreen,
   spellIntroScreen,
-  type BossReward,
+  stageSelectScreen,
 } from '../ui/screens';
 import type { UIRoot } from '../ui/UIRoot';
-import { journeyStrip, masteryPanel, statsScreen, wardrobeScreen, wizardSelectScreen } from '../ui/wizardScreens';
-import { h } from '../ui/dom';
-import { featsFrom, loadout, type Slot } from '../gameplay/Cosmetics';
-import { DOMAINS, WIZARDS, type WizardId } from '../gameplay/Wizards';
-
-/**
- * The wizard roster (D-042, D-043) is shelved (D-045): Campaign starts straight
- * away with the player's own wizard and the classic rules. The roster, sigil
- * powers and wardrobes stay in the code, switched off here.
- */
-const WIZARD_ROSTER = false;
+import { journeyStrip, statsScreen } from '../ui/wizardScreens';
 
 /**
  * Top-level flow between screens.
- * - Campaign is a single run (D-016, docs/plans/campaign-v2.md), in Normal or
- *   Hardcore: Level 1 → Level cleared (boss: choose a reward) → … → Run over.
+ * - Campaign (D-047): choose Normal or Hardcore and a stage; a run is one stage
+ *   of 20 levels: Level 1 → Level cleared → … → boss → Stage cleared (new spell).
+ *   The run is saved between levels and can be continued.
  * - Endless Practice (D-023): choose a level → play until the wards fall or
  *   you end the session → results with personal bests.
  * Game rules stay in the engine; saving stays in SaveManager.
@@ -61,7 +43,7 @@ export class App {
     private readonly game: Phaser.Game,
     private readonly ui: UIRoot,
     private readonly save: SaveManager,
-    private readonly campaign: LevelManager,
+    readonly campaign: LevelManager,
   ) {}
 
   showMainMenu(): void {
@@ -76,7 +58,7 @@ export class App {
           onOptions: () => this.showOptions(),
           onStats: () => this.showStats(),
         },
-        this.save.campaign,
+        this.save.bestScore(),
         this.save.persistent,
       ),
     );
@@ -117,7 +99,7 @@ export class App {
 
   showStats(): void {
     this.showBackdrop();
-    this.ui.show(statsScreen(this.save.lifetime, () => this.showMainMenu(), WIZARD_ROSTER));
+    this.ui.show(statsScreen(this.save.lifetime, () => this.showMainMenu(), false));
   }
 
   showCredits(): void {
@@ -127,70 +109,50 @@ export class App {
 
   // ───────────────────────── Campaign ─────────────────────────
 
+  /** Campaign: choose a mode and a stage, or continue a run in progress (D-047). */
   showCampaignModes(): void {
     this.run = null;
     this.showBackdrop();
     this.ui.show(
-      campaignModeScreen(this.save.records('normal'), this.save.records('hardcore'), this.campaign.count, {
-        onStart: (mode) => (WIZARD_ROSTER ? this.showWizardSelect(mode) : this.startNewRun(mode, 'apprentice')),
-        onBack: () => this.showMainMenu(),
-      }),
-    );
-  }
-
-  showWizardSelect(mode: CampaignMode): void {
-    this.run = null;
-    this.showBackdrop();
-    this.ui.show(
-      wizardSelectScreen(mode, this.save.lastWizard, this.save.lifetime, (id) => this.save.wardrobe(id), {
-        onPick: (wizard) => {
-          this.save.setLastWizard(wizard);
-          this.startNewRun(mode, wizard);
-        },
-        onWardrobe: (wizard) => this.showWardrobe(mode, wizard),
-        onBack: () => this.showCampaignModes(),
-      }),
-    );
-  }
-
-  /** A wizard's cosmetic unlock track (D-043): equip what you've earned, then play. */
-  showWardrobe(mode: CampaignMode, wizard: WizardId, focus?: string): void {
-    this.showBackdrop();
-    this.ui.show(
-      wardrobeScreen(
-        wizard,
-        this.save.wardrobe(wizard),
+      stageSelectScreen(
+        (mode, stage) => ({ records: this.save.records(mode, stage), unlocked: this.save.stageUnlocked(mode, stage) }),
+        this.save.savedRun,
+        this.save.takeResetNotice(),
         {
-          onEquip: (slot: Slot, itemId: string) => {
-            this.save.equip(wizard, slot, itemId);
-            this.showWardrobe(mode, wizard, `${slot}:${itemId}`);
-          },
-          onPlay: () => {
-            this.save.setLastWizard(wizard);
-            this.startNewRun(mode, wizard);
-          },
-          onBack: () => this.showWizardSelect(mode),
+          onStart: (mode, stage) => this.startNewRun(mode, stage),
+          onContinue: () => this.continueRun(),
+          onBack: () => this.showMainMenu(),
         },
-        focus,
       ),
     );
   }
 
-  startNewRun(mode: CampaignMode = 'normal', wizard: WizardId = this.save.lastWizard): void {
-    this.run = startRun(mode, wizard);
-    this.save.noteRunStarted(mode);
+  /** A fresh run of one stage. Starting it replaces any saved run. */
+  startNewRun(mode: CampaignMode, stage: number): void {
+    if (!this.save.stageUnlocked(mode, stage)) return this.showCampaignModes();
+    this.run = startRun(mode, stage);
+    this.save.noteRunStarted(mode, stage);
+    this.save.setSavedRun(this.run);
+    this.playCurrentLevel();
+  }
+
+  /** Picks up the saved run at the level it stopped on. */
+  continueRun(): void {
+    const saved = this.save.savedRun;
+    if (!saved) return this.showCampaignModes();
+    this.run = JSON.parse(JSON.stringify(saved)) as CampaignRun;
     this.playCurrentLevel();
   }
 
   private playCurrentLevel(): void {
     const run = this.run;
     if (!run) return;
-    const config = this.levelFor(run, run.level);
-    this.save.noteLevelReached(run.level, run.mode);
+    const config = stageLevel(run.mode, run.stage, run.level);
+    this.save.noteLevelReached(run.mode, run.stage, run.level);
     const modeLabel = run.mode === 'hardcore' ? ' · Hardcore' : '';
-    const label = `Level ${config.level} of ${this.campaign.count} · ${config.name}${modeLabel}${WIZARD_ROSTER ? ` · ${WIZARDS[run.wizard].name}` : ''}`;
+    const label = `Stage ${run.stage} · Level ${config.level} of ${STAGE_LEVELS} · ${config.name}${modeLabel}`;
     const held = SPELL_IDS.filter((id) => run.spellCharges[id] > 0);
-    const known = knownSpellsAt(this.campaign.all, run.level);
+    const known = knownSpells(run.stage, run.level);
 
     this.startScene({
       config,
@@ -200,17 +162,22 @@ export class App {
       initialInstability: run.instability,
       initialCombo: run.combo,
       initialCleanStreak: run.cleanStreak,
-      wizard: WIZARD_ROSTER ? run.wizard : undefined,
-      loadout: WIZARD_ROSTER ? loadout(run.wizard, this.save.wardrobe(run.wizard)) : undefined,
       knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
       spellIntro: config.introducesSpell ?? null,
       words: this.words,
       hooks: {
         onPauseChanged: (paused) =>
           this.onPause(paused, label, [
-            { label: 'Restart run from level 1', onClick: () => this.startNewRun(run.mode, run.wizard) },
-            { label: 'Abandon run', onClick: () => this.showMainMenu() },
-          ], 'An abandoned run is not recorded'),
+            { label: 'Restart stage from level 1', onClick: () => this.startNewRun(run.mode, run.stage) },
+            { label: 'Save and quit', onClick: () => this.showCampaignModes() },
+            {
+              label: 'Abandon run',
+              onClick: () => {
+                this.save.setSavedRun(null);
+                this.showMainMenu();
+              },
+            },
+          ], 'Save and quit continues from the start of this level'),
         onGameOver: (result, stats, spells, instability) => this.onLevelEnd(result, stats, spells, instability),
         onSpellIntro: (spell, begin) =>
           this.ui.show(
@@ -223,68 +190,33 @@ export class App {
     });
   }
 
-  /** A Campaign level as this run sees it: chapter 1 is the wizard's own domain (D-044). */
-  private levelFor(run: CampaignRun, level: number): DifficultyConfig {
-    const base = this.campaign.get(level);
-    const chapter = base.chapter ?? Math.ceil(base.level / 5);
-    return chapter === 1 ? { ...base, name: DOMAINS[run.wizard].levels[(base.level - 1) % 5] ?? base.name } : base;
-  }
-
   private onLevelEnd(result: GameResult, stats: GameStats, spells: SpellCharges, instability: number): void {
     const run = this.run;
     if (!run) return;
-    const clearedLevel = this.levelFor(run, run.level);
-    this.save.recordLevelStats(stats, result, { mode: 'campaign', boss: isSurvival(clearedLevel), wizard: run.wizard });
-    const { runOver, victory } = recordLevel(
-      run,
-      result,
-      stats,
-      spells,
-      this.campaign.count,
-      instability,
-      clearedLevel,
-      run.level < this.campaign.count ? this.levelFor(run, run.level + 1) : undefined,
-    );
-
-    // Mastery: every point scored with this wizard counts; feats unlock the rest.
-    const gained = Math.max(0, stats.score);
-    const unlocked = WIZARD_ROSTER ? this.save.awardMastery(run.wizard, gained, featsFrom(stats, result === 'won', runOver && victory)) : [];
-    const nextLevel = this.levelFor(run, run.level);
-    const mastery = h(
-      'div',
-      null,
-      journeyStrip(run.wizard, runOver ? (clearedLevel.chapter ?? 1) : (nextLevel.chapter ?? Math.ceil(nextLevel.level / 5))),
-      WIZARD_ROSTER ? masteryPanel(run.wizard, this.save.wardrobe(run.wizard), gained, unlocked) : null,
-    );
+    const clearedLevel = stageLevel(run.mode, run.stage, run.level);
+    this.save.recordLevelStats(stats, result, { mode: 'campaign', boss: isSurvival(clearedLevel) });
+    const { runOver, victory } = recordLevel(run, result, stats, spells, instability);
+    const journey = journeyStrip(run.stage, victory);
 
     if (!runOver) {
-      // Surviving a boss: choose 1 of 3 spells (picked by rarity) as a free charge.
-      let reward: BossReward | null = null;
-      if (isSurvival(clearedLevel)) {
-        reward = {
-          choices: bossRewardChoices(knownSpellsAt(this.campaign.all, clearedLevel.level), Math.random),
-          onClaim: (spell, discard) => {
-            claimBossReward(run, spell, discard);
-            reward = null;
-          },
-        };
-      }
-      const show = () =>
-        this.ui.show(
-          levelClearScreen(clearedLevel, this.levelFor(run, run.level), stats, run, () => this.playCurrentLevel(), reward, show, mastery),
-        );
-      show();
+      this.save.setSavedRun(run);
+      this.ui.show(
+        levelClearScreen(clearedLevel, stageLevel(run.mode, run.stage, run.level), stats, run, () => this.playCurrentLevel(), journey),
+      );
       return;
     }
 
+    this.save.setSavedRun(null);
     const summary = summarizeRun(run, victory);
     const outcome = this.save.recordRun(summary, run.mode);
     this.run = null;
+    const nextStage = victory && run.stage < STAGE_COUNT ? run.stage + 1 : null;
     this.ui.show(
-      runOverScreen(summary, outcome, clearedLevel, this.campaign.count, {
-        onNewRun: () => this.startNewRun(run.mode, run.wizard),
-        onChangeWizard: WIZARD_ROSTER ? () => this.showWizardSelect(run.mode) : undefined,
-        extra: mastery,
+      runOverScreen(summary, outcome, clearedLevel, {
+        onNewRun: () => this.startNewRun(run.mode, run.stage),
+        onNextStage: nextStage ? () => this.startNewRun(run.mode, nextStage) : undefined,
+        spellWon: victory ? spellsOfStage(run.stage).fromBoss : null,
+        extra: journey,
         onMenu: () => this.showMainMenu(),
         mode: run.mode,
       }),
@@ -293,32 +225,34 @@ export class App {
 
   // ───────────────────────── Endless Practice ─────────────────────────
 
+  /** Highest level reached in a stage, or 0 if the stage isn't open yet. */
+  private reached(mode: CampaignMode, stage: number): number {
+    return this.save.stageUnlocked(mode, stage) ? this.save.records(mode, stage).highestReached : 0;
+  }
+
   showPracticeSetup(): void {
     this.run = null;
     this.showBackdrop();
     const p = this.save.practice;
-    const reachable = practiceLevels(this.save.highestReached, this.campaign.count);
-    const level = reachable.includes(p.lastLevel) ? p.lastLevel : reachable.at(-1)!;
     this.ui.show(
       practiceSetupScreen(
-        this.campaign.all,
-        reachable.at(-1)!,
+        (mode, stage) => this.reached(mode, stage),
         p.records,
-        { level, filter: p.lastFilter },
+        { ...p.last, filter: p.lastFilter },
         {
-          onStart: (lvl, filter) => this.startPractice(lvl, filter),
+          onStart: (pick, filter) => this.startPractice(pick, filter),
           onBack: () => this.showMainMenu(),
         },
       ),
     );
   }
 
-  startPractice(level: number, filter: ModifierFilter): void {
-    const reachable = practiceLevels(this.save.highestReached, this.campaign.count);
-    if (!reachable.includes(level)) return this.showPracticeSetup();
-    this.save.notePracticeChoice(level, filter);
-    const base = this.campaign.get(level);
-    const label = `Practice · Level ${level} · ${base.name} · ${FILTER_LABELS[filter].title}`;
+  startPractice(pick: LevelPick, filter: ModifierFilter): void {
+    if (pick.level > this.reached(pick.mode, pick.stage)) return this.showPracticeSetup();
+    this.save.notePracticeChoice(pick, filter);
+    const base = stageLevel(pick.mode, pick.stage, pick.level);
+    const where = `${pick.mode === 'hardcore' ? 'Hardcore' : 'Normal'} · Stage ${pick.stage} · Level ${pick.level}`;
+    const label = `Practice · ${where} · ${FILTER_LABELS[filter].title}`;
 
     this.startScene({
       config: practiceConfig(base, filter),
@@ -330,26 +264,26 @@ export class App {
               label: 'End session and see results',
               onClick: () => {
                 const { stats } = this.gameScene.snapshot();
-                this.endPractice(level, filter, stats, false);
+                this.endPractice(pick, where, filter, stats, false);
               },
             },
-            { label: 'Restart session', onClick: () => this.startPractice(level, filter) },
+            { label: 'Restart session', onClick: () => this.startPractice(pick, filter) },
             { label: 'Change level', onClick: () => this.showPracticeSetup() },
           ], 'Restarting or changing level discards this session'),
         // Endless sessions only end by falling (there is no quota to win).
-        onGameOver: (_result, stats) => this.endPractice(level, filter, stats, true),
+        onGameOver: (_result, stats) => this.endPractice(pick, where, filter, stats, true),
       },
     });
   }
 
-  private endPractice(level: number, filter: ModifierFilter, stats: GameStats, fell: boolean): void {
+  private endPractice(pick: LevelPick, where: string, filter: ModifierFilter, stats: GameStats, fell: boolean): void {
     // Stop the game (so Esc can't resume it behind the results) and show the sky backdrop.
     this.showBackdrop();
-    const outcome = this.save.recordPractice(level, filter, stats);
+    const outcome = this.save.recordPractice(pick, filter, stats);
     this.save.recordLevelStats(stats, fell ? 'lost' : 'won', { mode: 'practice' });
     this.ui.show(
-      practiceResultsScreen(this.campaign.get(level), filter, stats, outcome, fell, {
-        onAgain: () => this.startPractice(level, filter),
+      practiceResultsScreen(where, filter, stats, outcome, fell, {
+        onAgain: () => this.startPractice(pick, filter),
         onChangeLevel: () => this.showPracticeSetup(),
         onMenu: () => this.showMainMenu(),
       }),

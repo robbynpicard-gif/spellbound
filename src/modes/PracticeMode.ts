@@ -4,9 +4,9 @@ import type { GameStats } from '../gameplay/ScoringSystem';
 /**
  * Endless Practice (GDD §14, decisions.md D-023).
  *
- * The player picks any level they've reached in Campaign and plays it
- * forever at exactly that level's difficulty. Records are kept per level and
- * per "specials" setting, separately from Campaign.
+ * The player picks any level they've reached in Campaign (mode, stage and
+ * level, D-047) and plays it forever at exactly that level's difficulty.
+ * Records are kept per level and per "specials" setting, apart from Campaign.
  */
 
 /**
@@ -51,14 +51,15 @@ export function practiceConfig(level: DifficultyConfig, filter: ModifierFilter):
   return config;
 }
 
-/** Levels the player may practise: those reached in Campaign. */
+/** Levels of a stage the player may practise: those reached in Campaign (1 … highestReached). */
 export function practiceLevels(highestReached: number, totalLevels: number): number[] {
   const top = Math.min(Math.max(1, highestReached), totalLevels);
   return Array.from({ length: top }, (_, i) => i + 1);
 }
 
-export function practiceKey(level: number, filter: ModifierFilter): string {
-  return `${level}:${filter}`;
+/** Record key for one level of one stage of one mode, e.g. "normal:2:7:original". */
+export function practiceKey(pick: { mode: string; stage: number; level: number }, filter: ModifierFilter): string {
+  return `${pick.mode}:${pick.stage}:${pick.level}:${filter}`;
 }
 
 /**

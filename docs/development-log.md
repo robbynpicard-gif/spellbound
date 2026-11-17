@@ -4,6 +4,20 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-17 — Stage campaign
+
+**Done** (D-047, v0.19.0): campaign rebuilt as 2 modes × 5 stages × 20 levels
+with generated difficulty from WPM targets; stage select with Continue; run
+saved between levels; spells 2 per stage; Clean Streak across a stage;
+Hardcore heals at 5/10/15; Practice by mode/stage/level; save v5 with a one-time
+reset notice. Tests rewritten for stages. Bot calibration in
+docs/calibration-2026-11-17.md.
+
+**Superseded:** docs/plans/campaign-v2.md, docs/plans/wizards-v1.md, and the
+chapter parts of docs/plans/apprentice-world.md.
+
+---
+
 ## 2026-11-17 — Clean Streak
 
 **Done** (D-046, v0.18.0): three-layer scoring with Clean Streak; 30 new tests

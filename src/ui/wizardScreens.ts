@@ -1,9 +1,10 @@
+import { STAGE_NAMES } from '../difficulty/Stages';
 import type { CampaignMode } from '../modes/CampaignMode';
 import { BONUS_TEXT } from '../render/Celebrations';
 import { hex, SPELL_COLORS } from '../render/layout';
 import type { BonusId } from '../gameplay/ScoringSystem';
 import { SPELL_IDS } from '../gameplay/SpellManager';
-import { chapterName, WIZARD_IDS, WIZARDS, type WizardId } from '../gameplay/Wizards';
+import { WIZARD_IDS, WIZARDS, type WizardId } from '../gameplay/Wizards';
 import {
   cosmeticsFor,
   equipped,
@@ -232,16 +233,18 @@ export function wardrobeScreen(
 }
 
 /** The road from the wizard's domain into the darkness, with the current stop lit (D-044). */
-export function journeyStrip(id: WizardId, chapter: number): HTMLElement {
-  const stops = [1, 2, 3, 4].map((c) =>
-    h('span', { class: `journey-stop${c === chapter ? ' here' : c < chapter ? ' done' : ''}` }, chapterName(id, c)),
-  );
+export function journeyStrip(stage: number, cleared = false): HTMLElement {
+  const stops = STAGE_NAMES.map((name, i) => {
+    const n = i + 1;
+    const state = n < stage || (n === stage && cleared) ? ' done' : n === stage ? ' here' : '';
+    return h('span', { class: `journey-stop${state}` }, name);
+  });
   const parts: (HTMLElement | string)[] = [];
   stops.forEach((s, i) => {
     if (i > 0) parts.push(h('span', { class: 'journey-arrow' }, '→'));
     parts.push(s);
   });
-  return h('p', { class: 'journey', attrs: wizardStyle(id) }, ...parts);
+  return h('p', { class: 'journey' }, ...parts);
 }
 
 /** Under a level's results: mastery gained and anything unlocked. */

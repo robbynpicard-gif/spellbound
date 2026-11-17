@@ -1,13 +1,18 @@
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
   applyRunResult,
+  CAMPAIGN_MODES,
   emptyCampaignRecords,
+  isCampaignMode,
   noteLevelReached,
   type CampaignMode,
   type CampaignRecords,
+  type CampaignRun,
   type RunOutcome,
   type RunSummary,
 } from '../modes/CampaignMode';
+import { STAGE_COUNT, STAGE_LEVELS } from '../difficulty/Stages';
+import { sanitizeCharges } from '../gameplay/SpellManager';
 import {
   applyPracticeResult,
   emptyPracticeRecord,
@@ -44,23 +49,33 @@ import {
 export const SAVE_KEY = 'wizzytype.save';
 /** Save written before the game was renamed (read once, then rewritten under SAVE_KEY). */
 export const LEGACY_SAVE_KEY = 'spellbound.save';
-export const SAVE_VERSION = 4;
+/** v5 (D-047): the Campaign became 2 modes × 5 stages × 20 levels. */
+export const SAVE_VERSION = 5;
+
+/** A level of the Campaign: which mode, which stage, which level of it. */
+export interface LevelPick {
+  mode: CampaignMode;
+  stage: number;
+  level: number;
+}
 
 /** Practice records live apart from Campaign records (GDD §14). */
 export interface PracticeData {
-  /** Keyed by practiceKey(level, filter), e.g. "3:original". */
+  /** Keyed by practiceKey(pick, filter), e.g. "normal:2:7:original". */
   records: Record<string, PracticeRecord>;
   /** Last setup used, pre-selected next time. */
-  lastLevel: number;
+  last: LevelPick;
   lastFilter: ModifierFilter;
 }
 
 export interface SaveData {
   version: typeof SAVE_VERSION;
-  /** Normal-mode campaign records. */
-  campaign: CampaignRecords;
-  /** Hardcore campaign records, kept apart from Normal. */
-  hardcore: CampaignRecords;
+  /** Records per mode and stage: `stages.normal[0]` is Normal stage 1. */
+  stages: Record<CampaignMode, CampaignRecords[]>;
+  /** A stage run in progress, saved between levels so it can be continued. */
+  savedRun: CampaignRun | null;
+  /** Records from the old 20-level campaign were cleared; tell the player once. */
+  resetNotice: boolean;
   practice: PracticeData;
   /** Player profile. Added within v3 (missing in older v3 saves → defaults). */
   profile: { name: string; duelLevel: number };
@@ -111,14 +126,20 @@ export interface StorageLike {
 }
 
 export function emptyPractice(): PracticeData {
-  return { records: {}, lastLevel: 1, lastFilter: 'original' };
+  return { records: {}, last: { mode: 'normal', stage: 1, level: 1 }, lastFilter: 'original' };
+}
+
+export function emptyStages(): Record<CampaignMode, CampaignRecords[]> {
+  const stages = () => Array.from({ length: STAGE_COUNT }, () => emptyCampaignRecords());
+  return { normal: stages(), hardcore: stages() };
 }
 
 export function emptySave(): SaveData {
   return {
     version: SAVE_VERSION,
-    campaign: emptyCampaignRecords(),
-    hardcore: emptyCampaignRecords(),
+    stages: emptyStages(),
+    savedRun: null,
+    resetNotice: false,
     practice: emptyPractice(),
     profile: { name: '', duelLevel: 1 },
     settings: { music: true, sfx: true },
@@ -149,6 +170,50 @@ function parseRun(raw: unknown, totalLevels: number): RunSummary | null {
     maxCombo: num(r.maxCombo),
     elapsedMs: num(r.elapsedMs),
     ...(isWizardId(r.wizard) ? { wizard: r.wizard } : {}),
+    ...(typeof r.stage === 'number' ? { stage: clampStage(r.stage) } : {}),
+  };
+}
+
+const clampStage = (v: unknown): number => Math.min(Math.max(Math.floor(num(v, 1)), 1), STAGE_COUNT);
+
+function parseStages(raw: unknown): Record<CampaignMode, CampaignRecords[]> {
+  const out = emptyStages();
+  if (typeof raw !== 'object' || raw === null) return out;
+  for (const mode of CAMPAIGN_MODES) {
+    const list = (raw as Record<string, unknown>)[mode];
+    if (!Array.isArray(list)) continue;
+    list.slice(0, STAGE_COUNT).forEach((c, i) => {
+      if (typeof c === 'object' && c !== null) out[mode][i] = parseCampaign(c as Record<string, unknown>, STAGE_LEVELS);
+    });
+  }
+  return out;
+}
+
+/** A saved run in progress: kept only if every field makes sense. */
+function parseSavedRun(raw: unknown): CampaignRun | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  if (!isCampaignMode(r.mode)) return null;
+  const t = (typeof r.totals === 'object' && r.totals !== null ? r.totals : {}) as Record<string, unknown>;
+  return {
+    mode: r.mode,
+    stage: clampStage(r.stage),
+    wizard: 'apprentice',
+    level: clampLevel(r.level, STAGE_LEVELS),
+    instability: Math.min(num(r.instability), 99),
+    score: num(r.score),
+    levelsCleared: Math.min(num(r.levelsCleared), STAGE_LEVELS),
+    spellCharges: sanitizeCharges(r.spellCharges as never),
+    combo: Math.floor(num(r.combo)),
+    cleanStreak: Math.floor(num(r.cleanStreak)),
+    totals: {
+      completed: num(t.completed),
+      missed: num(t.missed),
+      correctChars: num(t.correctChars),
+      errors: num(t.errors),
+      elapsedMs: num(t.elapsedMs),
+      maxCombo: num(t.maxCombo),
+    },
   };
 }
 
@@ -161,15 +226,18 @@ function parseCampaign(c: Record<string, unknown>, totalLevels: number): Campaig
   };
 }
 
-function parsePractice(raw: unknown, totalLevels: number): PracticeData {
+function parsePractice(raw: unknown): PracticeData {
   const practice = emptyPractice();
   if (typeof raw !== 'object' || raw === null) return practice;
   const p = raw as Partial<Record<keyof PracticeData, unknown>>;
-  practice.lastLevel = clampLevel(p.lastLevel, totalLevels);
+  if (typeof p.last === 'object' && p.last !== null) {
+    const l = p.last as Record<string, unknown>;
+    if (isCampaignMode(l.mode)) practice.last = { mode: l.mode, stage: clampStage(l.stage), level: clampLevel(l.level, STAGE_LEVELS) };
+  }
   if (isModifierFilter(p.lastFilter)) practice.lastFilter = p.lastFilter;
   if (typeof p.records === 'object' && p.records !== null) {
     for (const [key, r] of Object.entries(p.records as Record<string, unknown>)) {
-      if (!/^\d+:(all|original|none)$/.test(key) || typeof r !== 'object' || r === null) continue;
+      if (!/^(normal|hardcore):[1-5]:\d+:(all|original|none)$/.test(key) || typeof r !== 'object' || r === null) continue;
       const rec = emptyPracticeRecord();
       for (const field of Object.keys(rec) as (keyof PracticeRecord)[]) {
         rec[field] = num((r as Record<string, unknown>)[field]);
@@ -196,49 +264,39 @@ function parseSettings(raw: unknown): SaveData['settings'] {
 
 /**
  * Turns stored text back into SaveData. Anything unreadable yields a fresh
- * save instead of crashing. Older versions are migrated:
- * v1 (per-level campaign) → highest unlocked becomes highest reached;
- * v2 (campaign runs) → kept, practice starts empty;
- * v3 → kept, Hardcore records start empty (v4 added Hardcore).
+ * save instead of crashing.
+ * - v5: the stage campaign (D-047).
+ * - v1–v4 (the old 20-level campaign): campaign and practice records no longer
+ *   match any level and are cleared (the player is told once); settings,
+ *   profile, lifetime stats and wardrobe are kept where present.
  */
 export function parseSave(raw: string | null, totalLevels: number): SaveData {
   if (!raw) return emptySave();
   try {
-    const data = JSON.parse(raw) as {
-      version?: number;
-      campaign?: Record<string, unknown>;
-      hardcore?: unknown;
-      practice?: unknown;
-    };
-    const c = data.campaign;
-    if (typeof c !== 'object' || c === null) return emptySave();
+    const data = JSON.parse(raw) as Record<string, unknown> & { version?: number };
+    if (typeof data !== 'object' || data === null) return emptySave();
     const save = emptySave();
-
-    switch (data.version) {
-      case 1:
-        save.campaign.highestReached = clampLevel(c.highestUnlocked, totalLevels);
-        return save;
-      case 2:
-        save.campaign = parseCampaign(c, totalLevels);
-        return save;
-      case 3:
-      case SAVE_VERSION:
-        save.campaign = parseCampaign(c, totalLevels);
-        if (data.version === SAVE_VERSION && typeof data.hardcore === 'object' && data.hardcore !== null)
-          save.hardcore = parseCampaign(data.hardcore as Record<string, unknown>, totalLevels);
-        save.practice = parsePractice(data.practice, totalLevels);
-        save.profile = parseProfile((data as { profile?: unknown }).profile, totalLevels);
-        save.settings = parseSettings((data as { settings?: unknown }).settings);
-        save.lifetime = parseLifetime((data as { lifetime?: unknown }).lifetime);
-        save.wardrobe = parseWardrobe((data as { wardrobe?: unknown }).wardrobe);
-        {
-          const w = (data as { lastWizard?: unknown }).lastWizard;
-          if (isWizardId(w)) save.lastWizard = w;
-        }
-        return save;
-      default:
-        return emptySave();
+    const keepShared = () => {
+      save.profile = parseProfile(data.profile, totalLevels);
+      save.settings = parseSettings(data.settings);
+      save.lifetime = parseLifetime(data.lifetime);
+      save.wardrobe = parseWardrobe(data.wardrobe);
+      if (isWizardId(data.lastWizard)) save.lastWizard = data.lastWizard;
+    };
+    if (data.version === SAVE_VERSION) {
+      keepShared();
+      save.stages = parseStages(data.stages);
+      save.savedRun = parseSavedRun(data.savedRun);
+      save.resetNotice = data.resetNotice === true;
+      save.practice = parsePractice(data.practice);
+      return save;
     }
+    if (typeof data.version === 'number' && data.version >= 1 && data.version < SAVE_VERSION) {
+      if (data.version >= 3) keepShared();
+      save.resetNotice = true;
+      return save;
+    }
+    return emptySave();
   } catch {
     return emptySave();
   }
@@ -281,51 +339,70 @@ export class SaveManager {
     return this.storage !== null;
   }
 
-  /** Normal-mode campaign records. */
-  get campaign(): Readonly<CampaignRecords> {
-    return this.save.campaign;
+  /** Records for one stage of one mode. */
+  records(mode: CampaignMode, stage: number): Readonly<CampaignRecords> {
+    return this.mutable(mode, stage);
   }
 
-  get hardcore(): Readonly<CampaignRecords> {
-    return this.save.hardcore;
+  /** Stage 1 is always open; each later stage opens when the one before it is cleared. */
+  stageUnlocked(mode: CampaignMode, stage: number): boolean {
+    return stage === 1 || (stage >= 2 && stage <= STAGE_COUNT && this.mutable(mode, stage - 1).runsCompleted > 0);
   }
 
-  records(mode: CampaignMode): Readonly<CampaignRecords> {
-    return mode === 'hardcore' ? this.save.hardcore : this.save.campaign;
-  }
-
-  /** Furthest level reached in either mode (decides which levels Practice offers). */
-  get highestReached(): number {
-    return Math.max(this.save.campaign.highestReached, this.save.hardcore.highestReached);
+  /** Best run score over every stage of a mode (for the menus), or null. */
+  bestScore(mode?: CampaignMode): number | null {
+    const modes = mode ? [mode] : CAMPAIGN_MODES;
+    let best: number | null = null;
+    for (const m of modes) for (const r of this.save.stages[m]) if (r.bestRun) best = Math.max(best ?? 0, r.bestRun.score);
+    return best;
   }
 
   get practice(): Readonly<PracticeData> {
     return this.save.practice;
   }
 
-  private mutable(mode: CampaignMode): CampaignRecords {
-    return mode === 'hardcore' ? this.save.hardcore : this.save.campaign;
+  private mutable(mode: CampaignMode, stage: number): CampaignRecords {
+    return this.save.stages[mode][Math.min(Math.max(1, stage), STAGE_COUNT) - 1]!;
   }
 
-  noteRunStarted(mode: CampaignMode = 'normal'): void {
-    this.mutable(mode).runsStarted++;
+  noteRunStarted(mode: CampaignMode, stage: number): void {
+    this.mutable(mode, stage).runsStarted++;
     this.write();
   }
 
-  noteLevelReached(level: number, mode: CampaignMode = 'normal'): void {
-    noteLevelReached(this.mutable(mode), Math.min(level, this.totalLevels));
+  noteLevelReached(mode: CampaignMode, stage: number, level: number): void {
+    noteLevelReached(this.mutable(mode, stage), Math.min(level, STAGE_LEVELS));
     this.write();
   }
 
-  recordRun(summary: RunSummary, mode: CampaignMode = 'normal'): RunOutcome {
-    const outcome = applyRunResult(this.mutable(mode), summary);
+  recordRun(summary: RunSummary, mode: CampaignMode): RunOutcome {
+    const outcome = applyRunResult(this.mutable(mode, summary.stage ?? 1), summary);
     recordRunStats(this.save.lifetime, summary);
     this.write();
     return outcome;
   }
 
-  notePracticeChoice(level: number, filter: ModifierFilter): void {
-    this.save.practice.lastLevel = Math.min(Math.max(1, level), this.totalLevels);
+  /** The run in progress, to continue later (null if none). */
+  get savedRun(): Readonly<CampaignRun> | null {
+    return this.save.savedRun;
+  }
+
+  /** Saves (a copy of) the run in progress between levels, or clears it with null. */
+  setSavedRun(run: CampaignRun | null): void {
+    this.save.savedRun = run ? (JSON.parse(JSON.stringify(run)) as CampaignRun) : null;
+    this.write();
+  }
+
+  /** True once after old campaign records were cleared; reading it clears the flag. */
+  takeResetNotice(): boolean {
+    if (!this.save.resetNotice) return false;
+    this.save.resetNotice = false;
+    this.write();
+    return true;
+  }
+
+  notePracticeChoice(pick: LevelPick, filter: ModifierFilter): void {
+    this.save.practice.last = { ...pick };
     this.save.practice.lastFilter = filter;
     this.write();
   }
@@ -388,8 +465,8 @@ export class SaveManager {
     this.write();
   }
 
-  recordPractice(level: number, filter: ModifierFilter, stats: GameStats): PracticeOutcome {
-    const outcome = applyPracticeResult(this.save.practice.records, practiceKey(level, filter), stats);
+  recordPractice(pick: LevelPick, filter: ModifierFilter, stats: GameStats): PracticeOutcome {
+    const outcome = applyPracticeResult(this.save.practice.records, practiceKey(pick, filter), stats);
     this.write();
     return outcome;
   }

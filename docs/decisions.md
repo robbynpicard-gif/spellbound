@@ -663,3 +663,38 @@ _2026-11-17 · Accepted (owner + design review); multipliers provisional_
   milestone (accuracy and WPM moved under the level name). Milestones get an
   illuminated proclamation and chord, grander each tier; typos an ink blot and
   "×a → ×b"; a wrong Enter "STREAK LOST"; a miss "STREAK BROKEN".
+
+### D-047 — Stage campaign: 2 modes × 5 stages × 20 levels (supersedes D-016 chapters, D-044 journey chapters)
+
+**Decision (owner, 2026-11-17):** The campaign is two modes, Normal and Hardcore.
+Each mode has 5 stages that get progressively harder. A stage is one run of 20
+levels: levels 1–19 are standard and level 20 is the stage's only boss. Ten
+stages, ten bosses in all. Chapters are removed. Two spells are introduced per
+stage: one at level 10, one by beating the boss.
+
+**Implementation choices (Claude's recommendations, built because the build
+question went unanswered; open to change):**
+- A run is one stage. Falling restarts the stage from level 1.
+- Stages unlock in order, per mode (clear stage N to open N+1).
+- The run is saved between levels: "Continue" on the stage screen, "Save and
+  quit" in the pause menu.
+- Difficulty is generated from WPM targets (src/difficulty/Stages.ts), not hand
+  tables. Normal: 12 → 18/22/26/30/35. Hardcore: 18 → 25/30/35/40/45. Each
+  stage starts where the previous stage's target was, reaches 95% by level 19,
+  and the boss ramps from 90% to 112% of target.
+- Spells: S1 Slow at L10, Ice from boss · S2 Barrier, Shock · S3 Alter, Fire ·
+  S4 Wind, Harvest · S5 none. The boss spell is first playable next stage,
+  which starts with 1 charge of it. The pick-1-of-3 boss reward is removed.
+- Clean Streak carries across all 20 levels of a stage.
+- Hardcore heals 25% after levels 5, 10 and 15; each stage starts with a full ward.
+- Stage names: The Apprentice's Tower, The Forgotten Stacks, The Alchemist's
+  Vault, The Storm Spire, The Unwritten. Bosses: The Bell Tower, The Last Index,
+  The Crucible, Eye of the Storm, The Last Word.
+- Save v5: old campaign and practice records are cleared with a one-time notice;
+  profile, settings, lifetime stats and wardrobe are kept.
+- Practice picks mode, stage and level. Duels use the 100 Normal levels in order.
+
+**Calibration (bot-measured, not yet rebalanced):** see
+docs/calibration-2026-11-17.md. Measured WPM matches the plan within ±2. A
+steady typist at exactly the target speed, casting no spells, loses the bosses
+of Normal stages 4–5 and Hardcore stage 5.

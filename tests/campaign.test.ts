@@ -1,34 +1,36 @@
 import { describe, expect, it } from 'vitest';
-import levelsData from '../src/data/levels.json';
-import {
-  averageWordLength,
-  isSurvival,
-  letterArrivalRate,
-  validateLevels,
-  type DifficultyConfig,
-} from '../src/difficulty/DifficultyConfig';
+import { isSurvival, letterArrivalRate, validateLevels } from '../src/difficulty/DifficultyConfig';
 import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
+import {
+  BOSS_NAMES,
+  duelLevels,
+  knownSpells,
+  levelWpm,
+  spellsOfStage,
+  STAGE_COUNT,
+  STAGE_LEVELS,
+  STAGE_NAMES,
+  stageLevel,
+  stageLevels,
+  STAGE_TUNING,
+} from '../src/difficulty/Stages';
 import { WORDS } from '../src/data/wordList';
-import { wordComplexity } from '../src/gameplay/WordGenerator';
 import { GameEngine } from '../src/core/GameEngine';
 import type { GameStats } from '../src/gameplay/ScoringSystem';
-import { emptyCharges, SPELL_IDS, totalCharges } from '../src/gameplay/SpellManager';
-import { SeededRandom } from '../src/core/Random';
+import { emptyCharges, SPELL_IDS } from '../src/gameplay/SpellManager';
 import {
-  applyRunResult,
-  bossRewardChoices,
-  claimBossReward,
-  emptyCampaignRecords,
-  HARDCORE_BOSS_HEAL,
-  knownSpellsAt,
+  HARDCORE_HEAL,
+  HARDCORE_HEAL_LEVELS,
   recordLevel,
   startRun,
   summarizeRun,
+  type CampaignMode,
 } from '../src/modes/CampaignMode';
-import { parseSave, SAVE_KEY, SaveManager, type StorageLike } from '../src/storage/SaveManager';
+import { parseSave, SAVE_KEY, SAVE_VERSION, SaveManager, type StorageLike } from '../src/storage/SaveManager';
 
-const levels = CAMPAIGN_LEVELS.all;
-const TOTAL = levels.length;
+const TOTAL = CAMPAIGN_LEVELS.count;
+const MODES: CampaignMode[] = ['normal', 'hardcore'];
+const STAGES = [1, 2, 3, 4, 5];
 
 function stats(score: number, extra: Partial<GameStats> = {}): GameStats {
   return {
@@ -60,346 +62,262 @@ class MemoryStorage implements StorageLike {
   }
 }
 
-describe('campaign level data', () => {
-  it('has 20 valid, consecutively numbered levels in 4 chapters', () => {
-    expect(levels.length).toBe(20);
-    levels.forEach((l, i) => {
-      expect(l.level).toBe(i + 1);
-      expect(l.chapter).toBe(Math.floor(i / 5) + 1);
-    });
+/** Plays a whole stage, winning every level. */
+function clearStage(save: SaveManager, mode: CampaignMode, stage: number): void {
+  const run = startRun(mode, stage);
+  save.noteRunStarted(mode, stage);
+  for (let l = 1; l <= STAGE_LEVELS; l++) recordLevel(run, 'won', stats(100), emptyCharges(), 0);
+  save.recordRun(summarizeRun(run, true), mode);
+}
+
+describe('stage structure (D-047)', () => {
+  it('has 2 modes × 5 stages × 20 levels, each ending in one boss', () => {
+    for (const mode of MODES)
+      for (const stage of STAGES) {
+        const levels = stageLevels(mode, stage);
+        expect(levels.length).toBe(STAGE_LEVELS);
+        levels.forEach((l, i) => {
+          expect(l.level).toBe(i + 1);
+          expect(l.stage).toBe(stage);
+          expect(isSurvival(l)).toBe(i === STAGE_LEVELS - 1);
+        });
+        const boss = levels.at(-1)!;
+        expect(boss.name).toBe(BOSS_NAMES[stage - 1]);
+        expect(boss.requiredWords).toBeNull();
+        expect(boss.ramp!.spawnInterval).toBeLessThan(boss.spawnInterval);
+        expect(levels[0]!.name).toBe(STAGE_NAMES[stage - 1]);
+      }
   });
 
-  it('ends every chapter with a survival boss (60/75/90/120 s), and only there', () => {
-    expect(levels.filter(isSurvival).map((l) => [l.level, l.survivalMs])).toEqual([
-      [5, 60_000],
-      [10, 75_000],
-      [15, 90_000],
-      [20, 120_000],
-    ]);
-    for (const boss of levels.filter(isSurvival)) {
-      expect(boss.requiredWords).toBeNull();
-      expect(boss.introducesSpell ?? null).toBeNull();
-      // The boss starts at the previous level's pace and ramps up from there.
-      const prev = levels[boss.level - 2]!;
-      expect(boss.initialFallSpeed).toBe(prev.initialFallSpeed);
-      expect(boss.ramp!.initialFallSpeed).toBeGreaterThan(boss.initialFallSpeed);
-      expect(boss.ramp!.spawnInterval).toBeLessThan(boss.spawnInterval);
-      expect(boss.ramp!.maxActiveWords).toBeGreaterThan(boss.maxActiveWords);
-    }
+  it('uses the agreed WPM targets', () => {
+    expect(STAGE_TUNING.normal.targetWpm).toEqual([18, 22, 26, 30, 35]);
+    expect(STAGE_TUNING.hardcore.targetWpm).toEqual([25, 30, 35, 40, 45]);
+    expect(levelWpm('normal', 1, 1)).toBe(12);
+    expect(levelWpm('hardcore', 1, 1)).toBe(18);
+    expect(levelWpm('normal', 3, 20)).toBe(26);
+    // Each stage starts where the previous stage's target was.
+    expect(levelWpm('normal', 2, 1)).toBe(18);
   });
 
-  it('keeps a full run near 20 minutes', () => {
-    let ms = 0;
-    for (const l of levels) ms += isSurvival(l) ? l.survivalMs! : l.requiredWords! * l.spawnInterval + 4000;
-    expect(ms / 60_000).toBeGreaterThan(14);
-    expect(ms / 60_000).toBeLessThan(24);
-  });
-
-  it("ends at the old level 10's difficulty", () => {
-    const last = levels.filter((l) => !isSurvival(l)).at(-1)!;
-    expect(last).toMatchObject({ initialFallSpeed: 108, spawnInterval: 1000, maxActiveWords: 15 });
-  });
-
-  it('converts JSON length-weight keys to numbers', () => {
-    expect(levels[0]!.wordLengthWeights![4]).toBe(11);
-  });
-
-  it('uses short, simple words early and longer, harder words later', () => {
-    const normal = levels.filter((l) => !isSurvival(l));
-    for (let i = 1; i < normal.length; i++) {
-      expect(normal[i]!.minWordLength).toBeGreaterThanOrEqual(normal[i - 1]!.minWordLength);
-      expect(normal[i]!.maxWordLength).toBeGreaterThanOrEqual(normal[i - 1]!.maxWordLength);
-      const cap = (l: DifficultyConfig) => l.maxComplexity ?? Infinity;
-      expect(cap(normal[i]!)).toBeGreaterThanOrEqual(cap(normal[i - 1]!));
-    }
-    expect(levels[0]).toMatchObject({ minWordLength: 3, maxWordLength: 5, maxComplexity: 0.5 });
-    expect(levels[19]).toMatchObject({ minWordLength: 6, maxWordLength: 12 });
-    // Level 1 only ever spawns short words without rare letters, clusters or names.
-    const engine = new GameEngine({ config: { ...levels[0]!, spawnInterval: 50, maxActiveWords: 200 }, seed: 3, words: WORDS });
-    const seen: string[] = [];
-    engine.events.on('wordSpawned', ({ word }) => seen.push(word.text));
-    for (let i = 0; i < 3000; i++) engine.step();
-    expect(seen.length).toBeGreaterThan(100);
-    for (const w of seen) {
-      expect(w.length).toBeLessThanOrEqual(5);
-      expect(wordComplexity(w), w).toBeLessThanOrEqual(0.5);
-    }
+  it('gets harder within each stage, and Hardcore is harder than Normal', () => {
+    for (const mode of MODES)
+      for (const stage of STAGES) {
+        const normal = stageLevels(mode, stage).filter((l) => !isSurvival(l));
+        for (let i = 1; i < normal.length; i++) {
+          const at = `${mode} ${stage}-${i + 1}`;
+          expect(letterArrivalRate(normal[i]!), at).toBeGreaterThanOrEqual(letterArrivalRate(normal[i - 1]!));
+          expect(normal[i]!.initialFallSpeed, at).toBeGreaterThanOrEqual(normal[i - 1]!.initialFallSpeed);
+          expect(normal[i]!.maxWordLength, at).toBeGreaterThanOrEqual(normal[i - 1]!.maxWordLength);
+        }
+        expect(levelWpm(mode, stage, 19)).toBeGreaterThan(levelWpm(mode, stage, 1));
+      }
+    for (const stage of STAGES)
+      for (const level of [1, 10, 20])
+        expect(letterArrivalRate(stageLevel('hardcore', stage, level))).toBeGreaterThan(
+          letterArrivalRate(stageLevel('normal', stage, level)),
+        );
   });
 
   it('has enough words for every level’s length range', () => {
-    for (const l of levels) {
-      const pool = WORDS.filter((w) => w.length >= l.minWordLength && w.length <= l.maxWordLength);
-      expect(pool.length, `level ${l.level}`).toBeGreaterThanOrEqual(30);
-    }
+    for (const mode of MODES)
+      for (const stage of STAGES)
+        for (const l of stageLevels(mode, stage)) {
+          const pool = WORDS.filter((w) => w.length >= l.minWordLength && w.length <= l.maxWordLength);
+          expect(pool.length, `${mode} ${stage}-${l.level}`).toBeGreaterThanOrEqual(30);
+        }
   });
 
-  // Progressive difficulty (GDD §9): each level is at least as hard as the
-  // previous one on every axis, and strictly harder overall.
-  it('gets progressively harder (normal levels)', () => {
-    const normal = levels.filter((l) => !isSurvival(l));
-    for (let i = 1; i < normal.length; i++) {
-      const prev = normal[i - 1]!;
-      const cur = normal[i]!;
-      const at = `level ${cur.level}`;
-      expect(cur.initialFallSpeed, at).toBeGreaterThan(prev.initialFallSpeed);
-      expect(cur.spawnInterval, at).toBeLessThan(prev.spawnInterval);
-      expect(cur.maxActiveWords, at).toBeGreaterThanOrEqual(prev.maxActiveWords);
-      expect(cur.requiredWords!, at).toBeGreaterThan(prev.requiredWords!);
-      expect(cur.maxWordLength, at).toBeGreaterThanOrEqual(prev.maxWordLength);
-      expect(averageWordLength(cur), at).toBeGreaterThanOrEqual(averageWordLength(prev));
-      expect(letterArrivalRate(cur), at).toBeGreaterThan(letterArrivalRate(prev));
-      expect(cur.instabilityPerMiss, at).toBeGreaterThanOrEqual(prev.instabilityPerMiss);
-      expect(cur.errorAcceleration, at).toBeGreaterThanOrEqual(prev.errorAcceleration);
-    }
+  it('keeps a stage run roughly 20–30 minutes', () => {
+    for (const mode of MODES)
+      for (const stage of STAGES) {
+        let ms = 0;
+        for (const l of stageLevels(mode, stage)) ms += isSurvival(l) ? l.survivalMs! : l.requiredWords! * l.spawnInterval + 4000;
+        expect(ms / 60_000).toBeGreaterThan(18);
+        expect(ms / 60_000).toBeLessThan(32);
+      }
   });
+});
 
-  it('introduces Fire first, then the rest from least to most powerful, never removing one', () => {
-    expect(levels[0]!.availableSpells).toEqual(['fire']);
-    const intros = levels.filter((l) => l.introducesSpell).map((l) => [l.level, l.introducesSpell]);
-    expect(intros).toEqual([
-      [1, 'fire'],
-      [3, 'slow'],
-      [6, 'ice'],
-      [8, 'barrier'],
-      [11, 'shock'],
-      [13, 'alter'],
-      [16, 'wind'],
-      [18, 'harvest'],
+describe('spell schedule: 2 per stage, at level 10 and from the boss', () => {
+  it('follows the agreed order', () => {
+    expect(STAGES.map(spellsOfStage)).toEqual([
+      { atLevel10: 'slow', fromBoss: 'ice' },
+      { atLevel10: 'barrier', fromBoss: 'shock' },
+      { atLevel10: 'alter', fromBoss: 'fire' },
+      { atLevel10: 'wind', fromBoss: 'harvest' },
+      { atLevel10: null, fromBoss: null },
     ]);
-    for (let i = 1; i < levels.length; i++) {
-      for (const id of levels[i - 1]!.availableSpells) expect(levels[i]!.availableSpells).toContain(id);
-      const added = levels[i]!.availableSpells.filter((id) => !levels[i - 1]!.availableSpells.includes(id));
-      expect(added).toEqual(levels[i]!.introducesSpell ? [levels[i]!.introducesSpell] : []);
+  });
+
+  it('introduces the level-10 spell at level 10 and the boss spell at the next stage’s level 1', () => {
+    expect(stageLevel('normal', 1, 9).availableSpells).toEqual([]);
+    expect(stageLevel('normal', 1, 10).introducesSpell).toBe('slow');
+    expect(stageLevel('normal', 1, 10).availableSpells).toEqual(['slow']);
+    expect(stageLevel('normal', 1, 20).availableSpells).not.toContain('ice');
+    expect(stageLevel('normal', 2, 1).introducesSpell).toBe('ice');
+    expect(knownSpells(2, 1).sort()).toEqual(['ice', 'slow']);
+    expect(knownSpells(5, 1).sort()).toEqual([...SPELL_IDS].sort());
+  });
+
+  it('starts a later stage with 1 charge of the spell its previous boss gave', () => {
+    expect(startRun('normal', 1).spellCharges).toEqual(emptyCharges());
+    expect(startRun('normal', 2).spellCharges.ice).toBe(1);
+    expect(startRun('hardcore', 4).spellCharges.fire).toBe(1);
+    expect(startRun('normal', 5).spellCharges.harvest).toBe(1);
+  });
+});
+
+describe('stage run', () => {
+  it('advances level by level, carrying score, spells, combo and Clean Streak', () => {
+    const run = startRun('normal', 2);
+    const r = recordLevel(run, 'won', stats(500, { endCombo: 6, endCleanStreak: 30 }), { ...emptyCharges(), ice: 2 });
+    expect(r).toEqual({ runOver: false, victory: false });
+    expect(run).toMatchObject({ level: 2, score: 500, combo: 6, cleanStreak: 30 });
+    expect(run.spellCharges.ice).toBe(2);
+  });
+
+  it('ends on a loss (restart the stage)', () => {
+    const run = startRun();
+    recordLevel(run, 'won', stats(100), emptyCharges());
+    expect(recordLevel(run, 'lost', stats(40), emptyCharges())).toEqual({ runOver: true, victory: false });
+    expect(run.score).toBe(140);
+    expect(summarizeRun(run, false)).toMatchObject({ stage: 1, levelsCleared: 1 });
+  });
+
+  it('beating the level-20 boss clears the stage', () => {
+    const run = startRun('normal', 3);
+    for (let l = 1; l < STAGE_LEVELS; l++) expect(recordLevel(run, 'won', stats(1), emptyCharges()).runOver).toBe(false);
+    expect(run.level).toBe(20);
+    expect(recordLevel(run, 'won', stats(1), emptyCharges())).toEqual({ runOver: true, victory: true });
+  });
+
+  it('Normal resets instability every level; Hardcore carries it', () => {
+    const n = startRun('normal');
+    recordLevel(n, 'won', stats(10), emptyCharges(), 70);
+    expect(n.instability).toBe(0);
+    const h = startRun('hardcore');
+    recordLevel(h, 'won', stats(10), emptyCharges(), 30);
+    expect(h.instability).toBe(30);
+  });
+
+  it(`Hardcore heals ${HARDCORE_HEAL}% after levels ${HARDCORE_HEAL_LEVELS.join(', ')}`, () => {
+    const run = startRun('hardcore');
+    const seen: number[] = [];
+    for (let l = 1; l < STAGE_LEVELS; l++) {
+      recordLevel(run, 'won', stats(10), emptyCharges(), 60);
+      seen.push(run.instability);
     }
-    expect([...levels.at(-1)!.availableSpells].sort()).toEqual([...SPELL_IDS].sort());
-  });
-
-  it('knows which spells are unlocked at each level', () => {
-    expect(knownSpellsAt(levels, 1)).toEqual(['fire']);
-    expect(knownSpellsAt(levels, 7)).toEqual(['slow', 'ice', 'fire']);
-    expect(knownSpellsAt(levels, 20)).toEqual([...SPELL_IDS]);
-  });
-
-  it('rejects broken level data with a helpful message', () => {
-    const broken = structuredClone(levelsData) as Record<string, unknown>[];
-    broken[1]!.level = 7;
-    broken[2]!.minWordLength = 9;
-    delete broken[3]!.name;
-    broken[4]!.availableSpells = ['lightning'];
-    expect(() => validateLevels(broken)).toThrow(/level\[1\].*\n.*level\[2\].*\n.*level\[3\].*\n.*lightning/s);
-    expect(() => validateLevels([])).toThrow();
-  });
-
-  it('LevelManager guards level numbers', () => {
-    expect(CAMPAIGN_LEVELS.get(1).name).toBe('The First Ward');
-    expect(CAMPAIGN_LEVELS.has(0)).toBe(false);
-    expect(() => CAMPAIGN_LEVELS.get(levels.length + 1)).toThrow();
-  });
-});
-
-describe('campaign run', () => {
-  it('always starts at level 1 with no score or spells', () => {
-    const run = startRun();
-    expect(run).toMatchObject({ level: 1, score: 0, levelsCleared: 0, spellCharges: emptyCharges() });
-  });
-
-  it('advances level by level, carrying score and spell charges', () => {
-    const run = startRun();
-    const r1 = recordLevel(run, 'won', stats(500), { ...emptyCharges(), fire: 2 }, TOTAL);
-    expect(r1).toEqual({ runOver: false, victory: false });
-    expect(run).toMatchObject({ level: 2, score: 500, levelsCleared: 1 });
-    expect(run.spellCharges.fire).toBe(2);
-
-    recordLevel(run, 'won', stats(700), { ...emptyCharges(), fire: 1, ice: 3 }, TOTAL);
-    expect(run).toMatchObject({ level: 3, score: 1200, levelsCleared: 2 });
-    expect(run.spellCharges).toMatchObject({ fire: 1, ice: 3 });
-  });
-
-  it('ends on a loss, keeping that level’s score', () => {
-    const run = startRun();
-    recordLevel(run, 'won', stats(500), emptyCharges(), TOTAL);
-    const r = recordLevel(run, 'lost', stats(120), emptyCharges(), TOTAL);
-    expect(r).toEqual({ runOver: true, victory: false });
-    const summary = summarizeRun(run, false);
-    expect(summary).toMatchObject({ score: 620, levelsCleared: 1, reachedLevel: 2, victory: false });
-    expect(summary.accuracy).toBeCloseTo(100 / 110);
-    expect(summary.wpm).toBeCloseTo(100 / 5 / 2);
-  });
-
-  it('clearing the last level wins the run', () => {
-    const run = startRun();
-    for (let i = 1; i < TOTAL; i++) recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL);
-    expect(run.level).toBe(TOTAL);
-    expect(recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL)).toEqual({ runOver: true, victory: true });
-    expect(summarizeRun(run, true)).toMatchObject({ levelsCleared: TOTAL, reachedLevel: TOTAL, victory: true });
-  });
-
-  it('records best runs and the furthest level reached', () => {
-    const records = emptyCampaignRecords();
-    const run = startRun();
-    recordLevel(run, 'won', stats(300), emptyCharges(), TOTAL);
-    recordLevel(run, 'lost', stats(50), emptyCharges(), TOTAL);
-    expect(applyRunResult(records, summarizeRun(run, false))).toEqual({ isNewBest: true, previousBest: null });
-    expect(records.highestReached).toBe(2);
-
-    const worse = startRun();
-    recordLevel(worse, 'lost', stats(100), emptyCharges(), TOTAL);
-    expect(applyRunResult(records, summarizeRun(worse, false))).toEqual({ isNewBest: false, previousBest: 350 });
-    expect(records.bestRun!.score).toBe(350);
-    expect(records.highestReached).toBe(2);
-  });
-});
-
-describe('Normal and Hardcore', () => {
-  it('Normal resets instability every level', () => {
-    const run = startRun('normal');
-    recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 70, levels[0]);
-    expect(run.instability).toBe(0);
-  });
-
-  it('Hardcore carries instability from level to level', () => {
-    const run = startRun('hardcore');
-    recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 30, levels[0]);
-    expect(run.instability).toBe(30);
-    recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 55, levels[1]);
-    expect(run.instability).toBe(55);
-  });
-
-  it(`Hardcore heals ${HARDCORE_BOSS_HEAL}% after surviving a boss`, () => {
-    const run = startRun('hardcore');
-    for (let i = 0; i < 4; i++) recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 40, levels[i]);
-    expect(run.level).toBe(5);
-    recordLevel(run, 'won', stats(10), emptyCharges(), TOTAL, 60, levels[4]);
-    expect(run.instability).toBe(60 - HARDCORE_BOSS_HEAL);
-    const low = startRun('hardcore');
-    recordLevel(low, 'won', stats(10), emptyCharges(), TOTAL, 10, levels[4]);
-    expect(low.instability).toBe(0);
+    expect(seen.filter((v) => v === 60 - HARDCORE_HEAL).length).toBe(3);
+    expect(seen[4]).toBe(35);
+    expect(seen[9]).toBe(35);
+    expect(seen[14]).toBe(35);
+    expect(seen[5]).toBe(60);
+    // A new stage starts with a fresh ward.
+    expect(startRun('hardcore', 2).instability).toBe(0);
   });
 
   it('a Hardcore run passes its instability into the engine', () => {
-    const engine = new GameEngine({ config: levels[0]!, seed: 1, words: WORDS, hardcore: true, initialInstability: 45 });
+    const engine = new GameEngine({ config: stageLevel('hardcore', 1, 1), seed: 1, words: WORDS, hardcore: true, initialInstability: 45 });
     expect(engine.state.instability).toBe(45);
   });
 });
 
-describe('boss rewards', () => {
-  it('offer 3 different spells from those unlocked', () => {
-    const rng = new SeededRandom(4);
-    for (let i = 0; i < 50; i++) {
-      const known = knownSpellsAt(levels, 10);
-      const choices = bossRewardChoices(known, () => rng.next());
-      expect(choices).toHaveLength(3);
-      expect(new Set(choices).size).toBe(3);
-      for (const id of choices) expect(known).toContain(id);
-    }
-    expect(bossRewardChoices(['slow', 'ice'], Math.random)).toEqual(['slow', 'ice']);
+describe('duel levels', () => {
+  it('flatten the 100 Normal levels, numbered 1–100', () => {
+    const all = duelLevels();
+    expect(all.length).toBe(STAGE_COUNT * STAGE_LEVELS);
+    expect(TOTAL).toBe(100);
+    all.forEach((l, i) => expect(l.level).toBe(i + 1));
+    expect(all[20]!.name).toBe('Stage 2 · Level 1');
+    expect(all[19]!.name).toBe(`Stage 1 · ${BOSS_NAMES[0]}`);
+    expect(CAMPAIGN_LEVELS.has(0)).toBe(false);
+    expect(() => CAMPAIGN_LEVELS.get(TOTAL + 1)).toThrow();
   });
 
-  it('offer rare spells less often', () => {
-    const rng = new SeededRandom(8);
-    const seen: Record<string, number> = {};
-    for (let i = 0; i < 2000; i++)
-      for (const id of bossRewardChoices([...SPELL_IDS], () => rng.next())) seen[id] = (seen[id] ?? 0) + 1;
-    expect(seen.slow!).toBeGreaterThan(seen.harvest! * 1.5);
-  });
-
-  it('add a charge, or with a full pool swap one out (or can’t be taken)', () => {
-    const run = startRun();
-    expect(claimBossReward(run, 'shock')).toBe(true);
-    expect(run.spellCharges.shock).toBe(1);
-
-    run.spellCharges = { ...emptyCharges(), slow: 8 };
-    expect(claimBossReward(run, 'fire')).toBe(false);
-    expect(run.spellCharges.fire).toBe(0);
-    expect(claimBossReward(run, 'fire', 'ice')).toBe(false); // nothing to give up
-    expect(claimBossReward(run, 'fire', 'slow')).toBe(true);
-    expect(run.spellCharges).toMatchObject({ slow: 7, fire: 1 });
-    expect(totalCharges(run.spellCharges)).toBe(8);
+  it('rejects broken level data with a helpful message', () => {
+    const broken = structuredClone(stageLevels('normal', 1)) as unknown as Record<string, unknown>[];
+    broken[2]!.minWordLength = 99;
+    expect(() => validateLevels(broken)).toThrow(/level\[2\]/);
+    expect(() => validateLevels([])).toThrow();
   });
 });
 
-describe('SaveManager', () => {
-  it('keeps Hardcore records apart from Normal', () => {
+describe('SaveManager (stages)', () => {
+  it('opens stages one at a time, per mode', () => {
     const storage = new MemoryStorage();
     const save = new SaveManager(storage, TOTAL);
-    save.noteRunStarted('hardcore');
-    save.noteLevelReached(7, 'hardcore');
-    const run = startRun('hardcore');
-    recordLevel(run, 'lost', stats(400), emptyCharges(), TOTAL);
-    save.recordRun(summarizeRun(run, false), 'hardcore');
-
+    expect(STAGES.map((s) => save.stageUnlocked('normal', s))).toEqual([true, false, false, false, false]);
+    clearStage(save, 'normal', 1);
     const reloaded = new SaveManager(storage, TOTAL);
-    expect(reloaded.hardcore).toMatchObject({ highestReached: 7, runsStarted: 1 });
-    expect(reloaded.hardcore.bestRun!.score).toBe(400);
-    expect(reloaded.campaign).toMatchObject({ highestReached: 1, runsStarted: 0, bestRun: null });
-    // Practice unlocks follow the furthest level in either mode.
-    expect(reloaded.highestReached).toBe(7);
+    expect(STAGES.map((s) => reloaded.stageUnlocked('normal', s))).toEqual([true, true, false, false, false]);
+    expect(reloaded.stageUnlocked('hardcore', 2)).toBe(false);
+    expect(reloaded.records('normal', 1).runsCompleted).toBe(1);
+    expect(reloaded.bestScore()).toBe(2000);
   });
 
-  it('ignores old word-bank settings and saves the audio switches', () => {
-    const old = parseSave(JSON.stringify({ version: 4, campaign: {}, settings: { wordBanks: { fantasy: false, modern: true } } }), TOTAL);
-    expect(old.settings).toEqual({ music: true, sfx: true });
-    const storage = new MemoryStorage();
-    const save = new SaveManager(storage, TOTAL);
-    save.setAudio({ music: false });
-    expect(new SaveManager(storage, TOTAL).audio).toEqual({ music: false, sfx: true });
-    const tampered = parseSave(JSON.stringify({ version: 4, campaign: {}, settings: { music: 'no', sfx: false } }), TOTAL);
-    expect(tampered.settings).toEqual({ music: true, sfx: false });
-  });
-
-  it('migrates a version 3 save (Hardcore starts empty)', () => {
-    const v3 = JSON.stringify({
-      version: 3,
-      campaign: { highestReached: 6, bestRun: null, runsStarted: 2, runsCompleted: 0 },
-      practice: { records: {}, lastLevel: 2, lastFilter: 'none' },
-    });
-    const save = parseSave(v3, TOTAL);
-    expect(save.version).toBe(4);
-    expect(save.campaign).toMatchObject({ highestReached: 6, runsStarted: 2 });
-    expect(save.hardcore).toEqual(emptyCampaignRecords());
-    expect(save.practice.lastFilter).toBe('none');
-  });
-
-  it('persists records and reloads them (survives a page refresh)', () => {
-    const storage = new MemoryStorage();
-    const first = new SaveManager(storage, TOTAL);
-    first.noteRunStarted();
-    first.noteLevelReached(3);
-    const run = startRun();
-    recordLevel(run, 'lost', stats(900), emptyCharges(), TOTAL);
-    first.recordRun(summarizeRun(run, false));
-
-    const reloaded = new SaveManager(storage, TOTAL);
-    expect(reloaded.campaign).toMatchObject({ highestReached: 3, runsStarted: 1 });
-    expect(reloaded.campaign.bestRun!.score).toBe(900);
-  });
-
-  it('migrates a Milestone 2 (version 1) save', () => {
-    const v1 = JSON.stringify({ version: 1, campaign: { highestUnlocked: 4, levels: { 1: { bestScore: 99 } } } });
-    const save = parseSave(v1, TOTAL);
-    expect(save.version).toBe(4);
-    expect(save.campaign).toMatchObject({ highestReached: 4, bestRun: null });
-  });
-
-  it('works without storage (in-memory only)', () => {
+  it('a lost run does not open the next stage', () => {
     const save = new SaveManager(null, TOTAL);
-    expect(save.persistent).toBe(false);
-    save.noteLevelReached(2);
-    expect(save.campaign.highestReached).toBe(2);
+    const run = startRun('hardcore');
+    save.noteLevelReached('hardcore', 1, 7);
+    recordLevel(run, 'lost', stats(400), emptyCharges());
+    save.recordRun(summarizeRun(run, false), 'hardcore');
+    expect(save.records('hardcore', 1)).toMatchObject({ highestReached: 7 });
+    expect(save.records('hardcore', 1).bestRun!.score).toBe(400);
+    expect(save.records('normal', 1).bestRun).toBeNull();
+    expect(save.stageUnlocked('hardcore', 2)).toBe(false);
+  });
+
+  it('saves a run in progress and continues it after a reload', () => {
+    const storage = new MemoryStorage();
+    const save = new SaveManager(storage, TOTAL);
+    const run = startRun('normal', 2);
+    recordLevel(run, 'won', stats(321, { endCleanStreak: 12 }), { ...emptyCharges(), ice: 1 });
+    save.setSavedRun(run);
+    run.score = 0; // the saved copy is independent
+    const back = new SaveManager(storage, TOTAL).savedRun!;
+    expect(back).toMatchObject({ mode: 'normal', stage: 2, level: 2, score: 321, cleanStreak: 12 });
+    expect(back.spellCharges.ice).toBe(1);
+    save.setSavedRun(null);
+    expect(new SaveManager(storage, TOTAL).savedRun).toBeNull();
+  });
+
+  it('resets old campaign records once, keeping settings, profile and stats', () => {
+    const old = JSON.stringify({
+      version: 4,
+      campaign: { highestReached: 12 },
+      settings: { music: false, sfx: true },
+      profile: { name: 'Robbyn', duelLevel: 7 },
+      lifetime: { wordsTyped: 900 },
+    });
+    const storage = new MemoryStorage();
+    storage.setItem(SAVE_KEY, old);
+    const save = new SaveManager(storage, TOTAL);
+    expect(save.records('normal', 1).highestReached).toBe(1);
+    expect(save.audio).toEqual({ music: false, sfx: true });
+    expect(save.profile.name).toBe('Robbyn');
+    expect(save.takeResetNotice()).toBe(true);
+    expect(save.takeResetNotice()).toBe(false);
+    expect(new SaveManager(storage, TOTAL).takeResetNotice()).toBe(false);
+    expect(parseSave(old, TOTAL).version).toBe(SAVE_VERSION);
   });
 
   it('survives corrupt or tampered save data', () => {
-    expect(parseSave('{not json', TOTAL).campaign.highestReached).toBe(1);
-    expect(parseSave('{"version":99,"campaign":{}}', TOTAL).campaign.highestReached).toBe(1);
+    expect(parseSave('{not json', TOTAL).stages.normal[0]!.highestReached).toBe(1);
+    expect(parseSave('{"version":99}', TOTAL).resetNotice).toBe(false);
     const tampered = parseSave(
-      JSON.stringify({ version: 2, campaign: { highestReached: 500, bestRun: { score: -5, accuracy: 7 } } }),
+      JSON.stringify({
+        version: SAVE_VERSION,
+        stages: { normal: [{ highestReached: 500, bestRun: { score: -5, accuracy: 7 } }] },
+        savedRun: { mode: 'sideways' },
+      }),
       TOTAL,
     );
-    expect(tampered.campaign.highestReached).toBe(TOTAL);
-    expect(tampered.campaign.bestRun).toMatchObject({ score: 0, accuracy: 1 });
+    expect(tampered.stages.normal[0]!.highestReached).toBe(STAGE_LEVELS);
+    expect(tampered.stages.normal[0]!.bestRun).toMatchObject({ score: 0, accuracy: 1 });
+    expect(tampered.savedRun).toBeNull();
   });
 
-  it('keeps working if storage throws', () => {
+  it('keeps working if storage throws, or without storage', () => {
     const throwing: StorageLike = {
       getItem: () => {
         throw new Error('blocked');
@@ -409,17 +327,14 @@ describe('SaveManager', () => {
       },
     };
     const save = new SaveManager(throwing, TOTAL);
-    expect(() => save.noteLevelReached(2)).not.toThrow();
-    expect(save.campaign.highestReached).toBe(2);
+    expect(() => save.noteLevelReached('normal', 1, 2)).not.toThrow();
+    expect(save.records('normal', 1).highestReached).toBe(2);
+    expect(new SaveManager(null, TOTAL).persistent).toBe(false);
   });
 
   it('stores under a single namespaced key', () => {
     const storage = new MemoryStorage();
-    new SaveManager(storage, TOTAL).noteRunStarted();
+    new SaveManager(storage, TOTAL).noteRunStarted('normal', 1);
     expect([...storage.data.keys()]).toEqual([SAVE_KEY]);
   });
 });
-
-// Type-level check: the JSON file satisfies the config shape after validation.
-const _typed: DifficultyConfig[] = validateLevels(levelsData);
-void _typed;

@@ -1,4 +1,6 @@
-import { averageWordLength, type DifficultyConfig } from '../difficulty/DifficultyConfig';
+import { averageWordLength, isSurvival } from '../difficulty/DifficultyConfig';
+import { levelWpm, STAGE_COUNT, STAGE_NAMES, stageLevels } from '../difficulty/Stages';
+import type { CampaignMode } from '../modes/CampaignMode';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
   FILTER_AVAILABLE,
@@ -20,24 +22,33 @@ export const FILTER_LABELS: Record<ModifierFilter, { title: string; detail: stri
 
 // ───────────────────────── Setup ─────────────────────────
 
+export interface PracticePick {
+  mode: CampaignMode;
+  stage: number;
+  level: number;
+}
+
 export interface PracticeSetupActions {
-  onStart(level: number, filter: ModifierFilter): void;
+  onStart(pick: PracticePick, filter: ModifierFilter): void;
   onBack(): void;
 }
 
 /**
- * Choose a level (any level reached in Campaign) and which specials appear.
- * Clicking a level card starts the session straight away.
+ * Choose a mode, a stage and a level (any level reached in Campaign, D-047),
+ * and which specials appear. Clicking a level card starts the session.
  */
 export function practiceSetupScreen(
-  levels: readonly DifficultyConfig[],
-  highestReached: number,
+  /** Highest level reached in a stage (0 = stage not opened yet). */
+  reached: (mode: CampaignMode, stage: number) => number,
   records: Readonly<Record<string, PracticeRecord>>,
-  initial: { level: number; filter: ModifierFilter },
+  initial: PracticePick & { filter: ModifierFilter },
   actions: PracticeSetupActions,
 ): Screen {
   let filter: ModifierFilter = FILTER_AVAILABLE[initial.filter] ? initial.filter : 'original';
+  let mode: CampaignMode = initial.mode;
+  let stage = reached(initial.mode, initial.stage) > 0 ? initial.stage : 1;
   const grid = h('div', { class: 'level-grid' });
+  const tabs = h('div', { class: 'practice-tabs' });
 
   const radios = MODIFIER_FILTERS.map((f) => {
     const input = h('input', { attrs: { type: 'radio', name: 'practice-filter', value: f } });
@@ -45,7 +56,7 @@ export function practiceSetupScreen(
     input.disabled = !FILTER_AVAILABLE[f];
     input.addEventListener('change', () => {
       filter = f;
-      renderCards();
+      render();
     });
     return h(
       'label',
@@ -57,27 +68,51 @@ export function practiceSetupScreen(
   });
 
   let focusCard: HTMLElement | null = null;
-  function renderCards(): void {
+  function render(): void {
     focusCard = null;
+    tabs.replaceChildren(
+      ...(['normal', 'hardcore'] as const).map((m) =>
+        h(
+          'button',
+          { class: `menu-button tab${m === mode ? ' primary' : ''}`, onClick: () => ((mode = m), (stage = 1), render()) },
+          m === 'normal' ? 'Normal' : 'Hardcore',
+        ),
+      ),
+      ...Array.from({ length: STAGE_COUNT }, (_, i) => {
+        const open = reached(mode, i + 1) > 0;
+        return h(
+          'button',
+          {
+            class: `menu-button tab${i + 1 === stage ? ' primary' : ''}`,
+            disabled: !open,
+            attrs: { title: `${STAGE_NAMES[i]}${open ? '' : ' (not reached yet)'}` },
+            onClick: () => ((stage = i + 1), render()),
+          },
+          `Stage ${i + 1}`,
+        );
+      }),
+    );
+    const top = reached(mode, stage);
     grid.replaceChildren(
-      ...levels.map((config) => {
-        const locked = config.level > highestReached;
-        const record = records[practiceKey(config.level, filter)];
-        const pace = `${config.initialFallSpeed} px/s · every ${(config.spawnInterval / 1000).toFixed(1)} s · ~${averageWordLength(config).toFixed(1)} letters`;
+      ...stageLevels(mode, stage).map((config) => {
+        const locked = config.level > top;
+        const pick = { mode, stage, level: config.level };
+        const record = records[practiceKey(pick, filter)];
+        const pace = `~${Math.round(levelWpm(mode, stage, config.level))} WPM · ${averageWordLength(config).toFixed(1)} letters`;
         const card = h(
           'button',
           {
             class: `level-card${locked ? ' locked' : ''}${record ? ' cleared' : ''}`,
             disabled: locked,
-            onClick: () => actions.onStart(config.level, filter),
+            onClick: () => actions.onStart(pick, filter),
             attrs: {
               'aria-label': locked
                 ? `Level ${config.level}, not yet reached in Campaign`
-                : `Practise level ${config.level}, ${config.name}${record ? `, best ${record.bestScore}` : ''}`,
+                : `Practise stage ${stage} level ${config.level}${record ? `, best ${record.bestScore}` : ''}`,
             },
           },
           h('span', { class: 'level-number' }, config.level),
-          h('span', { class: 'level-name' }, locked ? 'Sealed' : config.name),
+          h('span', { class: 'level-name' }, locked ? 'Sealed' : isSurvival(config) ? config.name : `Level ${config.level}`),
           h('span', { class: 'level-detail' }, locked ? 'Reach it in Campaign' : pace),
           !locked &&
             h(
@@ -86,12 +121,13 @@ export function practiceSetupScreen(
               record ? `Best ${record.bestScore.toLocaleString()} · ${formatTime(record.longestMs)}` : 'No sessions yet',
             ),
         );
-        if (config.level === initial.level && !locked) focusCard = card;
+        if (!locked && (focusCard === null || (mode === initial.mode && stage === initial.stage && config.level === initial.level)))
+          focusCard = card;
         return card;
       }),
     );
   }
-  renderCards();
+  render();
 
   const element = h(
     'section',
@@ -100,14 +136,10 @@ export function practiceSetupScreen(
     h(
       'p',
       { class: 'screen-subtitle' },
-      'Exactly the same difficulty as the Campaign level, forever. Levels open as you reach them in Campaign.',
+      'Exactly the same speed as the Campaign level, forever. Levels open as you reach them in Campaign.',
     ),
-    h(
-      'fieldset',
-      { class: 'filter-group' },
-      h('legend', null, 'Specials'),
-      ...radios,
-    ),
+    tabs,
+    h('fieldset', { class: 'filter-group' }, h('legend', null, 'Specials'), ...radios),
     grid,
     h('div', { class: 'button-row' }, h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back')),
   );
@@ -131,7 +163,7 @@ export interface PracticeResultsActions {
 
 /** GDD §14 practice statistics, with this level's personal bests. */
 export function practiceResultsScreen(
-  config: DifficultyConfig,
+  label: string,
   filter: ModifierFilter,
   stats: GameStats,
   outcome: PracticeOutcome,
@@ -156,7 +188,7 @@ export function practiceResultsScreen(
     'section',
     { class: `screen panel results ${fell ? 'lost' : 'won'}`, attrs: { role: 'dialog', 'aria-labelledby': 'pr-title' } },
     h('h2', { class: 'screen-title', attrs: { id: 'pr-title' } }, fell ? 'The Wards Have Fallen' : 'Session Ended'),
-    h('p', { class: 'screen-subtitle' }, `Practice · Level ${config.level} · ${config.name} · ${FILTER_LABELS[filter].title}`),
+    h('p', { class: 'screen-subtitle' }, `Practice · ${label} · ${FILTER_LABELS[filter].title}`),
     h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Score'), stats.score.toLocaleString()),
     h(
       'dl',
