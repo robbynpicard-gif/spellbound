@@ -1,0 +1,11 @@
+{
+  "premise": "Your master is gone, and their scrolls of forgotten knowledge drift through the tower on the night wind. Bound to an enchanted typewriter, you capture each scroll by typing its word before it slips past your wards. Every scroll you capture becomes your knowledge. Powered scrolls glow with colour: they also hold mana for a spell.",
+  "chapters": {
+    "1": { "title": "The Apprentice's Tower", "intro": "The old tower is quiet without your master. Their scrolls still drift past the windows at night. Catch what you can, and keep the wards lit." },
+    "2": { "title": "The Sunken Library", "intro": "Below the tower, the flooded archive stirs. Waterlogged scrolls rise from the deep, carrying older and longer words." },
+    "3": { "title": "The Alchemist's Vault", "intro": "The vault's furnaces wake. Its scrolls are written in the strange, twisting words of transmutation." },
+    "4": { "title": "The Storm Spire", "intro": "At the top of the spire the storm tears the sky open. Every scroll your master ever wrote is coming home, all at once." }
+  },
+  "victory": "The storm passes. Every scroll is home, and the tower remembers your name.",
+  "defeat": "The wards fail, and the scrolls scatter on the wind."
+}

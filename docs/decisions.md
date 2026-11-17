@@ -451,3 +451,15 @@ Spec: [`art-direction.md`](art-direction.md); reference: `mockups/gothic-referen
   alter rose, fire burnt orange, wind green, harvest aged gold.
 - The earlier code-drawn chapter backdrops are retired; `tools/pixelart`
   still builds the spell icon strip.
+
+### D-032 — Lore: scrolls of knowledge, powered scrolls hold mana
+_2026-11-16 · Accepted (project owner)_
+
+Story and terms in [`lore.md`](lore.md); text in `src/data/lore.json`.
+Words are scrolls of knowledge captured by the wizard's typewriter; spell
+scrolls are powered scrolls that store mana; the shared pool is the
+wizard's mana capacity. The premise and a chapter story appear on the
+pop-up at the start of each chapter; run-over screens close the story.
+No rule changes. A roguelite expansion (wizards with different mana
+capacities and unique spells, boons between levels, a persistent Library)
+is proposed in lore.md, not built.

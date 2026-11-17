@@ -397,7 +397,7 @@ export class GameScene extends Phaser.Scene {
       this.effects.floatText(
         LAYOUT.width / 2,
         LAYOUT.panelY - 24,
-        stored ? `+1 ${book} scroll` : 'Spell pool full',
+        stored ? `+1 ${book} mana` : 'Mana full',
         stored ? SPELL_COLORS[spell] : PALETTE.parchment,
         20,
       );

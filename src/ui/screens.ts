@@ -1,4 +1,5 @@
 import { GAME_TITLE } from '../core/GameConfig';
+import lore from '../data/lore.json';
 import {
   FANTASY_WORDS,
   MODERN_WORDS,
@@ -67,7 +68,7 @@ export function mainMenuScreen(
     'section',
     { class: 'screen main-menu', attrs: { 'aria-labelledby': 'title' } },
     h('h1', { class: 'game-title', attrs: { id: 'title' } }, GAME_TITLE),
-    h('p', { class: 'tagline' }, 'Defend the tower. Speak the counterspell.'),
+    h('p', { class: 'tagline' }, 'Catch the drifting scrolls. Master their knowledge.'),
     h(
       'nav',
       { class: 'menu-list', attrs: { 'aria-label': 'Main menu' } },
@@ -191,6 +192,21 @@ export function campaignModeScreen(
 // ───────────────────────── New spell ─────────────────────────
 
 /** Pop-up before a level that introduces a spell. The level waits until "Begin". */
+/** The story card for a chapter, if this level starts one. */
+function chapterStory(level: DifficultyConfig): HTMLElement | null {
+  const first = level.chapter !== undefined && (level.level - 1) % 5 === 0;
+  const ch = first ? (lore.chapters as Record<string, { title: string; intro: string }>)[String(level.chapter)] : undefined;
+  if (!ch) return null;
+  return h(
+    'div',
+    { class: 'chapter-story' },
+    h('p', { class: 'score-label' }, `Chapter ${level.chapter}`),
+    h('h3', { class: 'chapter-title' }, ch.title),
+    level.level === 1 ? h('p', { class: 'chapter-text' }, lore.premise) : null,
+    h('p', { class: 'chapter-text' }, ch.intro),
+  );
+}
+
 export function spellIntroScreen(spell: SpellId, level: DifficultyConfig, onBegin: () => void): Screen {
   const def = SPELLS[spell];
   const begin = h('button', { class: 'menu-button primary', onClick: onBegin }, `Begin level ${level.level}`);
@@ -200,16 +216,17 @@ export function spellIntroScreen(spell: SpellId, level: DifficultyConfig, onBegi
       class: 'screen panel spell-intro',
       attrs: { role: 'dialog', 'aria-labelledby': 'spell-intro-title', ...spellStyle(spell) },
     },
+    chapterStory(level),
     h('p', { class: 'score-label' }, 'New spell'),
     h('h2', { class: 'screen-title spell-name', attrs: { id: 'spell-intro-title' } }, def.name),
     h('p', { class: 'spell-effect' }, def.summary),
     h(
       'ol',
       { class: 'spell-steps' },
-      h('li', null, 'Type a ', h('span', { class: 'spell-mark' }, 'coloured scroll'), ' to collect it.'),
+      h('li', null, 'Type a ', h('span', { class: 'spell-mark' }, 'powered scroll'), ' to store its mana.'),
       h('li', null, 'Type ', h('kbd', { class: 'spell-word' }, def.id), ' + Enter to cast.'),
     ),
-    h('p', { class: 'footnote' }, `Spells share a pool of ${SPELL_POOL_SIZE} charges.`),
+    h('p', { class: 'footnote' }, `Powered scrolls store mana for their spell. You can hold ${SPELL_POOL_SIZE} mana.`),
     h('div', { class: 'button-row' }, begin),
   );
   return { element, focus: begin };
@@ -223,8 +240,8 @@ function spellSummary(charges: SpellCharges): HTMLElement {
     'p',
     { class: 'spell-summary' },
     held.length === 0
-      ? 'No spells carried.'
-      : `Carrying ${totalCharges(charges)}/${SPELL_POOL_SIZE}: ${held.map((id) => `${SPELLS[id].book} ×${charges[id]}`).join(' · ')}`,
+      ? 'No mana stored.'
+      : `Mana ${totalCharges(charges)}/${SPELL_POOL_SIZE}: ${held.map((id) => `${SPELLS[id].book} ×${charges[id]}`).join(' · ')}`,
   );
 }
 
@@ -244,7 +261,7 @@ function rewardPicker(run: Readonly<CampaignRun>, reward: BossReward, rerender: 
     box.replaceChildren();
     if (picked && full) {
       box.append(
-        h('p', { class: 'reward' }, `Your spell pool is full. Give up one charge for ${SPELLS[picked].name}:`),
+        h('p', { class: 'reward' }, `Your mana is full. Release one charge to take ${SPELLS[picked].name}:`),
         h(
           'div',
           { class: 'reward-choices' },
@@ -354,6 +371,7 @@ export function runOverScreen(
   const won = summary.victory;
   const title = won ? 'The Tower Stands' : 'The Wards Have Fallen';
   const mode = MODE_TITLES[actions.mode ?? 'normal'];
+  const story = won ? lore.victory : lore.defeat;
   const subtitle = won
     ? `${mode} · All ${totalLevels} levels cleared`
     : `${mode} · Fell on level ${summary.reachedLevel} · ${lastLevel.name} · ${summary.levelsCleared} cleared`;
@@ -371,6 +389,7 @@ export function runOverScreen(
     { class: `screen panel results ${won ? 'won' : 'lost'}`, attrs: { role: 'dialog', 'aria-labelledby': 'run-title' } },
     h('h2', { class: 'screen-title', attrs: { id: 'run-title' } }, title),
     h('p', { class: 'screen-subtitle' }, subtitle),
+    h('p', { class: 'flavour' }, story),
     h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Final score'), summary.score.toLocaleString()),
     h(
       'dl',

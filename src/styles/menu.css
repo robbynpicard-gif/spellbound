@@ -557,3 +557,24 @@
   color: var(--color-gold);
   opacity: 1;
 }
+
+/* Chapter story, shown on the pop-up at the start of each chapter */
+.chapter-story {
+  margin: -4px 0 18px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid rgb(230 160 60 / 0.3);
+}
+
+.chapter-title {
+  margin: 2px 0 8px;
+  font-family: var(--font-heading);
+  font-size: 30px;
+  color: var(--color-gold);
+}
+
+.chapter-text {
+  margin: 6px auto;
+  max-width: 460px;
+  line-height: 1.5;
+  opacity: 0.9;
+}
