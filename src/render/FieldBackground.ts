@@ -22,7 +22,7 @@ const CRACKS: readonly (readonly [number, number][])[] = [
 ];
 
 /**
- * The gothic backdrop (decisions.md D-031) plus what reacts to play: the
+ * The study backdrop, wizard and typewriter layers (decisions.md D-035) plus what reacts to play: the
  * ward line words must not reach, a red glow as danger rises, the Arcane
  * Shield, and the runic seal on the wall, which flickers, darkens and
  * cracks as the ward weakens. Never covers the words.
@@ -50,12 +50,19 @@ export class FieldBackground {
     if (scene.textures.exists(key)) scene.add.image(0, 0, key).setOrigin(0).setScale(ART_SCALE).setDepth(-10);
     else scene.add.rectangle(0, 0, width, height, PALETTE.midnight).setOrigin(0).setDepth(-10);
     // The night deepens level by level through a chapter (only over the window view).
+    const win = LAYOUT.window;
     if (intensity > 0) {
       scene.add
-        .rectangle(LAYOUT.fieldLeft + 200, 0, 880, 470, PALETTE.midnight, 0.05 * intensity)
+        .rectangle(win.left, 0, win.right - win.left, LAYOUT.wardY, PALETTE.midnight, 0.05 * intensity)
         .setOrigin(0)
         .setDepth(-9.5);
     }
+    // The wizard sits behind the typewriter, facing the player (D-035).
+    const front = ART.front(chapter, boss);
+    if (scene.textures.exists(ART.wizard())) {
+      scene.add.image(LAYOUT.wizard.x, LAYOUT.wizard.y, ART.wizard()).setOrigin(0).setScale(ART_SCALE).setDepth(-8.4);
+    }
+    if (scene.textures.exists(front)) scene.add.image(0, 0, front).setOrigin(0).setScale(ART_SCALE).setDepth(-8.3);
 
     // Seal deterioration, drawn over the seal in the backdrop.
     this.sealShade = scene.add.graphics().setDepth(-9);
@@ -84,18 +91,18 @@ export class FieldBackground {
    */
   private weather(chapter: number, intensity: number): void {
     const scene = this.scene;
-    const left = LAYOUT.fieldLeft + 220;
-    const right = LAYOUT.fieldRight;
+    const left = LAYOUT.window.left;
+    const right = LAYOUT.window.right;
     const k = 1 + intensity;
     if (chapter === 4) {
       for (let i = 0; i < 14 * k; i++) {
         const drop = scene.add
-          .rectangle(Phaser.Math.Between(left, right + 60), Phaser.Math.Between(-40, 460), ART_SCALE, 5 * ART_SCALE, 0xaab4d2, 0.35)
+          .rectangle(Phaser.Math.Between(left, right + 60), Phaser.Math.Between(-40, LAYOUT.wardY - 10), ART_SCALE, 5 * ART_SCALE, 0xaab4d2, 0.35)
           .setAngle(15)
           .setDepth(-8.5);
         scene.tweens.add({
           targets: drop,
-          y: { from: -20, to: 470 },
+          y: { from: -20, to: LAYOUT.wardY },
           x: `-=${120}`,
           duration: Phaser.Math.Between(500, 800),
           delay: Phaser.Math.Between(0, 800),
@@ -120,7 +127,7 @@ export class FieldBackground {
     for (let i = 0; i < kind.n * k; i++) {
       const p = scene.add
         .rectangle(
-          Phaser.Math.Between(LAYOUT.fieldLeft, right),
+          Phaser.Math.Between(left, right),
           Phaser.Math.Between(LAYOUT.spawnY + 60, LAYOUT.wardY),
           ART_SCALE,
           ART_SCALE,

@@ -3,7 +3,7 @@ import { PALETTE } from '../core/GameConfig';
 import { ART, ART_SCALE, LAYOUT } from '../render/layout';
 
 /**
- * The pixel-art study shown behind the HTML menus, with drifting dust in
+ * The tower on its sea cliff, shown behind the HTML menus, with drifting dust in
  * the candlelight. (Menus are HTML, D-008.)
  */
 export class BackdropScene extends Phaser.Scene {
@@ -15,9 +15,9 @@ export class BackdropScene extends Phaser.Scene {
 
   create(): void {
     this.cameras.main.setBackgroundColor(PALETTE.midnight);
-    if (this.textures.exists(ART.backdrop(1))) this.add.image(0, 0, ART.backdrop(1)).setOrigin(0).setScale(ART_SCALE);
-    // Darken it so the menus stand out (the live HUD areas are empty here).
-    this.add.rectangle(0, 0, LAYOUT.width, LAYOUT.height, PALETTE.midnight, 0.55).setOrigin(0);
+    if (this.textures.exists(ART.menu)) this.add.image(0, 0, ART.menu).setOrigin(0).setScale(ART_SCALE);
+    // Darken it a little so the menus stand out.
+    this.add.rectangle(0, 0, LAYOUT.width, LAYOUT.height, PALETTE.midnight, 0.3).setOrigin(0);
 
     for (let i = 0; i < 40; i++) {
       const mote = this.add.rectangle(

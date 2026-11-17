@@ -4,6 +4,16 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-16 — Art v4 and a longer fall
+
+**Done** (D-034, D-035): lore text removed from the game; new generated art
+(per-chapter and boss views through a gothic study, wizard behind the
+typewriter, ornate HUD frames, menu scene); the ward line moves down 52 px
+so scrolls fall further on screen. Wizard choice still to come (the
+Apprentice is shown for now).
+
+---
+
 ## 2026-11-16 — Chapter and boss backdrops; wizard plan
 
 **Done** (D-033): eight backdrops derived from the reference; weather and

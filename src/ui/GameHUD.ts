@@ -180,7 +180,7 @@ class RackScroll {
 }
 
 /**
- * Heads-up display set into the gothic backdrop (decisions.md D-031,
+ * Heads-up display set into the study art (decisions.md D-035,
  * docs/art-direction.md). The typewriter's parchment roll shows progress
  * segments and the typing line; the brass counter shows the score on number
  * wheels with the combo below; the rack on the right holds a coloured scroll
@@ -276,6 +276,10 @@ export class GameHUD {
     this.wardText = scene.add.text(cx(p4), st.y + 16, '', ui(LABEL, 17)).setOrigin(0.5).setDepth(31);
     this.wardBar = new Bar(scene, p4[0] + 24, st.y + 34, p4[1] - p4[0] - 48, WARD_COLORS[0]);
     this.wardBar.set(100);
+
+    // Labels on the brass plates above the counter and the rack.
+    scene.add.text(LAYOUT.scorePlate.x, LAYOUT.scorePlate.y, 'SCORE', ui(LABEL, 12)).setOrigin(0.5).setDepth(31);
+    scene.add.text(LAYOUT.rackPlate.x, LAYOUT.rackPlate.y, 'SPELLS', ui(LABEL, 20)).setOrigin(0.5).setDepth(31);
 
     this.drawRoll();
     this.updateStats(null);
