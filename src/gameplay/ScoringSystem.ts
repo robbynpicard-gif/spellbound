@@ -108,11 +108,58 @@ export const METRONOME_KEYS = 16;
 export const METRONOME_CV = 0.3;
 
 /** Total points for a word: base × (1 + bonus rates) × multiplier, plus flat bonuses × multiplier. */
-export function scoreWord(length: number, multiplier: number, bonuses: readonly Bonus[]): number {
+/**
+ * Points for a captured word (D-046):
+ *   (base × (1 + bonus %) + flat bonuses) × combo multiplier × Clean Streak multiplier,
+ * rounded once at the end. The Clean Streak multiplier covers the whole word
+ * score, flat bonuses (Clean Sweep) included.
+ */
+export function scoreWord(length: number, multiplier: number, bonuses: readonly Bonus[], streakMultiplier = 1): number {
   const base = length * SCORING.pointsPerLetter;
   const rate = bonuses.reduce((sum, b) => sum + b.rate, 0);
   const flat = bonuses.reduce((sum, b) => sum + b.points, 0);
-  return Math.round(base * (1 + rate) * multiplier + flat * multiplier);
+  return Math.round((base * (1 + rate) + flat) * multiplier * streakMultiplier);
+}
+
+// ───────────────────────── Clean Streak (D-046) ─────────────────────────
+
+/**
+ * Clean Streak: the third scoring layer, for mastery. Every word captured
+ * without a typo adds one; milestones raise a multiplier on the whole word
+ * score. Tune here: thresholds must start at 0 and rise.
+ */
+export const STREAK_MILESTONES: readonly { at: number; multiplier: number }[] = [
+  { at: 0, multiplier: 1 },
+  { at: 5, multiplier: 1.2 },
+  { at: 15, multiplier: 1.4 },
+  { at: 25, multiplier: 1.65 },
+  { at: 50, multiplier: 2 },
+  { at: 100, multiplier: 2.75 },
+  { at: 200, multiplier: 3.5 },
+];
+
+/** The milestone reached (0 = none yet) for a Clean Streak count. */
+export function streakTierOf(count: number): number {
+  let tier = 0;
+  for (let i = 0; i < STREAK_MILESTONES.length; i++) if (count >= STREAK_MILESTONES[i]!.at) tier = i;
+  return tier;
+}
+
+export function streakMultiplierOf(count: number): number {
+  return STREAK_MILESTONES[streakTierOf(count)]!.multiplier;
+}
+
+/**
+ * A corrected typo: back to the start of the milestone below the one reached
+ * (at 50 → 25, at 37 → 15, at 3 → 0). Repeated typos step down one at a time.
+ */
+export function streakAfterTypo(count: number): number {
+  return STREAK_MILESTONES[Math.max(0, streakTierOf(count) - 1)]!.at;
+}
+
+/** The next milestone above a count, or null past the last. */
+export function nextStreakMilestone(count: number): { at: number; multiplier: number } | null {
+  return STREAK_MILESTONES[streakTierOf(count) + 1] ?? null;
 }
 
 export interface GameStats {
@@ -128,6 +175,9 @@ export interface GameStats {
   maxCombo: number;
   /** Combo at the end of the level (carried into the next level of a Campaign run). */
   endCombo: number;
+  /** Clean Streak at the end of the level, and its peak (D-046). */
+  endCleanStreak?: number;
+  peakCleanStreak?: number;
   /** Highest multiplier reached. */
   peakMultiplier: number;
   /** How many times each bonus was earned. */

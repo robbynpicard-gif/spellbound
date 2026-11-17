@@ -1,6 +1,13 @@
 import Phaser from 'phaser';
 import { audio } from '../audio/Audio';
-import { multiplierOf, tierOf } from '../gameplay/ScoringSystem';
+import {
+  multiplierOf,
+  nextStreakMilestone,
+  STREAK_MILESTONES,
+  streakMultiplierOf,
+  streakTierOf,
+  tierOf,
+} from '../gameplay/ScoringSystem';
 import { FONTS, PALETTE } from '../core/GameConfig';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
@@ -16,6 +23,8 @@ const SLOT_EMPTY = 0x8a7458;
 const LABEL = 0xe6d6b4;
 /** Combo plate colour per multiplier tier: ×1 parchment, ×2 teal, ×3 gold, ×5 magenta, ×10 crimson. */
 const TIER_COLORS = [0xe6d6b4, 0x5ad0c0, 0xe6a03c, 0xe25cc4, 0xff5a4a] as const;
+/** Clean Streak milestone colours (D-046): ink to illuminated gold. */
+export const STREAK_COLORS = [0x8a8070, 0x6ac8b8, 0x9ad070, 0xe6c050, 0xffb040, 0xff8ad8, 0xfff0c0] as const;
 
 /** Ward bar colour by health: magenta when healthy, then amber, ember, red. */
 const WARD_COLORS: Record<InstabilityStage, number> = {
@@ -199,7 +208,10 @@ export class GameHUD {
   private readonly comboText: Phaser.GameObjects.Text;
   private readonly levelText: Phaser.GameObjects.Text;
   private readonly wordsText: Phaser.GameObjects.Text;
-  private readonly scoreText: Phaser.GameObjects.Text;
+  private readonly streakText: Phaser.GameObjects.Text;
+  private readonly streakNext: Phaser.GameObjects.Text;
+  private readonly streakBar: Bar;
+  private readonly streakPanel: readonly [number, number];
   private readonly accuracyText: Phaser.GameObjects.Text;
   private readonly wardText: Phaser.GameObjects.Text;
   private readonly progressBar: Bar;
@@ -273,14 +285,15 @@ export class GameHUD {
     const st = LAYOUT.status;
     const [p1, p2, p3, p4] = st.panels;
     const cx = (p: readonly [number, number]) => (p[0] + p[1]) / 2;
-    this.levelText = scene.add
-      .text(cx(p1), st.y + st.height / 2, levelName.toUpperCase(), ui(LABEL, 17))
-      .setOrigin(0.5)
-      .setDepth(31);
+    this.levelText = scene.add.text(cx(p1), st.y + 16, levelName.toUpperCase(), ui(LABEL, 17)).setOrigin(0.5).setDepth(31);
     this.wordsText = scene.add.text(cx(p2), st.y + 16, '', ui(LABEL, 17)).setOrigin(0.5).setDepth(31);
     this.progressBar = new Bar(scene, p2[0] + 24, st.y + 34, p2[1] - p2[0] - 48, PALETTE.gold);
-    this.scoreText = scene.add.text(cx(p3), st.y + 16, '', ui(LABEL, 17)).setOrigin(0.5).setDepth(31);
-    this.accuracyText = scene.add.text(cx(p3), st.y + 38, '', ui(LABEL, 14)).setOrigin(0.5).setAlpha(0.8).setDepth(31);
+    // Panel 3 is the Clean Streak (D-046): count and multiplier, a bar to the next milestone.
+    this.streakPanel = p3;
+    this.streakText = scene.add.text(cx(p3), st.y + 13, '', ui(LABEL, 16)).setOrigin(0.5).setDepth(31);
+    this.streakBar = new Bar(scene, p3[0] + 24, st.y + 27, p3[1] - p3[0] - 48, STREAK_COLORS[0]!);
+    this.streakNext = scene.add.text(cx(p3), st.y + 44, '', ui(LABEL, 12)).setOrigin(0.5).setAlpha(0.75).setDepth(31);
+    this.accuracyText = scene.add.text(cx(p1), st.y + 38, '', ui(LABEL, 13)).setOrigin(0.5).setAlpha(0.8).setDepth(31);
     this.wardText = scene.add.text(cx(p4), st.y + 16, '', ui(LABEL, 17)).setOrigin(0.5).setDepth(31);
     this.wardBar = new Bar(scene, p4[0] + 24, st.y + 34, p4[1] - p4[0] - 48, WARD_COLORS[0]);
     this.wardBar.set(100);
@@ -291,6 +304,7 @@ export class GameHUD {
 
     this.drawRoll();
     this.updateStats(null);
+    this.setStreak(0);
     this.refreshWard();
   }
 
@@ -314,10 +328,35 @@ export class GameHUD {
     }
     const tier = tierOf(combo);
     this.comboText.setText(`×${multiplierOf(combo)} · ${combo}`).setColor(hex(TIER_COLORS[tier]!));
-    this.scoreText.setText(`SCORE ${score.toLocaleString()} · COMBO ${combo}`);
     const acc = stats ? Math.round(stats.accuracy * 100) : 100;
     const wpm = stats ? Math.round(stats.wpm) : 0;
     this.accuracyText.setText(`${acc}% ACCURACY · ${wpm} WPM`);
+  }
+
+  /** Clean Streak (D-046): count, multiplier and progress to the next milestone. */
+  setStreak(count: number): void {
+    const tier = streakTierOf(count);
+    const mult = streakMultiplierOf(count);
+    const next = nextStreakMilestone(count);
+    const color = STREAK_COLORS[Math.min(tier, STREAK_COLORS.length - 1)]!;
+    this.streakText.setText(`CLEAN STREAK ${count} · ×${mult.toFixed(2)}`).setColor(hex(tier > 0 ? color : LABEL));
+    const from = STREAK_MILESTONES[tier]!.at;
+    this.streakBar.set(next ? ((count - from) / (next.at - from)) * 100 : 100, color);
+    this.streakNext.setText(next ? `${next.at - count} more for ×${next.multiplier.toFixed(2)}` : 'MASTERY: highest multiplier');
+  }
+
+  /** A setback on the Clean Streak: the panel shakes (harder for bigger losses). */
+  shakeStreak(strength: number): void {
+    const items = [this.streakText, this.streakNext];
+    for (const t of items) {
+      const x = t.x;
+      this.scene.tweens.add({ targets: t, x: { from: x - 3 * strength, to: x + 3 * strength }, duration: 45, yoyo: true, repeat: 2 + strength, onComplete: () => t.setX(x) });
+    }
+  }
+
+  /** Where the Clean Streak panel is (for effects). */
+  get streakAnchor(): { x: number; y: number } {
+    return { x: (this.streakPanel[0] + this.streakPanel[1]) / 2, y: LAYOUT.status.y };
   }
 
   /** Every frame: roll the counter wheels up toward the score, ticking as they turn. */

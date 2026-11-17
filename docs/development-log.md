@@ -4,6 +4,13 @@ Newest entries at the top.
 
 ---
 
+## 2026-11-17 — Clean Streak
+
+**Done** (D-046, v0.18.0): three-layer scoring with Clean Streak; 30 new tests
+(211 total); playtested in the real build with a typing bot.
+
+---
+
 ## 2026-11-17 — Back to the core: weighty spells, rounder sound
 
 **Done** (D-045, v0.17.0): roster shelved; big cast moments and per-spell

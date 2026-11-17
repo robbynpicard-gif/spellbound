@@ -78,6 +78,12 @@ export interface GameState {
   /** The last miss, so Rewind can undo it. */
   lastMiss: { combo: number; damage: number } | null;
   powersUsed: number;
+  // ── Clean Streak (D-046) ──
+  /** Words captured in a row without a typo (stepped back by typos, reset by wrong Enters and misses). */
+  cleanStreak: number;
+  peakCleanStreak: number;
+  /** A typo happened in the current entry (cleared when the console is emptied). */
+  entryTypo: boolean;
 }
 
 /** Delay before the very first word appears, so the player can get ready. */
@@ -125,5 +131,8 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     kindleCharges: 0,
     lastMiss: null,
     powersUsed: 0,
+    cleanStreak: 0,
+    peakCleanStreak: 0,
+    entryTypo: false,
   };
 }

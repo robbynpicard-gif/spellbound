@@ -199,6 +199,7 @@ export class App {
       hardcore: run.mode === 'hardcore',
       initialInstability: run.instability,
       initialCombo: run.combo,
+      initialCleanStreak: run.cleanStreak,
       wizard: WIZARD_ROSTER ? run.wizard : undefined,
       loadout: WIZARD_ROSTER ? loadout(run.wizard, this.save.wardrobe(run.wizard)) : undefined,
       knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
@@ -242,6 +243,7 @@ export class App {
       this.campaign.count,
       instability,
       clearedLevel,
+      run.level < this.campaign.count ? this.levelFor(run, run.level + 1) : undefined,
     );
 
     // Mastery: every point scored with this wizard counts; feats unlock the rest.

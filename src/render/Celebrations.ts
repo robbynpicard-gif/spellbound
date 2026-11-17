@@ -59,7 +59,7 @@ const style = (size: number, color: number, family: string = FONTS.heading): Pha
   align: 'center',
 });
 
-const CONFETTI = 'confetti';
+export const CONFETTI = 'confetti';
 
 export class Celebrations {
   constructor(private readonly scene: Phaser.Scene) {

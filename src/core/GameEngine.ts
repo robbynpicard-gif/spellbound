@@ -5,6 +5,9 @@ import {
   BONUS_RATES as B,
   CLUTCH_ZONE,
   comboAfterWrongEntry,
+  streakAfterTypo,
+  streakMultiplierOf,
+  streakTierOf,
   METRONOME_CV,
   METRONOME_KEYS,
   multiplierOf,
@@ -66,6 +69,8 @@ export interface EngineOptions {
   initialInstability?: number;
   /** Combo carried in from the previous level of a Campaign run (D-040). */
   initialCombo?: number;
+  /** Clean Streak carried in from the previous level of the same chapter (D-046). */
+  initialCleanStreak?: number;
   /** The wizard being played (D-042). Absent: no passive, no sigil scrolls (Practice, duels). */
   wizard?: WizardId;
 }
@@ -159,6 +164,8 @@ export class GameEngine {
     this.s.combo = carried;
     this.s.maxCombo = carried;
     this.s.peakMultiplier = multiplierOf(carried);
+    this.s.cleanStreak = Math.max(0, Math.floor(options.initialCleanStreak ?? 0));
+    this.s.peakCleanStreak = this.s.cleanStreak;
     this.spellContext = this.createSpellContext();
     this.wizard = options.wizard ?? null;
     this.sigilRng = new SeededRandom((this.seed ^ 0x51611c) >>> 0);
@@ -382,6 +389,9 @@ export class GameEngine {
     // fixing it with Backspace keeps the chain alive (D-040).
     if (wasValid) {
       s.errors++;
+      // Clean Streak: a typo (even one fixed with Backspace) steps back one milestone (D-046).
+      s.entryTypo = true;
+      this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
       // Fluent (Lexicant): a typo costs nothing but the keystroke.
       if (attempted && this.wizard !== 'lexicant') this.penalize(attempted);
     }
@@ -423,8 +433,9 @@ export class GameEngine {
     // guess what the player meant and treat it as a missed submission.
     // A word already penalised for a typo in this same entry isn't penalised again.
     const guess = pinned ?? guessIntendedWord(s.words, input);
-    // A wrong entry drops the multiplier one tier (D-040).
+    // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
     this.setCombo(comboAfterWrongEntry(s.combo));
+    this.setCleanStreak(0, 'wrongEntry');
     if (!guess) s.errors++;
     else if (guess.id !== s.penalizedId) {
       s.errors++;
@@ -528,6 +539,7 @@ export class GameEngine {
     const s = this.s;
     s.input = '';
     s.penalizedId = null;
+    s.entryTypo = false;
     if (unpin) s.pinnedId = null;
     const target = this.target;
     if (target) target.typed = 0;
@@ -612,12 +624,16 @@ export class GameEngine {
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.completionTicksTotal += s.tick - word.spawnTick;
     const multiplier = multiplierOf(s.combo);
+    // Clean Streak: a word typed with no typo adds one. The capture that reaches
+    // a milestone already scores at its multiplier (D-046).
+    if (word.errors === 0 && !s.entryTypo) this.setCleanStreak(s.cleanStreak + 1, 'capture');
+    const streak = streakMultiplierOf(s.cleanStreak);
     const bonuses = this.wordBonuses(word);
-    const points = Math.round(scoreWord(word.text.length, multiplier, bonuses) * this.pointsFactor());
+    const points = Math.round(scoreWord(word.text.length, multiplier, bonuses, streak) * this.pointsFactor());
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
-    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses });
+    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: streak });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     this.emitProgress();
     if (word.spell) this.collect(word.spell);
@@ -651,6 +667,7 @@ export class GameEngine {
       // Second Wind: the combo survives.
     } else if (this.wizard === 'chronomancer') this.setCombo(comboAfterWrongEntry(s.combo));
     else this.setCombo(0);
+    this.setCleanStreak(0, 'miss');
     const damage = this.config.instabilityPerMiss * (this.wizard === 'pyromancer' ? W.PYRO_DAMAGE : 1);
     const before = this.instability.value;
     s.instability = this.instability.add(damage);
@@ -687,6 +704,23 @@ export class GameEngine {
   private checkQuota(): void {
     const quota = this.config.requiredWords;
     if (this.s.status === 'playing' && quota !== null && this.s.completed >= quota) this.end('won');
+  }
+
+  /** Sets the Clean Streak (D-046) and reports the change. */
+  private setCleanStreak(count: number, reason: 'capture' | 'typo' | 'wrongEntry' | 'miss'): void {
+    const s = this.s;
+    const previous = s.cleanStreak;
+    if (count === previous && reason !== 'capture') return;
+    s.cleanStreak = count;
+    s.peakCleanStreak = Math.max(s.peakCleanStreak, count);
+    this.events.emit('cleanStreakChanged', {
+      count,
+      previous,
+      tier: streakTierOf(count),
+      multiplier: streakMultiplierOf(count),
+      previousMultiplier: streakMultiplierOf(previous),
+      reason,
+    });
   }
 
   /** Sets the combo, reporting a change of multiplier tier. */
@@ -1093,6 +1127,8 @@ export class GameEngine {
       wpm: wpmOf(s.correctChars, elapsedMs),
       maxCombo: s.maxCombo,
       endCombo: s.combo,
+      endCleanStreak: s.cleanStreak,
+      peakCleanStreak: s.peakCleanStreak,
       peakMultiplier: s.peakMultiplier,
       bonusCounts: { ...s.bonusCounts },
       levelBonuses: [...this.awardedLevelBonuses],

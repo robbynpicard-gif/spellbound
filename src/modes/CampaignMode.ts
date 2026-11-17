@@ -60,7 +60,18 @@ export interface CampaignRun {
   spellCharges: SpellCharges;
   /** Combo carried into the next level (D-040): a run's streak continues across levels. */
   combo: number;
+  /**
+   * Clean Streak carried into the next level (D-046). It carries between levels
+   * of the same chapter (a chapter is a stage: four levels and its boss) and
+   * starts again at 0 when a new chapter begins.
+   */
+  cleanStreak: number;
   totals: RunTotals;
+}
+
+/** The chapter (stage) a Campaign level belongs to. */
+export function chapterOf(level: Pick<DifficultyConfig, 'chapter' | 'level'>): number {
+  return level.chapter ?? Math.ceil(level.level / 5);
 }
 
 export interface RunSummary {
@@ -108,6 +119,7 @@ export function startRun(mode: CampaignMode = 'normal', wizard: WizardId = 'appr
     levelsCleared: 0,
     spellCharges: emptyCharges(),
     combo: 0,
+    cleanStreak: 0,
     totals: { completed: 0, missed: 0, correctChars: 0, errors: 0, elapsedMs: 0, maxCombo: 0 },
   };
 }
@@ -128,6 +140,8 @@ export function recordLevel(
   totalLevels: number,
   instabilityAfter = 0,
   cleared?: DifficultyConfig,
+  /** The level after `cleared`, to tell whether the next level starts a new chapter. */
+  next?: DifficultyConfig,
 ): { runOver: boolean; victory: boolean } {
   const t = run.totals;
   t.completed += stats.completed;
@@ -139,6 +153,8 @@ export function recordLevel(
   run.score += stats.score;
   run.spellCharges = sanitizeCharges(chargesAfter);
   run.combo = result === 'won' ? Math.max(0, stats.endCombo ?? 0) : 0;
+  const sameChapter = cleared !== undefined && next !== undefined && chapterOf(cleared) === chapterOf(next);
+  run.cleanStreak = result === 'won' && sameChapter ? Math.max(0, stats.endCleanStreak ?? 0) : 0;
   if (run.mode === 'hardcore') {
     const heal = cleared && isSurvival(cleared) && result === 'won' ? HARDCORE_BOSS_HEAL : 0;
     run.instability = Math.max(0, Math.min(100, instabilityAfter) - heal);

@@ -241,6 +241,49 @@ class AudioEngine {
     this.setHeat(tier);
   }
 
+  // ───────────────────────── Clean Streak (D-046) ─────────────────────────
+
+  /**
+   * A Clean Streak milestone: a quill flourish, then an illuminated chord that
+   * grows with the tier (more bells, then choir, then a low swell).
+   */
+  streakMilestone(tier: number): void {
+    if (!this.ready) return;
+    const sy = this.sy, out = this.sfxBus, now = this.t;
+    sy.noiseHit(out, now, 0.18, 0.08, { type: 'bandpass', freq: 1400, to: 2600, q: 2 }, { attack: 0.02, curve: 'lin' }); // the quill
+    const notes = [62, 69, 74, 77, 81, 86, 89].slice(0, 2 + tier);
+    notes.forEach((n, k) => sy.bell(out, now + 0.12 + k * 0.07, midi(n), 0.06, 0.6, 2 + tier * 0.3));
+    if (tier >= 3) for (const n of [62, 69, 74]) sy.choir(out, now + 0.15, midi(n), 1.2 + tier * 0.25, 0.025 + tier * 0.004, 0.7);
+    if (tier >= 5) sy.tone(out, now + 0.1, midi(38), 1.8, 0.14, { type: 'sine', attack: 0.3, send: 0.4 });
+  }
+
+  /** A corrected typo cost the streak a milestone: a small ink-blot plop and a soft step down. */
+  streakTypo(dropped: boolean): void {
+    if (!this.ready) return;
+    const now = this.t;
+    this.sy.tone(this.sfxBus, now, 180, 0.08, 0.08, { glideTo: 120, attack: 0.006, filter: { type: 'lowpass', freq: 700 } });
+    if (dropped) {
+      this.sy.tone(this.sfxBus, now + 0.05, midi(69), 0.3, 0.05, { type: 'sine', attack: 0.01, send: 0.3 });
+      this.sy.tone(this.sfxBus, now + 0.16, midi(65), 0.4, 0.05, { type: 'sine', attack: 0.01, send: 0.3 });
+    }
+  }
+
+  /** A wrong Enter ended the streak: a page torn in two. */
+  streakLost(): void {
+    if (!this.ready) return;
+    const now = this.t;
+    this.sy.noiseHit(this.sfxBus, now, 0.35, 0.2, { type: 'bandpass', freq: 2400, to: 700, q: 1.4 }, { attack: 0.01, curve: 'lin' });
+    this.sy.tone(this.sfxBus, now + 0.1, midi(57), 0.6, 0.07, { type: 'sine', attack: 0.02, glideTo: midi(50), send: 0.4 });
+  }
+
+  /** A miss shattered a streak: the illuminated chord falls apart. */
+  streakBroken(previous: number): void {
+    if (!this.ready || previous < 5) return;
+    const sy = this.sy, out = this.sfxBus, now = this.t + 0.15;
+    [81, 77, 74, 69, 62].forEach((n, k) => sy.tone(out, now + k * 0.07, midi(n) * (1 - k * 0.012), 0.6, 0.05, { type: 'sine', attack: 0.005, send: 0.5 }));
+    sy.noiseHit(out, now, 0.6, 0.12, { type: 'lowpass', freq: 1600, to: 200 }, { send: 0.5 });
+  }
+
   // ───────────────────────── harm ─────────────────────────
 
   /** A scroll broke through the ward: a heavy stone thud, a crumble, the ward groaning. */

@@ -642,3 +642,24 @@ _2026-11-17 · Accepted (project owner)_
 - Sound: all effects pass through a gentle low-pass with extra low end; square
   waves and bright noise replaced with rounder voices. The typewriter key is now
   a wooden thunk, a brass typebar ring and a mechanical clunk.
+
+### D-046 — Clean Streak: a third scoring layer for mastery
+_2026-11-17 · Accepted (owner + design review); multipliers provisional_
+
+- Word score = (10 × letters × (1 + bonus %) + flat bonuses) × combo multiplier
+  × Clean Streak multiplier, rounded once.
+- Clean Streak counts words captured with no typo. Milestones (configurable in
+  `STREAK_MILESTONES`, src/gameplay/ScoringSystem.ts): 0 ×1.00 · 5 ×1.20 ·
+  15 ×1.40 · 25 ×1.65 · 50 ×2.00 · 100 ×2.75 · 200 ×3.50. The capture that
+  reaches a milestone already scores at it.
+- A typo (even one fixed with Backspace) steps back to the start of the
+  milestone below the one reached (50 → 25; 21 → 5; 3 → 0); one slip = one step.
+  The combo is untouched. A wrong Enter resets the streak to 0 (combo still drops
+  a tier). A miss resets streak and combo. Words taken by spells, or stopped by
+  Barrier, leave the streak alone.
+- Carried between levels of the same chapter (a stage = 4 levels + boss), reset
+  at each new chapter and at a new run. Practice keeps it for the session.
+- HUD: status panel 3 shows the count, multiplier and a bar to the next
+  milestone (accuracy and WPM moved under the level name). Milestones get an
+  illuminated proclamation and chord, grander each tier; typos an ink blot and
+  "×a → ×b"; a wrong Enter "STREAK LOST"; a miss "STREAK BROKEN".

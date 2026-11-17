@@ -34,6 +34,8 @@ export interface LifetimeStats {
   bestLevelScore: number;
   bestRunScore: number;
   bestCombo: number;
+  /** Longest Clean Streak (D-046). */
+  bestCleanStreak: number;
   bestMultiplier: number;
   /** Best words per minute over a level with at least MIN_WORDS_FOR_WPM words. */
   bestWpm: number;
@@ -70,6 +72,7 @@ export function emptyLifetime(): LifetimeStats {
     bestLevelScore: 0,
     bestRunScore: 0,
     bestCombo: 0,
+    bestCleanStreak: 0,
     bestMultiplier: 1,
     bestWpm: 0,
     powersUsed: 0,
@@ -135,6 +138,7 @@ export function recordLevelStats(
   life.pointsEarned += stats.score;
   life.bestLevelScore = Math.max(life.bestLevelScore, stats.score);
   life.bestCombo = Math.max(life.bestCombo, stats.maxCombo);
+  life.bestCleanStreak = Math.max(life.bestCleanStreak, stats.peakCleanStreak ?? 0);
   life.bestMultiplier = Math.max(life.bestMultiplier, stats.peakMultiplier);
   if (stats.completed >= MIN_WORDS_FOR_WPM) life.bestWpm = Math.max(life.bestWpm, Math.round(stats.wpm));
   life.powersUsed += stats.powersUsed ?? 0;

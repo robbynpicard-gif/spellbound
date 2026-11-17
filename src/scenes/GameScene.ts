@@ -6,7 +6,7 @@ import { FONTS, PALETTE, SIMULATION_STEP_MS } from '../core/GameConfig';
 import { createSeed } from '../core/Random';
 import { WORDS } from '../data/wordList';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
-import { tierOf, type GameStats } from '../gameplay/ScoringSystem';
+import { streakTierOf, tierOf, type GameStats } from '../gameplay/ScoringSystem';
 import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { Effects } from '../render/Effects';
 import { Celebrations } from '../render/Celebrations';
@@ -20,6 +20,7 @@ import { instabilityStage } from '../gameplay/InstabilityManager';
 import { chapterName, WIZARDS, type WizardId } from '../gameplay/Wizards';
 import { WizardPower } from '../render/WizardPower';
 import { Familiar } from '../render/Familiar';
+import { StreakFeedback } from '../render/StreakFeedback';
 import type { Loadout } from '../gameplay/Cosmetics';
 
 /** How the scene reports back to the app (menus are HTML, outside Phaser). */
@@ -48,6 +49,8 @@ export interface GameSceneData {
   initialInstability?: number;
   /** Combo carried from the previous Campaign level. */
   initialCombo?: number;
+  /** Campaign: Clean Streak carried in from the previous level of the chapter (D-046). */
+  initialCleanStreak?: number;
   /** Spells to show in the HUD (default: those this level can drop, plus any held). */
   knownSpells?: readonly SpellId[];
   /** Campaign: introduce this spell with a pop-up before the level starts. */
@@ -122,6 +125,8 @@ export class GameScene extends Phaser.Scene {
   private loadout: Loadout | null = null;
   /** A brief freeze of game time when a spell is cast, so the moment lands (D-045). */
   private hitStopMs = 0;
+  private streakFx!: StreakFeedback;
+  private lastTierUpAt = -1000;
   private familiar: Familiar | null = null;
 
   constructor() {
@@ -144,6 +149,7 @@ export class GameScene extends Phaser.Scene {
       hardcore: data.hardcore,
       initialInstability: data.initialInstability,
       initialCombo: data.initialCombo,
+      initialCleanStreak: data.initialCleanStreak,
       wizard: data.duel ? undefined : data.wizard,
     });
     this.wizard = data.duel ? null : (data.wizard ?? null);
@@ -196,6 +202,8 @@ export class GameScene extends Phaser.Scene {
       this.knownSpells,
     );
     this.hud.setSpells(this.engine.state.spells);
+    this.streakFx = new StreakFeedback(this, this.hud.streakAnchor);
+    this.hud.setStreak(this.engine.state.cleanStreak);
     if (this.engine.state.barrier > 0) {
       this.background.setShield(true);
       this.hud.setShield(this.engine.state.barrier);
@@ -380,6 +388,36 @@ export class GameScene extends Phaser.Scene {
       if (word.sigil) audio.sigilAppears();
     });
 
+    // ── Clean Streak (D-046) ──
+    ev.on('cleanStreakChanged', ({ count, previous, tier, multiplier, previousMultiplier, reason }) => {
+      this.hud.setStreak(count);
+      const tierBefore = streakTierOf(previous);
+      if (reason === 'capture') {
+        if (tier > tierBefore) {
+          // The combo's ×2 and Clean Streak I both arrive on the 5th word: let the
+          // combo proclamation have its moment, then the streak's.
+          const clash = this.time.now - this.lastTierUpAt < 100;
+          this.streakFx.milestone(tier, multiplier, clash ? 750 : 0);
+          if (clash) this.time.delayedCall(750, () => audio.streakMilestone(tier));
+          else audio.streakMilestone(tier);
+        }
+      } else if (reason === 'typo') {
+        this.streakFx.typo(previousMultiplier, multiplier, previous - count);
+        this.hud.shakeStreak(1);
+        audio.streakTypo(multiplier !== previousMultiplier);
+      } else if (previous > 0) {
+        if (reason === 'wrongEntry') {
+          this.streakFx.lost(previous);
+          this.hud.shakeStreak(2);
+          audio.streakLost();
+        } else {
+          this.streakFx.broken(previous);
+          this.hud.shakeStreak(3);
+          audio.streakBroken(previous);
+        }
+      }
+    });
+
     // ── wizard powers (D-042) ──
     ev.on('powerChanged', ({ active, ticks }) => {
       this.power?.changed(active, ticks);
@@ -537,6 +575,7 @@ export class GameScene extends Phaser.Scene {
     ev.on('tierChanged', ({ tier, multiplier, up }) => {
       this.hud.tierChanged(up);
       if (up) {
+        this.lastTierUpAt = this.time.now;
         audio.tierUp(tier);
         this.familiar?.cheer();
         this.celebrate.tierUp(multiplier, tier);

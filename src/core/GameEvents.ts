@@ -12,7 +12,15 @@ export interface GameEvents {
   wordSpawned: { word: WordState };
   /** A correct character was typed on the target word. */
   wordProgress: { word: WordState };
-  wordCompleted: { word: WordState; points: number; combo: number; multiplier: number; bonuses: Bonus[] };
+  wordCompleted: {
+    word: WordState;
+    points: number;
+    combo: number;
+    multiplier: number;
+    bonuses: Bonus[];
+    /** Clean Streak multiplier applied to this word (D-046). */
+    streakMultiplier: number;
+  };
   /** The combo multiplier moved to another tier (up on a streak; down on a wrong entry or a miss). */
   tierChanged: { tier: number; multiplier: number; up: boolean };
   /** End-of-level bonuses (Flawless, Under Par, Comeback), already added to the score. */
@@ -61,6 +69,18 @@ export interface GameEvents {
   /** A timed spell (Frostbinding, or the last Temporal Distortion stack) wore off. */
   spellEnded: { spell: SpellId };
   gameOver: { result: GameResult; stats: GameStats };
+  /**
+   * Clean Streak moved (D-046). `reason`: a clean 'capture', a corrected 'typo'
+   * (one milestone down), a 'wrongEntry' or a 'miss' (both reset to 0).
+   */
+  cleanStreakChanged: {
+    count: number;
+    previous: number;
+    tier: number;
+    multiplier: number;
+    previousMultiplier: number;
+    reason: 'capture' | 'typo' | 'wrongEntry' | 'miss';
+  };
   /** A wizard power started or ended (D-042). `ticks` left for timed powers. */
   powerChanged: { power: WizardId; active: boolean; ticks: number };
   /** Kindle: a capture at (x, y) set these words alight (captured for `points`). */

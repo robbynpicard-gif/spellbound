@@ -309,6 +309,7 @@ export function statsScreen(life: Readonly<LifetimeStats>, onBack: () => void, s
         stat('Best run', life.bestRunScore),
         stat('Best level', life.bestLevelScore),
         stat('Best combo', life.bestCombo),
+        stat('Best Clean Streak', life.bestCleanStreak),
         stat('Best multiplier', `×${life.bestMultiplier}`),
         stat('Best WPM', life.bestWpm),
         stat('Flawless levels', life.flawlessLevels),
