@@ -11,8 +11,8 @@ import {
   type RunOutcome,
   type RunSummary,
 } from '../modes/CampaignMode';
-import { STAGE_COUNT, STAGE_LEVELS } from '../difficulty/Stages';
-import { sanitizeCharges } from '../gameplay/SpellManager';
+import { DISCOVERY_ORDER, STAGE_COUNT, STAGE_LEVELS } from '../difficulty/Stages';
+import { isSpellId, sanitizeCharges, SPELL_IDS, type SpellId } from '../gameplay/SpellManager';
 import {
   applyPracticeResult,
   emptyPracticeRecord,
@@ -72,6 +72,8 @@ export interface SaveData {
   settings: AudioSettings;
   /** Everything ever played (D-042). Added within v4 (missing → zeros). */
   lifetime: LifetimeStats;
+  /** Spell on each number key, 1–8 (Normal quick-cast). Added within v5. */
+  spellSlots: SpellId[];
 }
 
 export interface AudioSettings {
@@ -104,7 +106,15 @@ export function emptySave(): SaveData {
     profile: { name: '', duelLevel: 1 },
     settings: { music: true, sfx: true },
     lifetime: emptyLifetime(),
+    spellSlots: [...DISCOVERY_ORDER],
   };
+}
+
+/** A valid layout uses each of the 8 spells exactly once; anything else falls back to the default. */
+export function parseSpellSlots(raw: unknown): SpellId[] {
+  if (!Array.isArray(raw) || raw.length !== SPELL_IDS.length) return [...DISCOVERY_ORDER];
+  const ok = raw.every((id) => isSpellId(id)) && new Set(raw).size === SPELL_IDS.length;
+  return ok ? (raw as SpellId[]) : [...DISCOVERY_ORDER];
 }
 
 const num = (v: unknown, fallback = 0): number =>
@@ -236,6 +246,7 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
       save.profile = parseProfile(data.profile, totalLevels);
       save.settings = parseSettings(data.settings);
       save.lifetime = parseLifetime(data.lifetime);
+      save.spellSlots = parseSpellSlots(data.spellSlots);
     };
     if (data.version === SAVE_VERSION) {
       keepShared();
@@ -358,6 +369,16 @@ export class SaveManager {
   notePracticeChoice(pick: LevelPick, filter: ModifierFilter): void {
     this.save.practice.last = { ...pick };
     this.save.practice.lastFilter = filter;
+    this.write();
+  }
+
+  /** Spell on each number key (index 0 = key 1). */
+  get spellSlots(): readonly SpellId[] {
+    return this.save.spellSlots;
+  }
+
+  setSpellSlots(slots: readonly SpellId[]): void {
+    this.save.spellSlots = parseSpellSlots([...slots]);
     this.write();
   }
 

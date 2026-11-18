@@ -50,6 +50,10 @@ export interface GameSceneData {
   initialCleanStreak?: number;
   /** Spells to show in the HUD (default: those this level can drop, plus any held). */
   knownSpells?: readonly SpellId[];
+  /** The player's number-key layout (index 0 = key 1). */
+  spellSlots?: readonly SpellId[];
+  /** Normal: number keys cast spells directly. */
+  quickCast?: boolean;
   /** Campaign: introduce this spell with a pop-up before the level starts. */
   spellIntro?: SpellId | null;
   /** Words to play with (the player's chosen banks). Duels always use the default list. */
@@ -110,6 +114,8 @@ export class GameScene extends Phaser.Scene {
   private awaitingIntro = false;
   private spellIntro: SpellId | null = null;
   private knownSpells: readonly SpellId[] = SPELL_IDS;
+  private spellSlots: readonly SpellId[] = SPELL_IDS;
+  private quickCast = false;
   private duel: DuelOptions | null = null;
   private duelMenuOpen = false;
   private countdownText: Phaser.GameObjects.Text | null = null;
@@ -147,6 +153,8 @@ export class GameScene extends Phaser.Scene {
     this.spellIntro = this.duel ? null : (data.spellIntro ?? null);
     this.awaitingIntro = false;
     const held = SPELL_IDS.filter((id) => (data.initialSpells?.[id] ?? 0) > 0);
+    this.spellSlots = data.spellSlots ?? SPELL_IDS;
+    this.quickCast = !data.duel && data.quickCast === true;
     this.knownSpells =
       data.knownSpells ?? SPELL_IDS.filter((id) => this.config.availableSpells.includes(id) || held.includes(id));
   }
@@ -172,6 +180,8 @@ export class GameScene extends Phaser.Scene {
       this.scoreOffset,
       this.duel?.rivalName,
       this.knownSpells,
+      this.spellSlots,
+      this.quickCast,
     );
     this.hud.setSpells(this.engine.state.spells);
     this.streakFx = new StreakFeedback(this, this.hud.streakAnchor);
@@ -393,12 +403,13 @@ export class GameScene extends Phaser.Scene {
       if (combo > 1) this.hud.pulseCombo();
     });
 
-    ev.on('wordsBurned', ({ words }) => {
+    ev.on('wordsBurned', ({ words, points }) => {
       for (const word of words) {
         const { x, y } = this.viewPosition(word.id, word.x, word.y);
         this.removeView(word.id);
         this.spellFx.burnWord(x, y);
       }
+      if (points > 0) this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 300, `+${points}`, PALETTE.fire, 30);
     });
 
     ev.on('wordsShocked', ({ words, points }) => {
@@ -664,6 +675,12 @@ export class GameScene extends Phaser.Scene {
     if (key === 'Delete') return this.engine.clearInput();
     if (event.repeat) return; // holding a letter or Enter should not repeat it
     if (key === 'Enter') return this.engine.submit();
+    // Normal: number keys 1–8 cast the spell in that slot (words never contain digits).
+    if (this.quickCast && key >= '1' && key <= '8') {
+      const spell = this.spellSlots[Number(key) - 1];
+      if (spell && this.knownSpells.includes(spell)) this.engine.quickCast(spell);
+      return;
+    }
     if (key.length === 1) {
       audio.key();
       this.engine.typeChar(key);

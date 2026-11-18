@@ -199,7 +199,7 @@ describe('casting', () => {
     expect(engine.state.spellsCast.slow).toBe(1);
   });
 
-  it('Fire is a bailout: clears the board for no points or progress, scrolls lost, combo kept', () => {
+  it('Fire is a bailout: clears the board for base points (no multipliers), no progress, scrolls lost, combo kept', () => {
     const engine = makeEngine(
       { requiredWords: 100, spawnInterval: 10, availableSpells: ['wind'], spellDropChance: 1 },
       { initialSpells: { fire: 1 } },
@@ -215,12 +215,13 @@ describe('casting', () => {
     cast(engine, 'fire');
 
     expect(engine.state.words).toHaveLength(0);
-    expect(engine.state.score).toBe(before.score);
+    const base = words.reduce((sum, w) => sum + w.text.length * 10, 0);
+    expect(engine.state.score).toBe(before.score + base);
     expect(engine.state.completed).toBe(before.completed);
     expect(engine.state.spells.wind).toBe(before.wind);
     expect(engine.state.combo).toBe(1);
     expect(engine.state.missed).toBe(0);
-    expect(burned).toHaveBeenCalledWith({ words });
+    expect(burned).toHaveBeenCalledWith({ words, points: base });
   });
 
   it('Fire cannot finish a level', () => {
@@ -230,7 +231,7 @@ describe('casting', () => {
     expect(engine.status).toBe('playing');
   });
 
-  it('Ice stops movement and spawning for 5 seconds, then everything resumes', () => {
+  it('Ice stops movement and spawning for 8 seconds, then everything resumes', () => {
     const engine = makeEngine({ spawnInterval: 100 }, { initialSpells: { ice: 1 } });
     stepUntilWords(engine, 2);
     const word = engine.state.words[0]!;
@@ -240,31 +241,35 @@ describe('casting', () => {
 
     cast(engine, 'ice');
     const y = word.y;
-    for (let i = 0; i < 299; i++) engine.step();
+    for (let i = 0; i < 479; i++) engine.step();
     expect(word.y).toBe(y);
     expect(engine.state.words.length).toBe(count);
     expect(ended).not.toHaveBeenCalled();
 
-    engine.step(); // 300th tick = 5 s
+    engine.step(); // 480th tick = 8 s
     expect(ended).toHaveBeenCalledWith({ spell: 'ice' });
     engine.step();
     expect(word.y).toBeGreaterThan(y);
   });
 
-  it('Ice stacks: each cast adds 5 more seconds', () => {
-    const engine = makeEngine({ spawnInterval: 100 }, { initialSpells: { ice: 2 } });
+  it('Ice stacks with decay: a cast while frozen adds 70% of the last one; a fresh freeze is full again', () => {
+    const engine = makeEngine({ spawnInterval: 100 }, { initialSpells: { ice: 4 } });
     stepUntilWords(engine, 1);
     const word = engine.state.words[0]!;
     cast(engine, 'ice');
     for (let i = 0; i < 120; i++) engine.step(); // 2 s in
     cast(engine, 'ice');
-    expect(engine.state.freezeTicks).toBe(480); // 3 s left + 5 s
+    expect(engine.state.freezeTicks).toBe(360 + 336); // 6 s left + 5.6 s
+    cast(engine, 'ice');
+    expect(engine.state.freezeTicks).toBe(696 + 235); // + 3.92 s
     const y = word.y;
-    for (let i = 0; i < 479; i++) engine.step();
+    for (let i = 0; i < 930; i++) engine.step();
     expect(word.y).toBe(y);
     engine.step();
     engine.step();
     expect(word.y).toBeGreaterThan(y);
+    cast(engine, 'ice'); // thawed: back to a full 8 s
+    expect(engine.state.freezeTicks).toBe(480);
   });
 
   it('typing still works while frozen', () => {
@@ -436,11 +441,43 @@ describe('casting', () => {
     expect(changed).toHaveBeenCalledWith({ value: 0, stage: 0 });
   });
 
-  it('Wind only halves instability in Hardcore', () => {
-    const engine = makeEngine({}, { initialSpells: { wind: 1 }, hardcore: true, initialInstability: 60 });
-    expect(engine.state.instability).toBe(60);
+  it('Wind restores a flat 50% in Hardcore too, never above full', () => {
+    const engine = makeEngine({}, { initialSpells: { wind: 2 }, hardcore: true, initialInstability: 80 });
     cast(engine, 'wind');
     expect(engine.state.instability).toBe(30);
+    cast(engine, 'wind');
+    expect(engine.state.instability).toBe(0);
+  });
+
+  it('Harvest applies the combo and Clean Streak multipliers at the moment of casting, and leaves them unchanged', () => {
+    const engine = makeEngine(
+      { requiredWords: 100, spawnInterval: 10, maxActiveWords: 5 },
+      { initialSpells: { harvest: 1 }, initialCombo: 12, initialCleanStreak: 15 },
+    );
+    stepUntilWords(engine, 5);
+    const words = [...engine.state.words];
+    const points = words.reduce((sum, w) => sum + Math.round(((w.text.length * 10) / 2) * 3 * 1.4), 0);
+    cast(engine, 'harvest');
+    expect(engine.state.score).toBe(points);
+    expect(engine.state.completed).toBe(5);
+    expect(engine.state.combo).toBe(12);
+    expect(engine.state.cleanStreak).toBe(15);
+  });
+
+  it('Normal quick cast (number keys) casts without typing and keeps the console text; Hardcore refuses it', () => {
+    const engine = makeEngine({}, { initialSpells: { ice: 1 } });
+    stepUntilWords(engine, 1);
+    engine.typeChar(engine.state.words[0]!.text[0]!);
+    expect(engine.quickCast('ice')).toBe(true);
+    expect(engine.state.freezeTicks).toBe(480);
+    expect(engine.state.input.length).toBe(1);
+    const fizzled = vi.fn();
+    engine.events.on('spellFizzled', fizzled);
+    engine.quickCast('ice');
+    expect(fizzled).toHaveBeenCalledWith({ spell: 'ice' });
+    const hard = makeEngine({}, { initialSpells: { ice: 1 }, hardcore: true });
+    expect(hard.quickCast('ice')).toBe(false);
+    expect(hard.state.spells.ice).toBe(1);
   });
 
   it('Harvest claims every word toward the quota at half points', () => {

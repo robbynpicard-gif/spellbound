@@ -23,7 +23,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.20.0';
+const APP_VERSION = '0.21.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -41,12 +41,12 @@ export interface MainMenuActions {
   onCredits(): void;
   onOptions(): void;
   onStats(): void;
+  onSpellbook(): void;
 }
 
 /** Menu entries that exist in the GDD but are built in later milestones. */
 const UPCOMING: [label: string, milestone: string][] = [
   ['Multiplayer', 'Milestone 5'],
-  ['Spellbook', 'Milestone 6'],
 ];
 
 /** `progress`: a line about campaign progress (best scores are per stage, on the stage screen). */
@@ -62,6 +62,7 @@ export function mainMenuScreen(actions: MainMenuActions, progress: string | null
       { class: 'menu-list', attrs: { 'aria-label': 'Main menu' } },
       campaign,
       h('button', { class: 'menu-button', onClick: actions.onPractice }, 'Endless Practice'),
+      h('button', { class: 'menu-button', onClick: actions.onSpellbook }, 'Spellbook'),
       ...UPCOMING.map(([label, milestone]) =>
         h(
           'button',

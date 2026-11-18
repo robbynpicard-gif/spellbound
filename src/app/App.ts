@@ -5,8 +5,8 @@ import type { GameStats } from '../gameplay/ScoringSystem';
 import { WORDS } from '../data/wordList';
 import { audio } from '../audio/Audio';
 import { isSurvival } from '../difficulty/DifficultyConfig';
-import { knownSpells, spellsOfStage, STAGE_COUNT, STAGE_LEVELS, stageLevel } from '../difficulty/Stages';
-import { SPELL_IDS, type SpellCharges } from '../gameplay/SpellManager';
+import { INTRO_LEVEL, knownSpells, SPELL_LEVEL, spellsOfStage, STAGE_COUNT, STAGE_LEVELS, stageLevel } from '../difficulty/Stages';
+import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { recordLevel, startRun, summarizeRun, type CampaignMode, type CampaignRun } from '../modes/CampaignMode';
 import { practiceConfig, type ModifierFilter } from '../modes/PracticeMode';
 import { BackdropScene } from '../scenes/BackdropScene';
@@ -27,6 +27,7 @@ import {
 import type { UIRoot } from '../ui/UIRoot';
 import { PRACTICE_UNLOCK_ALL } from './flags';
 import { journeyStrip, statsScreen } from '../ui/statsScreens';
+import { spellbookScreen } from '../ui/spellbookScreen';
 
 /**
  * Top-level flow between screens.
@@ -58,6 +59,7 @@ export class App {
           onCredits: () => this.showCredits(),
           onOptions: () => this.showOptions(),
           onStats: () => this.showStats(),
+          onSpellbook: () => this.showSpellbook(),
         },
         this.progressLine(),
         this.save.persistent,
@@ -117,6 +119,32 @@ export class App {
     return `Normal: ${cleared('normal')} of ${STAGE_COUNT} stages cleared · Hardcore: ${cleared('hardcore')} of ${STAGE_COUNT}`;
   }
 
+  showSpellbook(): void {
+    this.showBackdrop();
+    this.ui.show(
+      spellbookScreen(this.save.spellSlots, (id) => this.discovered(id), {
+        onSave: (slots) => this.save.setSpellSlots(slots),
+        onBack: () => this.showMainMenu(),
+      }),
+    );
+  }
+
+  /** A spell counts as discovered once any Campaign run has reached the level that teaches it. */
+  private discovered(spell: SpellId): boolean {
+    if (PRACTICE_UNLOCK_ALL) return true; // testing build: everything is open
+    const modes: CampaignMode[] = ['normal', 'hardcore'];
+    for (let stage = 1; stage <= STAGE_COUNT; stage++) {
+      const { atLevel2, atLevel10, fromBoss } = spellsOfStage(stage);
+      for (const mode of modes) {
+        const r = this.save.records(mode, stage);
+        if (atLevel2 === spell && r.highestReached >= INTRO_LEVEL) return true;
+        if (atLevel10 === spell && r.highestReached >= SPELL_LEVEL) return true;
+        if (fromBoss === spell && r.runsCompleted > 0) return true;
+      }
+    }
+    return false;
+  }
+
   // ───────────────────────── Campaign ─────────────────────────
 
   /** Campaign: choose a mode and a stage, or continue a run in progress (D-047). */
@@ -173,6 +201,8 @@ export class App {
       initialCombo: run.combo,
       initialCleanStreak: run.cleanStreak,
       knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
+      spellSlots: this.save.spellSlots,
+      quickCast: run.mode === 'normal',
       spellIntro: config.introducesSpell ?? null,
       words: this.words,
       hooks: {
@@ -267,6 +297,8 @@ export class App {
 
     this.startScene({
       config: practiceConfig(base, filter),
+      spellSlots: this.save.spellSlots,
+      quickCast: pick.mode === 'normal',
       words: this.words,
       hooks: {
         onPauseChanged: (paused) =>

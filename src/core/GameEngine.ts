@@ -52,7 +52,9 @@ export type Command =
   | { tick: number; type: 'backspace' }
   | { tick: number; type: 'clear' }
   | { tick: number; type: 'submit' }
-  | { tick: number; type: 'select'; wordId: number };
+  | { tick: number; type: 'select'; wordId: number }
+  /** Normal only: cast a spell directly (number keys). */
+  | { tick: number; type: 'cast'; spell: SpellId };
 
 export interface EngineOptions {
   config: DifficultyConfig;
@@ -87,6 +89,8 @@ export const SURGE_SPAWN_FACTOR = 0.6;
 export const SURGE_EXTRA_WORDS = 3;
 /** Claiming a scroll with a full spell pool: these points × the combo multiplier instead. */
 export const OVERFLOW_POINTS = 50;
+/** Each Ice cast while the field is still frozen adds this share of the previous cast's time. */
+export const ICE_STACK_DECAY = 0.7;
 
 /** Transmutation turns long words into words of these lengths. */
 const SHORT_WORD_MIN = 3;
@@ -374,6 +378,16 @@ export class GameEngine {
     this.record({ tick: this.s.tick, type: 'submit' });
   }
 
+  /**
+   * Quick cast (Normal only, number keys): cast a spell without typing its
+   * name. The console text is left as it is.
+   */
+  quickCast(spell: SpellId): boolean {
+    if (this.s.status !== 'playing' || this.hardcore) return false;
+    this.record({ tick: this.s.tick, type: 'cast', spell });
+    return true;
+  }
+
   /** Mouse click on a word: aim the console only at that word. */
   selectTarget(wordId: number): void {
     if (this.s.status !== 'playing' || !this.findWord(wordId)) return;
@@ -399,6 +413,8 @@ export class GameEngine {
         return this.applySubmit();
       case 'select':
         return this.applySelect(command.wordId);
+      case 'cast':
+        return this.castSpell(command.spell);
     }
   }
 
@@ -853,7 +869,10 @@ export class GameEngine {
     return {
       burnAllWords: () => this.burnAllWords(),
       freeze: (ticks) => {
-        this.s.freezeTicks += ticks;
+        const s = this.s;
+        if (s.freezeTicks === 0) s.iceCasts = 0;
+        s.freezeTicks += Math.max(1, Math.round(ticks * ICE_STACK_DECAY ** s.iceCasts));
+        s.iceCasts++;
         this.events.emit('freezeChanged', { ticks: this.s.freezeTicks });
       },
       slow: (ticks, factor) => {
@@ -872,10 +891,9 @@ export class GameEngine {
         this.events.emit('easyChanged', { ticks: this.s.easyTicks });
       },
       harvestAll: () => this.harvestAll(),
-      purgeInstability: (hardcoreFraction) => {
+      restoreWard: (points) => {
         const s = this.s;
-        const value = this.instability.value;
-        s.instability = this.instability.add(this.hardcore ? -value * hardcoreFraction : -value);
+        s.instability = this.instability.add(-Math.min(points, this.instability.value));
         this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
       },
       resetWordSpeeds: () => {
@@ -887,12 +905,22 @@ export class GameEngine {
     };
   }
 
-  /** Incineration: a bailout. Every word is destroyed, for no points and no progress; scrolls are lost. */
+  /**
+   * Fire: a bailout. Every word is destroyed for its base points (no combo or
+   * Clean Streak), not counting toward the quota; scrolls are lost.
+   */
   private burnAllWords(): void {
-    const burned = [...this.s.words];
+    const s = this.s;
+    const burned = [...s.words];
     if (burned.length === 0) return;
-    for (const word of burned) this.removeWord(word);
-    this.events.emit('wordsBurned', { words: burned });
+    let points = 0;
+    for (const word of burned) {
+      this.removeWord(word);
+      points += wordPoints(word.text.length, 1);
+    }
+    s.score += points;
+    this.events.emit('wordsBurned', { words: burned, points });
+    this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
   }
 
   /**
@@ -937,7 +965,9 @@ export class GameEngine {
   private harvestAll(): void {
     const words = [...this.s.words];
     if (words.length === 0) return;
-    const points = this.claimWords(words, (w) => Math.floor(wordPoints(w.text.length, 1) / 2));
+    // Half base points × the combo and Clean Streak multipliers at the moment of casting.
+    const factor = multiplierOf(this.s.combo) * streakMultiplierOf(this.s.cleanStreak);
+    const points = this.claimWords(words, (w) => Math.round((wordPoints(w.text.length, 1) / 2) * factor));
     this.events.emit('wordsHarvested', { words, points });
     this.afterClaim(words);
   }

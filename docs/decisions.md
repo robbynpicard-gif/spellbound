@@ -731,3 +731,27 @@ of Normal stages 4–5 and Hardcore stage 5.
   Practice repeats a level's surges every quota's worth of words.
 - Levels last about 37 s at their own pace; bosses 60/70/80/90/100 s.
 - Calibration: docs/calibration-2026-11-17.md (v0.20.0 section).
+
+### D-049 — Spell rebalance, quick-cast in Normal, Spellbook (2026-11-17)
+
+**Owner decisions (with ChatGPT's design handoff):**
+- **Fire:** destroys every word for its full base points (10 per letter), with
+  no combo or Clean Streak, and does not count toward the quota. A bailout.
+- **Harvest:** claims every word for half base points × the combo and Clean
+  Streak multipliers at the moment of casting; counts toward the quota; does
+  not change combo or streak.
+- **Wind:** restores a flat 50% of the ward (never above full), same in both
+  modes, and still removes the extra speed mistakes gave words.
+- **Ice:** freezes for 8 s. Casting again while frozen adds 70% of the previous
+  cast's time (8, 5.6, 3.9, 2.7 … at most ~27 s); after a thaw it's 8 s again.
+- **Slow:** unchanged (do not nerf).
+- **Barrier:** unchanged; blocking a word already protects combo and streak.
+- **Casting:** Normal casts with number keys 1–8 *or* by typing the name +
+  Enter. Hardcore is typing only.
+- **Spellbook:** main-menu screen to choose which spell is on each key. One
+  layout for both modes. Default = discovery order: 1 Fire, 2 Slow, 3 Ice,
+  4 Barrier, 5 Shock, 6 Alter, 7 Wind, 8 Harvest.
+- **Word list:** no falling word may equal a spell name (kept stricter: words
+  that start with a spell name are also left out, so typing a spell never
+  half-matches a word).
+- Future, not approved: boss "spell scramble", Triumphs, medals, shop.

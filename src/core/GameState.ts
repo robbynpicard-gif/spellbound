@@ -46,6 +46,8 @@ export interface GameState {
   spellsCast: SpellCharges;
   /** Ticks left of Frostbinding (no movement, no spawning). Each cast adds more. */
   freezeTicks: number;
+  /** Ice casts since the field last thawed: each adds less time (ICE_STACK_DECAY). */
+  iceCasts: number;
   /**
    * Active Temporal Distortion stacks: ticks left on each. Every stack has its
    * own timer, and fall speed is multiplied by the slow factor once per
@@ -115,6 +117,7 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     spells,
     spellsCast: emptyCharges(),
     freezeTicks: 0,
+    iceCasts: 0,
     slowStacks: [],
     easyTicks: 0,
     slowFactor: 1,

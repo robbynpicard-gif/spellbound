@@ -970,3 +970,58 @@
 .stage-select .stage-card {
   padding: 7px 14px;
 }
+
+/* Spellbook: number-key layout (Normal quick-cast) */
+.spellbook {
+  width: min(720px, 94vw);
+}
+
+.spellbook-list {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spellbook-row {
+  display: grid;
+  grid-template-columns: 34px 96px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgb(0 0 0 / 0.25);
+  border: 1px solid rgb(232 200 120 / 0.35);
+}
+
+.spellbook-row.locked {
+  opacity: 0.55;
+}
+
+.spellbook-key {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  text-align: center;
+  border: 2px solid var(--color-gold);
+  color: var(--color-gold);
+}
+
+.spellbook-name {
+  font-family: var(--font-heading);
+  font-size: 18px;
+}
+
+.spellbook-summary {
+  font-size: 15px;
+}
+
+.spellbook-moves {
+  display: flex;
+  gap: 4px;
+}
+
+.spellbook-moves .tab {
+  min-width: 0;
+  padding: 2px 10px;
+}

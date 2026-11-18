@@ -1,6 +1,6 @@
 # Wizzy Type — Current Design Reference
 
-Last updated 2026-11-17 (v0.20.0). This is the single source of truth for the
+Last updated 2026-11-17 (v0.21.0). This is the single source of truth for the
 current design. Older plans marked "Superseded" are kept only for history.
 
 - **Confirmed** means decided by the owner.
@@ -81,15 +81,29 @@ falling, so there is a choice from the first second.
 Levels are generated in src/difficulty/Stages.ts. Bot results are in
 docs/calibration-2026-11-17.md.
 
-## 4. Spells — Confirmed (D-047, D-048)
+## 4. Spells — Confirmed (D-047, D-048, D-049)
 
 - About 20% of words carry a spell scroll. Typing the word claims one charge.
-- To cast a spell, type its name and press Enter.
-- All spells share one pool of **8 charges**.
-- **Overflow.** Claiming a scroll with a full pool does not add a charge:
-  - the scroll fizzles to grey smoke where it was claimed;
-  - the spell rack flashes red and shakes, with a dull clunk;
-  - "MANA FULL · +N" appears, worth 50 × the combo multiplier.
+- All spells share one pool of **8 charges**. Claiming a scroll with a full
+  pool: it fizzles to grey smoke, the rack flashes red and shakes, and you get
+  "MANA FULL · +N" (50 × the combo multiplier).
+- **Casting:**
+  - **Normal:** press the spell's number key (1–8), or type its name + Enter.
+  - **Hardcore:** typing only.
+- **Spellbook** (main menu): choose which spell is on each key. One layout for
+  both modes. Default: 1 Fire, 2 Slow, 3 Ice, 4 Barrier, 5 Shock, 6 Alter,
+  7 Wind, 8 Harvest.
+
+| Spell | Effect |
+|---|---|
+| Fire | Burns every word. Base points (10 per letter), no multipliers, no quota. A bailout. |
+| Slow | Words fall at 60% speed for 8 s; casts stack. |
+| Ice | Freezes words and spawning for 8 s; recasts while frozen add 70% of the last (max ~27 s). |
+| Barrier | The next 2 words that reach the ward do no harm; combo and streak are safe. |
+| Shock | Strikes the lowest word and the 3 nearest: base points, count toward quota. |
+| Alter | Words of 6+ letters become short ones; easy words for 8 s. |
+| Wind | Restores 50% ward (not above full), removes mistake speed-ups. Same in both modes. |
+| Harvest | Claims every word: half base points × combo × Clean Streak; counts toward quota; multipliers unchanged. |
 
 | Stage | Level 2 | Level 10 | From the boss (usable next stage) |
 |---|---|---|---|
@@ -99,7 +113,8 @@ docs/calibration-2026-11-17.md.
 | 4 | — | Harvest | — |
 | 5 | — | — | — |
 
-A stage that follows a boss reward starts with 1 charge of that spell.
+A stage that follows a boss reward starts with 1 charge of that spell. No
+falling word is a spell name or starts with one.
 
 ## 5. Scoring — Confirmed (D-040, D-046)
 
@@ -151,6 +166,11 @@ cleared in each mode.
 - **Wizard progression:** how the player builds and improves their Apprentice.
 - **An ability layer,** once the loop is solid.
 - **Hardcore extras:** see the status doc.
+- **Boss spell scramble:** a boss shuffles the number keys (whole fight, or
+  reshuffling with warnings?).
+- **Triumph board, medals and a shop.**
+- **Reactive audio and a more kinetic stage end.**
+- **A world that shows the score** instead of number dials.
 - **Expanding Volley.**
 - **Clean Sweep tiers:** Sweeper / Janitor.
 - **Precision grades.**

@@ -109,6 +109,11 @@ const SCHEDULE: readonly StageSpells[] = [
   { atLevel2: null, atLevel10: null, fromBoss: null },
 ];
 
+/** Every spell in the order a player discovers it: the default number-key layout (1–8). */
+export const DISCOVERY_ORDER: readonly SpellId[] = SCHEDULE.flatMap((s) =>
+  [s.atLevel2, s.atLevel10, s.fromBoss].filter((id): id is SpellId => id !== null),
+);
+
 export function spellsOfStage(stage: number): StageSpells {
   return SCHEDULE[stage - 1] ?? { atLevel2: null, atLevel10: null, fromBoss: null };
 }

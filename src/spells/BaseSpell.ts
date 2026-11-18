@@ -21,8 +21,8 @@ export interface SpellData {
   arcs?: number;
   /** Transmutation: words at least this long are changed. */
   minLength?: number;
-  /** Arcane Purge in Hardcore: fraction of current instability removed. */
-  hardcoreHeal?: number;
+  /** Wind: ward restored, in percentage points. */
+  heal?: number;
 }
 
 /**
@@ -32,6 +32,7 @@ export interface SpellData {
  */
 export interface SpellContext {
   /** Incineration: destroy every word on the field, for no points or progress. */
+  /** Destroys every word for its base points (no multipliers), not counting toward the quota. */
   burnAllWords(): void;
   /** Stop all movement and spawning for this many more ticks (adds to any freeze left). */
   freeze(ticks: number): void;
@@ -48,7 +49,8 @@ export interface SpellContext {
   /** Harvest: every word on the field counts toward the quota, at half points. */
   harvestAll(): void;
   /** Arcane Purge: instability to 0% (Normal) or reduced by `hardcoreFraction` of itself (Hardcore). */
-  purgeInstability(hardcoreFraction: number): void;
+  /** Lowers instability by `points` percentage points (not below 0). */
+  restoreWard(points: number): void;
   /** Remove extra speed that mistakes added to words. */
   resetWordSpeeds(): void;
   /** Converts milliseconds to simulation ticks. */

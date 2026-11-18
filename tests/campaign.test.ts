@@ -3,6 +3,7 @@ import { isSurvival, letterArrivalRate, validateLevels } from '../src/difficulty
 import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
 import {
   BOSS_NAMES,
+  DISCOVERY_ORDER,
   duelLevels,
   knownSpells,
   levelWpm,
@@ -27,7 +28,7 @@ import {
   summarizeRun,
   type CampaignMode,
 } from '../src/modes/CampaignMode';
-import { parseSave, SAVE_KEY, SAVE_VERSION, SaveManager, type StorageLike } from '../src/storage/SaveManager';
+import { parseSave, parseSpellSlots, SAVE_KEY, SAVE_VERSION, SaveManager, type StorageLike } from '../src/storage/SaveManager';
 
 const TOTAL = CAMPAIGN_LEVELS.count;
 const MODES: CampaignMode[] = ['normal', 'hardcore'];
@@ -275,6 +276,24 @@ describe('pacing and overflow (engine)', () => {
     expect(got[0]).toMatchObject({ stored: false, overflowPoints: OVERFLOW_POINTS });
     expect(e.state.score - before).toBe(wordPts + OVERFLOW_POINTS);
     expect(e.state.spells.fire).toBe(SPELL_POOL_SIZE);
+  });
+});
+
+describe('spell slots (Spellbook)', () => {
+  it('default to the order spells are discovered, and survive a reload', () => {
+    expect(DISCOVERY_ORDER).toEqual(['fire', 'slow', 'ice', 'barrier', 'shock', 'alter', 'wind', 'harvest']);
+    const storage = new MemoryStorage();
+    const save = new SaveManager(storage, TOTAL);
+    expect(save.spellSlots).toEqual(DISCOVERY_ORDER);
+    const custom = ['ice', 'fire', 'slow', 'barrier', 'shock', 'alter', 'wind', 'harvest'] as const;
+    save.setSpellSlots(custom);
+    expect(new SaveManager(storage, TOTAL).spellSlots).toEqual(custom);
+  });
+
+  it('fall back to the default if the saved layout is broken', () => {
+    expect(parseSpellSlots(['fire', 'fire'])).toEqual(DISCOVERY_ORDER);
+    expect(parseSpellSlots(['fire', 'slow', 'ice', 'barrier', 'shock', 'alter', 'wind', 'nope'])).toEqual(DISCOVERY_ORDER);
+    expect(parseSpellSlots(undefined)).toEqual(DISCOVERY_ORDER);
   });
 });
 

@@ -117,6 +117,8 @@ class RackScroll {
     y: number,
     private readonly w: number,
     private readonly h: number,
+    /** Normal: the number key that casts it (1–8). */
+    key: number | null = null,
   ) {
     const big = h >= 70;
     this.g = scene.add.graphics();
@@ -132,7 +134,15 @@ class RackScroll {
       .setOrigin(big ? 0.5 : 1, 0.5)
       .setShadow(2, 2, '#1a1214', 0, false, true)
       .setVisible(big || h >= 46);
-    this.container = scene.add.container(x + w / 2, y + h / 2, [this.g, this.icon, this.count, this.name]).setDepth(31);
+    const parts: (Phaser.GameObjects.Graphics | Phaser.GameObjects.Image | Phaser.GameObjects.Text | Phaser.GameObjects.Rectangle)[] = [this.g, this.icon, this.count, this.name];
+    if (key !== null) {
+      const kx = -w / 2 + 14;
+      const ky = -h / 2 + 15;
+      const plate = scene.add.rectangle(kx, ky, 22, 22, 0x1a1214, 0.85).setStrokeStyle(2, 0xf6ecd8, 0.9);
+      const label = scene.add.text(kx, ky, String(key), ui(0xf6ecd8, 15)).setOrigin(0.5);
+      parts.push(plate, label);
+    }
+    this.container = scene.add.container(x + w / 2, y + h / 2, parts).setDepth(31);
     this.set(0);
   }
 
@@ -237,8 +247,12 @@ export class GameHUD {
     /** Run score from earlier levels, added to this level's score. */
     private readonly scoreOffset = 0,
     rivalName?: string,
-    /** Spells with a scroll in the rack (those this run has unlocked), in power order. */
+    /** Spells with a scroll in the rack (those this run has unlocked). */
     knownSpells: readonly SpellId[] = SPELL_IDS,
+    /** The player's number-key layout: the rack follows it. */
+    slots: readonly SpellId[] = SPELL_IDS,
+    /** Normal: show each scroll's number key. */
+    showKeys = false,
   ) {
     if (rivalName) this.rival = { name: rivalName, score: 0, instability: 0, alive: true };
 
@@ -274,11 +288,12 @@ export class GameHUD {
       .setDepth(31);
 
     // Spell rack: one scroll per unlocked spell.
-    const shown = SPELL_IDS.filter((id) => knownSpells.includes(id));
+    const shown = slots.filter((id) => knownSpells.includes(id));
     const rack = LAYOUT.rack;
     const step = shown.length > 0 ? Math.min(98, Math.floor(rack.height / shown.length)) : 0;
     shown.forEach((id, i) => {
-      this.scrolls[id] = new RackScroll(scene, id, rack.x + 6, rack.y + i * step + 4, rack.width - 12, step - 8);
+      const key = showKeys ? slots.indexOf(id) + 1 : null;
+      this.scrolls[id] = new RackScroll(scene, id, rack.x + 6, rack.y + i * step + 4, rack.width - 12, step - 8, key);
     });
 
     // Status bar: level · words · score · ward.

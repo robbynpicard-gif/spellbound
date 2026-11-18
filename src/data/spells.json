@@ -13,10 +13,10 @@
     "id": "ice",
     "name": "Frostbinding",
     "book": "Ice",
-    "summary": "Freezes every word for 5 seconds.",
-    "description": "Freezes every word in place, and stops new words appearing, for 5 seconds. Each extra cast adds 5 more. You can keep typing.",
+    "summary": "Freezes every word for 8 seconds.",
+    "description": "Freezes every word in place, and stops new words appearing, for 8 seconds. Casting it again while frozen adds more time, but less each time (8 s, then 5.6, 3.9 …). You can keep typing.",
     "dropWeight": 4,
-    "durationMs": 5000
+    "durationMs": 8000
   },
   {
     "id": "barrier",
@@ -50,25 +50,25 @@
     "id": "fire",
     "name": "Incineration",
     "book": "Fire",
-    "summary": "Burns every word away (no points).",
-    "description": "A last resort: burns every word on the field. Burned words give no points and don't count toward the level.",
+    "summary": "Burns every word away for base points.",
+    "description": "A bailout: burns every word on the field. You get each word's base points (no combo or Clean Streak), but burned words don't count toward the level.",
     "dropWeight": 2
   },
   {
     "id": "wind",
     "name": "Arcane Purge",
     "book": "Wind",
-    "summary": "Restores your ward.",
-    "description": "Restores the wards: instability back to 0% (Hardcore: halves it), and every word loses the extra speed your mistakes gave it.",
+    "summary": "Restores 50% of your ward.",
+    "description": "Restores 50% of your ward (up to full), and every word loses the extra speed your mistakes gave it. The same in Normal and Hardcore.",
     "dropWeight": 1.5,
-    "hardcoreHeal": 0.5
+    "heal": 50
   },
   {
     "id": "harvest",
     "name": "Harvest",
     "book": "Harvest",
-    "summary": "Claims every word on screen.",
-    "description": "Claims every word on the field: they all count toward the level, at half points.",
+    "summary": "Claims every word on screen, with your multipliers.",
+    "description": "Claims every word on the field: they all count toward the level, for half points × your combo and Clean Streak. Your combo and streak stay as they are.",
     "dropWeight": 1
   }
 ]

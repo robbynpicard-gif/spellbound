@@ -26,7 +26,7 @@ export interface GameEvents {
   levelBonuses: { bonuses: Bonus[]; total: number };
   wordMissed: { word: WordState; instability: number };
   /** Words destroyed by Incineration (not typed; no points, no progress). */
-  wordsBurned: { words: WordState[] };
+  wordsBurned: { words: WordState[]; points: number };
   /** Words destroyed by Chain Lightning, in strike order (first = the most urgent). */
   wordsShocked: { words: WordState[]; points: number };
   /** Words claimed by Harvest. */
