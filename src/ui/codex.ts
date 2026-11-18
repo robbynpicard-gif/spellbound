@@ -7,7 +7,7 @@ import { BOSS_SECONDS, INTRO_LEVEL, SPELL_DROP_CHANCE, SPELL_LEVEL, spellsOfStag
 import { HARDCORE_HEAL, HARDCORE_HEAL_LEVELS } from '../modes/CampaignMode';
 import { OVERFLOW_POINTS, SURGE_SPAWN_FACTOR } from '../core/GameEngine';
 import { SCORING, STREAK_MILESTONES, TIERS } from '../gameplay/ScoringSystem';
-import { SPELL_POOL_SIZE } from '../gameplay/SpellManager';
+import { POOL_GROWTH, SPELL_POOL_SIZE } from '../gameplay/SpellManager';
 import { SPELLS } from '../spells/SpellRegistry';
 
 export interface CodexSection {
@@ -38,7 +38,8 @@ export const CODEX: CodexSection[] = [
       `Ward damage per missed word: Normal ${STAGE_TUNING.normal.instabilityPerMiss.join('/')}% and Hardcore ${STAGE_TUNING.hardcore.instabilityPerMiss.join('/')}% (stages 1–5).`,
       `Normal restores the ward at the start of every level. Hardcore carries damage through the stage, heals ${HARDCORE_HEAL}% after levels ${HARDCORE_HEAL_LEVELS.join(', ')}, and starts each stage full.`,
       'Typos and wrong Enters make the word you were aiming at fall faster.',
-      'Words still falling when you clear a level stay where they are for the next level.',
+      'Words still falling when you clear a level stay where they are for the next level, so you can read the field before it restarts.',
+      'A captured word is swept to the desk, where its points and bonuses are read out, so nothing is written over the words still falling.',
     ],
   },
   {
@@ -47,7 +48,8 @@ export const CODEX: CodexSection[] = [
       `${STAGE_COUNT} stages per mode, each a run of ${STAGE_LEVELS} levels. Levels 1–${STAGE_LEVELS - 1}: capture a set number of words. Level ${STAGE_LEVELS}: the boss — survive the timer (${BOSS_SECONDS.join('/')} s by stage) while the pace ramps up. Falling restarts the stage.`,
       'Each level opens with a few words already falling, then builds: words fall faster and arrive more often as you near the goal, more sharply later in the stage.',
       `Surges (from level ${SURGE_FROM_LEVEL}): short bursts where words arrive ${Math.round((1 / SURGE_SPAWN_FACTOR) * 10) / 10}× as often. One per level up to level 12, two from level 13, three in each boss.`,
-      'Beat a boss to open the next stage, and to play Endless mode at that stage’s peak pace.',
+      'When a boss timer runs out no more words come: clear what is still falling to finish. The win is already safe, so a late miss cannot end the run.',
+      'Beat a boss to open the next stage, and to play Endless mode — the stage’s finishing pace, climbing with every word, with a best score kept per stage.',
     ],
     table: {
       head: ['Pace (in-game WPM)', 'Start', ...STAGE_NAMES.map((_, i) => `Stage ${i + 1}`)],
@@ -61,7 +63,8 @@ export const CODEX: CodexSection[] = [
     title: 'Spells',
     points: [
       `About ${pct(SPELL_DROP_CHANCE)} of words carry a spell scroll (coloured, with an icon). Capture the word to gain one charge.`,
-      `All spells share one pool of ${SPELL_POOL_SIZE} charges. Claiming a scroll with a full pool fizzles it for ${OVERFLOW_POINTS} × your combo multiplier points instead.`,
+      `All spells share one pool that starts at ${SPELL_POOL_SIZE} charges. Claiming a scroll with a full pool fizzles it for ${OVERFLOW_POINTS} × your combo multiplier points instead.`,
+      `Typing accurately widens the pool: ${POOL_GROWTH.filter((g) => g.at > 0).map((g) => `${g.size} at ${g.at} clean`).join(', ')}. A missed word or a wrong Enter drops it back to ${SPELL_POOL_SIZE} and anything that no longer fits is lost. A corrected typo costs nothing.`,
       'Normal: cast with the number keys 1–8 (set them in the Spellbook), or type the spell’s name and press Enter. Hardcore: type the name and press Enter.',
       'No falling word is a spell name, and only the exact name casts.',
     ],

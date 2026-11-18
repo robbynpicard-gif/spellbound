@@ -95,8 +95,8 @@ describe('stage structure (D-047)', () => {
     // The agreed targets raised by a third (owner, 2026-11-17).
     expect(STAGE_TUNING.normal.targetWpm).toEqual([29, 35, 42, 48, 56]);
     expect(STAGE_TUNING.hardcore.targetWpm).toEqual([40, 48, 56, 64, 72]);
-    expect(levelWpm('normal', 1, 1)).toBe(19);
-    expect(levelWpm('hardcore', 1, 1)).toBe(29);
+    expect(levelWpm('normal', 1, 1)).toBe(23);
+    expect(levelWpm('hardcore', 1, 1)).toBe(35);
     expect(levelWpm('normal', 3, 20)).toBe(42);
     // Each stage starts where the previous stage's target was.
     expect(levelWpm('normal', 2, 1)).toBe(29);
@@ -144,7 +144,7 @@ describe('stage structure (D-047)', () => {
 describe('spell schedule: Fire at stage 1 level 2, then level 10 and the boss', () => {
   it('follows the agreed order', () => {
     expect(STAGES.map(spellsOfStage)).toEqual([
-      { atLevel2: 'fire', atLevel10: 'slow', fromBoss: 'ice' },
+      { atLevel2: 'slow', atLevel10: 'fire', fromBoss: 'ice' },
       { atLevel2: null, atLevel10: 'barrier', fromBoss: 'shock' },
       { atLevel2: null, atLevel10: 'alter', fromBoss: 'wind' },
       { atLevel2: null, atLevel10: 'harvest', fromBoss: null },
@@ -154,9 +154,9 @@ describe('spell schedule: Fire at stage 1 level 2, then level 10 and the boss', 
 
   it('introduces the level-10 spell at level 10 and the boss spell at the next stage’s level 1', () => {
     expect(stageLevel('normal', 1, 1).availableSpells).toEqual([]);
-    expect(stageLevel('normal', 1, 2).introducesSpell).toBe('fire');
-    expect(stageLevel('normal', 1, 9).availableSpells).toEqual(['fire']);
-    expect(stageLevel('normal', 1, 10).introducesSpell).toBe('slow');
+    expect(stageLevel('normal', 1, 2).introducesSpell).toBe('slow');
+    expect(stageLevel('normal', 1, 9).availableSpells).toEqual(['slow']);
+    expect(stageLevel('normal', 1, 10).introducesSpell).toBe('fire');
     expect([...stageLevel('normal', 1, 10).availableSpells].sort()).toEqual(['fire', 'slow']);
     expect(stageLevel('normal', 1, 20).availableSpells).not.toContain('ice');
     expect(stageLevel('normal', 2, 1).introducesSpell).toBe('ice');
@@ -281,7 +281,7 @@ describe('pacing and overflow (engine)', () => {
 
 describe('spell slots (Spellbook)', () => {
   it('default to the order spells are discovered, and survive a reload', () => {
-    expect(DISCOVERY_ORDER).toEqual(['fire', 'slow', 'ice', 'barrier', 'shock', 'alter', 'wind', 'harvest']);
+    expect(DISCOVERY_ORDER).toEqual(['slow', 'fire', 'ice', 'barrier', 'shock', 'alter', 'wind', 'harvest']);
     const storage = new MemoryStorage();
     const save = new SaveManager(storage, TOTAL);
     expect(save.spellSlots).toEqual(DISCOVERY_ORDER);

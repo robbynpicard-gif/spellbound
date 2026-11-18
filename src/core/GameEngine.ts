@@ -24,6 +24,8 @@ import {
 import { wordComplexity } from '../gameplay/WordGenerator';
 import {
   addCharge,
+  poolSizeFor,
+  trimToPool,
   consumeCharge,
   isSpellId,
   sanitizeCharges,
@@ -91,14 +93,17 @@ export const SURGE_SPAWN_FACTOR = 0.6;
 export const SURGE_EXTRA_WORDS = 3;
 /** Claiming a scroll with a full spell pool: these points × the combo multiplier instead. */
 export const OVERFLOW_POINTS = 50;
+/** Fire spares freshly spawned words: it only burns below this share of the field (D-057). */
+export const FIRE_MIN_DEPTH = 0.2;
 /** Each Ice cast while the field is still frozen adds this share of the previous cast's time. */
 export const ICE_STACK_DECAY = 0.7;
 
 /** Transmutation turns long words into words of these lengths. */
-const SHORT_WORD_MIN = 3;
-const SHORT_WORD_MAX = 4;
-const EASY_WORD_MIN = 3;
-const EASY_WORD_MAX = 5;
+const SHORT_WORD_MIN = 2;
+const SHORT_WORD_MAX = 3;
+// Alter turns the field into 2–3 letter words (D-057).
+const EASY_WORD_MIN = 2;
+const EASY_WORD_MAX = 3;
 /** No rare letters, long consonant runs or names in Alter's window. */
 const EASY_MAX_COMPLEXITY = 0.5;
 
@@ -223,6 +228,15 @@ export class GameEngine {
         maxActiveWords: Math.round(lerp(pace.maxActiveWords, c.ramp.maxActiveWords)),
       };
     }
+    // Endless: the pace keeps climbing with every word captured (D-057).
+    if (c.escalation) {
+      const steps = Math.floor(this.s.completed / c.escalation.perWords);
+      pace = {
+        fallSpeed: pace.fallSpeed * (1 + c.escalation.speed * steps),
+        spawnInterval: pace.spawnInterval / (1 + c.escalation.spawn * steps),
+        maxActiveWords: Math.min(16, pace.maxActiveWords + Math.floor(steps / 4)),
+      };
+    }
     // Within a quota level, words come slower at the start and faster near the end (D-051).
     if (!isSurvival(c) && c.spawnRamp) pace = { ...pace, spawnInterval: pace.spawnInterval * (1 + c.spawnRamp - 2 * c.spawnRamp * this.progress) };
     if (this.s.surgeTicks > 0)
@@ -232,6 +246,11 @@ export class GameEngine {
 
   /** How far through the level we are (0–1): share of the quota, or of the boss timer. */
   private carried: WordState[] = [];
+
+  /** How many charges fit right now: the base pool, widened by a clean run (D-057). */
+  get poolLimit(): number {
+    return poolSizeFor(this.s.manaStreak);
+  }
 
   private get progress(): number {
     const c = this.config;
@@ -311,7 +330,15 @@ export class GameEngine {
 
     // Boss level: surviving the whole timer clears it.
     const remaining = this.survivalRemainingMs;
-    if (remaining !== null && remaining <= 0) return this.end('won');
+    if (remaining !== null && remaining <= 0) {
+      // The boss timer is over: stop sending words and let the player finish the
+      // field. The win is already secured, so the ward cannot break now (D-057).
+      if (!s.windingDown) {
+        s.windingDown = true;
+        this.events.emit('windDown', {});
+      }
+      if (s.words.length === 0) return this.end('won');
+    }
 
     this.tickPacing();
 
@@ -353,7 +380,7 @@ export class GameEngine {
 
     s.spawnTimerMs = Math.max(0, s.spawnTimerMs - SIMULATION_STEP_MS);
     const pace = this.pace;
-    if (s.spawnTimerMs === 0 && s.words.length < pace.maxActiveWords) {
+    if (s.spawnTimerMs === 0 && !s.windingDown && s.words.length < pace.maxActiveWords) {
       this.spawn(pace.fallSpeed);
       s.spawnTimerMs = pace.spawnInterval;
     }
@@ -492,6 +519,7 @@ export class GameEngine {
     // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
     this.setCombo(comboAfterWrongEntry(s.combo));
     this.setCleanStreak(0, 'wrongEntry');
+    this.shrinkPool();
     if (!guess) s.errors++;
     else if (guess.id !== s.penalizedId) {
       s.errors++;
@@ -677,7 +705,10 @@ export class GameEngine {
     const multiplier = multiplierOf(s.combo);
     // Clean Streak: a word typed with no typo adds one. The capture that reaches
     // a milestone already scores at its multiplier (D-046).
-    if (word.errors === 0 && !s.entryTypo) this.setCleanStreak(s.cleanStreak + 1, 'capture');
+    if (word.errors === 0 && !s.entryTypo) {
+      this.setCleanStreak(s.cleanStreak + 1, 'capture');
+      this.growPool();
+    }
     const streak = streakMultiplierOf(s.cleanStreak);
     const bonuses = this.wordBonuses(word);
     const points = Math.round(scoreWord(word.text.length, multiplier, bonuses, streak));
@@ -695,7 +726,7 @@ export class GameEngine {
   private collect(word: WordState): void {
     const s = this.s;
     const spell = word.spell!;
-    const stored = addCharge(s.spells, spell);
+    const stored = addCharge(s.spells, spell, this.poolLimit);
     const overflowPoints = stored ? 0 : OVERFLOW_POINTS * multiplierOf(s.combo);
     if (overflowPoints > 0) {
       s.score += overflowPoints;
@@ -721,6 +752,7 @@ export class GameEngine {
     s.missed++;
     this.setCombo(0);
     this.setCleanStreak(0, 'miss');
+    this.shrinkPool();
     const damage = this.config.instabilityPerMiss;
     s.instability = this.instability.add(damage);
     s.peakInstability = Math.max(s.peakInstability, s.instability);
@@ -729,7 +761,8 @@ export class GameEngine {
     this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
 
-    if (this.instability.collapsed) this.end('lost');
+    // The boss timer is already survived: a late miss stings but cannot end the run.
+    if (this.instability.collapsed && !s.windingDown) this.end('lost');
   }
 
   /**
@@ -758,6 +791,25 @@ export class GameEngine {
   }
 
   /** Sets the Clean Streak (D-046) and reports the change. */
+  /** A clean capture: the pool may widen a step. */
+  private growPool(): void {
+    const before = this.poolLimit;
+    this.s.manaStreak++;
+    if (this.poolLimit !== before) this.events.emit('manaPoolChanged', { size: this.poolLimit, lost: 0, charges: { ...this.s.spells } });
+  }
+
+  /**
+   * A missed word or a wrong Enter: the pool snaps back to its base size and
+   * any charges that no longer fit are lost (D-057). A corrected typo is free.
+   */
+  private shrinkPool(): void {
+    const s = this.s;
+    if (s.manaStreak === 0) return;
+    s.manaStreak = 0;
+    const lost = trimToPool(s.spells, this.poolLimit);
+    this.events.emit('manaPoolChanged', { size: this.poolLimit, lost, charges: { ...s.spells } });
+  }
+
   private setCleanStreak(count: number, reason: 'capture' | 'typo' | 'wrongEntry' | 'miss'): void {
     const s = this.s;
     const previous = s.cleanStreak;
@@ -926,7 +978,7 @@ export class GameEngine {
    */
   private burnAllWords(): void {
     const s = this.s;
-    const burned = [...s.words];
+    const burned = s.words.filter((w) => w.y >= this.field.height * FIRE_MIN_DEPTH);
     if (burned.length === 0) return;
     let points = 0;
     for (const word of burned) {

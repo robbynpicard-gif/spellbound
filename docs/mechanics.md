@@ -1,4 +1,4 @@
-# Wizzy Type — Game mechanics (v0.26.0)
+# Wizzy Type — Game mechanics (v0.27.0)
 
 Generated from the game's own numbers (the same source as the in-game **Codex** on the main menu), so it matches what you play.
 
@@ -9,24 +9,27 @@ Generated from the game's own numbers (the same source as the in-game **Codex** 
 - Ward damage per missed word: Normal 10/11/12/13/14% and Hardcore 12/13/14/15/16% (stages 1–5).
 - Normal restores the ward at the start of every level. Hardcore carries damage through the stage, heals 25% after levels 5, 10, 15, and starts each stage full.
 - Typos and wrong Enters make the word you were aiming at fall faster.
-- Words still falling when you clear a level stay where they are for the next level.
+- Words still falling when you clear a level stay where they are for the next level, so you can read the field before it restarts.
+- A captured word is swept to the desk, where its points and bonuses are read out, so nothing is written over the words still falling.
 
 ## Stages and pace
 
 - 5 stages per mode, each a run of 20 levels. Levels 1–19: capture a set number of words. Level 20: the boss — survive the timer (60/70/80/90/100 s by stage) while the pace ramps up. Falling restarts the stage.
 - Each level opens with a few words already falling, then builds: words fall faster and arrive more often as you near the goal, more sharply later in the stage.
 - Surges (from level 6): short bursts where words arrive 1.7× as often. One per level up to level 12, two from level 13, three in each boss.
-- Beat a boss to open the next stage, and to play Endless mode at that stage’s peak pace.
+- When a boss timer runs out no more words come: clear what is still falling to finish. The win is already safe, so a late miss cannot end the run.
+- Beat a boss to open the next stage, and to play Endless mode — the stage’s finishing pace, climbing with every word, with a best score kept per stage.
 
 | Pace (in-game WPM) | Start | Stage 1 | Stage 2 | Stage 3 | Stage 4 | Stage 5 |
 |---|---|---|---|---|---|---|
-| Normal | 19 | 29 | 35 | 42 | 48 | 56 |
-| Hardcore | 29 | 40 | 48 | 56 | 64 | 72 |
+| Normal | 23 | 29 | 35 | 42 | 48 | 56 |
+| Hardcore | 35 | 40 | 48 | 56 | 64 | 72 |
 
 ## Spells
 
 - About 14.4% of words carry a spell scroll (coloured, with an icon). Capture the word to gain one charge.
-- All spells share one pool of 8 charges. Claiming a scroll with a full pool fizzles it for 50 × your combo multiplier points instead.
+- All spells share one pool that starts at 8 charges. Claiming a scroll with a full pool fizzles it for 50 × your combo multiplier points instead.
+- Typing accurately widens the pool: 9 at 25 clean, 10 at 50 clean, 11 at 100 clean, 12 at 200 clean. A missed word or a wrong Enter drops it back to 8 and anything that no longer fits is lost. A corrected typo costs nothing.
 - Normal: cast with the number keys 1–8 (set them in the Spellbook), or type the spell’s name and press Enter. Hardcore: type the name and press Enter.
 - No falling word is a spell name, and only the exact name casts.
 
@@ -43,8 +46,8 @@ Generated from the game's own numbers (the same source as the in-game **Codex** 
 
 | Stage | When | New spell |
 |---|---|---|
-| 1 | Level 2 | Fire |
-| 1 | Level 10 | Slow |
+| 1 | Level 2 | Slow |
+| 1 | Level 10 | Fire |
 | 1 | Beat the boss (usable next stage) | Ice |
 | 2 | Level 10 | Barrier |
 | 2 | Beat the boss (usable next stage) | Shock |

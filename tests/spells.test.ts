@@ -1,9 +1,11 @@
 import { wordComplexity } from '../src/gameplay/WordGenerator';
 import { describe, expect, it, vi } from 'vitest';
-import { GameEngine, type EngineOptions } from '../src/core/GameEngine';
+import { FIELD } from '../src/core/GameConfig';
+import { FIRE_MIN_DEPTH, GameEngine, type EngineOptions } from '../src/core/GameEngine';
 import type { DifficultyConfig } from '../src/difficulty/DifficultyConfig';
 import {
   addCharge,
+  MAX_POOL_SIZE,
   consumeCharge,
   emptyCharges,
   poolFull,
@@ -82,14 +84,14 @@ describe('spell pool', () => {
     expect(addCharge(c, 'slow')).toBe(true);
   });
 
-  it('sanitises carried-in charges and trims them to the pool (strongest first)', () => {
+  it('sanitises carried-in charges and trims them to the widest pool', () => {
     expect(sanitizeCharges({ fire: 2, ice: -2, slow: 1.7, wind: Number.NaN, bogus: 4 } as never)).toEqual({
       ...emptyCharges(),
       fire: 2,
       slow: 1,
     });
-    const trimmed = sanitizeCharges({ slow: 5, harvest: 5 });
-    expect(trimmed).toEqual({ ...emptyCharges(), slow: 5, harvest: 3 });
+    const trimmed = sanitizeCharges({ slow: 9, harvest: 9 });
+    expect(totalCharges(trimmed)).toBe(MAX_POOL_SIZE);
   });
 
   it('registry has all eight spells, in power order, each with a drop weight', () => {
@@ -207,6 +209,8 @@ describe('casting', () => {
     stepUntilWords(engine, 3);
     typeWord(engine, engine.state.words[0]!.text); // combo 1, +1 wind
     stepUntilWords(engine, 3);
+    // Fire spares the top of the field, so let these fall into its reach first.
+    for (let i = 0; i < 600 && engine.state.words.some((w) => w.y < FIELD.height * FIRE_MIN_DEPTH); i++) engine.step();
     const words = [...engine.state.words];
     const before = { score: engine.state.score, completed: engine.state.completed, wind: engine.state.spells.wind };
     const burned = vi.fn();
@@ -366,10 +370,11 @@ describe('casting', () => {
     expect(shocked).toHaveBeenCalledWith({ words: struck, points });
   });
 
-  it('Transmutation turns 6+ letter words into 3–4 letter words, in place', () => {
+  it('Transmutation turns 6+ letter words into 2–3 letter words, in place', () => {
     const engine = makeEngine(
       { spawnInterval: 10, maxActiveWords: 8, minWordLength: 3, maxWordLength: 10 },
-      { initialSpells: { alter: 1 } },
+      // Enough 2–3 letter words for every long word to become a distinct short one.
+      { initialSpells: { alter: 1 }, words: [...TEST_WORDS, 'ox', 'ax', 'up', 'ivy', 'oak', 'ash', 'fog', 'jay', 'kit', 'pod'] },
     );
     stepUntilWords(engine, 8);
     const long = engine.state.words.filter((w) => w.text.length >= 6);
@@ -378,8 +383,8 @@ describe('casting', () => {
     cast(engine, 'alter');
     for (const b of before) {
       const w = engine.state.words.find((x) => x.id === b.id)!;
-      expect(w.text.length).toBeGreaterThanOrEqual(3);
-      expect(w.text.length).toBeLessThanOrEqual(4);
+      expect(w.text.length).toBeGreaterThanOrEqual(2);
+      expect(w.text.length).toBeLessThanOrEqual(3);
       expect(w.match).toBe(w.text.toLowerCase());
       expect({ x: w.x, y: w.y, speed: w.speed }).toEqual({ x: b.x, y: b.y, speed: b.speed });
     }
@@ -530,14 +535,38 @@ describe('casting', () => {
 describe('boss (survival) levels', () => {
   const boss = { requiredWords: null, survivalMs: 10_000, ramp: { initialFallSpeed: 120, spawnInterval: 500, maxActiveWords: 9 } };
 
-  it('are won by surviving the timer', () => {
+  it('are won by surviving the timer, then clearing the words still falling (D-057)', () => {
     const engine = makeEngine({ ...boss, initialFallSpeed: 5, instabilityPerMiss: 1 });
+    const windDown = vi.fn();
+    engine.events.on('windDown', windDown);
     for (let i = 0; i < 599; i++) engine.step();
     expect(engine.status).toBe('playing');
     expect(engine.survivalRemainingMs).toBeCloseTo(16.7, 0);
     engine.step();
     engine.step();
+    // The timer is up: no new words, and the level waits for the field to clear.
+    expect(windDown).toHaveBeenCalled();
+    expect(engine.status).toBe('playing');
+    const left = engine.state.words.length;
+    expect(left).toBeGreaterThan(0);
+    for (const w of [...engine.state.words]) {
+      for (const c of w.match) engine.typeChar(c);
+      engine.submit();
+    }
+    expect(engine.state.words.length).toBe(0);
+    engine.step();
     expect(engine.status).toBe('won');
+  });
+
+  it('cannot be lost after the timer runs out: late misses sting but the win is secured', () => {
+    const engine = makeEngine({ ...boss, initialFallSpeed: 5, instabilityPerMiss: 99 });
+    for (let i = 0; i < 601; i++) engine.step();
+    expect(engine.state.windingDown).toBe(true);
+    expect(engine.state.words.length).toBeGreaterThan(0);
+    // Every word left is missed, which would normally end the run twice over.
+    for (let i = 0; i < 40_000 && engine.status === 'playing'; i++) engine.step();
+    expect(engine.status).toBe('won');
+    expect(engine.state.missed).toBeGreaterThan(0);
   });
 
   it('speed up smoothly over the timer', () => {

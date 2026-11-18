@@ -65,6 +65,10 @@ export interface GameEvents {
   spellCollected: { spell: SpellId; stored: boolean; charges: SpellCharges; overflowPoints: number; x: number; y: number };
   /** A surge of extra words started or ended. */
   surgeChanged: { active: boolean };
+  /** The mana pool widened or snapped back; `lost` charges were dropped (D-057). */
+  manaPoolChanged: { size: number; lost: number; charges: SpellCharges };
+  /** A boss timer ran out: clear the remaining words to finish (D-057). */
+  windDown: Record<string, never>;
   spellCast: { spell: SpellId; charges: SpellCharges };
   /** Tried to cast with no charges left. */
   spellFizzled: { spell: SpellId };

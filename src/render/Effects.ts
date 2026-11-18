@@ -57,7 +57,7 @@ export class Effects {
       .setDepth(20);
   }
 
-  wordDestroyed(x: number, y: number, length: number, points: number, multiplier = 1, text = ''): void {
+  wordDestroyed(x: number, y: number, length: number, points: number, multiplier = 1, text = '', showPoints = true): void {
     const more = Math.min(4, Math.log2(multiplier) + 1);
     const style = FLOURISHES[this.flourish];
     if (this.flourish === 'letters' && text) this.letters(x, y, text);
@@ -66,6 +66,7 @@ export class Effects {
       this.goldBurst.explode(Math.round((10 + length * 3) * more * (this.flourish === 'letters' ? 0.4 : 1)), x, y);
       this.arcaneBurst.explode(Math.round((8 + length * 2) * more * (this.flourish === 'letters' ? 0.4 : 1)), x, y);
     } else this.goldBurst.explode(Math.round(4 * more), x, y);
+    if (!showPoints) return;
     const label = multiplier > 1 ? `+${points.toLocaleString()}  ×${multiplier}` : `+${points}`;
     this.floatText(x, y, label, PALETTE.gold, 22 + Math.round(more * 3));
   }

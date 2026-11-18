@@ -7,7 +7,7 @@ import type { GameStats } from '../gameplay/ScoringSystem';
 import { WORDS } from '../data/wordList';
 import { audio } from '../audio/Audio';
 import { isSurvival } from '../difficulty/DifficultyConfig';
-import { INTRO_LEVEL, knownSpells, SPELL_LEVEL, spellsOfStage, STAGE_COUNT, STAGE_LEVELS, stageLevel } from '../difficulty/Stages';
+import { endlessConfig, INTRO_LEVEL, knownSpells, SPELL_LEVEL, spellsOfStage, STAGE_COUNT, STAGE_LEVELS, stageLevel } from '../difficulty/Stages';
 import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { recordLevel, startRun, summarizeRun, type CampaignMode, type CampaignRun } from '../modes/CampaignMode';
 import { practiceConfig, type ModifierFilter } from '../modes/PracticeMode';
@@ -311,13 +311,40 @@ export class App {
       runOverScreen(summary, outcome, clearedLevel, {
         onNewRun: () => this.startNewRun(run.mode, run.stage),
         onNextStage: nextStage ? () => this.startNewRun(run.mode, nextStage) : undefined,
-        onEndless: victory ? () => this.startPractice({ mode: run.mode, stage: run.stage, level: STAGE_LEVELS - 1 }, 'original') : undefined,
+        onEndless: victory ? () => this.startEndless(run.mode, run.stage) : undefined,
         spellWon: victory ? spellsOfStage(run.stage).fromBoss : null,
         extra: journey,
         onMenu: () => this.showMainMenu(),
         mode: run.mode,
       }),
     );
+  }
+
+  /**
+   * Endless mode (D-057): the stage's finishing pace, climbing without end.
+   * The best score is kept per stage (stored as practice level 0).
+   */
+  startEndless(mode: CampaignMode, stage: number): void {
+    this.run = null;
+    const pick: LevelPick = { mode, stage, level: 0 };
+    const where = `Endless · ${mode === 'hardcore' ? 'Hardcore' : 'Normal'} · Stage ${stage}`;
+    this.startScene({
+      config: endlessConfig(mode, stage),
+      hardcore: mode === 'hardcore',
+      words: this.words,
+      hooks: {
+        onPauseChanged: (paused) =>
+          this.onPause(paused, where, [
+            {
+              label: 'End run and see your score',
+              onClick: () => this.endPractice(pick, where, 'original', this.gameScene.snapshot().stats, false),
+            },
+            { label: 'Start again', onClick: () => this.startEndless(mode, stage) },
+            { label: 'Back to the menu', onClick: () => this.showMainMenu() },
+          ], 'Starting again or leaving ends this run'),
+        onGameOver: (_result, stats) => this.endPractice(pick, where, 'original', stats, true),
+      },
+    });
   }
 
   // ───────────────────────── Endless Practice ─────────────────────────

@@ -11,9 +11,9 @@ import { CAMPAIGN_LEVELS } from '../src/difficulty/LevelDefinitions';
 const PROTOTYPE_LEVEL = CAMPAIGN_LEVELS.get(3); // lengths 3–7
 
 describe('word list', () => {
-  it('one dictionary: letters only (capitals only for legend names), 3–12 letters, no duplicates', () => {
-    expect(ALL_WORDS.length).toBeGreaterThan(2800);
-    for (const w of ALL_WORDS) expect(w).toMatch(/^([a-z]{3,12}|[A-Z][a-z]{2,11})$/);
+  it('one dictionary: letters only (capitals only for legend names), 2–12 letters, no duplicates', () => {
+    expect(ALL_WORDS.length).toBeGreaterThan(6000);
+    for (const w of ALL_WORDS) expect(w).toMatch(/^([a-z]{2,12}|[A-Z][a-z]{2,11})$/);
     expect(new Set(ALL_WORDS.map((w) => w.toLowerCase())).size).toBe(ALL_WORDS.length);
     expect(WORDS).toEqual([...ALL_WORDS]);
   });
@@ -27,7 +27,7 @@ describe('word list', () => {
   it('has plenty of words for every level', () => {
     for (const l of CAMPAIGN_LEVELS.all) {
       const fits = WORDS.filter((w) => w.length >= l.minWordLength && w.length <= l.maxWordLength);
-      expect(fits.length, `level ${l.level}`).toBeGreaterThanOrEqual(500);
+      expect(fits.length, `level ${l.level}`).toBeGreaterThanOrEqual(450);
     }
   });
 

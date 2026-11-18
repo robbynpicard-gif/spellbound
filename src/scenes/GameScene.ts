@@ -8,7 +8,8 @@ import { createSeed } from '../core/Random';
 import { WORDS } from '../data/wordList';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { streakTierOf, tierOf, type GameStats } from '../gameplay/ScoringSystem';
-import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
+import { SPELL_IDS, totalCharges, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
+import { Intake } from '../render/Intake';
 import { Effects } from '../render/Effects';
 import { Celebrations } from '../render/Celebrations';
 import { FieldBackground } from '../render/FieldBackground';
@@ -108,6 +109,7 @@ export class GameScene extends Phaser.Scene {
   private background!: FieldBackground;
   private effects!: Effects;
   private celebrate!: Celebrations;
+  private intake!: Intake;
   private spellFx!: SpellEffects;
   private hud!: GameHUD;
   private accumulator = 0;
@@ -192,6 +194,7 @@ export class GameScene extends Phaser.Scene {
 
     this.effects = new Effects(this);
     this.celebrate = new Celebrations(this);
+    this.intake = new Intake(this);
     this.spellFx = new SpellEffects(this);
     this.hud = new GameHUD(
       this,
@@ -204,6 +207,7 @@ export class GameScene extends Phaser.Scene {
       this.quickCast,
     );
     this.hud.setSpells(this.engine.state.spells);
+    this.hud.setMana(totalCharges(this.engine.state.spells), this.engine.poolLimit);
     this.streakFx = new StreakFeedback(this, this.hud.streakAnchor);
     this.hud.setStreak(this.engine.state.cleanStreak);
     if (this.engine.state.barrier > 0) {
@@ -418,8 +422,10 @@ export class GameScene extends Phaser.Scene {
       audio.capture(combo, bonuses.map((b) => b.id));
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
       this.removeView(word.id);
-      this.effects.wordDestroyed(x, y, word.text.length, points, multiplier, word.text);
-      this.celebrate.wordBonuses(x, y, bonuses);
+      // The burst stays on the field; the points and bonuses are read out at the
+      // desk instead, so nothing is written over a falling word (D-057).
+      this.effects.wordDestroyed(x, y, word.text.length, points, multiplier, word.text, false);
+      this.intake.claim(x, y, word.text, points, multiplier, bonuses);
       this.hud.console.flash(PALETTE.gold);
       if (combo > 1) this.hud.pulseCombo();
     });
@@ -502,6 +508,7 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('spellCollected', ({ spell, stored, charges, overflowPoints, x, y }) => {
       this.hud.setSpells(charges, stored ? spell : undefined);
+      this.hud.setMana(totalCharges(charges), this.engine.poolLimit);
       if (stored) {
         audio.pickup();
         this.effects.floatText(LAYOUT.width / 2, LAYOUT.panelY - 24, `+1 ${SPELLS[spell].book} mana`, SPELL_COLORS[spell], 20);
@@ -516,6 +523,15 @@ export class GameScene extends Phaser.Scene {
       this.effects.floatText(sx, sy - 34, `MANA FULL · +${overflowPoints}`, 0xd8d0c0, 26);
       this.hud.rackFull();
     });
+    ev.on('manaPoolChanged', ({ size, lost, charges }) => {
+      this.hud.setSpells(charges);
+      this.hud.setMana(totalCharges(charges), size, lost > 0 ? 'lost' : 'grew');
+      if (lost > 0) {
+        audio.overflow();
+        this.hud.rackFull();
+        this.effects.floatText(LAYOUT.rack.x + LAYOUT.rack.width / 2, LAYOUT.rack.y + 40, `−${lost} MANA`, PALETTE.crimson, 22);
+      }
+    });
     ev.on('surgeChanged', ({ active }) => {
       this.hud.setSurge(active);
       if (active) audio.tierDown(1);
@@ -525,6 +541,7 @@ export class GameScene extends Phaser.Scene {
       audio.cast(spell);
       if (!this.duel) this.hitStopMs = 140;
       this.hud.setSpells(charges, spell);
+      this.hud.setMana(totalCharges(charges), this.engine.poolLimit);
       this.hud.console.flash(SPELL_COLORS[spell]);
       this.spellFx.cast(spell);
       if (spell === 'ice') for (const view of this.views.values()) view.setFrozen(true);

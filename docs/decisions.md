@@ -831,3 +831,36 @@ Main menu → **Codex** (not reachable during a run): tabs for The basics, Stage
 and pace, Spells, Scoring, Mistakes and Bonuses. Built from the game's own
 numbers (src/ui/codex.ts), so it stays accurate; the same source exports
 docs/mechanics.md.
+
+### D-057 — Playtest pass: busy opening, intake readout, growing mana, endless (2026-11-18)
+
+**Owner decisions after play-testing:**
+- **Spell order:** Slow at Stage 1 level 2, Fire at level 10, Ice from the boss.
+  The rest of the schedule is unchanged.
+- **Boss wind-down:** when the timer ends no new words come; the stage ends once
+  the field is clear. The win is already secured, so a late miss cannot end the
+  run. Normal levels keep ending on their quota (words carry to the next level,
+  so a level already feels like a continuation).
+- **Endless mode** is offered after beating a stage's boss: it opens at the
+  stage's finishing pace and keeps climbing (+4% speed and arrival every 25
+  words), with a best score kept per stage.
+- **Word library doubled:** 2,910 → 6,780 words, weighted to short ones
+  (2–4 letters: ~620 → 2,070). Two-letter words added.
+- **Capture readout moved off the field:** a captured word is swept to the desk
+  in the left margin, where its points and bonuses are read out. Spell effects
+  and the capture burst stay on the field.
+- **Level summary no longer hides the field:** the dim behind it is light, so
+  the words still falling stay visible.
+- **Mana pool grows with accuracy:** 8 charges, then 9/10/11/12 at 25/50/100/200
+  clean captures. A missed word or wrong Enter drops it back to 8 and anything
+  that no longer fits is lost. A corrected typo costs nothing (option C).
+- **Fire** only burns words below the top fifth of the field, so freshly spawned
+  words are not wasted.
+- **Alter** now turns the field into 2–3 letter words.
+- **Busy from level 1:** stage 1 opens at the rhythm of the later stages (a word
+  about every 1.3 s, falling in ~15 s) with 2–4 letter words. Arrival stays
+  roughly flat (1.2–1.4 s) across all stages; difficulty grows through word
+  length and fall speed. Normal starts at 23 WPM, Hardcore at 35.
+
+**Open:** whether Clean Streak should count words or letters, now that early
+words are tiny (the milestones are unchanged for now).

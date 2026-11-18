@@ -316,6 +316,11 @@ export class GameHUD {
     // Labels on the brass plates above the counter and the rack.
     scene.add.text(LAYOUT.scorePlate.x, LAYOUT.scorePlate.y, 'SCORE', ui(LABEL, 12)).setOrigin(0.5).setDepth(31);
     scene.add.text(LAYOUT.rackPlate.x, LAYOUT.rackPlate.y, 'SPELLS', ui(LABEL, 20)).setOrigin(0.5).setDepth(31);
+    // How much mana fits right now: a clean run widens the pool (D-057).
+    this.manaText = scene.add
+      .text(LAYOUT.rack.x + LAYOUT.rack.width / 2, LAYOUT.rack.y - 14, '', ui(PALETTE.parchment, 14))
+      .setOrigin(0.5)
+      .setDepth(31);
 
     this.drawRoll();
     this.updateStats(null);
@@ -533,6 +538,17 @@ export class GameHUD {
     this.lastCharges = { ...charges };
     if (pulse) this.scrolls[pulse]?.pulse();
   }
+
+  /** Mana held out of what fits, and a flash when the pool changes. */
+  setMana(held: number, size: number, change: 'grew' | 'lost' | null = null): void {
+    this.manaText.setText(`MANA ${held}/${size}`);
+    if (!change) return;
+    const color = change === 'grew' ? PALETTE.gold : PALETTE.crimson;
+    this.manaText.setColor(hex(color)).setScale(1.3);
+    this.scene.tweens.add({ targets: this.manaText, scale: 1, duration: 320, ease: 'Back.easeOut' });
+    this.scene.time.delayedCall(700, () => this.manaText.setColor(hex(PALETTE.parchment)));
+  }
+  private manaText!: Phaser.GameObjects.Text;
 
   denySpell(spell: SpellId): void {
     this.scrolls[spell]?.deny();

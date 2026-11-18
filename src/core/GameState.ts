@@ -30,6 +30,10 @@ export interface GameState {
   surgeTicks: number;
   /** Endless Practice: which lap of the level the surges belong to. */
   surgeLap: number;
+  /** Clean captures in a row for the mana pool (D-057): typos keep it, misses reset it. */
+  manaStreak: number;
+  /** Boss timer is over: no new words, the level ends when the field is clear. */
+  windingDown: boolean;
   score: number;
   combo: number;
   maxCombo: number;
@@ -105,6 +109,8 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     overflows: 0,
     surgeTicks: 0,
     surgeLap: 0,
+    manaStreak: 0,
+    windingDown: false,
     score: 0,
     combo: 0,
     maxCombo: 0,

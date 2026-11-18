@@ -43,24 +43,25 @@ export const STAGE_TUNING: Record<
     maxComplexity: readonly (number | null)[];
   }
 > = {
-  // WPM: the agreed targets raised by a third, then by a further ~20% through
-  // spawn rate only (owner, 2026-11-17). WPM sets only how often words arrive;
-  // fall speed and word length are set separately below.
-  // Shorter words and a slower fall mean more words on screen at once.
+  // WPM only sets how often words arrive; fall speed and word length are set
+  // separately below. Stage 1 now opens at the busy rhythm of the later stages
+  // (a word about every 1.3 s, falling in ~15 s) with tiny 2–4 letter words, so
+  // the game feels alive from the first level and grows harder through word
+  // length and fall speed rather than through waiting (D-057).
   normal: {
-    startWpm: 19,
+    startWpm: 23,
     targetWpm: [29, 35, 42, 48, 56],
-    lengths: [[3, 4], [3, 5], [3, 6], [4, 7], [4, 8]],
-    fallSeconds: [20, 11],
+    lengths: [[2, 4], [3, 5], [3, 6], [4, 7], [4, 8]],
+    fallSeconds: [15, 10],
     instabilityPerMiss: [10, 11, 12, 13, 14],
     errorAcceleration: [12, 14, 16, 18, 20],
     maxComplexity: [0.5, 1, 1.5, 2, null],
   },
   hardcore: {
-    startWpm: 29,
+    startWpm: 35,
     targetWpm: [40, 48, 56, 64, 72],
     lengths: [[3, 5], [3, 6], [4, 7], [4, 8], [5, 9]],
-    fallSeconds: [15, 8.5],
+    fallSeconds: [13, 8],
     instabilityPerMiss: [12, 13, 14, 15, 16],
     errorAcceleration: [16, 18, 20, 22, 24],
     maxComplexity: [1, 1.5, 2, 2.5, null],
@@ -115,7 +116,7 @@ interface StageSpells {
   fromBoss: SpellId | null;
 }
 const SCHEDULE: readonly StageSpells[] = [
-  { atLevel2: 'fire', atLevel10: 'slow', fromBoss: 'ice' },
+  { atLevel2: 'slow', atLevel10: 'fire', fromBoss: 'ice' },
   { atLevel2: null, atLevel10: 'barrier', fromBoss: 'shock' },
   { atLevel2: null, atLevel10: 'alter', fromBoss: 'wind' },
   { atLevel2: null, atLevel10: 'harvest', fromBoss: null },
@@ -243,4 +244,23 @@ export function duelLevels(): DifficultyConfig[] {
     levels.map((l) => ({ ...l, name: `Stage ${s + 1} · ${l.level === STAGE_LEVELS ? l.name : `Level ${l.level}`}`, introducesSpell: null })),
   );
   return validateLevels(flat.map((l, k) => ({ ...l, stageLevel: l.level, level: k + 1 })));
+}
+
+/**
+ * Endless mode (D-057): offered once a stage's boss is beaten. It opens at the
+ * pace the stage finished on and keeps climbing, so the run ends only when the
+ * ward does. Scores are kept per stage.
+ */
+export function endlessConfig(mode: StageMode, stage: number): DifficultyConfig {
+  const last = stageLevel(mode, stage, STAGE_LEVELS - 1);
+  return {
+    ...last,
+    name: `Endless · ${STAGE_NAMES[stage - 1] ?? ''}`,
+    requiredWords: null,
+    survivalMs: null,
+    ramp: null,
+    rampWords: last.requiredWords,
+    speedRampExtra: 0,
+    escalation: { perWords: 25, speed: 0.04, spawn: 0.04 },
+  };
 }

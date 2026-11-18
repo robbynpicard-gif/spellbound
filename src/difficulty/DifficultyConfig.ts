@@ -64,6 +64,11 @@ export interface DifficultyConfig {
   /** Extra fall-speed rise across a quota level: start unchanged, end ×(1+r+this). */
   speedRampExtra?: number;
   /**
+   * Endless mode (D-057): with no quota to end the level, the pace keeps
+   * climbing — every `perWords` captures adds `speed` and `spawn` to it.
+   */
+  escalation?: { perWords: number; speed: number; spawn: number } | null;
+  /**
    * Surges: short bursts of extra words. `at` is the point in the level (0–1:
    * share of the quota, or of the boss timer) and `ms` how long it lasts.
    */

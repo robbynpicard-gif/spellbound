@@ -1,6 +1,6 @@
 # Wizzy Type — Current Design Reference
 
-Last updated 2026-11-18 (v0.25.0). This is the single source of truth for the
+Last updated 2026-11-18 (v0.27.0). This is the single source of truth for the
 current design. Older plans marked "Superseded" are kept only for history.
 
 - **Confirmed** means decided by the owner.
@@ -36,8 +36,11 @@ current design. Older plans marked "Superseded" are kept only for history.
 - A stage takes about **15 minutes**.
 - **Words stay on the field between levels** of a stage: the next level starts
   with them where they were (D-055).
-- **Endless mode after the boss:** beating level 20 offers endless play at the
-  stage's peak pace (D-055).
+- **Endless mode after the boss:** beating level 20 offers endless play that
+  starts at the stage's finishing pace and keeps climbing, with a best score
+  per stage (D-055, D-057).
+- **Boss wind-down (D-057):** when the boss timer ends, no new words come and
+  the stage finishes once the field is clear; the win cannot be lost there.
 
 | Stage | Name | Boss (L20) |
 |---|---|---|
@@ -54,13 +57,16 @@ more through spawn rate only (D-050), with the same shape:
 
 | Mode | Start | S1 | S2 | S3 | S4 | S5 |
 |---|---|---|---|---|---|---|
-| Normal | 19 | 29 | 35 | 42 | 48 | 56 |
-| Hardcore | 29 | 40 | 48 | 56 | 64 | 72 |
+| Normal | 23 | 29 | 35 | 42 | 48 | 56 |
+| Hardcore | 35 | 40 | 48 | 56 | 64 | 72 |
 
 **Pace.** Each stage starts at the previous stage's target and reaches 95% of
 its own target by level 19. Each boss ramps from 90% to 112% of its target.
 
-**Words on screen.** Short words and a slow fall keep about 9–12 words on screen.
+**Words on screen.** Words arrive about every 1.2–1.4 s at every stage, so the
+screen is busy from level 1 (about 8–12 words). Difficulty grows through word
+length (2–4 letters in stage 1, up to 5–9 in Hardcore stage 5) and fall speed
+(15 s down to 8 s), not through waiting (D-057).
 Normal Stage 1 uses 3–4-letter words.
 
 **Within a level (D-051).** Each level starts calm and builds to its end:
