@@ -1,3 +1,4 @@
+import type { WordState } from '../gameplay/Word';
 import Phaser from 'phaser';
 import { audio } from '../audio/Audio';
 import { GameEngine } from '../core/GameEngine';
@@ -24,7 +25,7 @@ import { StreakFeedback } from '../render/StreakFeedback';
 export interface GameSceneHooks {
   onPauseChanged(paused: boolean): void;
   /** `instability` is the final value (Hardcore carries it to the next level). */
-  onGameOver(result: GameResult, stats: GameStats, spells: SpellCharges, instability: number): void;
+  onGameOver(result: GameResult, stats: GameStats, spells: SpellCharges, instability: number, words: WordState[]): void;
   /**
    * Campaign: show the pop-up introducing a new spell. The level waits
    * until `begin` is called.
@@ -48,6 +49,8 @@ export interface GameSceneData {
   initialCombo?: number;
   /** Campaign: Clean Streak carried in from the previous level of the chapter (D-046). */
   initialCleanStreak?: number;
+  /** Words carried over from the previous level (D-055). */
+  initialWords?: readonly WordState[];
   /** Spells to show in the HUD (default: those this level can drop, plus any held). */
   knownSpells?: readonly SpellId[];
   /** The player's number-key layout (index 0 = key 1). */
@@ -145,6 +148,7 @@ export class GameScene extends Phaser.Scene {
       initialInstability: data.initialInstability,
       initialCombo: data.initialCombo,
       initialCleanStreak: data.initialCleanStreak,
+      initialWords: data.initialWords,
     });
     this.views.clear();
     this.accumulator = 0;
@@ -583,7 +587,7 @@ export class GameScene extends Phaser.Scene {
       const handOver = () => {
         if (handed) return;
         handed = true;
-        this.hooks.onGameOver(result, stats, spells, instability);
+        this.hooks.onGameOver(result, stats, spells, instability, this.engine.state.words.map((w) => ({ ...w })));
       };
       const delay = Math.max(RESULTS_DELAY_MS, finaleMs);
       this.time.delayedCall(delay, handOver);

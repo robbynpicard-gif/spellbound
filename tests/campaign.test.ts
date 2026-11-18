@@ -297,6 +297,19 @@ describe('spell slots (Spellbook)', () => {
   });
 });
 
+describe('words carry between levels (D-055)', () => {
+  it('a level starts with the previous level\'s words where they were, instead of an opening cluster', () => {
+    const a = new GameEngine({ config: stageLevel('normal', 1, 3), seed: 4, words: WORDS });
+    for (let t = 0; t < 300; t++) a.step();
+    const left = a.state.words.map((w) => ({ ...w }));
+    expect(left.length).toBeGreaterThan(0);
+    const b = new GameEngine({ config: stageLevel('normal', 1, 4), seed: 5, words: WORDS, initialWords: left });
+    b.step();
+    expect(b.state.words.map((w) => w.text)).toEqual(left.map((w) => w.text));
+    b.state.words.forEach((w, i) => expect(Math.abs(w.y - left[i]!.y)).toBeLessThan(5)); // one tick of movement
+  });
+});
+
 describe('duel levels', () => {
   it('flatten the 100 Normal levels, numbered 1–100', () => {
     const all = duelLevels();

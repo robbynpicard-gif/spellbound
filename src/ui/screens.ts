@@ -23,7 +23,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.24.0';
+const APP_VERSION = '0.25.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -117,6 +117,8 @@ export function pauseScreen(label: string, onResume: () => void, options: PauseO
 
 export interface StageSelectActions {
   onStart(mode: CampaignMode, stage: number): void;
+  /** Testing controls (D-055). */
+  testing?: { unlockAll: boolean; onToggleUnlock(): void; onReset(): void };
   onContinue(): void;
   onBack(): void;
 }
@@ -190,7 +192,14 @@ export function stageSelectScreen(
       column('normal', 'The ward is restored at the start of every level.'),
       column('hardcore', `Ward damage carries through the stage; levels ${HARDCORE_HEAL_LEVELS.join(', ')} heal ${HARDCORE_HEAL}%.`),
     ),
-    h('div', { class: 'button-row' }, h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back')),
+    h(
+      'div',
+      { class: 'button-row' },
+      actions.testing &&
+        h('button', { class: 'menu-button', onClick: actions.testing.onToggleUnlock }, actions.testing.unlockAll ? 'Testing: all unlocked' : 'Testing: real progress'),
+      actions.testing && h('button', { class: 'menu-button', onClick: actions.testing.onReset }, 'Reset campaign'),
+      h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back'),
+    ),
   );
   const first = cont ?? element.querySelector<HTMLElement>('.stage-card:not([disabled])')!;
   return {
@@ -290,6 +299,8 @@ export interface RunOverActions {
   onMenu(): void;
   /** Victory: play the next stage (absent after the last stage). */
   onNextStage?(): void;
+  /** After a cleared stage: keep going in endless mode at the stage's peak pace (D-055). */
+  onEndless?(): void;
   /** Victory: the spell won from the boss (first playable next stage). */
   spellWon?: SpellId | null;
   /** Shown above the buttons (the stage journey). */
@@ -320,6 +331,7 @@ export function runOverScreen(
 
   const next = won && actions.onNextStage ? h('button', { class: 'menu-button primary', onClick: actions.onNextStage }, `Stage ${stage + 1}`) : null;
   const newRun = h('button', { class: `menu-button${next ? '' : ' primary'}`, onClick: actions.onNewRun }, won ? 'Play again' : 'Try again');
+  const endless = won && actions.onEndless ? h('button', { class: 'menu-button', onClick: actions.onEndless }, 'Endless mode') : null;
   const spell = won && actions.spellWon ? SPELLS[actions.spellWon] : null;
   const element = h(
     'section',
@@ -352,6 +364,7 @@ export function runOverScreen(
       { class: 'button-row' },
       next,
       newRun,
+      endless,
       h('button', { class: 'menu-button', onClick: actions.onMenu }, 'Main menu'),
     ),
   );

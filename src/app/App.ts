@@ -1,3 +1,4 @@
+import type { WordState } from '../gameplay/Word';
 import type Phaser from 'phaser';
 import type { GameResult } from '../core/GameEvents';
 import type { LevelManager } from '../difficulty/LevelManager';
@@ -156,7 +157,19 @@ export class App {
         this.save.savedRun,
         this.save.takeResetNotice(),
         {
-          onStart: (mode, stage) => (CAMPAIGN_UNLOCK_ALL ? this.showLevelPick(mode, stage) : this.startNewRun(mode, stage)),
+          onStart: (mode, stage) => (this.unlockAll ? this.showLevelPick(mode, stage) : this.startNewRun(mode, stage)),
+          testing: {
+            unlockAll: this.unlockAll,
+            onToggleUnlock: () => {
+              this.setUnlockAll(!this.unlockAll);
+              this.showCampaignModes();
+            },
+            onReset: () => {
+              this.save.resetCampaign();
+              this.setUnlockAll(false);
+              this.showCampaignModes();
+            },
+          },
           onContinue: () => this.continueRun(),
           onBack: () => this.showMainMenu(),
         },
@@ -164,8 +177,26 @@ export class App {
     );
   }
 
+  /** Testing toggle on the Campaign screen (D-055): everything open, or real progress. */
+  private get unlockAll(): boolean {
+    try {
+      const v = localStorage.getItem('wizzytype.unlockAll');
+      return v === null ? CAMPAIGN_UNLOCK_ALL : v === '1';
+    } catch {
+      return CAMPAIGN_UNLOCK_ALL;
+    }
+  }
+
+  private setUnlockAll(on: boolean): void {
+    try {
+      localStorage.setItem('wizzytype.unlockAll', on ? '1' : '0');
+    } catch {
+      /* storage blocked: the toggle lasts this visit only */
+    }
+  }
+
   private stageOpen(mode: CampaignMode, stage: number): boolean {
-    return CAMPAIGN_UNLOCK_ALL || this.save.stageUnlocked(mode, stage);
+    return this.unlockAll || this.save.stageUnlocked(mode, stage);
   }
 
   /** Testing build: choose which level of the stage to start the run at. */
@@ -218,6 +249,7 @@ export class App {
       initialInstability: run.instability,
       initialCombo: run.combo,
       initialCleanStreak: run.cleanStreak,
+      initialWords: run.carryWords,
       knownSpells: SPELL_IDS.filter((id) => known.includes(id) || held.includes(id)),
       spellSlots: this.save.spellSlots,
       quickCast: run.mode === 'normal',
@@ -236,7 +268,7 @@ export class App {
               },
             },
           ], 'Save and quit continues from the start of this level'),
-        onGameOver: (result, stats, spells, instability) => this.onLevelEnd(result, stats, spells, instability),
+        onGameOver: (result, stats, spells, instability, words) => this.onLevelEnd(result, stats, spells, instability, words),
         onSpellIntro: (spell, begin) =>
           this.ui.show(
             spellIntroScreen(spell, config, () => {
@@ -248,7 +280,7 @@ export class App {
     });
   }
 
-  private onLevelEnd(result: GameResult, stats: GameStats, spells: SpellCharges, instability: number): void {
+  private onLevelEnd(result: GameResult, stats: GameStats, spells: SpellCharges, instability: number, words: WordState[] = []): void {
     const run = this.run;
     if (!run) return;
     const clearedLevel = stageLevel(run.mode, run.stage, run.level);
@@ -257,6 +289,7 @@ export class App {
     const journey = journeyStrip(run.stage, victory);
 
     if (!runOver) {
+      run.carryWords = words;
       this.save.setSavedRun(run);
       this.ui.show(
         levelClearScreen(clearedLevel, stageLevel(run.mode, run.stage, run.level), stats, run, () => this.playCurrentLevel(), journey),
@@ -273,6 +306,7 @@ export class App {
       runOverScreen(summary, outcome, clearedLevel, {
         onNewRun: () => this.startNewRun(run.mode, run.stage),
         onNextStage: nextStage ? () => this.startNewRun(run.mode, nextStage) : undefined,
+        onEndless: victory ? () => this.startPractice({ mode: run.mode, stage: run.stage, level: STAGE_LEVELS - 1 }, 'original') : undefined,
         spellWon: victory ? spellsOfStage(run.stage).fromBoss : null,
         extra: journey,
         onMenu: () => this.showMainMenu(),

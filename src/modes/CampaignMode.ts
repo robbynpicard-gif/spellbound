@@ -1,3 +1,4 @@
+import type { WordState } from '../gameplay/Word';
 import type { GameResult } from '../core/GameEvents';
 import { accuracyOf, wpmOf, type GameStats } from '../gameplay/ScoringSystem';
 import {
@@ -52,6 +53,8 @@ export interface CampaignRun {
   levelsCleared: number;
   /** Spell charges carried into the next level. */
   spellCharges: SpellCharges;
+  /** Words left on the field at the end of the last level: they carry on (D-055). */
+  carryWords?: WordState[];
   /** Combo carried into the next level (D-040): a run's streak continues across levels. */
   combo: number;
   /** Clean Streak carried into the next level (D-046): it lasts the whole stage. */

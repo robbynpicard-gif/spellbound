@@ -67,6 +67,8 @@ export interface EngineOptions {
   hardcore?: boolean;
   /** Instability to start with (Hardcore carries it from level to level). */
   initialInstability?: number;
+  /** Words still on the field when the previous level ended (D-055): they carry on. */
+  initialWords?: readonly WordState[];
   /** Combo carried in from the previous level of a Campaign run (D-040). */
   initialCombo?: number;
   /** Clean Streak carried in from the previous level of the same chapter (D-046). */
@@ -163,6 +165,7 @@ export class GameEngine {
     }
     this.easyGenerator = easy;
     this.s = createInitialState(sanitizeCharges(options.initialSpells), this.instability.value);
+    this.carried = (options.initialWords ?? []).map((w) => ({ ...w, isTarget: false, typed: 0 }));
     this.s.combo = carried;
     this.s.maxCombo = carried;
     this.s.peakMultiplier = multiplierOf(carried);
@@ -228,6 +231,8 @@ export class GameEngine {
   }
 
   /** How far through the level we are (0–1): share of the quota, or of the boss timer. */
+  private carried: WordState[] = [];
+
   private get progress(): number {
     const c = this.config;
     if (c.requiredWords) return Math.min(1, this.s.completed / c.requiredWords);
@@ -241,7 +246,15 @@ export class GameEngine {
   private tickPacing(): void {
     const s = this.s;
     const c = this.config;
-    if (s.tick === 1 && c.openingWords) {
+    if (s.tick === 1 && this.carried.length > 0) {
+      // The field carries over from the last level instead of an opening cluster.
+      for (const w of this.carried) {
+        const word = { ...w, id: s.nextWordId++ };
+        s.words.push(word);
+        this.events.emit('wordSpawned', { word });
+      }
+      this.carried = [];
+    } else if (s.tick === 1 && c.openingWords) {
       const n = c.openingWords;
       for (let k = 0; k < n; k++) this.spawn(this.pace.fallSpeed, this.field.height * (0.04 + (0.3 * (n - 1 - k)) / Math.max(1, n - 1)));
       s.spawnTimerMs = this.pace.spawnInterval;

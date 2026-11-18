@@ -812,3 +812,15 @@ arena reverb) into a deep, showy announcer voice.
 - Testing build: every Campaign stage is open, and a run can start at any of a
   stage's 20 levels (with 1 charge of each spell known there).
   `CAMPAIGN_UNLOCK_ALL` in src/app/flags.ts — set false for release.
+
+### D-055 — Endless after the boss, words carry between levels, Campaign test toggles (2026-11-17)
+
+- After beating a stage's boss, the results offer **Endless mode**: endless play
+  at that stage's level-19 pace (the stage's peak), recorded as Practice.
+- **Words stay on the field between levels** of a stage: the next level begins
+  with the words where they were (instead of an opening cluster). Not kept when
+  a saved run is continued later.
+- Campaign screen testing controls: **Testing: all unlocked / real progress**
+  (all stages and level picking vs. normal unlocking; remembered) and **Reset
+  campaign** (clears Campaign progress and the saved run, switches to real
+  progress for a fresh-run test).

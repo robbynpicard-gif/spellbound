@@ -364,6 +364,13 @@ export class SaveManager {
   }
 
   /** Saves (a copy of) the run in progress between levels, or clears it with null. */
+  /** Testing (D-055): clears Campaign progress and the saved run, for a fresh-run experience. */
+  resetCampaign(): void {
+    this.save.stages = emptyStages();
+    this.save.savedRun = null;
+    this.write();
+  }
+
   setSavedRun(run: CampaignRun | null): void {
     this.save.savedRun = run ? (JSON.parse(JSON.stringify(run)) as CampaignRun) : null;
     this.write();
