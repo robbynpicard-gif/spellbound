@@ -76,7 +76,7 @@ const BOSS_END_SHARE = 1.12;
 export const BOSS_SECONDS = [60, 70, 80, 90, 100] as const;
 /** A standard level lasts roughly this long at its own pace (a stage ≈ 15 minutes). */
 const LEVEL_SECONDS = 37;
-const SPELL_DROP_CHANCE = 0.144; // 20% fewer (D-054)
+export const SPELL_DROP_CHANCE = 0.144; // 20% fewer (D-054)
 
 /**
  * In-level intensity (D-051): how much each level speeds up from its start to

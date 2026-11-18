@@ -824,3 +824,10 @@ arena reverb) into a deep, showy announcer voice.
   (all stages and level picking vs. normal unlocking; remembered) and **Reset
   campaign** (clears Campaign progress and the saved run, switches to real
   progress for a fresh-run test).
+
+### D-056 — Codex: how the mechanics work (2026-11-18)
+
+Main menu → **Codex** (not reachable during a run): tabs for The basics, Stages
+and pace, Spells, Scoring, Mistakes and Bonuses. Built from the game's own
+numbers (src/ui/codex.ts), so it stays accurate; the same source exports
+docs/mechanics.md.

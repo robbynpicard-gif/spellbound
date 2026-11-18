@@ -1,3 +1,4 @@
+import { codexScreen } from '../ui/codexScreen';
 import type { WordState } from '../gameplay/Word';
 import type Phaser from 'phaser';
 import type { GameResult } from '../core/GameEvents';
@@ -62,6 +63,10 @@ export class App {
           onOptions: () => this.showOptions(),
           onStats: () => this.showStats(),
           onSpellbook: () => this.showSpellbook(),
+          onCodex: () => {
+            this.showBackdrop();
+            this.ui.show(codexScreen(() => this.showMainMenu()));
+          },
         },
         this.progressLine(),
         this.save.persistent,

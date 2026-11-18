@@ -1071,3 +1071,40 @@
 .level-pick-grid .level-pick.boss {
   border-color: var(--color-crimson-text);
 }
+
+/* Codex (main menu): how the mechanics work */
+.codex {
+  width: min(900px, 94vw);
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.codex-body {
+  overflow-y: auto;
+  text-align: left;
+  padding: 0 4px 8px;
+}
+
+.codex-points li {
+  margin: 4px 0;
+}
+
+.codex-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0;
+  font-size: 15px;
+}
+
+.codex-table th,
+.codex-table td {
+  border: 1px solid rgb(255 255 255 / 0.15);
+  padding: 5px 8px;
+  vertical-align: top;
+}
+
+.codex-table th {
+  color: var(--color-gold);
+  text-align: left;
+}
