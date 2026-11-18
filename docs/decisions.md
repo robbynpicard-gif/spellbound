@@ -784,3 +784,8 @@ quarter they should be relieved to reach the break between levels.
   ones only sometimes, at most one call every 1.4 s. Off when sound effects are
   off. A recorded voice could replace it later.
 - Owner likes the music ("feels very RuneScape"): keep its direction.
+
+### D-052 — Announcer removed for now (2026-11-17)
+
+The browser speech voice sounded too robotic. The owner wants a real person's
+voice. The announcer comes back only with recorded voice lines.

@@ -166,11 +166,9 @@ cleared in each mode.
   direction is parked.
 - Spells are weighty, with hit-stop.
 - The music is liked by the owner ("feels very RuneScape"): keep that direction.
-- **Announcer** (D-051): a deep, showy, slightly sarcastic arena-announcer
-  voice calls the per-word bonuses (Perfect, Quick, Clutch, Arcane, Long word,
-  Name-caller, Volley, Alliteration, Librarian, Metronome, Clean Sweep). Only the
-  best bonus per word, common ones only sometimes, never more than one call
-  every 1.4 s. Currently the browser's speech voice, pitched down.
+- **Announcer — removed for now (D-052).** The synthesized voice sounded too
+  robotic. Wanted: a real human voice (deep, showy, slightly sarcastic arena
+  announcer calling the per-word bonuses). Needs recorded lines.
 - Sound effects are rounded; the typewriter is brassy and clunky.
 
 ## 8. Under discussion — Proposals, not approved
