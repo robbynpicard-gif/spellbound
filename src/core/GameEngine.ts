@@ -607,7 +607,7 @@ export class GameEngine {
     const vary = 1 + (this.speedRng.next() * 2 - 1) * variance;
     const quota = this.config.requiredWords ?? this.config.rampWords ?? null;
     const progress = quota ? Math.min(1, this.s.completed / quota) : 0.5;
-    const ramp = 1 - rampSize + 2 * rampSize * progress;
+    const ramp = 1 - rampSize + (2 * rampSize + (this.config.speedRampExtra ?? 0)) * progress;
     return fallSpeed * vary * ramp;
   }
 

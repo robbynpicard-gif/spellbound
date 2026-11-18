@@ -38,7 +38,7 @@ class AudioEngine {
   private voiceOn = true;
   /** Volumes 0–1 from the Options sliders. */
   private vol = { music: 0.8, sfx: 0.8, voice: 0.8 };
-  private pending: { mood: Mood; stress: number; heat: number } = { mood: 'menu', stress: 0, heat: 0 };
+  private pending: { mood: Mood; stress: number; heat: number; drive?: number } = { mood: 'menu', stress: 0, heat: 0, drive: 0 };
   private lastKey = 0;
 
   /** Call from any user gesture; safe to call repeatedly. */
@@ -151,7 +151,7 @@ class AudioEngine {
 
   /** Menu, a level, or a boss: changes tempo and ensemble at the next bar. */
   setMood(mood: Mood): void {
-    this.update({ mood });
+    this.update(mood === 'menu' ? { mood, drive: 0 } : { mood });
   }
 
   /** The ward's instability stage (0–4): darkens the score bar by bar. */
@@ -164,7 +164,13 @@ class AudioEngine {
     this.update({ heat: Math.min(4, Math.max(0, tier)) });
   }
 
-  private update(change: Partial<{ mood: Mood; stress: number; heat: number }>): void {
+  /** Stage + level progress (0–1): the score speeds up and adds layers (D-054). */
+  setDrive(drive: number): void {
+    const d = Math.round(Math.max(0, Math.min(1, drive)) * 20) / 20;
+    if (d !== this.pending.drive) this.update({ drive: d });
+  }
+
+  private update(change: Partial<{ mood: Mood; stress: number; heat: number; drive: number }>): void {
     this.pending = { ...this.pending, ...change };
     this.music?.set(change);
   }

@@ -76,7 +76,7 @@ const BOSS_END_SHARE = 1.12;
 export const BOSS_SECONDS = [60, 70, 80, 90, 100] as const;
 /** A standard level lasts roughly this long at its own pace (a stage ≈ 15 minutes). */
 const LEVEL_SECONDS = 37;
-const SPELL_DROP_CHANCE = 0.18;
+const SPELL_DROP_CHANCE = 0.144; // 20% fewer (D-054)
 
 /**
  * In-level intensity (D-051): how much each level speeds up from its start to
@@ -203,7 +203,8 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
     maxComplexity: t.maxComplexity[i] ?? null,
     introducesSpell: introducedAt(stage, level),
     openingWords: OPENING_WORDS[mode],
-    ...(boss ? {} : levelRamp(level)),
+    // D-054: an extra +30% fall speed by the end of each level (~15% harder overall).
+    ...(boss ? {} : { ...levelRamp(level), speedRampExtra: 0.3 }),
     surges: surgesFor(mode, level, boss),
   };
   if (boss) {

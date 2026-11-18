@@ -21,11 +21,12 @@ import {
   optionsScreen,
   pauseScreen,
   runOverScreen,
+  levelPickScreen,
   spellIntroScreen,
   stageSelectScreen,
 } from '../ui/screens';
 import type { UIRoot } from '../ui/UIRoot';
-import { PRACTICE_UNLOCK_ALL } from './flags';
+import { CAMPAIGN_UNLOCK_ALL, PRACTICE_UNLOCK_ALL } from './flags';
 import { journeyStrip, statsScreen } from '../ui/statsScreens';
 import { spellbookScreen } from '../ui/spellbookScreen';
 
@@ -151,11 +152,11 @@ export class App {
     this.showBackdrop();
     this.ui.show(
       stageSelectScreen(
-        (mode, stage) => ({ records: this.save.records(mode, stage), unlocked: this.save.stageUnlocked(mode, stage) }),
+        (mode, stage) => ({ records: this.save.records(mode, stage), unlocked: this.stageOpen(mode, stage) }),
         this.save.savedRun,
         this.save.takeResetNotice(),
         {
-          onStart: (mode, stage) => this.startNewRun(mode, stage),
+          onStart: (mode, stage) => (CAMPAIGN_UNLOCK_ALL ? this.showLevelPick(mode, stage) : this.startNewRun(mode, stage)),
           onContinue: () => this.continueRun(),
           onBack: () => this.showMainMenu(),
         },
@@ -163,10 +164,29 @@ export class App {
     );
   }
 
-  /** A fresh run of one stage. Starting it replaces any saved run. */
-  startNewRun(mode: CampaignMode, stage: number): void {
-    if (!this.save.stageUnlocked(mode, stage)) return this.showCampaignModes();
+  private stageOpen(mode: CampaignMode, stage: number): boolean {
+    return CAMPAIGN_UNLOCK_ALL || this.save.stageUnlocked(mode, stage);
+  }
+
+  /** Testing build: choose which level of the stage to start the run at. */
+  private showLevelPick(mode: CampaignMode, stage: number): void {
+    this.ui.show(
+      levelPickScreen(mode, stage, {
+        onPick: (level) => this.startNewRun(mode, stage, level),
+        onBack: () => this.showCampaignModes(),
+      }),
+    );
+  }
+
+  /** A fresh run of one stage (from `level`, testing only). Starting it replaces any saved run. */
+  startNewRun(mode: CampaignMode, stage: number, level = 1): void {
+    if (!this.stageOpen(mode, stage)) return this.showCampaignModes();
     this.run = startRun(mode, stage);
+    if (level > 1) {
+      // Jumping in: start at that level with 1 charge of each spell known there.
+      this.run.level = Math.min(STAGE_LEVELS, level);
+      for (const id of knownSpells(stage, this.run.level)) this.run.spellCharges[id] = Math.max(1, this.run.spellCharges[id]);
+    }
     this.save.noteRunStarted(mode, stage);
     this.save.setSavedRun(this.run);
     this.playCurrentLevel();

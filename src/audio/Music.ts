@@ -26,7 +26,9 @@ const C = (root: number, ...tones: number[]): Chord => ({ root, tones });
 const CALM: Chord[] = [C(38, 50, 53, 57), C(34, 46, 50, 53), C(41, 53, 57, 60), C(36, 48, 52, 55), C(43, 55, 58, 62), C(38, 50, 53, 57), C(34, 46, 50, 53), C(33, 45, 49, 52)];
 /** The boss loop: i – VI – iv – V, twice as urgent. */
 const BOSS: Chord[] = [C(38, 50, 53, 57), C(34, 46, 50, 53), C(43, 55, 58, 62), C(33, 45, 49, 52)];
-const TEMPO: Record<Mood, number> = { menu: 64, calm: 74, boss: 96 };
+/** The menu's own theme (D-054): a warm, unhurried F major loop, apart from the stage music. */
+const MENU: Chord[] = [C(41, 53, 57, 60), C(45, 57, 60, 64), C(46, 58, 62, 65), C(48, 55, 60, 64), C(38, 50, 53, 57), C(46, 58, 62, 65), C(43, 55, 58, 62), C(48, 52, 55, 60)];
+const TEMPO: Record<Mood, number> = { menu: 58, calm: 74, boss: 96 };
 
 type Layer = 'bed' | 'arp' | 'heart' | 'tick' | 'dissonance' | 'wind' | 'bells' | 'choir' | 'fever' | 'ostinato' | 'drums';
 const LAYERS: Layer[] = ['bed', 'arp', 'heart', 'tick', 'dissonance', 'wind', 'bells', 'choir', 'fever', 'ostinato', 'drums'];
@@ -35,6 +37,8 @@ export interface MusicState {
   mood: Mood;
   stress: number;
   heat: number;
+  /** How far into the stage (and the level) we are, 0–1 (D-054): faster and busier. */
+  drive?: number;
 }
 
 /** How loud each layer should be in a given state (0–1). */
@@ -43,18 +47,19 @@ export function layerTargets(s: MusicState): Record<Layer, number> {
   const ht = Math.max(0, Math.min(4, s.heat));
   const play = s.mood !== 'menu';
   const boss = s.mood === 'boss';
+  const dr = play ? Math.max(0, Math.min(1, s.drive ?? 0)) : 0;
   return {
     bed: 1,
     arp: s.mood === 'menu' ? 0.6 : 1,
     heart: play && st >= 1 ? [0, 0.55, 0.8, 1][st]! : 0,
-    tick: play && st >= 2 ? (st === 2 ? 0.6 : 1) : 0,
+    tick: play && st >= 2 ? (st === 2 ? 0.6 : 1) : dr >= 0.45 ? 0.35 + 0.4 * dr : 0,
     dissonance: play && st >= 2 ? (st === 2 ? 0.45 : 1) : 0,
     wind: s.mood === 'menu' ? 0.35 : [0.15, 0.3, 0.55, 0.9][st]!,
     bells: ht >= 1 ? Math.min(1, 0.45 + ht * 0.18) : s.mood === 'menu' ? 0.5 : 0,
     choir: ht >= 3 ? (ht === 3 ? 0.7 : 1) : 0,
     fever: ht >= 4 ? 1 : 0,
-    ostinato: boss ? 1 : 0,
-    drums: boss ? (st >= 1 ? 1 : 0.6) : 0,
+    ostinato: boss ? 1 : dr >= 0.55 ? Math.min(1, (dr - 0.4) * 1.6) : 0,
+    drums: boss ? (st >= 1 ? 1 : 0.6) : dr >= 0.75 ? 0.35 + (dr - 0.75) * 2 : 0,
   };
 }
 
@@ -113,11 +118,12 @@ export class Music {
   }
 
   private get chords(): Chord[] {
-    return this.applied.mood === 'boss' ? BOSS : CALM;
+    return this.applied.mood === 'boss' ? BOSS : this.applied.mood === 'menu' ? MENU : CALM;
   }
 
   private get beatLen(): number {
-    return 60 / TEMPO[this.applied.mood];
+    // Drive (D-054): up to 28% faster as the stage and the level press on.
+    return 60 / (TEMPO[this.applied.mood] * (1 + 0.28 * (this.state.drive ?? 0)));
   }
 
   /** Schedules every beat that starts before `until`. */

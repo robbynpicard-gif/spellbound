@@ -23,7 +23,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.23.0';
+const APP_VERSION = '0.24.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -441,4 +441,23 @@ export function optionsScreen(
       if (event.key === 'Escape') actions.onBack();
     },
   };
+}
+
+/** Testing build (CAMPAIGN_UNLOCK_ALL): pick the level a Campaign run starts at. */
+export function levelPickScreen(mode: CampaignMode, stage: number, actions: { onPick(level: number): void; onBack(): void }): Screen {
+  const buttons = Array.from({ length: STAGE_LEVELS }, (_, i) => {
+    const level = i + 1;
+    const boss = level === STAGE_LEVELS;
+    return h('button', { class: `menu-button level-pick${boss ? ' boss' : ''}`, onClick: () => actions.onPick(level) }, boss ? `${level} · Boss` : String(level));
+  });
+  const back = h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back');
+  const element = h(
+    'section',
+    { class: 'screen panel level-pick-screen', attrs: { role: 'dialog' } },
+    h('h2', { class: 'screen-title' }, `${mode === 'hardcore' ? 'Hardcore' : 'Normal'} · Stage ${stage}`),
+    h('p', { class: 'screen-subtitle' }, `${STAGE_NAMES[stage - 1]}. Testing build: start the run at any level (you get 1 charge of each spell known there).`),
+    h('div', { class: 'level-pick-grid' }, ...buttons),
+    h('div', { class: 'menu-list' }, back),
+  );
+  return { element, focus: buttons[0]!, onKey: (e) => { if (e.key === 'Escape') actions.onBack(); } };
 }

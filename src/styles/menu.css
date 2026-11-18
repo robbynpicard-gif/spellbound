@@ -1054,3 +1054,20 @@
   font-size: 13px;
   opacity: 0.7;
 }
+
+/* Testing build: pick a Campaign level */
+.level-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin: 8px 0 14px;
+}
+
+.level-pick-grid .level-pick {
+  min-width: 0;
+  padding: 8px 4px;
+}
+
+.level-pick-grid .level-pick.boss {
+  border-color: var(--color-crimson-text);
+}

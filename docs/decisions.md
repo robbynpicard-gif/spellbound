@@ -798,3 +798,17 @@ recorded voice lines; none yet). Settings are saved. The pause menu keeps the
 quick music/sound switches. Plan for the announcer: the owner records basic
 lines; Claude processes them offline (pitch, EQ, compression, saturation,
 arena reverb) into a deep, showy announcer voice.
+
+### D-054 — Fewer scrolls, steeper levels, stage music, menu theme, open Campaign (2026-11-17)
+
+- Spell scrolls 20% rarer: 14.4% of words (was 18%).
+- Each Campaign quota level gets an extra +30% fall speed by its end (start
+  unchanged): about 15% harder overall, all of it in the back of each level.
+  Bosses unchanged.
+- Stage music "drive": the music speeds up (up to +28% tempo) and adds ticking,
+  an ostinato and drums as the stage goes on and as each level nears its end.
+- A separate menu theme: a warm, slower F-major loop, distinct from the stage
+  music.
+- Testing build: every Campaign stage is open, and a run can start at any of a
+  stage's 20 levels (with 1 charge of each spell known there).
+  `CAMPAIGN_UNLOCK_ALL` in src/app/flags.ts — set false for release.

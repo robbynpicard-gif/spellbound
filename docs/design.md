@@ -1,6 +1,6 @@
 # Wizzy Type — Current Design Reference
 
-Last updated 2026-11-17 (v0.22.0). This is the single source of truth for the
+Last updated 2026-11-17 (v0.24.0). This is the single source of truth for the
 current design. Older plans marked "Superseded" are kept only for history.
 
 - **Confirmed** means decided by the owner.
@@ -63,7 +63,8 @@ Normal Stage 1 uses 3–4-letter words.
 words fall faster and arrive more often as you near the quota. Levels 1–9 build
 gently (±10–15%), levels 10–14 noticeably (±20%), levels 15–19 fiercely (±30%),
 so the back half of a stage presses and the last quarter makes the break
-between levels a relief. The average pace (and the stage targets) is unchanged.
+between levels a relief. On top of that, fall speed rises an extra 30% by the
+end of every level (D-054), about 15% harder overall.
 
 **Opening cluster.** Every level starts with 4 words (Hardcore 5) already
 falling, so there is a choice from the first second.
@@ -89,7 +90,7 @@ docs/calibration-2026-11-17.md.
 
 ## 4. Spells — Confirmed (D-047, D-048, D-049)
 
-- About 18% of words carry a spell scroll. Typing the word claims one charge.
+- About 14% of words carry a spell scroll (D-054). Typing the word claims one charge.
 - All spells share one pool of **8 charges**. Claiming a scroll with a full
   pool: it fizzles to grey smoke, the rack flashes red and shakes, and you get
   "MANA FULL · +N" (50 × the combo multiplier).
@@ -157,6 +158,8 @@ cleared in each mode.
   - **Testing build:** every stage is open (`PRACTICE_UNLOCK_ALL` in
     src/app/flags.ts).
   - **Before release:** lock Practice behind Campaign progress again.
+- **Campaign testing build:** all stages open, and any level can be started
+  (`CAMPAIGN_UNLOCK_ALL`). Lock before release.
 - **Wizard Duels.** Online duels on the 100 Normal levels.
 
 ## 7. Art and sound — Confirmed
@@ -165,6 +168,9 @@ cleared in each mode.
 - The four existing backdrop sets are used; Stage 5 reuses set 4. Art
   direction is parked.
 - Spells are weighty, with hit-stop.
+- Music builds through each stage and each level: faster, with ticking,
+  ostinato and drums as the pace quickens (D-054). The menu has its own warm,
+  slower theme.
 - The music is liked by the owner ("feels very RuneScape"): keep that direction.
 - **Announcer — removed for now (D-052).** The synthesized voice sounded too
   robotic. Wanted: a real human voice (deep, showy, slightly sarcastic arena

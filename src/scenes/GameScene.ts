@@ -159,6 +159,21 @@ export class GameScene extends Phaser.Scene {
       data.knownSpells ?? SPELL_IDS.filter((id) => this.config.availableSpells.includes(id) || held.includes(id));
   }
 
+  /** Music drive (D-054): how far through the stage and this level we are, 0–1. */
+  private drive(): number {
+    const c = this.config;
+    const stagePos = Math.min(1, Math.max(0, ((c.stageLevel ?? c.level) - 1) / 19));
+    const s = this.engine.state;
+    const inLevel = c.requiredWords
+      ? s.completed / c.requiredWords
+      : c.survivalMs
+        ? this.engine.elapsedMs / c.survivalMs
+        : c.rampWords
+          ? (s.completed % c.rampWords) / c.rampWords
+          : 0;
+    return 0.55 * stagePos + 0.45 * Math.min(1, inLevel);
+  }
+
   create(): void {
     this.cameras.main.setBackgroundColor(PALETTE.midnight);
     // The chapter's scene; weather builds level by level, and bosses get their own scene.
@@ -167,6 +182,7 @@ export class GameScene extends Phaser.Scene {
     audio.setMood(boss ? 'boss' : 'calm');
     audio.setStress(instabilityStage(this.engine.state.instability));
     audio.setHeat(tierOf(this.engine.state.combo));
+    audio.setDrive(this.drive());
     audio.levelStart();
     this.background = new FieldBackground(this, chapter, boss ? 4 : Math.min(3, Math.floor(((this.config.stageLevel ?? this.config.level) - 1) / 5)), boss);
 
@@ -236,6 +252,7 @@ export class GameScene extends Phaser.Scene {
   override update(_time: number, delta: number): void {
     // The score counter keeps rolling through the finale.
     if (!this.paused) this.hud.update(Math.min(delta, MAX_FRAME_MS));
+    if (this.engine.status === 'playing') audio.setDrive(this.drive());
     if (this.duel) return this.updateDuel(this.duel);
     if (this.paused || this.awaitingIntro || this.engine.status !== 'playing') return;
 

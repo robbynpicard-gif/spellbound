@@ -61,6 +61,8 @@ export interface DifficultyConfig {
   openingWords?: number;
   /** Words arrive ×(1+r) as far apart at the start of a quota level and ×(1−r) at the end. */
   spawnRamp?: number;
+  /** Extra fall-speed rise across a quota level: start unchanged, end ×(1+r+this). */
+  speedRampExtra?: number;
   /**
    * Surges: short bursts of extra words. `at` is the point in the level (0–1:
    * share of the quota, or of the boss timer) and `ms` how long it lasts.
