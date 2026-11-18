@@ -368,7 +368,11 @@ describe('SaveManager (stages)', () => {
     storage.setItem(SAVE_KEY, old);
     const save = new SaveManager(storage, TOTAL);
     expect(save.records('normal', 1).highestReached).toBe(1);
-    expect(save.audio).toEqual({ music: false, sfx: true });
+    // Old saves keep their switches and gain the new announcer channel and volumes (D-053).
+    expect(save.audio).toEqual({ music: false, sfx: true, voice: true, musicVolume: 80, sfxVolume: 80, voiceVolume: 80 });
+    save.setAudio({ musicVolume: 35 });
+    expect(new SaveManager(storage, TOTAL).audio.musicVolume).toBe(35);
+    expect(parseSave(JSON.stringify({ version: SAVE_VERSION, settings: { sfxVolume: 900, voiceVolume: 'loud' } }), TOTAL).settings).toMatchObject({ sfxVolume: 100, voiceVolume: 80 });
     expect(save.profile.name).toBe('Robbyn');
     expect(save.takeResetNotice()).toBe(true);
     expect(save.takeResetNotice()).toBe(false);

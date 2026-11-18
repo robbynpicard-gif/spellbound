@@ -27,8 +27,7 @@ const game = new Phaser.Game({
 });
 
 const save = new SaveManager(browserStorage(), CAMPAIGN_LEVELS.count);
-audio.setMusic(save.audio.music);
-audio.setSfx(save.audio.sfx);
+audio.applySettings(save.audio);
 // Browsers only allow sound after the player clicks or presses a key.
 for (const type of ['pointerdown', 'pointerup', 'mousedown', 'click', 'touchend', 'keydown', 'keyup'] as const) {
   window.addEventListener(type, () => audio.unlock(), { capture: true });

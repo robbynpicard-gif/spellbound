@@ -23,7 +23,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.22.1';
+const APP_VERSION = '0.23.0';
 
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
@@ -399,26 +399,44 @@ export function audioToggleLabels(a: Readonly<AudioToggles>): { music: string; s
   return { music: `Music: ${a.music ? 'On' : 'Off'}`, sfx: `Sound effects: ${a.sfx ? 'On' : 'Off'}` };
 }
 
-/** Options: music and sound effects, each on or off. */
+type Channel = 'music' | 'sfx' | 'voice';
+const CHANNELS: { key: Channel; vol: 'musicVolume' | 'sfxVolume' | 'voiceVolume'; name: string; note?: string }[] = [
+  { key: 'music', vol: 'musicVolume', name: 'Music' },
+  { key: 'sfx', vol: 'sfxVolume', name: 'Sound effects' },
+  { key: 'voice', vol: 'voiceVolume', name: 'Announcer', note: 'No announcer lines yet' },
+];
+
+/** Options (D-053): music, sound effects and the announcer, each with a switch and a volume slider. */
 export function optionsScreen(
-  a: Readonly<AudioToggles>,
-  actions: { onMusic(): void; onSfx(): void; onBack(): void },
-  focusKey: 'music' | 'sfx' | null = null,
+  a: Readonly<AudioToggles & { voice: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number }>,
+  actions: { onToggle(ch: Channel): void; onVolume(ch: Channel, value: number): void; onBack(): void },
+  focusKey: Channel | null = null,
 ): Screen {
-  const labels = audioToggleLabels(a);
-  const music = h('button', { class: `menu-button${a.music ? ' primary' : ''}`, onClick: actions.onMusic, attrs: { role: 'switch', 'aria-checked': String(a.music) } }, labels.music);
-  const sfx = h('button', { class: `menu-button${a.sfx ? ' primary' : ''}`, onClick: actions.onSfx, attrs: { role: 'switch', 'aria-checked': String(a.sfx) } }, labels.sfx);
+  const rows = CHANNELS.map((c) => {
+    const on = a[c.key];
+    const toggle = h('button', { class: `menu-button audio-toggle${on ? ' primary' : ''}`, onClick: () => actions.onToggle(c.key), attrs: { role: 'switch', 'aria-checked': String(on) } }, `${c.name}: ${on ? 'On' : 'Off'}`);
+    const value = h('span', { class: 'audio-value' }, `${a[c.vol]}%`);
+    const slider = h('input', { class: 'audio-slider', attrs: { type: 'range', min: '0', max: '100', step: '5', value: String(a[c.vol]), 'aria-label': `${c.name} volume` } }) as HTMLInputElement;
+    slider.addEventListener('input', () => {
+      value.textContent = `${slider.value}%`;
+      actions.onVolume(c.key, Number(slider.value));
+    });
+    return { key: c.key, toggle, row: h('div', { class: 'audio-row' }, toggle, slider, value, c.note ? h('span', { class: 'audio-note' }, c.note) : null) };
+  });
   const back = h('button', { class: 'menu-button', onClick: actions.onBack }, 'Back');
+  const music = rows[0]!.toggle;
+  const sfx = rows[1]!.toggle;
   const element = h(
     'section',
     { class: 'screen panel options', attrs: { role: 'dialog', 'aria-labelledby': 'options-title' } },
     h('h2', { class: 'screen-title', attrs: { id: 'options-title' } }, 'Options'),
-    h('p', { class: 'screen-subtitle' }, 'Music and sound effects can be switched separately. You can also change them from the pause menu (Esc).'),
-    h('div', { class: 'menu-list' }, music, sfx, back),
+    h('p', { class: 'screen-subtitle' }, 'Each channel has its own switch and volume. Music and sound effects can also be switched from the pause menu (Esc).'),
+    h('div', { class: 'menu-list' }, ...rows.map((r) => r.row), back),
   );
+  const voice = rows[2]!.toggle;
   return {
     element,
-    focus: focusKey === 'music' ? music : focusKey === 'sfx' ? sfx : music,
+    focus: focusKey === 'sfx' ? sfx : focusKey === 'voice' ? voice : music,
     onKey: (event) => {
       if (event.key === 'Escape') actions.onBack();
     },

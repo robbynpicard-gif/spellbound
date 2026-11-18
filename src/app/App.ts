@@ -67,19 +67,19 @@ export class App {
     );
   }
 
-  showOptions(focus: 'music' | 'sfx' | null = null): void {
+  showOptions(focus: 'music' | 'sfx' | 'voice' | null = null): void {
     this.showBackdrop();
     this.ui.show(
       optionsScreen(
         this.save.audio,
         {
-          onMusic: () => {
-            this.toggleAudio('music');
-            this.showOptions('music');
+          onToggle: (ch) => {
+            this.toggleAudio(ch);
+            this.showOptions(ch);
           },
-          onSfx: () => {
-            this.toggleAudio('sfx');
-            this.showOptions('sfx');
+          onVolume: (ch, value) => {
+            const key = ch === 'music' ? 'musicVolume' : ch === 'sfx' ? 'sfxVolume' : 'voiceVolume';
+            audio.applySettings(this.save.setAudio({ [key]: value }));
           },
           onBack: () => this.showMainMenu(),
         },
@@ -89,10 +89,8 @@ export class App {
   }
 
   /** Flip music or sound effects, save it, and apply it at once. */
-  private toggleAudio(which: 'music' | 'sfx'): void {
-    const next = this.save.setAudio({ [which]: !this.save.audio[which] });
-    audio.setMusic(next.music);
-    audio.setSfx(next.sfx);
+  private toggleAudio(which: 'music' | 'sfx' | 'voice'): void {
+    audio.applySettings(this.save.setAudio({ [which]: !this.save.audio[which] }));
   }
 
   /** Words for Campaign and Practice. */

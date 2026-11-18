@@ -31,8 +31,13 @@ class AudioEngine {
   private music!: Music;
   private musicBus!: GainNode;
   private sfxBus!: GainNode;
+  /** The announcer's own channel (D-053), for recorded voice lines. */
+  voiceBus!: GainNode;
   private musicOn = true;
   private sfxOn = true;
+  private voiceOn = true;
+  /** Volumes 0–1 from the Options sliders. */
+  private vol = { music: 0.8, sfx: 0.8, voice: 0.8 };
   private pending: { mood: Mood; stress: number; heat: number } = { mood: 'menu', stress: 0, heat: 0 };
   private lastKey = 0;
 
@@ -61,9 +66,12 @@ class AudioEngine {
     master.connect(comp).connect(ctx.destination);
     this.musicBus = ctx.createGain();
     this.sfxBus = ctx.createGain();
-    this.musicBus.gain.value = this.musicOn ? 0.6 : 0;
-    this.sfxBus.gain.value = this.sfxOn ? 0.75 : 0;
+    this.voiceBus = ctx.createGain();
+    this.musicBus.gain.value = this.level('music');
+    this.sfxBus.gain.value = this.level('sfx');
+    this.voiceBus.gain.value = this.level('voice');
     this.musicBus.connect(master);
+    this.voiceBus.connect(master);
     // Every effect passes through a gentle low-pass and a little extra low end:
     // rounder, warmer, never piercing (D-045).
     const round = ctx.createBiquadFilter();
@@ -97,14 +105,48 @@ class AudioEngine {
 
   private clock: number | null = null;
 
+  /** Bus gain for a channel: its switch × its slider × its mix level. 80% on the slider = the old full level. */
+  private level(ch: 'music' | 'sfx' | 'voice'): number {
+    const on = ch === 'music' ? this.musicOn : ch === 'sfx' ? this.sfxOn : this.voiceOn;
+    const mix = { music: 0.6, sfx: 0.75, voice: 0.9 }[ch];
+    return on ? (mix * this.vol[ch]) / 0.8 : 0;
+  }
+
+  private apply(): void {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.musicBus.gain.setTargetAtTime(this.level('music'), t, 0.15);
+    this.sfxBus.gain.setTargetAtTime(this.level('sfx'), t, 0.05);
+    this.voiceBus.gain.setTargetAtTime(this.level('voice'), t, 0.05);
+  }
+
   setMusic(on: boolean): void {
     this.musicOn = on;
-    if (this.ctx) this.musicBus.gain.setTargetAtTime(on ? 0.6 : 0, this.ctx.currentTime, 0.3);
+    this.apply();
   }
 
   setSfx(on: boolean): void {
     this.sfxOn = on;
-    if (this.ctx) this.sfxBus.gain.setTargetAtTime(on ? 0.75 : 0, this.ctx.currentTime, 0.05);
+    this.apply();
+  }
+
+  setVoice(on: boolean): void {
+    this.voiceOn = on;
+    this.apply();
+  }
+
+  /** Volumes 0–100 for music, sound effects and the announcer. */
+  setVolumes(v: { music: number; sfx: number; voice: number }): void {
+    this.vol = { music: v.music / 100, sfx: v.sfx / 100, voice: v.voice / 100 };
+    this.apply();
+  }
+
+  /** Applies every saved audio setting at once. */
+  applySettings(a: { music: boolean; sfx: boolean; voice: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number }): void {
+    this.musicOn = a.music;
+    this.sfxOn = a.sfx;
+    this.voiceOn = a.voice;
+    this.setVolumes({ music: a.musicVolume, sfx: a.sfxVolume, voice: a.voiceVolume });
   }
 
   /** Menu, a level, or a boss: changes tempo and ensemble at the next bar. */

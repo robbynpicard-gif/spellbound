@@ -789,3 +789,12 @@ quarter they should be relieved to reach the break between levels.
 
 The browser speech voice sounded too robotic. The owner wants a real person's
 voice. The announcer comes back only with recorded voice lines.
+
+### D-053 — Audio channels: music, sound effects, announcer (2026-11-17)
+
+Options has three channels, each with an on/off switch and a 0–100% volume
+slider: Music, Sound effects, and Announcer (its own channel, ready for
+recorded voice lines; none yet). Settings are saved. The pause menu keeps the
+quick music/sound switches. Plan for the announcer: the owner records basic
+lines; Claude processes them offline (pitch, EQ, compression, saturation,
+arena reverb) into a deep, showy announcer voice.
