@@ -76,7 +76,18 @@ const BOSS_END_SHARE = 1.12;
 export const BOSS_SECONDS = [60, 70, 80, 90, 100] as const;
 /** A standard level lasts roughly this long at its own pace (a stage ≈ 15 minutes). */
 const LEVEL_SECONDS = 37;
-const SPELL_DROP_CHANCE = 0.2;
+const SPELL_DROP_CHANCE = 0.18;
+
+/**
+ * In-level intensity (D-051): how much each level speeds up from its start to
+ * its end. Gentle early in a stage, pressing in the back half, fierce in the
+ * last quarter, so the break between levels feels earned.
+ */
+function levelRamp(level: number): { speedRamp: number; spawnRamp: number } {
+  if (level >= 15) return { speedRamp: 0.3, spawnRamp: 0.3 };
+  if (level >= 10) return { speedRamp: 0.22, spawnRamp: 0.2 };
+  return { speedRamp: 0.15, spawnRamp: 0.1 };
+}
 /** Words already falling when a level starts, so there is a choice from the first second. */
 const OPENING_WORDS: Record<StageMode, number> = { normal: 4, hardcore: 5 };
 /** Surges start at this level of each stage, so spells matter by levels 6–7. */
@@ -192,6 +203,7 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
     maxComplexity: t.maxComplexity[i] ?? null,
     introducesSpell: introducedAt(stage, level),
     openingWords: OPENING_WORDS[mode],
+    ...(boss ? {} : levelRamp(level)),
     surges: surgesFor(mode, level, boss),
   };
   if (boss) {

@@ -59,6 +59,8 @@ export interface DifficultyConfig {
   stage?: number;
   /** Words already falling when the level starts (spread over the top of the field). */
   openingWords?: number;
+  /** Words arrive ×(1+r) as far apart at the start of a quota level and ×(1−r) at the end. */
+  spawnRamp?: number;
   /**
    * Surges: short bursts of extra words. `at` is the point in the level (0–1:
    * share of the quota, or of the boss timer) and `ms` how long it lasts.

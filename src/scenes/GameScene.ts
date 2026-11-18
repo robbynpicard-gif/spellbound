@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { audio } from '../audio/Audio';
+import { announcer } from '../audio/Announcer';
 import { GameEngine } from '../core/GameEngine';
 import type { GameResult } from '../core/GameEvents';
 import { FONTS, PALETTE, SIMULATION_STEP_MS } from '../core/GameConfig';
@@ -394,6 +395,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     ev.on('wordCompleted', ({ word, points, combo, multiplier, bonuses }) => {
+      announcer.bonuses(bonuses);
       audio.capture(combo, bonuses.map((b) => b.id));
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
       this.removeView(word.id);

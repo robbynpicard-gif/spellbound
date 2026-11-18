@@ -765,3 +765,22 @@ length in time (so quotas grow by ~20%).
 - Hardcore: 29 → 40/48/56/64/72 WPM (was 24 → 33/40/47/53/60).
 - More words on screen at once (up to ~12–15 early); the word generator still
   avoids shared first letters where it can.
+
+### D-051 — In-level intensity, fewer scrolls, the announcer (2026-11-17)
+
+**Owner:** the stage curve feels right; individual levels should build to the
+end. By the back half of a stage the player should feel pressure; by the last
+quarter they should be relieved to reach the break between levels.
+- Each quota level speeds up from start to end, in fall speed and in how often
+  words arrive. Levels 1–9: fall ±15%, spawn ±10%. Levels 10–14: ±22% / ±20%.
+  Levels 15–19: ±30% / ±30% (start calm, end fierce; average pace unchanged,
+  so stage targets and stage length hold).
+- Spell scrolls: 10% fewer (18% of words, was 20%).
+- **Announcer:** calls out per-word bonuses (Perfect, Quick, Clutch, Arcane,
+  Long word, Name-caller, Volley, Alliteration, Librarian, Metronome, Clean
+  Sweep) in a deep, showy, slightly sarcastic arena-announcer style (tone
+  inspired by Halo / Knightsquad, no copied lines). Built on the browser's
+  speech voice, pitched down. Only the best bonus on a word is called, common
+  ones only sometimes, at most one call every 1.4 s. Off when sound effects are
+  off. A recorded voice could replace it later.
+- Owner likes the music ("feels very RuneScape"): keep its direction.

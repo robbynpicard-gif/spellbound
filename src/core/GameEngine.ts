@@ -220,6 +220,8 @@ export class GameEngine {
         maxActiveWords: Math.round(lerp(pace.maxActiveWords, c.ramp.maxActiveWords)),
       };
     }
+    // Within a quota level, words come slower at the start and faster near the end (D-051).
+    if (!isSurvival(c) && c.spawnRamp) pace = { ...pace, spawnInterval: pace.spawnInterval * (1 + c.spawnRamp - 2 * c.spawnRamp * this.progress) };
     if (this.s.surgeTicks > 0)
       pace = { ...pace, spawnInterval: pace.spawnInterval * SURGE_SPAWN_FACTOR, maxActiveWords: pace.maxActiveWords + SURGE_EXTRA_WORDS };
     return pace;

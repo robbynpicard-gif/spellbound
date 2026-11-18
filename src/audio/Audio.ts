@@ -1,3 +1,4 @@
+import { announcer } from './Announcer';
 import type { SpellId } from '../gameplay/SpellManager';
 import { Music, type Mood } from './Music';
 import { midi, Synth } from './synth';
@@ -104,6 +105,7 @@ class AudioEngine {
 
   setSfx(on: boolean): void {
     this.sfxOn = on;
+    announcer.enabled = on;
     if (this.ctx) this.sfxBus.gain.setTargetAtTime(on ? 0.75 : 0, this.ctx.currentTime, 0.05);
   }
 
