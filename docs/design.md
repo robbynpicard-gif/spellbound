@@ -1,6 +1,6 @@
 # Wizzy Type — Current Design Reference
 
-Last updated 2026-11-17 (v0.21.0). This is the single source of truth for the
+Last updated 2026-11-17 (v0.21.1). This is the single source of truth for the
 current design. Older plans marked "Superseded" are kept only for history.
 
 - **Confirmed** means decided by the owner.
@@ -45,18 +45,18 @@ current design. Older plans marked "Superseded" are kept only for history.
 
 ## 3. Pacing and difficulty — Confirmed (D-048)
 
-In-game WPM targets. These are the agreed targets raised by a third, with the
-same shape:
+In-game WPM targets: the agreed targets raised by a third (D-048), then ~20%
+more through spawn rate only (D-050), with the same shape:
 
 | Mode | Start | S1 | S2 | S3 | S4 | S5 |
 |---|---|---|---|---|---|---|
-| Normal | 16 | 24 | 29 | 35 | 40 | 47 |
-| Hardcore | 24 | 33 | 40 | 47 | 53 | 60 |
+| Normal | 19 | 29 | 35 | 42 | 48 | 56 |
+| Hardcore | 29 | 40 | 48 | 56 | 64 | 72 |
 
 **Pace.** Each stage starts at the previous stage's target and reaches 95% of
 its own target by level 19. Each boss ramps from 90% to 112% of its target.
 
-**Words on screen.** Short words and a slow fall keep 7–10 words on screen.
+**Words on screen.** Short words and a slow fall keep about 9–12 words on screen.
 Normal Stage 1 uses 3–4-letter words.
 
 **Opening cluster.** Every level starts with 4 words (Hardcore 5) already

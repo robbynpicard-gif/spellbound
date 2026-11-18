@@ -43,11 +43,13 @@ export const STAGE_TUNING: Record<
     maxComplexity: readonly (number | null)[];
   }
 > = {
-  // WPM: the agreed targets raised by a third (owner, 2026-11-17), same shape.
+  // WPM: the agreed targets raised by a third, then by a further ~20% through
+  // spawn rate only (owner, 2026-11-17). WPM sets only how often words arrive;
+  // fall speed and word length are set separately below.
   // Shorter words and a slower fall mean more words on screen at once.
   normal: {
-    startWpm: 16,
-    targetWpm: [24, 29, 35, 40, 47],
+    startWpm: 19,
+    targetWpm: [29, 35, 42, 48, 56],
     lengths: [[3, 4], [3, 5], [3, 6], [4, 7], [4, 8]],
     fallSeconds: [20, 11],
     instabilityPerMiss: [10, 11, 12, 13, 14],
@@ -55,8 +57,8 @@ export const STAGE_TUNING: Record<
     maxComplexity: [0.5, 1, 1.5, 2, null],
   },
   hardcore: {
-    startWpm: 24,
-    targetWpm: [33, 40, 47, 53, 60],
+    startWpm: 29,
+    targetWpm: [40, 48, 56, 64, 72],
     lengths: [[3, 5], [3, 6], [4, 7], [4, 8], [5, 9]],
     fallSeconds: [15, 8.5],
     instabilityPerMiss: [12, 13, 14, 15, 16],

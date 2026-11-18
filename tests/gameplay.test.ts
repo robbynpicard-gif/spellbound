@@ -73,9 +73,12 @@ describe('WordGenerator', () => {
   });
 
   it('consecutive words (one field-full) avoid duplicate text and shared first letters', () => {
-    const window = PROTOTYPE_LEVEL.maxActiveWords; // window of previous words + the new one
+    // With up to ~8 words on screen there are enough first letters to keep them all
+    // different; busier levels fall back to sharing a letter when they must.
+    const level = { ...PROTOTYPE_LEVEL, maxActiveWords: 8 };
+    const window = level.maxActiveWords; // window of previous words + the new one
     for (const seed of [9, 10, 11, 12]) {
-      const gen = new WordGenerator(WORDS, PROTOTYPE_LEVEL, new SeededRandom(seed));
+      const gen = new WordGenerator(WORDS, level, new SeededRandom(seed));
       const seq = Array.from({ length: 60 }, () => gen.next().toLowerCase());
       for (let i = 0; i + window <= seq.length; i++) {
         const group = seq.slice(i, i + window);

@@ -755,3 +755,13 @@ of Normal stages 4–5 and Hardcore stage 5.
   that start with a spell name are also left out, so typing a spell never
   half-matches a word).
 - Future, not approved: boss "spell scramble", Triumphs, medals, shop.
+
+### D-050 — Difficulty +20% via spawn rate only (2026-11-17)
+
+**Owner:** raise the whole difficulty floor by about 20%, only by making words
+arrive more often. Fall speed and word lengths unchanged; levels keep their
+length in time (so quotas grow by ~20%).
+- Normal: 19 → 29/35/42/48/56 WPM (was 16 → 24/29/35/40/47).
+- Hardcore: 29 → 40/48/56/64/72 WPM (was 24 → 33/40/47/53/60).
+- More words on screen at once (up to ~12–15 early); the word generator still
+  avoids shared first letters where it can.

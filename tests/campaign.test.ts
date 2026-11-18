@@ -93,13 +93,13 @@ describe('stage structure (D-047)', () => {
 
   it('uses the agreed WPM targets', () => {
     // The agreed targets raised by a third (owner, 2026-11-17).
-    expect(STAGE_TUNING.normal.targetWpm).toEqual([24, 29, 35, 40, 47]);
-    expect(STAGE_TUNING.hardcore.targetWpm).toEqual([33, 40, 47, 53, 60]);
-    expect(levelWpm('normal', 1, 1)).toBe(16);
-    expect(levelWpm('hardcore', 1, 1)).toBe(24);
-    expect(levelWpm('normal', 3, 20)).toBe(35);
+    expect(STAGE_TUNING.normal.targetWpm).toEqual([29, 35, 42, 48, 56]);
+    expect(STAGE_TUNING.hardcore.targetWpm).toEqual([40, 48, 56, 64, 72]);
+    expect(levelWpm('normal', 1, 1)).toBe(19);
+    expect(levelWpm('hardcore', 1, 1)).toBe(29);
+    expect(levelWpm('normal', 3, 20)).toBe(42);
     // Each stage starts where the previous stage's target was.
-    expect(levelWpm('normal', 2, 1)).toBe(24);
+    expect(levelWpm('normal', 2, 1)).toBe(29);
   });
 
   it('gets harder within each stage, and Hardcore is harder than Normal', () => {
