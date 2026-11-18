@@ -1,6 +1,6 @@
 # Wizzy Type — Current Design Reference
 
-Last updated 2026-11-17 (v0.24.0). This is the single source of truth for the
+Last updated 2026-11-18 (v0.25.0). This is the single source of truth for the
 current design. Older plans marked "Superseded" are kept only for history.
 
 - **Confirmed** means decided by the owner.
@@ -34,6 +34,10 @@ current design. Older plans marked "Superseded" are kept only for history.
 - Stages unlock in order within each mode.
 - The run is saved between levels (Continue / Save and quit).
 - A stage takes about **15 minutes**.
+- **Words stay on the field between levels** of a stage: the next level starts
+  with them where they were (D-055).
+- **Endless mode after the boss:** beating level 20 offers endless play at the
+  stage's peak pace (D-055).
 
 | Stage | Name | Boss (L20) |
 |---|---|---|
@@ -158,8 +162,9 @@ cleared in each mode.
   - **Testing build:** every stage is open (`PRACTICE_UNLOCK_ALL` in
     src/app/flags.ts).
   - **Before release:** lock Practice behind Campaign progress again.
-- **Campaign testing build:** all stages open, and any level can be started
-  (`CAMPAIGN_UNLOCK_ALL`). Lock before release.
+- **Campaign testing controls** (D-055): a toggle between "all unlocked" (any
+  stage, any level) and real progress, and a Reset campaign button. Remove or
+  hide before release.
 - **Wizard Duels.** Online duels on the 100 Normal levels.
 
 ## 7. Art and sound — Confirmed
@@ -172,6 +177,8 @@ cleared in each mode.
   ostinato and drums as the pace quickens (D-054). The menu has its own warm,
   slower theme.
 - The music is liked by the owner ("feels very RuneScape"): keep that direction.
+- **Audio channels** (D-053): Music, Sound effects and Announcer, each with a
+  switch and a volume slider.
 - **Announcer — removed for now (D-052).** The synthesized voice sounded too
   robotic. Wanted: a real human voice (deep, showy, slightly sarcastic arena
   announcer calling the per-word bonuses). Needs recorded lines.
