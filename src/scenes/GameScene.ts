@@ -297,7 +297,7 @@ export class GameScene extends Phaser.Scene {
     this.introRemainingMs = 0;
     this.accumulator = 0;
     this.input.keyboard?.enableGlobalCapture();
-    audio.setMood('game');
+    audio.setMood('calm');
   }
 
   /** Called by the app's Resume button. */
