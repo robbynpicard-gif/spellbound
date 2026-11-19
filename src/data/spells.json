@@ -13,10 +13,10 @@
     "id": "ice",
     "name": "Frostbinding",
     "book": "Ice",
-    "summary": "Freezes every word for 8 seconds.",
-    "description": "Freezes every word in place, and stops new words appearing, for 8 seconds. Casting it again while frozen adds more time, but less each time (8 s, then 5.6, 3.9 …). You can keep typing.",
+    "summary": "Freezes every word and stops spawns for 6 seconds.",
+    "description": "Freezes all words and stops new spawns for 6 seconds while you keep typing. Each additional cast adds another full 6 seconds.",
     "dropWeight": 4,
-    "durationMs": 8000
+    "durationMs": 6000
   },
   {
     "id": "barrier",
