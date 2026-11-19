@@ -587,7 +587,7 @@ export class GameEngine {
     // guess what the player meant and treat it as a missed submission.
     // A word already penalised for a typo in this same entry isn't penalised again.
     const guess = pinned ?? guessIntendedWord(s.words, input);
-    // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
+    // Incorrect Enter resets Combo and Volley and ends Clean Streak.
     this.setCombo(0);
     this.resetVolley();
     this.setCleanStreak(0, 'wrongEntry');
@@ -833,6 +833,7 @@ export class GameEngine {
 
     s.missed++;
     this.setCombo(0);
+    this.resetVolley();
     this.setCleanStreak(0, 'miss');
     this.shrinkPool();
     const damage = this.config.instabilityPerMiss;
