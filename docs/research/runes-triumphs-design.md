@@ -26,6 +26,14 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - Triumphs may relate to Rune feats and career totals, but should not be limited to grinding Rune counts.
 - Exact tier structure, rewards and visibility are undecided.
 
+## Round 7 — confirmed creative direction
+
+- Rune rarity combines **graduated difficulty and discovery**. Some awards are accessible introductions, others demand mastery or unusual, learnable conditions.
+- Explore simple word patterns, meaningful linguistic metadata and **magical-world vocabulary** together; do not assume every suggested variation must be implemented.
+- Explore a grammar-chain family inspired *functionally* by Halo's escalating multi-kill medals: **Double Noun → Triple Noun → Nountacular**. The names and exact thresholds remain proposals until approved.
+- Consider a curated **Arcane Lexicon** of magic-specific words for distinctive visual recognition and Rune triggers. This is an idea, not yet a mechanic.
+- Prioritize intuitive triggers, typing-first fairness, accessible presentation and avoiding redundant scoring bonuses.
+
 ## Still open
 
 - The first concrete Rune catalogue, measurable triggers and rarity thresholds.
