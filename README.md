@@ -5,38 +5,26 @@ tower; type them to cast counterspells before they land.
 
 **▶ Play it:** https://robbynpicard-gif.github.io/spellbound/
 
-Every push to `main` is tested, built and published automatically
-(`.github/workflows/deploy.yml`). The multiplayer server isn't hosted yet,
-so online duels only work when you run `npm run server` locally.
+The live site is published from `main`. The current development branch is
+`design/nov-18-playtest-handoff`, published at
+https://robbynpicard-gif.github.io/spellbound/preview/ when deployment succeeds.
 
-> **Status:** Milestone 6 (in progress) — a 20-level Campaign in Normal or
-> Hardcore, eight spells, and Endless Practice. Multiplayer code exists but
-> isn't hosted yet.
+**Current approved gameplay:** [docs/current-game-model.md](docs/current-game-model.md).
+Older GDD and decision entries preserve design history; the current-game-model
+file identifies which later decisions supersede prototype descriptions.
 
 ### Campaign
 
-A run always starts at level 1 and goes through **4 chapters of 5 levels**.
-Each chapter ends with a **boss**: survive the timer (60, 75, 90, then 120
-seconds) while the pace keeps rising. Survive a boss and you choose one of
-three spells as a free charge. Lose and the run starts over. A full run takes
-about 20 minutes.
+Normal and Hardcore each have five stages of twenty levels. Levels 1–19 are
+quota levels; level 20 is a timed boss. Survive the boss to choose whether to
+continue the exact frozen battlefield into escalating Endless mode.
+Normal supports spell quick-cast with number keys 1–8; Hardcore requires typed
+spell names. Spell charges, score and relevant run state carry forward.
 
-- **Normal:** your wards are restored at the start of every level.
-- **Hardcore:** ward damage carries through the whole run. Each boss you
-  survive heals 25%, and Wind only halves the damage.
+### Practice and multiplayer
 
-### Options: word banks
-
-Choose which words fall: the **Fantasy dictionary** (castles, creatures,
-wizardry, alchemy, legends of old) and/or the **Modern dictionary**
-(everyday words). At least one stays on. Wizard Duels always use Fantasy.
-
-### Endless Practice
-
-Pick any level you've reached in Campaign and play it at exactly that
-level's difficulty, forever. Choose **Spell scrolls** (as in Campaign) or
-**Pure typing**. Press Esc → "End session" whenever you like; your personal
-bests are kept per level, separately from Campaign.
+Practice lets you train on unlocked levels. The multiplayer server code exists,
+but public online duels are not hosted yet.
 
 ## How to play
 
