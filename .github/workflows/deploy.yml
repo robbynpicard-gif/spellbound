@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - main
-      - design/nov-18-playtest-handoff
+      - codex/gameplay-iteration
   workflow_dispatch:
 
 permissions:
@@ -32,7 +32,7 @@ jobs:
       - name: Checkout development branch
         uses: actions/checkout@v4
         with:
-          ref: design/nov-18-playtest-handoff
+          ref: codex/gameplay-iteration
           path: development
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -56,7 +56,7 @@ jobs:
           cp -a stable/dist/. site/
           cp -a development/dist/. site/preview/
           printf 'branch=main\ncommit=%s\n' "$(git -C stable rev-parse HEAD)" > site/build-info.txt
-          printf 'branch=design/nov-18-playtest-handoff\ncommit=%s\n' "$(git -C development rev-parse HEAD)" > site/preview/build-info.txt
+          printf 'branch=codex/gameplay-iteration\ncommit=%s\n' "$(git -C development rev-parse HEAD)" > site/preview/build-info.txt
           touch site/.nojekyll
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
