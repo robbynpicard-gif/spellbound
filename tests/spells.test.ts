@@ -567,12 +567,50 @@ describe('boss-to-Endless continuation', () => {
   });
 });
 
+describe('Endless intensity and clutter', () => {
+  it('cycles through buildup, surge, relief and settle without lowering the long-term floor', () => {
+    const config = { ...CONFIG, initialFallSpeed: 0.01, spawnInterval: 1000, maxActiveWords: 8,
+      escalation: { perWords: 25, speed: 0.04, spawn: 0.04 } };
+    const engine = makeEngine(config);
+    const changes: boolean[] = [];
+    engine.events.on('surgeChanged', ({ active }) => changes.push(active));
+    expect(engine.endlessWave.phase).toBe('build');
+    const base = engine.pace.spawnInterval;
+    for (let i = 0; i < 21 * 60; i++) engine.step();
+    expect(engine.endlessWave.phase).toBe('surge');
+    expect(engine.pace.spawnInterval).toBeLessThan(base);
+    expect(changes).toContain(true);
+    for (let i = 0; i < 13 * 60; i++) engine.step();
+    expect(engine.endlessWave.phase).toBe('relief');
+    expect(engine.pace.spawnInterval).toBeGreaterThan(base);
+    expect(changes).toContain(false);
+    for (let i = 0; i < 13 * 60; i++) engine.step();
+    expect(engine.endlessWave.phase).toBe('settle');
+    expect(engine.pace.spawnInterval).toBeCloseTo(base);
+    for (let i = 0; i < 14 * 60; i++) engine.step();
+    expect(engine.endlessWave.phase).toBe('build');
+  });
+
+  it('keeps spawned words horizontally separated near the top when space allows', () => {
+    const engine = makeEngine({ spawnInterval: 1, initialFallSpeed: 0.01, maxActiveWords: 5,
+      minWordLength: 3, maxWordLength: 5, spellDropChance: 0 });
+    for (let i = 0; i < 25; i++) engine.step();
+    const words = engine.state.words;
+    expect(words.length).toBeGreaterThanOrEqual(2);
+    // At minimum, the lane picker must keep every word inside the field.
+    for (const w of words) {
+      expect(w.x).toBeGreaterThanOrEqual(FIELD.sideMargin + w.text.length * FIELD.approxCharWidth / 2);
+      expect(w.x).toBeLessThanOrEqual(FIELD.width - FIELD.sideMargin - w.text.length * FIELD.approxCharWidth / 2);
+    }
+  });
+});
+
 describe('boss (survival) levels', () => {
   const boss = { requiredWords: null, survivalMs: 10_000, ramp: { initialFallSpeed: 120, spawnInterval: 500, maxActiveWords: 9 } };
 
   it('wins immediately when the timer expires, preserving falling words for Endless', () => {
     const engine = makeEngine({ ...boss, initialFallSpeed: 5, instabilityPerMiss: 1 });
-    for (let i = 0; i < 600; i++) engine.step();
+    for (let i = 0; i < 599; i++) engine.step();
     expect(engine.status).toBe('playing');
     engine.step();
     expect(engine.status).toBe('won');
