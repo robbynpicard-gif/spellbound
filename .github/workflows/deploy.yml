@@ -43,12 +43,12 @@ jobs:
         working-directory: stable
         run: |
           npm ci
-          npm run build
+          npm run check
       - name: Build development game
         working-directory: development
         run: |
           npm ci
-          npm run build
+          npm run check
       - name: Assemble independently built sites with version markers
         run: |
           mkdir -p site/preview
