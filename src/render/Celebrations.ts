@@ -62,6 +62,17 @@ const style = (size: number, color: number, family: string = FONTS.heading): Pha
 export const CONFETTI = 'confetti';
 
 export class Celebrations {
+  private readonly finaleObjects: Phaser.GameObjects.GameObject[] = [];
+
+  /** Remove victory overlays when the player continues the same field into Endless. */
+  clearFinale(): void {
+    for (const object of this.finaleObjects) {
+      this.scene.tweens.killTweensOf(object);
+      if (object.active) object.destroy();
+    }
+    this.finaleObjects.length = 0;
+  }
+
   constructor(private readonly scene: Phaser.Scene) {
     if (!scene.textures.exists(CONFETTI)) {
       const g = scene.make.graphics({ x: 0, y: 0 }, false);
@@ -132,12 +143,14 @@ export class Celebrations {
         emitting: false,
       })
       .setDepth(37);
+    this.finaleObjects.push(confetti);
     confetti.explode(boss ? 160 : 100);
     scene.time.delayedCall(1800, () => confetti.destroy());
 
     const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)]!;
     const banner = scene.add.text(cx, cy, pick(boss ? BOSS_BANNERS : BANNERS), style(56, PALETTE.gold)).setOrigin(0.5).setDepth(39);
     const quip = scene.add.text(cx, cy + 52, pick(QUIPS), style(18, PALETTE.parchment, FONTS.gameplay)).setOrigin(0.5).setDepth(39).setAlpha(0);
+    this.finaleObjects.push(banner, quip);
     banner.setScale(2.6).setAlpha(0);
     scene.tweens.add({ targets: banner, scale: 1, alpha: 1, duration: 220, ease: 'Back.Out' });
     scene.tweens.add({ targets: quip, alpha: 0.9, delay: 300, duration: 250 });
@@ -150,10 +163,12 @@ export class Celebrations {
         .setOrigin(0.5)
         .setDepth(39)
         .setAlpha(0);
+      this.finaleObjects.push(label);
       scene.tweens.add({ targets: label, alpha: 1, scale: { from: 1.5, to: 1 }, delay: 280 + i * 110, duration: 180, ease: 'Back.Out' });
     });
     const totalY = cy + 106 + levelBonuses.length * 30;
     const total = scene.add.text(cx, totalY, 'LEVEL SCORE  0', style(30, PALETTE.parchment, FONTS.gameplay)).setOrigin(0.5).setDepth(39).setAlpha(0);
+    this.finaleObjects.push(total);
     const roll = { value: 0 };
     let lastTick = 0;
     scene.tweens.add({ targets: total, alpha: 1, delay: 300, duration: 120 });
