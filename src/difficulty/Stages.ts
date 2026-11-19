@@ -252,14 +252,22 @@ export function duelLevels(): DifficultyConfig[] {
  * ward does. Scores are kept per stage.
  */
 export function endlessConfig(mode: StageMode, stage: number): DifficultyConfig {
-  const last = stageLevel(mode, stage, STAGE_LEVELS - 1);
+  const boss = stageLevel(mode, stage, STAGE_LEVELS);
+  // Continue at the boss's *final* pace, not the previous quota level's pace.
+  const finish = boss.ramp ?? {
+    initialFallSpeed: boss.initialFallSpeed,
+    spawnInterval: boss.spawnInterval,
+    maxActiveWords: boss.maxActiveWords,
+  };
   return {
-    ...last,
+    ...boss,
+    ...finish,
     name: `Endless · ${STAGE_NAMES[stage - 1] ?? ''}`,
     requiredWords: null,
     survivalMs: null,
     ramp: null,
-    rampWords: last.requiredWords,
+    rampWords: stageLevel(mode, stage, STAGE_LEVELS - 1).requiredWords,
+    surges: [],
     speedRampExtra: 0,
     escalation: { perWords: 25, speed: 0.04, spawn: 0.04 },
   };
