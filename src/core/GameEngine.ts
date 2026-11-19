@@ -532,7 +532,7 @@ export class GameEngine {
     const s = this.s;
     if (s.tick < s.emergencyReadyTick || this.config.availableSpells.length === 0 ||
         (this.config.requiredWords !== null && s.completed + s.words.length >= this.config.requiredWords)) return;
-    const spell = this.rng.weighted(dropWeights(this.config.availableSpells) as Record<SpellId, number>);
+    const spell = this.rng.weighted(dropWeights(this.config.availableSpells, this.config.introducesSpell) as Record<SpellId, number>);
     this.spawn(this.pace.fallSpeed, 0, spell);
     s.emergencyReadyTick = s.tick + EMERGENCY_COOLDOWN_TICKS;
   }
