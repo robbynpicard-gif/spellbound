@@ -43,6 +43,9 @@ describe('deterministic campaign population audit', () => {
         }
         const signature = mode === 'normal' ? stage + 2 : stage + 3;
         const main = observed.filter(w => w.length === signature).length / observed.length;
+        const twoLetterShare = observed.filter(w => w.length === 2).length / observed.length;
+        if (mode === 'normal' && stage === 1 && twoLetterShare > 0.08)
+          outliers.push(`normal stage 1 level ${level}: two-letter share ${(twoLetterShare*100).toFixed(1)}% exceeds 8%`);
         if (main < 0.30 && level <= 9) outliers.push(`${mode} stage ${stage} level ${level}: signature ${signature} share ${(main*100).toFixed(1)}%`);
       }
       const distribution = [...lengths].sort((a,b)=>a[0]-b[0]).map(([n,v])=>`${n}:${(100*v/total).toFixed(1)}%`).join(' ');
