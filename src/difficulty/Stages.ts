@@ -196,6 +196,8 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
     maxActiveWords: room(fall, spawn),
     minWordLength: minLen,
     maxWordLength: maxLen,
+    // Opening chapter: prefer 3-letter words over repetitive 2-letter words.
+    ...(stage === 1 && level <= 3 && !boss ? { wordLengthWeights: { 2: 0.10, 3: 0.70, 4: 0.20 } } : {}),
     modifierProbabilities: {},
     instabilityPerMiss: t.instabilityPerMiss[i]!,
     errorAcceleration: t.errorAcceleration[i]!,
@@ -261,6 +263,7 @@ export function endlessConfig(mode: StageMode, stage: number): DifficultyConfig 
     ramp: null,
     rampWords: last.requiredWords,
     speedRampExtra: 0,
-    escalation: { perWords: 25, speed: 0.04, spawn: 0.04 },
+    // Speed escalates far more aggressively than spawn density.
+    escalation: { perWords: 25, speed: 0.10, spawn: 0.025 },
   };
 }
