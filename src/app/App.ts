@@ -305,16 +305,10 @@ export class App {
     this.save.setSavedRun(null);
     const summary = summarizeRun(run, victory);
     const outcome = this.save.recordRun(summary, run.mode);
-    if (victory && isSurvival(clearedLevel)) {
-      // A boss victory is a seamless transition into Endless, not another
-      // level-select/results screen. Record the stage clear first so the
-      // next stage remains unlocked, then carry the live field forward.
-      run.carryWords = words;
-      this.run = run;
-      this.startEndless(run.mode, run.stage);
-      return;
-    }
-    this.run = null;
+    // Let the player celebrate the boss victory and choose whether to
+    // continue. Preserve the boss field until the Endless button is chosen.
+    if (victory && isSurvival(clearedLevel)) run.carryWords = words;
+    this.run = victory && isSurvival(clearedLevel) ? run : null;
     const nextStage = victory && run.stage < STAGE_COUNT ? run.stage + 1 : null;
     this.ui.show(
       runOverScreen(summary, outcome, clearedLevel, {
