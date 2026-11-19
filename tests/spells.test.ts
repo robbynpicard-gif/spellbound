@@ -591,7 +591,20 @@ describe('Endless intensity and clutter', () => {
     expect(engine.endlessWave.phase).toBe('build');
   });
 
-  it('keeps spawned words horizontally separated near the top when space allows', () => {
+  it('does not alter scroll spawn frequency when Slow is active', () => {
+    const config = { ...CONFIG, initialFallSpeed: 0.01, spawnInterval: 100, maxActiveWords: 100,
+      availableSpells: ['slow' as const], spellDropChance: 0.4 };
+    const normal = makeEngine(config);
+    const slowed = makeEngine(config, { initialSpells: { slow: 1 } });
+    normal.step();
+    slowed.step();
+    cast(slowed, 'slow');
+    for (let i = 0; i < 180; i++) { normal.step(); slowed.step(); }
+    expect(slowed.state.words.length).toBe(normal.state.words.length);
+    expect(slowed.state.words.filter(w => w.spell).length).toBe(normal.state.words.filter(w => w.spell).length);
+  });
+
+  it('keeps spawn positions within field bounds under top-field congestion', () => {
     const engine = makeEngine({ spawnInterval: 1, initialFallSpeed: 0.01, maxActiveWords: 5,
       minWordLength: 3, maxWordLength: 5, spellDropChance: 0 });
     for (let i = 0; i < 25; i++) engine.step();
