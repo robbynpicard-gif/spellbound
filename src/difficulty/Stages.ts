@@ -196,6 +196,8 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
     maxActiveWords: room(fall, spawn),
     minWordLength: minLen,
     maxWordLength: maxLen,
+    // Opening chapter: prefer 3-letter words over repetitive 2-letter words.
+    ...(stage === 1 && level <= 3 && !boss ? { wordLengthWeights: { 2: 0.10, 3: 0.70, 4: 0.20 } } : {}),
     modifierProbabilities: {},
     instabilityPerMiss: t.instabilityPerMiss[i]!,
     errorAcceleration: t.errorAcceleration[i]!,
@@ -252,15 +254,23 @@ export function duelLevels(): DifficultyConfig[] {
  * ward does. Scores are kept per stage.
  */
 export function endlessConfig(mode: StageMode, stage: number): DifficultyConfig {
-  const last = stageLevel(mode, stage, STAGE_LEVELS - 1);
+  const boss = stageLevel(mode, stage, STAGE_LEVELS);
+  const finish = boss.ramp ?? boss;
   return {
-    ...last,
+    ...boss,
+    level: STAGE_LEVELS + 1,
+    initialFallSpeed: finish.initialFallSpeed,
+    spawnInterval: finish.spawnInterval,
+    maxActiveWords: finish.maxActiveWords,
+    openingWords: 0,
     name: `Endless · ${STAGE_NAMES[stage - 1] ?? ''}`,
     requiredWords: null,
     survivalMs: null,
     ramp: null,
-    rampWords: last.requiredWords,
+    surges: [],
+    rampWords: null,
     speedRampExtra: 0,
-    escalation: { perWords: 25, speed: 0.04, spawn: 0.04 },
+    // Speed escalates far more aggressively than spawn density.
+    escalation: { perWords: 25, speed: 0.10, spawn: 0.025 },
   };
 }

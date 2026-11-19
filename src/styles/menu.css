@@ -41,7 +41,7 @@
   background: rgb(10 9 8 / 0.72);
 }
 
-/* Between levels the words are still falling behind the summary: barely dim them. */
+/* Between levels the battlefield is frozen and visible behind the summary. */
 #ui-root.is-active:has(.keeps-field) {
   background: rgb(10 9 8 / 0.2);
 }

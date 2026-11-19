@@ -288,6 +288,18 @@ export class GameScene extends Phaser.Scene {
     if (left !== null) this.hud.setSurvival(this.config.survivalMs!, left);
   }
 
+  /** Swap rules and callbacks without recreating the Phaser scene or engine. */
+  continueIntoEndless(config: DifficultyConfig, hooks: GameSceneHooks): void {
+    this.engine.continueIntoEndless(config);
+    this.config = config;
+    this.hooks = hooks;
+    this.hud.setEndlessMode(`Endless · ${config.name}`);
+    this.introRemainingMs = 0;
+    this.accumulator = 0;
+    this.input.keyboard?.enableGlobalCapture();
+    audio.setMood('calm');
+  }
+
   /** Called by the app's Resume button. */
   resumeGame(): void {
     this.setPaused(false);
@@ -713,6 +725,10 @@ export class GameScene extends Phaser.Scene {
     if (key === 'Delete') return this.engine.clearInput();
     if (event.repeat) return; // holding a letter or Enter should not repeat it
     if (key === 'Enter') return this.engine.submit();
+    // Prototype hotkeys: F2 accelerates a quiet quota level; F3 offers
+    // a random colored spell scroll. Disabled for competitive duels.
+    if (!this.duel && key === 'F2') { event.preventDefault(); this.engine.summon(); return; }
+    if (!this.duel && key === 'F3') { event.preventDefault(); this.engine.emergencySummon(); return; }
     // Normal: number keys 1–8 cast the spell in that slot (words never contain digits).
     if (this.quickCast && key >= '1' && key <= '8') {
       const spell = this.spellSlots[Number(key) - 1];

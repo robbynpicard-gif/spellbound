@@ -34,6 +34,17 @@ export interface GameState {
   manaStreak: number;
   /** Boss timer is over: no new words, the level ends when the field is clear. */
   windingDown: boolean;
+  /** Boss survival clock in simulation milliseconds, adjusted by time spells. */
+  survivalElapsedMs: number;
+  /** Optional summon action cooldowns, in ticks. */
+  summonReadyTick: number;
+  emergencyReadyTick: number;
+  /** Word IDs carrying a small bonus for voluntary summons. */
+  summonedIds: number[];
+  /** Captures in the current rhythmic Volley chain. */
+  volleyCount: number;
+  volleyLastTick: number;
+  volleyFieldEmptyTick: number;
   score: number;
   combo: number;
   maxCombo: number;
@@ -111,6 +122,13 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     surgeLap: 0,
     manaStreak: 0,
     windingDown: false,
+    survivalElapsedMs: 0,
+    summonReadyTick: 0,
+    emergencyReadyTick: 0,
+    summonedIds: [],
+    volleyCount: 0,
+    volleyLastTick: -100000,
+    volleyFieldEmptyTick: -1,
     score: 0,
     combo: 0,
     maxCombo: 0,

@@ -243,7 +243,7 @@ export class GameHUD {
   constructor(
     private readonly scene: Phaser.Scene,
     levelName: string,
-    private readonly quota: number | null,
+    private quota: number | null,
     /** Run score from earlier levels, added to this level's score. */
     private readonly scoreOffset = 0,
     rivalName?: string,
@@ -430,6 +430,16 @@ export class GameHUD {
   setRival(score: number, instability: number, alive: boolean): void {
     if (!this.rival) return;
     Object.assign(this.rival, { score, instability, alive });
+    this.drawRoll();
+  }
+
+  /** Change the existing HUD from boss countdown to open-ended captures. */
+  setEndlessMode(label: string): void {
+    this.quota = null;
+    this.survivalMs = null;
+    this.survivalLeftMs = 0;
+    this.completed = 0;
+    this.levelText.setText(label);
     this.drawRoll();
   }
 
