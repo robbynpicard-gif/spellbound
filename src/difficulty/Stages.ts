@@ -197,7 +197,7 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
     minWordLength: minLen,
     maxWordLength: maxLen,
     // Opening chapter: prefer 3-letter words over repetitive 2-letter words.
-    ...(stage === 1 && level <= 3 && !boss ? { wordLengthWeights: { 2: 0.10, 3: 0.70, 4: 0.20 } } : {}),
+    ...(stage === 1 && level <= 3 && !boss ? { wordLengthWeights: maxLen >= 4 ? { 2: 0.10, 3: 0.70, 4: 0.20 } : { 2: 0.125, 3: 0.875 } } : {}),
     modifierProbabilities: {},
     instabilityPerMiss: t.instabilityPerMiss[i]!,
     errorAcceleration: t.errorAcceleration[i]!,
