@@ -83,11 +83,17 @@ class AudioEngine {
     warm.frequency.value = 220;
     warm.gain.value = 3;
     this.sfxBus.connect(round).connect(warm).connect(master);
-    const wet = ctx.createGain();
-    wet.gain.value = 0.3;
-    wet.connect(master);
-    this.sy = new Synth(ctx, wet);
-    this.music = new Music(this.sy, this.musicBus);
+    // Reverb used to bypass both mute switches by connecting straight to master.
+    // Give music and effects separate wet returns, each routed through its own
+    // channel bus. Ambient wind, pads and their tails now obey Music mute.
+    const musicWet = ctx.createGain();
+    musicWet.gain.value = 0.3;
+    musicWet.connect(this.musicBus);
+    const sfxWet = ctx.createGain();
+    sfxWet.gain.value = 0.3;
+    sfxWet.connect(this.sfxBus);
+    this.sy = new Synth(ctx, sfxWet);
+    this.music = new Music(new Synth(ctx, musicWet), this.musicBus);
     this.music.set(this.pending);
     this.music.start(ctx.currentTime + 0.1, realtime);
   }
