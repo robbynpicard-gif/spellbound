@@ -707,6 +707,29 @@ describe('fall speeds', () => {
 
 
 describe('campaign word lengths and pacing regression', () => {
+  it('defines a signature length in every Normal stage and previews the next length', () => {
+    for (let stage = 1; stage <= 5; stage++) {
+      const first = stageLevel('normal', stage, 1);
+      const signature = stage + 2;
+      const weights = first.wordLengthWeights!;
+      expect(weights[signature]).toBeGreaterThan(weights[signature - 1] ?? 0);
+      if (signature + 1 <= first.maxWordLength) {
+        expect(weights[signature]).toBeGreaterThan(weights[signature + 1] ?? 0);
+        expect(weights[signature + 1]).toBeGreaterThan(0);
+      }
+      expect(first.spawnInterval).toBeGreaterThan(0);
+      expect(first.maxWordLength).toBeGreaterThanOrEqual(signature);
+    }
+  });
+
+  it('has a substantial pool of distinct words for each signature length', () => {
+    for (const length of [3, 4, 5, 6, 7]) {
+      const words = WORDS.filter((word) => word.length === length);
+      expect(words.length).toBeGreaterThan(100);
+      expect(new Set(words.map((word) => word.toLowerCase())).size).toBe(words.length);
+    }
+  });
+
   it('makes three-letter words dominant early, with rare two-letter and preview four-letter words', () => {
     const first = stageLevel('normal', 1, 1);
     expect(first.maxWordLength).toBe(4);
