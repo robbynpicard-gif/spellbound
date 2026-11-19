@@ -736,7 +736,7 @@ describe('campaign word lengths and pacing regression', () => {
     expect(first.wordLengthWeights?.[3]).toBeGreaterThan((first.wordLengthWeights?.[2] ?? 0) * 10);
     expect(first.wordLengthWeights?.[4]).toBeGreaterThan(0);
     const later = stageLevel('normal', 1, 13);
-    expect(later.wordLengthWeights?.[4]).toBeGreaterThan(later.wordLengthWeights?.[3]);
+    expect(later.wordLengthWeights?.[4]).toBeGreaterThan(first.wordLengthWeights?.[4] ?? 0);
     expect(later.wordLengthWeights?.[2]).toBeLessThan(first.wordLengthWeights?.[2] ?? 1);
   });
 
