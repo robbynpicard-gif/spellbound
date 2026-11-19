@@ -123,7 +123,7 @@ export const MAX_INPUT_LENGTH = 24;
  */
 export class GameEngine {
   readonly events = new EventBus<GameEvents>();
-  readonly config: DifficultyConfig;
+  config: DifficultyConfig;
   readonly seed: number;
 
   private readonly field: FieldConfig;
@@ -196,6 +196,22 @@ export class GameEngine {
 
   get state(): Readonly<GameState> {
     return this.s;
+  }
+
+  /** Resume the *same* simulation after the player accepts the boss victory. */
+  continueIntoEndless(config: DifficultyConfig): void {
+    if (this.s.status !== 'won' || !isSurvival(this.config)) return;
+    this.config = config;
+    this.s.status = 'playing';
+    this.s.windingDown = false;
+    this.s.completed = 0;
+    this.s.spawnTimerMs = Math.min(this.s.spawnTimerMs, config.spawnInterval);
+    this.s.input = '';
+    this.s.targetId = null;
+    this.s.pinnedId = null;
+    this.s.penalizedId = null;
+    // Keep words, their positions/speeds, score, charges, Combo, Volley,
+    // active spell effects, ward and the existing seeded random streams.
   }
 
   get status(): GameStatus {
@@ -328,17 +344,9 @@ export class GameEngine {
     if (s.status !== 'playing') return;
     s.tick++;
 
-    // Boss level: surviving the whole timer clears it.
+    // Surviving the boss timer wins immediately, preserving the field for Endless.
     const remaining = this.survivalRemainingMs;
-    if (remaining !== null && remaining <= 0) {
-      // The boss timer is over: stop sending words and let the player finish the
-      // field. The win is already secured, so the ward cannot break now (D-057).
-      if (!s.windingDown) {
-        s.windingDown = true;
-        this.events.emit('windDown', {});
-      }
-      if (s.words.length === 0) return this.end('won');
-    }
+    if (remaining !== null && remaining <= 0) return this.end('won');
 
     this.tickPacing();
 
