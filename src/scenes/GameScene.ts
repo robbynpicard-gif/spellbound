@@ -300,6 +300,22 @@ export class GameScene extends Phaser.Scene {
     audio.setMood('calm');
   }
 
+  /** Touch keyboard uses the same gameplay rules as physical key presses. */
+  pressMobileKey(key: string): void {
+    if (this.engine.status !== 'playing' || this.paused || this.awaitingIntro || this.introRemainingMs > 0 || this.duelMenuOpen) return;
+    if (key === 'Backspace') { this.engine.backspace(); return; }
+    if (key === 'Enter') { this.engine.submit(); return; }
+    if (key === 'Escape') { if (!this.duel) this.setPaused(true); return; }
+    if (key === 'F2') { if (!this.duel) this.engine.summon(); return; }
+    if (key === 'F3') { if (!this.duel) this.engine.emergencySummon(); return; }
+    if (this.quickCast && /^[1-8]$/.test(key)) {
+      const spell = this.spellSlots[Number(key) - 1];
+      if (spell && this.knownSpells.includes(spell)) this.engine.quickCast(spell);
+      return;
+    }
+    if (/^[a-z]$/i.test(key)) { audio.key(); this.engine.typeChar(key.toLowerCase()); }
+  }
+
   /** Called by the app's Resume button. */
   resumeGame(): void {
     this.setPaused(false);
