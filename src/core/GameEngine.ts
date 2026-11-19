@@ -91,6 +91,11 @@ export const LEVEL_SPEED_RAMP = 0.15;
 /** During a surge words arrive this much more often, and a few more may be on the field. */
 export const SURGE_SPAWN_FACTOR = 0.6;
 export const SURGE_EXTRA_WORDS = 3;
+/** Endless waves are independent of the permanent word-based difficulty escalation. */
+export const ENDLESS_WAVE_SECONDS = 60;
+export const ENDLESS_WAVE_SURGE_START = 20;
+export const ENDLESS_WAVE_SURGE_END = 32;
+export const ENDLESS_WAVE_RECOVERY_END = 46;
 /** Claiming a scroll with a full spell pool: these points × the combo multiplier instead. */
 export const OVERFLOW_POINTS = 50;
 /** Fire spares freshly spawned words: it only burns below this share of the field (D-057). */
@@ -133,6 +138,8 @@ export class GameEngine {
   private readonly hardcore: boolean;
   /** Separate random stream for word speeds, so the word sequence is unaffected. */
   private readonly speedRng: SeededRandom;
+  /** Independent stream for layout sampling: clutter fixes must not change scroll drops. */
+  private readonly laneRng: SeededRandom;
   /** 3–4 letter words Transmutation can turn long words into. */
   private readonly shortWords: readonly string[];
   private awardedLevelBonuses: Bonus[] = [];
@@ -141,6 +148,8 @@ export class GameEngine {
   private readonly log: Command[] = [];
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
+  private endlessStartedTick: number | null = null;
+  private endlessWaveActive = false;
 
   constructor(options: EngineOptions) {
     this.config = options.config;
@@ -150,6 +159,7 @@ export class GameEngine {
     this.generator = new WordGenerator(options.words, options.config, this.rng);
     this.hardcore = options.hardcore === true;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
+    this.laneRng = new SeededRandom((this.seed ^ 0x1a4e1a4e) >>> 0);
     this.instability = new InstabilityManager(options.initialInstability ?? 0);
     const carried = Math.max(0, Math.floor(options.initialCombo ?? 0));
     this.shortWords = options.words.filter((w) => w.length >= SHORT_WORD_MIN && w.length <= SHORT_WORD_MAX);
@@ -202,6 +212,8 @@ export class GameEngine {
   continueIntoEndless(config: DifficultyConfig): void {
     if (this.s.status !== 'won' || !isSurvival(this.config)) return;
     this.config = config;
+    this.endlessStartedTick = this.s.tick;
+    this.endlessWaveActive = false;
     this.s.status = 'playing';
     this.s.windingDown = false;
     this.s.completed = 0;
@@ -257,6 +269,13 @@ export class GameEngine {
     if (!isSurvival(c) && c.spawnRamp) pace = { ...pace, spawnInterval: pace.spawnInterval * (1 + c.spawnRamp - 2 * c.spawnRamp * this.progress) };
     if (this.s.surgeTicks > 0)
       pace = { ...pace, spawnInterval: pace.spawnInterval * SURGE_SPAWN_FACTOR, maxActiveWords: pace.maxActiveWords + SURGE_EXTRA_WORDS };
+    if (c.escalation) {
+      const wave = this.endlessWave;
+      // Arrival pressure changes in waves, but the word-based difficulty floor
+      // keeps rising independently. Slow's spawn rate is intentionally unchanged.
+      pace = { ...pace, spawnInterval: pace.spawnInterval * wave.spawnFactor,
+        maxActiveWords: Math.max(4, Math.min(16, pace.maxActiveWords + wave.extraWords)) };
+    }
     return pace;
   }
 
@@ -266,6 +285,22 @@ export class GameEngine {
   /** How many charges fit right now: the base pool, widened by a clean run (D-057). */
   get poolLimit(): number {
     return poolSizeFor(this.s.manaStreak);
+  }
+
+  /** Deterministic Endless pressure cycle: build, surge, relief, settle. */
+  get endlessWave(): { phase: 'build' | 'surge' | 'relief' | 'settle'; spawnFactor: number; extraWords: number } {
+    if (!this.config.escalation) return { phase: 'settle', spawnFactor: 1, extraWords: 0 };
+    const origin = this.endlessStartedTick ?? 0;
+    const seconds = ((this.s.tick - origin) * SIMULATION_STEP_MS / 1000) % ENDLESS_WAVE_SECONDS;
+    if (seconds < ENDLESS_WAVE_SURGE_START) {
+      const t = seconds / ENDLESS_WAVE_SURGE_START;
+      return { phase: 'build', spawnFactor: 1 - 0.12 * t, extraWords: 0 };
+    }
+    if (seconds < ENDLESS_WAVE_SURGE_END)
+      return { phase: 'surge', spawnFactor: 0.72, extraWords: 2 };
+    if (seconds < ENDLESS_WAVE_RECOVERY_END)
+      return { phase: 'relief', spawnFactor: 1.3, extraWords: -2 };
+    return { phase: 'settle', spawnFactor: 1, extraWords: 0 };
   }
 
   private get progress(): number {
@@ -300,6 +335,13 @@ export class GameEngine {
       if (lap !== s.surgeLap) {
         s.surgeLap = lap;
         s.surgesStarted = 0;
+      }
+    }
+    if (c.escalation) {
+      const active = this.endlessWave.phase === 'surge';
+      if (active !== this.endlessWaveActive) {
+        this.endlessWaveActive = active;
+        this.events.emit('surgeChanged', { active });
       }
     }
     const next = c.surges?.[s.surgesStarted];
@@ -666,7 +708,24 @@ export class GameEngine {
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;
+    // Keep the spawn cadence and word count unchanged. Prefer a clear lane
+    // near the top so crowded fields remain readable, even under stacked Slow.
     let x = Math.round(minX < maxX ? this.rng.range(minX, maxX) : this.field.width / 2);
+    if (minX < maxX && s.words.some((w) => w.y < 90)) {
+      const score = (candidate: number): number => s.words.reduce((penalty, w) => {
+        if (w.y >= 90) return penalty;
+        const required = halfWidth + w.text.length * this.field.approxCharWidth / 2 + 12;
+        const overlap = Math.max(0, required - Math.abs(candidate - w.x));
+        return penalty + overlap * (w.y < 45 ? 2 : 1);
+      }, 0);
+      let best = score(x);
+      for (let i = 0; i < 10; i++) {
+        const candidate = Math.round(this.laneRng.range(minX, maxX));
+        const penalty = score(candidate);
+        if (penalty < best) { x = candidate; best = penalty; }
+        if (best === 0) break;
+      }
+    }
 
     const available = this.config.availableSpells;
     // Scrolls: whether one drops, then which spell (rarer spells have lower weights).
