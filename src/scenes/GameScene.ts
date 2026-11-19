@@ -290,6 +290,8 @@ export class GameScene extends Phaser.Scene {
 
   /** Swap rules and callbacks without recreating the Phaser scene or engine. */
   continueIntoEndless(config: DifficultyConfig, hooks: GameSceneHooks): void {
+    // The victory screen is gone; remove its Phaser text and score overlays too.
+    this.celebrate.clearFinale();
     this.engine.continueIntoEndless(config);
     this.config = config;
     this.hooks = hooks;
