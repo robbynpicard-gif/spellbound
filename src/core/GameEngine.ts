@@ -138,6 +138,8 @@ export class GameEngine {
   private readonly hardcore: boolean;
   /** Separate random stream for word speeds, so the word sequence is unaffected. */
   private readonly speedRng: SeededRandom;
+  /** Independent stream for layout sampling: clutter fixes must not change scroll drops. */
+  private readonly laneRng: SeededRandom;
   /** 3–4 letter words Transmutation can turn long words into. */
   private readonly shortWords: readonly string[];
   private awardedLevelBonuses: Bonus[] = [];
@@ -157,6 +159,7 @@ export class GameEngine {
     this.generator = new WordGenerator(options.words, options.config, this.rng);
     this.hardcore = options.hardcore === true;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
+    this.laneRng = new SeededRandom((this.seed ^ 0x1a4e1a4e) >>> 0);
     this.instability = new InstabilityManager(options.initialInstability ?? 0);
     const carried = Math.max(0, Math.floor(options.initialCombo ?? 0));
     this.shortWords = options.words.filter((w) => w.length >= SHORT_WORD_MIN && w.length <= SHORT_WORD_MAX);
@@ -717,7 +720,7 @@ export class GameEngine {
       }, 0);
       let best = score(x);
       for (let i = 0; i < 10; i++) {
-        const candidate = Math.round(this.rng.range(minX, maxX));
+        const candidate = Math.round(this.laneRng.range(minX, maxX));
         const penalty = score(candidate);
         if (penalty < best) { x = candidate; best = penalty; }
         if (best === 0) break;
