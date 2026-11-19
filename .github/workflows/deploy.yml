@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, codex/gameplay-iteration]
+    branches: [main, design/nov-18-playtest-handoff]
   workflow_dispatch:
 
 permissions:
@@ -35,7 +35,7 @@ jobs:
           cp -a dist/. /tmp/typel-main-dist/
       - uses: actions/checkout@v4
         with:
-          ref: codex/gameplay-iteration
+          ref: design/nov-18-playtest-handoff
           clean: true
       - run: npm ci
       - run: npm test
