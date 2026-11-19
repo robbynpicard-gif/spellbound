@@ -240,8 +240,8 @@ export class GameEngine {
     if (c.escalation) {
       const steps = Math.floor(this.s.completed / c.escalation.perWords);
       pace = {
-        fallSpeed: pace.fallSpeed * (1 + c.escalation.speed * steps),
-        spawnInterval: pace.spawnInterval / (1 + c.escalation.spawn * steps),
+        fallSpeed: pace.fallSpeed * Math.pow(1 + c.escalation.speed, steps),
+        spawnInterval: pace.spawnInterval / Math.pow(1 + c.escalation.spawn, steps),
         maxActiveWords: Math.min(16, pace.maxActiveWords + Math.floor(steps / 4)),
       };
     }
@@ -350,7 +350,9 @@ export class GameEngine {
         s.windingDown = true;
         this.events.emit('windDown', {});
       }
-      if (s.words.length === 0) return this.end('won');
+      // The boss victory is immediate. Keep remaining scrolls in state so
+      // choosing Endless carries the actual battlefield forward.
+      return this.end('won');
     }
 
     this.tickPacing();
@@ -505,7 +507,7 @@ export class GameEngine {
     const n = Math.min(SUMMON_BATCH, available, Math.max(0, this.pace.maxActiveWords - s.words.length));
     if (n === 0) return;
     for (let i = 0; i < n; i++) {
-      this.spawn(this.pace.fallSpeed);
+      this.spawn(this.pace.fallSpeed, 0, null);
       s.summonedIds.push(s.words[s.words.length - 1]!.id);
     }
     s.summonReadyTick = s.tick + SUMMON_COOLDOWN_TICKS;
@@ -516,15 +518,15 @@ export class GameEngine {
     const s = this.s;
     if (s.tick < s.emergencyReadyTick || this.config.availableSpells.length === 0 ||
         (this.config.requiredWords !== null && s.completed + s.words.length >= this.config.requiredWords)) return;
-    this.spawn(this.pace.fallSpeed);
-    const word = s.words[s.words.length - 1]!;
-    word.spell = this.rng.weighted(dropWeights(this.config.availableSpells) as Record<SpellId, number>);
+    const spell = this.rng.weighted(dropWeights(this.config.availableSpells) as Record<SpellId, number>);
+    this.spawn(this.pace.fallSpeed, 0, spell);
     s.emergencyReadyTick = s.tick + EMERGENCY_COOLDOWN_TICKS;
   }
 
   private resetVolley(): void {
     this.s.volleyCount = 0;
     this.s.volleyLastTick = -100000;
+    this.s.volleyFieldEmptyTick = -1;
     this.s.recentCaptures = [];
   }
 
@@ -730,7 +732,7 @@ export class GameEngine {
     return fallSpeed * vary * ramp;
   }
 
-  private spawn(fallSpeed: number, startY = 0): void {
+  private spawn(fallSpeed: number, startY = 0, forcedSpell?: SpellId | null): void {
     const s = this.s;
     const text = s.easyTicks > 0 && this.easyGenerator ? this.easyGenerator.next() : this.generator.next();
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
@@ -740,7 +742,7 @@ export class GameEngine {
 
     const available = this.config.availableSpells;
     // Scrolls: whether one drops, then which spell (rarer spells have lower weights).
-    const spell =
+    const spell = forcedSpell !== undefined ? forcedSpell :
       available.length > 0 && this.rng.chance(this.config.spellDropChance)
         ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
         : null;
@@ -862,6 +864,7 @@ export class GameEngine {
   private removeWord(word: WordState): void {
     const s = this.s;
     s.words.splice(s.words.indexOf(word), 1);
+    if (s.words.length === 0 && s.volleyCount >= 4) s.volleyFieldEmptyTick = s.tick;
     this.endIceOnEmptyField();
     const wasAimed = s.targetId === word.id || s.pinnedId === word.id;
     if (s.targetId === word.id) {
@@ -950,8 +953,12 @@ export class GameEngine {
     const previous = s.volleyCount;
     const additional = Math.max(0, previous - 4);
     const maintenance = Math.round(90 * Math.pow(0.95, Math.floor(additional / 4)));
-    const allowed = previous >= 4 ? Math.max(1, maintenance) : VOLLEY_TICKS;
-    s.volleyCount = s.tick - s.volleyLastTick <= allowed ? previous + 1 : 1;
+    // A brief empty-field grace prevents exceptionally fast typists from
+    // losing Volley solely because the next word has not spawned yet.
+    const emptyGrace = s.volleyFieldEmptyTick >= 0 && s.tick - s.volleyFieldEmptyTick <= 45 ? 45 : 0;
+    const allowed = previous >= 4 ? maintenance + emptyGrace : VOLLEY_TICKS + emptyGrace;
+    s.volleyCount = allowed > 0 && s.tick - s.volleyLastTick <= allowed ? previous + 1 : 1;
+    s.volleyFieldEmptyTick = -1;
     s.volleyLastTick = s.tick;
     const volley = s.volleyCount;
     if (volley >= 4) add('volley', 0.10 + (volley - 4) * 0.05, volley);
