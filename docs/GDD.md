@@ -1,3 +1,12 @@
+> **ARCHIVED CONCEPT — NOT CURRENT GAMEPLAY SPECIFICATION (2026-11-19)**
+>
+> This document records the original pre-development vision. Several mechanics, controls,
+> campaign structures, and milestone assumptions below were superseded during development.
+> Do not use it to change working gameplay or write current tests. For current behaviour,
+> use the implementation, in-game Codex, and [mechanics.md](mechanics.md). For approved
+> changes and rationale, read later entries in [decisions.md](decisions.md).
+> This historical document is retained for context, not as active instructions.
+
 # WIZZY TYPE
 ## Game Design Document & Claude Code Development Instructions
 
