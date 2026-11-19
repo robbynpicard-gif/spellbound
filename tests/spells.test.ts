@@ -17,6 +17,7 @@ import {
 import { ALL_WORDS, clashesWithCastWord, WORDS } from '../src/data/wordList';
 import type { WordState } from '../src/gameplay/Word';
 import { dropWeights, INTRO_DROP_BOOST, SPELLS } from '../src/spells/SpellRegistry';
+import { endlessConfig, stageLevel } from '../src/difficulty/Stages';
 
 const TEST_WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist', 'labyrinth', 'phantasmal', 'yew', 'orb', 'elk'];
 
@@ -529,6 +530,40 @@ describe('casting', () => {
     for (const id of SPELL_IDS) expect(live.state.spellsCast[id], id).toBe(1);
     const replayed = GameEngine.replay(options, live.commands, live.state.tick);
     expect(replayed.state).toEqual(live.state);
+  });
+});
+
+
+describe('boss-to-Endless continuation', () => {
+  it('starts Endless at the boss final pace rather than level 19', () => {
+    for (const mode of ['normal', 'hardcore'] as const) {
+      for (let stage = 1; stage <= 5; stage++) {
+        const boss = stageLevel(mode, stage, 20);
+        const endless = endlessConfig(mode, stage);
+        expect(boss.ramp).toBeTruthy();
+        expect(endless.initialFallSpeed).toBe(boss.ramp!.initialFallSpeed);
+        expect(endless.spawnInterval).toBe(boss.ramp!.spawnInterval);
+        expect(endless.maxActiveWords).toBe(boss.ramp!.maxActiveWords);
+        expect(endless.survivalMs).toBeNull();
+      }
+    }
+  });
+
+  it('resumes the same words, positions, charges and combo after boss victory', () => {
+    const boss = { ...CONFIG, survivalMs: 1000, initialFallSpeed: 2, spawnInterval: 100, maxActiveWords: 12 };
+    const charges = { ...emptyCharges(), fire: 2 };
+    const engine = new GameEngine(makeOptions(boss, { initialSpells: charges, initialCombo: 8 }));
+    for (let i = 0; i < 61; i++) engine.step();
+    expect(engine.status).toBe('won');
+    const before = engine.state.words.map(w => ({ ...w }));
+    const combo = engine.state.combo;
+    const spells = { ...engine.state.spells };
+    engine.continueIntoEndless({ ...boss, survivalMs: null, rampWords: 20, escalation: { perWords: 25, speed: 0.04, spawn: 0.04 } });
+    expect(engine.status).toBe('playing');
+    expect(engine.state.words).toEqual(before);
+    expect(engine.state.spells).toEqual(spells);
+    expect(engine.state.combo).toBe(combo);
+    expect(engine.survivalRemainingMs).toBeNull();
   });
 });
 
