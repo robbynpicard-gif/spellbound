@@ -175,14 +175,20 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
   const i = stage - 1;
   const boss = level === STAGE_LEVELS;
   const [minLen, maxLenStage] = t.lengths[i]!;
-  const maxLen = stage === 1 && mode === 'normal' ? 4 : level <= SPELL_LEVEL && !boss ? Math.max(minLen + 1, maxLenStage - 1) : maxLenStage;
-  // Early Normal: three letters are the staple; two letters are welcome
-  // breathers and four letters preview the difficulty ahead.
-  const wordLengthWeights = stage === 1 && mode === 'normal'
-    ? level <= 3 ? { 2: 0.25, 3: 6, 4: 0.9 }
-      : level <= 9 ? { 2: 0.18, 3: 5, 4: 2 }
-        : { 2: 0.12, 3: 3, 4: 4 }
-    : undefined;
+  // Each stage has a recognizable signature length, with shorter breathers
+  // and longer previews. Retain the existing stage min/max ranges.
+  const maxLen = maxLenStage;
+  const signature = mode === 'normal' ? stage + 2 : stage + 3;
+  const wordLengthWeights: Record<number, number> = {};
+  const early = level <= 3;
+  const middle = level <= 9;
+  for (let length = minLen; length <= maxLen; length++) {
+    const delta = length - signature;
+    wordLengthWeights[length] = delta === 0 ? (early ? 7 : middle ? 6 : 4)
+      : delta === -1 ? (early ? 1.4 : middle ? 1.8 : 2.5)
+      : delta === 1 ? (early ? 0.8 : middle ? 1.6 : 3.2)
+      : delta < -1 ? 0.12 : 0.25;
+  }
   const avgLen = wordLengthWeights
     ? Object.entries(wordLengthWeights).reduce((sum, [length, weight]) => sum + Number(length) * weight, 0) /
       Object.values(wordLengthWeights).reduce((sum, weight) => sum + weight, 0)
