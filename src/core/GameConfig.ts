@@ -4,7 +4,7 @@
  * Per-level difficulty does NOT belong here — it will live in
  * src/difficulty/ (DifficultyConfig + level definitions) from Milestone 2.
  */
-export const GAME_TITLE = 'Wizzy Type';
+export const GAME_TITLE = 'Typel';
 
 /** Logical resolution of the playing field. Phaser scales this to fit the window. */
 export const GAME_WIDTH = 1280;
