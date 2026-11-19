@@ -255,7 +255,10 @@ class AudioEngine {
     // the climbing note: a soft mallet tone, one step higher each word of the combo
     const step = Math.max(0, combo - 1);
     const n = PENTA[Math.min(PENTA.length - 1, step % 12)]! + (step >= 12 ? 12 : 0);
-    sy.tone(out, now + 0.01, midi(n), 0.7, 0.13, { type: 'sine', attack: 0.012, send: 0.35 });
+    // Small, capped lift as the combo grows: satisfying without burying the
+    // typing clicks or turning long runs into an increasingly loud mix.
+    const lift = 1 + Math.min(0.3, step * 0.015);
+    sy.tone(out, now + 0.01, midi(n), 0.7, 0.13 * lift, { type: 'sine', attack: 0.012, send: 0.35 });
     sy.tone(out, now + 0.01, midi(n), 0.35, 0.05, { type: 'triangle', attack: 0.012, filter: { type: 'lowpass', freq: 2200 }, send: 0.3 });
     sy.tone(out, now + 0.01, midi(n + 12), 0.4, 0.03, { type: 'sine', attack: 0.015, send: 0.35 });
     const special = bonuses.filter((b) => b !== 'perfect' && b !== 'quick');
