@@ -29,6 +29,8 @@ class AudioEngine {
   private ctx: BaseAudioContext | null = null;
   private sy!: Synth;
   private music!: Music;
+  private masterBus!: GainNode;
+  private masterVolume = 100;
   private musicBus!: GainNode;
   private sfxBus!: GainNode;
   /** The announcer's own channel (D-053), for recorded voice lines. */
@@ -59,7 +61,8 @@ class AudioEngine {
   attach(ctx: BaseAudioContext, realtime: boolean): void {
     this.ctx = ctx;
     const master = ctx.createGain();
-    master.gain.value = 0.85;
+    master.gain.value = 0.85 * this.masterVolume / 100;
+    this.masterBus = master;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.ratio.value = 3;
@@ -83,11 +86,17 @@ class AudioEngine {
     warm.frequency.value = 220;
     warm.gain.value = 3;
     this.sfxBus.connect(round).connect(warm).connect(master);
-    const wet = ctx.createGain();
-    wet.gain.value = 0.3;
-    wet.connect(master);
-    this.sy = new Synth(ctx, wet);
-    this.music = new Music(this.sy, this.musicBus);
+    // Reverb used to bypass both mute switches by connecting straight to master.
+    // Give music and effects separate wet returns, each routed through its own
+    // channel bus. Ambient wind, pads and their tails now obey Music mute.
+    const musicWet = ctx.createGain();
+    musicWet.gain.value = 0.3;
+    musicWet.connect(this.musicBus);
+    const sfxWet = ctx.createGain();
+    sfxWet.gain.value = 0.3;
+    sfxWet.connect(this.sfxBus);
+    this.sy = new Synth(ctx, sfxWet);
+    this.music = new Music(new Synth(ctx, musicWet), this.musicBus);
     this.music.set(this.pending);
     this.music.start(ctx.currentTime + 0.1, realtime);
   }
@@ -115,6 +124,7 @@ class AudioEngine {
   private apply(): void {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
+    this.masterBus.gain.setTargetAtTime(0.85 * this.masterVolume / 100, t, 0.05);
     this.musicBus.gain.setTargetAtTime(this.level('music'), t, 0.15);
     this.sfxBus.gain.setTargetAtTime(this.level('sfx'), t, 0.05);
     this.voiceBus.gain.setTargetAtTime(this.level('voice'), t, 0.05);
@@ -141,8 +151,15 @@ class AudioEngine {
     this.apply();
   }
 
+  /** Controls the entire mix without changing individual channel settings. */
+  setMasterVolume(value: number): void {
+    this.masterVolume = Math.max(0, Math.min(100, value));
+    this.apply();
+  }
+
   /** Applies every saved audio setting at once. */
-  applySettings(a: { music: boolean; sfx: boolean; voice: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number }): void {
+  applySettings(a: { music: boolean; sfx: boolean; voice: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number; masterVolume: number }): void {
+    this.masterVolume = a.masterVolume;
     this.musicOn = a.music;
     this.sfxOn = a.sfx;
     this.voiceOn = a.voice;

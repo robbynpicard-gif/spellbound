@@ -85,7 +85,7 @@ export class App {
             this.showOptions(ch);
           },
           onVolume: (ch, value) => {
-            const key = ch === 'music' ? 'musicVolume' : ch === 'sfx' ? 'sfxVolume' : 'voiceVolume';
+            const key = ch === 'master' ? 'masterVolume' : ch === 'music' ? 'musicVolume' : ch === 'sfx' ? 'sfxVolume' : 'voiceVolume';
             audio.applySettings(this.save.setAudio({ [key]: value }));
           },
           onBack: () => this.showMainMenu(),

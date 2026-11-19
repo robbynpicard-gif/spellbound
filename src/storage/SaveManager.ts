@@ -82,12 +82,13 @@ export interface AudioSettings {
   /** Announcer channel (D-053): its own switch and volume. */
   voice: boolean;
   /** Volumes 0–100. */
+  masterVolume: number;
   musicVolume: number;
   sfxVolume: number;
   voiceVolume: number;
 }
 
-export const DEFAULT_AUDIO: AudioSettings = { music: true, sfx: true, voice: true, musicVolume: 80, sfxVolume: 80, voiceVolume: 80 };
+export const DEFAULT_AUDIO: AudioSettings = { music: true, sfx: true, voice: true, masterVolume: 100, musicVolume: 80, sfxVolume: 80, voiceVolume: 80 };
 
 /** The subset of the Web Storage API we use (lets tests pass a fake). */
 export interface StorageLike {
@@ -234,9 +235,9 @@ function parseProfile(raw: unknown, totalLevels: number): SaveData['profile'] {
 function parseSettings(raw: unknown): SaveData['settings'] {
   const r = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
   const flag = (k: 'music' | 'sfx' | 'voice') => (typeof r[k] === 'boolean' ? (r[k] as boolean) : DEFAULT_AUDIO[k]);
-  const vol = (k: 'musicVolume' | 'sfxVolume' | 'voiceVolume') =>
+  const vol = (k: 'masterVolume' | 'musicVolume' | 'sfxVolume' | 'voiceVolume') =>
     typeof r[k] === 'number' && Number.isFinite(r[k]) ? Math.round(Math.min(100, Math.max(0, r[k] as number))) : DEFAULT_AUDIO[k];
-  return { music: flag('music'), sfx: flag('sfx'), voice: flag('voice'), musicVolume: vol('musicVolume'), sfxVolume: vol('sfxVolume'), voiceVolume: vol('voiceVolume') };
+  return { music: flag('music'), sfx: flag('sfx'), voice: flag('voice'), masterVolume: vol('masterVolume'), musicVolume: vol('musicVolume'), sfxVolume: vol('sfxVolume'), voiceVolume: vol('voiceVolume') };
 }
 
 /**
