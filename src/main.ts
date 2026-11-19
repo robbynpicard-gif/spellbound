@@ -10,6 +10,7 @@ import { BOOT_COMPLETE, BootScene } from './scenes/BootScene';
 import { GameScene } from './scenes/GameScene';
 import { browserStorage, SaveManager } from './storage/SaveManager';
 import { UIRoot } from './ui/UIRoot';
+import { installMobileKeyboard } from './ui/mobileKeyboard';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -24,6 +25,11 @@ const game = new Phaser.Game({
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   scene: [BootScene, BackdropScene, GameScene],
+});
+
+installMobileKeyboard(() => {
+  const active = game.scene.isActive(GameScene.KEY);
+  return active ? game.scene.getScene(GameScene.KEY) as GameScene : null;
 });
 
 const save = new SaveManager(browserStorage(), CAMPAIGN_LEVELS.count);
