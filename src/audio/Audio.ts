@@ -29,6 +29,8 @@ class AudioEngine {
   private ctx: BaseAudioContext | null = null;
   private sy!: Synth;
   private music!: Music;
+  private masterBus!: GainNode;
+  private masterVolume = 100;
   private musicBus!: GainNode;
   private sfxBus!: GainNode;
   /** The announcer's own channel (D-053), for recorded voice lines. */
@@ -59,7 +61,8 @@ class AudioEngine {
   attach(ctx: BaseAudioContext, realtime: boolean): void {
     this.ctx = ctx;
     const master = ctx.createGain();
-    master.gain.value = 0.85;
+    master.gain.value = 0.85 * this.masterVolume / 100;
+    this.masterBus = master;
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -16;
     comp.ratio.value = 3;
@@ -121,6 +124,7 @@ class AudioEngine {
   private apply(): void {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
+    this.masterBus.gain.setTargetAtTime(0.85 * this.masterVolume / 100, t, 0.05);
     this.musicBus.gain.setTargetAtTime(this.level('music'), t, 0.15);
     this.sfxBus.gain.setTargetAtTime(this.level('sfx'), t, 0.05);
     this.voiceBus.gain.setTargetAtTime(this.level('voice'), t, 0.05);
@@ -147,8 +151,15 @@ class AudioEngine {
     this.apply();
   }
 
+  /** Controls the entire mix without changing individual channel settings. */
+  setMasterVolume(value: number): void {
+    this.masterVolume = Math.max(0, Math.min(100, value));
+    this.apply();
+  }
+
   /** Applies every saved audio setting at once. */
-  applySettings(a: { music: boolean; sfx: boolean; voice: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number }): void {
+  applySettings(a: { music: boolean; sfx: boolean; voice: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number; masterVolume: number }): void {
+    this.masterVolume = a.masterVolume;
     this.musicOn = a.music;
     this.sfxOn = a.sfx;
     this.voiceOn = a.voice;
