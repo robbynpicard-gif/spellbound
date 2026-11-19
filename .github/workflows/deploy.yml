@@ -1,9 +1,9 @@
-# Builds Wizzy Type and publishes it to GitHub Pages on every push to main.
+# Publish the stable game and a playable preview from the development branch.
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/gameplay-iteration]
   workflow_dispatch:
 
 permissions:
@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -27,6 +29,23 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
+      - name: Build development preview
+        run: |
+          mkdir -p /tmp/typel-main-dist
+          cp -a dist/. /tmp/typel-main-dist/
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/gameplay-iteration
+          clean: true
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - name: Assemble stable and preview sites
+        run: |
+          mkdir -p /tmp/typel-main-dist/preview
+          cp -a dist/. /tmp/typel-main-dist/preview/
+          rm -rf dist
+          mv /tmp/typel-main-dist dist
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
