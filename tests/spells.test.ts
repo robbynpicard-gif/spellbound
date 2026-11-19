@@ -733,9 +733,9 @@ describe('campaign word lengths and pacing regression', () => {
     const config = endlessConfig('normal', 1);
     const engine = new GameEngine({ config: { ...config, openingWords: 0, initialFallSpeed: 0.01, spawnInterval: 1, maxActiveWords: 100 }, seed: 4, words: TEST_WORDS });
     const base = engine.pace.fallSpeed;
-    engine.state.completed = 25;
+    (engine.state as { completed: number }).completed = 25;
     const first = engine.pace.fallSpeed;
-    engine.state.completed = 50;
+    (engine.state as { completed: number }).completed = 50;
     const second = engine.pace.fallSpeed;
     expect(second - first).toBeGreaterThan(first - base);
   });
