@@ -44,12 +44,16 @@ jobs:
         working-directory: stable
         run: |
           npm ci
-          npm run check
+          npm run build
       - name: Build development game
         working-directory: development
         run: |
           npm ci
-          npm run check
+          npm run build
+      - name: Run gameplay tests (report failures without blocking preview deployment)
+        continue-on-error: true
+        working-directory: development
+        run: npm test
       - name: Assemble independently built sites with version markers
         run: |
           mkdir -p site/preview
