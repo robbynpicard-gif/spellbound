@@ -1,4 +1,4 @@
-# 🧙 Wizzy Type
+# 🧙 Typel
 
 A wizard-themed arcade typing game for the browser. Words fall toward your
 tower; type them to cast counterspells before they land.
