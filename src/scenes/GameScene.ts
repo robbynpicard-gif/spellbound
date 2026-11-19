@@ -713,6 +713,10 @@ export class GameScene extends Phaser.Scene {
     if (key === 'Delete') return this.engine.clearInput();
     if (event.repeat) return; // holding a letter or Enter should not repeat it
     if (key === 'Enter') return this.engine.submit();
+    // Prototype hotkeys: F2 accelerates a quiet quota level; F3 offers
+    // a random colored spell scroll. Disabled for competitive duels.
+    if (!this.duel && key === 'F2') { event.preventDefault(); this.engine.summon(); return; }
+    if (!this.duel && key === 'F3') { event.preventDefault(); this.engine.emergencySummon(); return; }
     // Normal: number keys 1–8 cast the spell in that slot (words never contain digits).
     if (this.quickCast && key >= '1' && key <= '8') {
       const spell = this.spellSlots[Number(key) - 1];
