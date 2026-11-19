@@ -14,7 +14,10 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - Runes grant **small fixed bonus points**, unaffected by combo or Clean Streak multipliers. Exact values and balance are not decided.
 - **Limited overlap:** Different feats may trigger together; related tier variants should award only the highest qualifying tier for a single event.
 - **Distinct feat windows:** Every new qualifying feat counts, but continuous conditions must not repeatedly award without a fresh qualifying event.
-- Initial Rune catalogue should **blend typing mastery with language/vocabulary and wordplay**, rather than focusing exclusively on elite typing performance. Inclusivity and discoverable skill are important. Spellcraft can be explored subsequently.
+- **Round 6:** Develop a roughly equal three-way catalogue of **typing mastery, language/wordplay, and spellcraft**. Inclusivity and discoverable skill are important.
+- **Rune families** are the preferred organizational pattern: related feats share a thematic identity and can include progressively impressive named Runes. Families need not be simple numerical tiers; distinct feats within a theme are welcome.
+- **Standalone unique Runes** are also encouraged where a specific feat warrants independent recognition.
+- The catalogue is **extensible**: future gameplay modifiers, special scrolls, elemental interactions, and boss mechanics can add new Rune families or standalone Runes without redesigning the system.
 - The Rune design should be distinct from existing scoring bonuses; avoid merely rebranding Perfect, Clutch, Volley, etc. Evaluate how to elevate existing signals into noteworthy achievements.
 
 ## Confirmed: Triumphs
