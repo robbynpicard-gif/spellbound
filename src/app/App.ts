@@ -333,8 +333,23 @@ export class App {
     this.run = null;
     const pick: LevelPick = { mode, stage, level: 0 };
     const where = `Endless · ${mode === 'hardcore' ? 'Hardcore' : 'Normal'} · Stage ${stage}`;
+    const endless = endlessConfig(mode, stage);
+    const hooks: GameSceneHooks = {
+      onPauseChanged: (paused) =>
+        this.onPause(paused, where, [
+          { label: 'End run and see your score', onClick: () => this.endPractice(pick, where, 'original', this.gameScene.snapshot().stats, false) },
+          { label: 'Start again', onClick: () => this.startEndless(mode, stage) },
+          { label: 'Back to the menu', onClick: () => this.showMainMenu() },
+        ], 'Starting again or leaving ends this run'),
+      onGameOver: (_result, stats) => this.endPractice(pick, where, 'original', stats, true),
+    };
+    if (carry && this.game.scene.isActive(GameScene.KEY)) {
+      this.ui.clear();
+      this.gameScene.continueIntoEndless(endless, hooks);
+      return;
+    }
     this.startScene({
-      config: endlessConfig(mode, stage),
+      config: endless,
       hardcore: mode === 'hardcore',
       spellSlots: this.save.spellSlots,
       quickCast: mode === 'normal',
