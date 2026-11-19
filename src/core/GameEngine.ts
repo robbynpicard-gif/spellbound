@@ -397,7 +397,8 @@ export class GameEngine {
 
     s.spawnTimerMs = Math.max(0, s.spawnTimerMs - SIMULATION_STEP_MS);
     const pace = this.pace;
-    if (s.spawnTimerMs === 0 && !s.windingDown && s.words.length < pace.maxActiveWords) {
+    if (s.spawnTimerMs === 0 && !s.windingDown && s.words.length < pace.maxActiveWords &&
+        (this.config.requiredWords === null || s.completed + s.words.length < this.config.requiredWords)) {
       this.spawn(pace.fallSpeed);
       s.spawnTimerMs = pace.spawnInterval;
     }
@@ -456,7 +457,8 @@ export class GameEngine {
 
   /** Long-cooldown gamble: type the random colored scroll to claim its charge. */
   emergencySummon(): boolean {
-    if (this.s.status !== 'playing' || this.config.availableSpells.length === 0 || this.s.tick < this.s.emergencyReadyTick) return false;
+    if (this.s.status !== 'playing' || this.config.availableSpells.length === 0 || this.s.tick < this.s.emergencyReadyTick ||
+        (this.config.requiredWords !== null && this.s.completed + this.s.words.length >= this.config.requiredWords)) return false;
     this.record({ tick: this.s.tick, type: 'emergency' });
     return true;
   }
@@ -500,7 +502,7 @@ export class GameEngine {
     const quota = this.config.requiredWords;
     if (quota === null || s.tick < s.summonReadyTick || s.words.length > SUMMON_MAX_FIELD) return;
     const available = Math.max(0, quota - s.completed - s.words.length);
-    const n = Math.min(SUMMON_BATCH, available);
+    const n = Math.min(SUMMON_BATCH, available, Math.max(0, this.pace.maxActiveWords - s.words.length));
     if (n === 0) return;
     for (let i = 0; i < n; i++) {
       this.spawn(this.pace.fallSpeed);
@@ -512,7 +514,8 @@ export class GameEngine {
 
   private applyEmergencySummon(): void {
     const s = this.s;
-    if (s.tick < s.emergencyReadyTick || this.config.availableSpells.length === 0) return;
+    if (s.tick < s.emergencyReadyTick || this.config.availableSpells.length === 0 ||
+        (this.config.requiredWords !== null && s.completed + s.words.length >= this.config.requiredWords)) return;
     this.spawn(this.pace.fallSpeed);
     const word = s.words[s.words.length - 1]!;
     word.spell = this.rng.weighted(dropWeights(this.config.availableSpells) as Record<SpellId, number>);
@@ -859,7 +862,6 @@ export class GameEngine {
   private removeWord(word: WordState): void {
     const s = this.s;
     s.words.splice(s.words.indexOf(word), 1);
-    s.summonedIds = s.summonedIds.filter((id) => id !== word.id);
     this.endIceOnEmptyField();
     const wasAimed = s.targetId === word.id || s.pinnedId === word.id;
     if (s.targetId === word.id) {
