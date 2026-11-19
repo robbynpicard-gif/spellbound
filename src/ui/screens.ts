@@ -423,10 +423,17 @@ const CHANNELS: { key: Channel; vol: 'musicVolume' | 'sfxVolume' | 'voiceVolume'
 
 /** Options (D-053): music, sound effects and the announcer, each with a switch and a volume slider. */
 export function optionsScreen(
-  a: Readonly<AudioToggles & { voice: boolean; musicVolume: number; sfxVolume: number; voiceVolume: number }>,
-  actions: { onToggle(ch: Channel): void; onVolume(ch: Channel, value: number): void; onBack(): void },
+  a: Readonly<AudioToggles & { voice: boolean; masterVolume: number; musicVolume: number; sfxVolume: number; voiceVolume: number }>,
+  actions: { onToggle(ch: Channel): void; onVolume(ch: Channel | 'master', value: number): void; onBack(): void },
   focusKey: Channel | null = null,
 ): Screen {
+  const masterValue = h('span', { class: 'audio-value' }, `${a.masterVolume}%`);
+  const masterSlider = h('input', { class: 'audio-slider', attrs: { type: 'range', min: '0', max: '100', step: '5', value: String(a.masterVolume), 'aria-label': 'Master volume' } }) as HTMLInputElement;
+  masterSlider.addEventListener('input', () => {
+    masterValue.textContent = `${masterSlider.value}%`;
+    actions.onVolume('master', Number(masterSlider.value));
+  });
+  const masterRow = h('div', { class: 'audio-row' }, h('span', { class: 'audio-toggle' }, 'Master volume'), masterSlider, masterValue);
   const rows = CHANNELS.map((c) => {
     const on = a[c.key];
     const toggle = h('button', { class: `menu-button audio-toggle${on ? ' primary' : ''}`, onClick: () => actions.onToggle(c.key), attrs: { role: 'switch', 'aria-checked': String(on) } }, `${c.name}: ${on ? 'On' : 'Off'}`);
@@ -446,7 +453,7 @@ export function optionsScreen(
     { class: 'screen panel options', attrs: { role: 'dialog', 'aria-labelledby': 'options-title' } },
     h('h2', { class: 'screen-title', attrs: { id: 'options-title' } }, 'Options'),
     h('p', { class: 'screen-subtitle' }, 'Each channel has its own switch and volume. Music and sound effects can also be switched from the pause menu (Esc).'),
-    h('div', { class: 'menu-list' }, ...rows.map((r) => r.row), back),
+    h('div', { class: 'menu-list' }, masterRow, ...rows.map((r) => r.row), back),
   );
   const voice = rows[2]!.toggle;
   return {
