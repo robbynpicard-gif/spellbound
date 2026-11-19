@@ -185,7 +185,9 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
   for (let length = minLen; length <= maxLen; length++) {
     const delta = length - signature;
     wordLengthWeights[length] = delta === 0 ? (early ? 7 : middle ? 6 : 3)
-      : delta === -1 ? (early ? 1.4 : middle ? 1.8 : 2.5)
+      : delta === -1 ? (mode === 'normal' && stage === 1
+        ? (early ? 0.25 : middle ? 0.2 : 0.15)
+        : (early ? 1.4 : middle ? 1.8 : 2.5))
       : delta === 1 ? (early ? 0.8 : middle ? 1.6 : 3.5)
       : delta < -1 ? (early ? 0.3 : middle ? 0.2 : 0.1) : 0.25;
   }

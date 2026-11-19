@@ -83,7 +83,11 @@ export class WordGenerator {
       else fallback ??= word;
     }
     // Crowded first letters: accept a shared first letter.
-    const word = chosen ?? fallback ?? this.rng.pick(this.byLength.values().next().value!);
+    // Exhausted attempts must still respect the configured length distribution.
+    // Previously this always fell back to the shortest bucket (often 2 letters).
+    const word = chosen ?? fallback ?? this.rng.pick(
+      this.byLength.get(Number(this.rng.weighted(this.lengthWeights)))!,
+    );
     this.recent.push(word.toLowerCase());
     if (this.recent.length > this.window) this.recent.shift();
     return word;
