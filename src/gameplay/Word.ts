@@ -25,6 +25,8 @@ export interface WordState {
   speed: number;
   /** Speed it was spawned with (mistakes add to `speed`; Arcane Purge returns it here). */
   baseSpeed: number;
+  /** Spawned in the fast tail of the speed-variance distribution. */
+  fastSpawn?: boolean;
   /** How many leading characters of this word the console input currently matches. */
   typed: number;
   isTarget: boolean;
