@@ -85,7 +85,7 @@ export interface Pace {
 }
 
 /** Each word's speed varies by up to this fraction around the level's pace. */
-export const SPEED_VARIANCE = 0.25;
+export const SPEED_VARIANCE = 0.15;
 /** Quota levels: average speed runs from ×(1−this) at the start to ×(1+this) at the quota. */
 export const LEVEL_SPEED_RAMP = 0.15;
 /** During a surge words arrive this much more often, and a few more may be on the field. */
@@ -342,6 +342,10 @@ export class GameEngine {
 
     this.tickPacing();
 
+    // Frostbinding ends as soon as the battlefield is empty, so an Ice cast
+    // cannot strand the player waiting for a frozen spawn timer.
+    if (s.freezeTicks > 0 && s.words.length === 0) this.endIceOnEmptyField();
+
     // Frostbinding: nothing moves and nothing spawns (slow stacks wait too).
     if (s.freezeTicks > 0) {
       for (const word of s.words) word.prevY = word.y;
@@ -541,6 +545,11 @@ export class GameEngine {
 
   private castSpell(spell: SpellId): void {
     const s = this.s;
+    // Reject Ice before consuming a charge, regardless of typed/quickcast path.
+    if (spell === 'ice' && s.words.length === 0) {
+      this.events.emit('spellFizzled', { spell });
+      return;
+    }
     if (!consumeCharge(s.spells, spell)) {
       this.events.emit('spellFizzled', { spell });
       return;
@@ -769,9 +778,20 @@ export class GameEngine {
    * Removes a word from the field. If it was the word being typed (or the
    * clicked word), the console is emptied, since its text now aims at nothing.
    */
+  /** Release the spawn lock when the last frozen scroll is removed. */
+  private endIceOnEmptyField(): void {
+    const s = this.s;
+    if (s.freezeTicks <= 0 || s.words.length !== 0) return;
+    s.freezeTicks = 0;
+    s.iceCasts = 0;
+    this.events.emit('freezeChanged', { ticks: 0 });
+    this.events.emit('spellEnded', { spell: 'ice' });
+  }
+
   private removeWord(word: WordState): void {
     const s = this.s;
     s.words.splice(s.words.indexOf(word), 1);
+    this.endIceOnEmptyField();
     const wasAimed = s.targetId === word.id || s.pinnedId === word.id;
     if (s.targetId === word.id) {
       s.targetId = null;
