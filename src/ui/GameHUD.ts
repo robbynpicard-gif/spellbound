@@ -243,7 +243,7 @@ export class GameHUD {
   constructor(
     private readonly scene: Phaser.Scene,
     levelName: string,
-    private readonly quota: number | null,
+    private quota: number | null,
     /** Run score from earlier levels, added to this level's score. */
     private readonly scoreOffset = 0,
     rivalName?: string,
