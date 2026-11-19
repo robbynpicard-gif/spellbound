@@ -712,10 +712,10 @@ describe('campaign word lengths and pacing regression', () => {
       const first = stageLevel('normal', stage, 1);
       const signature = stage + 2;
       const weights = first.wordLengthWeights!;
-      expect(weights[signature]).toBeGreaterThan(weights[signature - 1] ?? 0);
+      expect(weights[signature] ?? 0).toBeGreaterThan(weights[signature - 1] ?? 0);
       if (signature + 1 <= first.maxWordLength) {
-        expect(weights[signature]).toBeGreaterThan(weights[signature + 1] ?? 0);
-        expect(weights[signature + 1]).toBeGreaterThan(0);
+        expect(weights[signature] ?? 0).toBeGreaterThan(weights[signature + 1] ?? 0);
+        expect(weights[signature + 1] ?? 0).toBeGreaterThan(0);
       }
       expect(first.spawnInterval).toBeGreaterThan(0);
       expect(first.maxWordLength).toBeGreaterThanOrEqual(signature);
