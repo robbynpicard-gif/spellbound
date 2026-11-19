@@ -738,14 +738,14 @@ export class GameEngine {
    * and, on quota levels, rising with progress (from ×(1−LEVEL_SPEED_RAMP) to
    * ×(1+LEVEL_SPEED_RAMP) at the quota) so each level starts slow on average.
    */
-  private spawnSpeed(fallSpeed: number): number {
+  private spawnSpeed(fallSpeed: number): { speed: number; fastSpawn: boolean } {
     const variance = this.config.speedVariance ?? SPEED_VARIANCE;
     const rampSize = this.config.speedRamp ?? LEVEL_SPEED_RAMP;
     const vary = 1 + (this.speedRng.next() * 2 - 1) * variance;
     const quota = this.config.requiredWords ?? this.config.rampWords ?? null;
     const progress = quota ? Math.min(1, this.s.completed / quota) : 0.5;
     const ramp = 1 - rampSize + (2 * rampSize + (this.config.speedRampExtra ?? 0)) * progress;
-    return fallSpeed * vary * ramp;
+    return { speed: fallSpeed * vary * ramp, fastSpawn: vary > 1 + variance * 0.65 };
   }
 
   private spawn(fallSpeed: number, startY = 0, forcedSpell?: SpellId | null): void {
@@ -762,7 +762,7 @@ export class GameEngine {
       available.length > 0 && this.rng.chance(this.config.spellDropChance)
         ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
         : null;
-    const speed = this.spawnSpeed(fallSpeed);
+    const { speed, fastSpawn } = this.spawnSpeed(fallSpeed);
 
     const word: WordState = {
       id: s.nextWordId++,
@@ -773,6 +773,7 @@ export class GameEngine {
       prevY: startY,
       speed,
       baseSpeed: 0,
+      fastSpawn,
       typed: 0,
       isTarget: false,
       lengthClass: lengthClassOf(text.length),
@@ -807,6 +808,8 @@ export class GameEngine {
     }
     const streak = streakMultiplierOf(s.cleanStreak);
     const bonuses = this.wordBonuses(word);
+    // The final capture can activate Volley after removeWord emptied the field.
+    if (s.words.length === 0 && s.volleyCount >= 4) s.volleyFieldEmptyTick = s.tick;
     const summoned = s.summonedIds.includes(word.id);
     s.summonedIds = s.summonedIds.filter((id) => id !== word.id);
     const points = Math.round(scoreWord(word.text.length, multiplier, bonuses, streak) * (summoned ? 1 + SUMMON_CAPTURE_BONUS : 1));

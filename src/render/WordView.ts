@@ -69,7 +69,7 @@ export class WordView extends Phaser.GameObjects.Container {
     super(scene, 0, 0);
     const onColour = word.spell !== null;
     // A subtle brass warning for unusually fast scrolls; spell coloration wins.
-    this.fastScroll = word.spell === null && word.speed > 1.12 * Math.max(0.01, word.baseSpeed || word.speed);
+    this.fastScroll = word.spell === null && word.fastSpawn === true;
     this.restColor = hex(onColour ? 0xf6ecd8 : PALETTE.ink);
     this.glow = scene.add.graphics();
     this.plaque = scene.add.graphics();
