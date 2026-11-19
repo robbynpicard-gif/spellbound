@@ -44,6 +44,7 @@ export interface GameState {
   /** Captures in the current rhythmic Volley chain. */
   volleyCount: number;
   volleyLastTick: number;
+  volleyFieldEmptyTick: number;
   score: number;
   combo: number;
   maxCombo: number;
@@ -127,6 +128,7 @@ export function createInitialState(spells: SpellCharges = emptyCharges(), instab
     summonedIds: [],
     volleyCount: 0,
     volleyLastTick: -100000,
+    volleyFieldEmptyTick: -1,
     score: 0,
     combo: 0,
     maxCombo: 0,
