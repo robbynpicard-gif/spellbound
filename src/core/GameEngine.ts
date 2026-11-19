@@ -131,7 +131,7 @@ export const MAX_INPUT_LENGTH = 24;
  */
 export class GameEngine {
   readonly events = new EventBus<GameEvents>();
-  readonly config: DifficultyConfig;
+  config: DifficultyConfig;
   readonly seed: number;
 
   private readonly field: FieldConfig;
@@ -204,6 +204,22 @@ export class GameEngine {
 
   get state(): Readonly<GameState> {
     return this.s;
+  }
+
+  /** Resume the *same* simulation after the player accepts the boss victory. */
+  continueIntoEndless(config: DifficultyConfig): void {
+    if (this.s.status !== 'won' || !isSurvival(this.config)) return;
+    this.config = config;
+    this.s.status = 'playing';
+    this.s.windingDown = false;
+    this.s.completed = 0;
+    this.s.spawnTimerMs = Math.min(this.s.spawnTimerMs, config.spawnInterval);
+    this.s.input = '';
+    this.s.targetId = null;
+    this.s.pinnedId = null;
+    this.s.penalizedId = null;
+    // Keep words, their positions/speeds, score, charges, Combo, Volley,
+    // active spell effects, ward and the existing seeded random streams.
   }
 
   get status(): GameStatus {
