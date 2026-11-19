@@ -150,6 +150,8 @@ export class GameEngine {
   private readonly spellContext: SpellContext;
   private endlessStartedTick: number | null = null;
   private endlessWaveActive = false;
+  /** Short respite after a campaign surge, without lowering the level's baseline. */
+  private recoveryUntilTick = 0;
 
   constructor(options: EngineOptions) {
     this.config = options.config;
@@ -260,8 +262,8 @@ export class GameEngine {
     if (c.escalation) {
       const steps = Math.floor(this.s.completed / c.escalation.perWords);
       pace = {
-        fallSpeed: pace.fallSpeed * (1 + c.escalation.speed * steps),
-        spawnInterval: pace.spawnInterval / (1 + c.escalation.spawn * steps),
+        fallSpeed: pace.fallSpeed * Math.pow(1 + c.escalation.speed, steps),
+        spawnInterval: pace.spawnInterval / Math.pow(1 + c.escalation.spawn, steps),
         maxActiveWords: Math.min(16, pace.maxActiveWords + Math.floor(steps / 4)),
       };
     }
@@ -269,6 +271,9 @@ export class GameEngine {
     if (!isSurvival(c) && c.spawnRamp) pace = { ...pace, spawnInterval: pace.spawnInterval * (1 + c.spawnRamp - 2 * c.spawnRamp * this.progress) };
     if (this.s.surgeTicks > 0)
       pace = { ...pace, spawnInterval: pace.spawnInterval * SURGE_SPAWN_FACTOR, maxActiveWords: pace.maxActiveWords + SURGE_EXTRA_WORDS };
+    if (!c.escalation && this.s.surgeTicks === 0 && this.s.tick < this.recoveryUntilTick)
+      pace = { ...pace, spawnInterval: pace.spawnInterval * 1.25,
+        maxActiveWords: Math.max(4, pace.maxActiveWords - 2) };
     if (c.escalation) {
       const wave = this.endlessWave;
       // Arrival pressure changes in waves, but the word-based difficulty floor
@@ -329,7 +334,10 @@ export class GameEngine {
       for (let k = 0; k < n; k++) this.spawn(this.pace.fallSpeed, this.field.height * (0.04 + (0.3 * (n - 1 - k)) / Math.max(1, n - 1)));
       s.spawnTimerMs = this.pace.spawnInterval;
     }
-    if (s.surgeTicks > 0 && --s.surgeTicks === 0) this.events.emit('surgeChanged', { active: false });
+    if (s.surgeTicks > 0 && --s.surgeTicks === 0) {
+      if (!c.escalation) this.recoveryUntilTick = s.tick + Math.round(4000 / SIMULATION_STEP_MS);
+      this.events.emit('surgeChanged', { active: false });
+    }
     if (!c.requiredWords && !c.survivalMs && c.rampWords) {
       const lap = Math.floor(s.completed / c.rampWords);
       if (lap !== s.surgeLap) {

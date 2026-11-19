@@ -704,3 +704,62 @@ describe('fall speeds', () => {
     expect(word.speed).toBe(word.baseSpeed);
   });
 });
+
+
+describe('campaign word lengths and pacing regression', () => {
+  it('defines a signature length in every Normal stage and previews the next length', () => {
+    for (let stage = 1; stage <= 5; stage++) {
+      const first = stageLevel('normal', stage, 1);
+      const signature = stage + 2;
+      const weights = first.wordLengthWeights!;
+      expect(weights[signature] ?? 0).toBeGreaterThan(weights[signature - 1] ?? 0);
+      if (signature + 1 <= first.maxWordLength) {
+        expect(weights[signature] ?? 0).toBeGreaterThan(weights[signature + 1] ?? 0);
+        expect(weights[signature + 1] ?? 0).toBeGreaterThan(0);
+      }
+      expect(first.spawnInterval).toBeGreaterThan(0);
+      expect(first.maxWordLength).toBeGreaterThanOrEqual(signature);
+    }
+  });
+
+  it('has a substantial pool of distinct words for each signature length', () => {
+    for (const length of [3, 4, 5, 6, 7]) {
+      const words = WORDS.filter((word) => word.length === length);
+      expect(words.length).toBeGreaterThan(100);
+      expect(new Set(words.map((word) => word.toLowerCase())).size).toBe(words.length);
+    }
+  });
+
+  it('makes three-letter words dominant early, with rare two-letter and preview four-letter words', () => {
+    const first = stageLevel('normal', 1, 1);
+    expect(first.maxWordLength).toBe(4);
+    expect(first.wordLengthWeights?.[3]).toBeGreaterThan((first.wordLengthWeights?.[2] ?? 0) * 10);
+    expect(first.wordLengthWeights?.[4]).toBeGreaterThan(0);
+    const later = stageLevel('normal', 1, 13);
+    expect(later.wordLengthWeights?.[4]).toBeGreaterThan(later.wordLengthWeights?.[3]);
+    expect(later.wordLengthWeights?.[2]).toBeLessThan(first.wordLengthWeights?.[2] ?? 1);
+  });
+
+  it('keeps a linear campaign baseline but provides relief after an ordinary surge', () => {
+    const config = { ...stageLevel('normal', 1, 7), requiredWords: 100, openingWords: 0,
+      initialFallSpeed: 0.01, speedRamp: 0, speedRampExtra: 0, spawnRamp: 0,
+      surges: [{ at: 0, ms: 100 }] };
+    const engine = new GameEngine({ config, seed: 8, words: TEST_WORDS });
+    engine.step();
+    expect(engine.state.surgeTicks).toBeGreaterThan(0);
+    for (let i = 0; i < 7; i++) engine.step();
+    expect(engine.state.surgeTicks).toBe(0);
+    expect(engine.pace.spawnInterval).toBeCloseTo(config.spawnInterval * 1.25);
+  });
+
+  it('compounds Endless difficulty rather than adding the same amount each step', () => {
+    const config = endlessConfig('normal', 1);
+    const engine = new GameEngine({ config: { ...config, openingWords: 0, initialFallSpeed: 0.01, spawnInterval: 1, maxActiveWords: 100 }, seed: 4, words: TEST_WORDS });
+    const base = engine.pace.fallSpeed;
+    (engine.state as { completed: number }).completed = 25;
+    const first = engine.pace.fallSpeed;
+    (engine.state as { completed: number }).completed = 50;
+    const second = engine.pace.fallSpeed;
+    expect(second - first).toBeGreaterThan(first - base);
+  });
+});

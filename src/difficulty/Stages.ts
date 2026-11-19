@@ -175,8 +175,24 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
   const i = stage - 1;
   const boss = level === STAGE_LEVELS;
   const [minLen, maxLenStage] = t.lengths[i]!;
-  const maxLen = level <= SPELL_LEVEL && !boss ? Math.max(minLen + 1, maxLenStage - 1) : maxLenStage;
-  const avgLen = (minLen + maxLen) / 2;
+  // Each stage has a recognizable signature length, with shorter breathers
+  // and longer previews. Retain the existing stage min/max ranges.
+  const maxLen = maxLenStage;
+  const signature = mode === 'normal' ? stage + 2 : stage + 3;
+  const wordLengthWeights: Record<number, number> = {};
+  const early = level <= 3;
+  const middle = level <= 9;
+  for (let length = minLen; length <= maxLen; length++) {
+    const delta = length - signature;
+    wordLengthWeights[length] = delta === 0 ? (early ? 7 : middle ? 6 : 3)
+      : delta === -1 ? (early ? 1.4 : middle ? 1.8 : 2.5)
+      : delta === 1 ? (early ? 0.8 : middle ? 1.6 : 3.5)
+      : delta < -1 ? (early ? 0.3 : middle ? 0.2 : 0.1) : 0.25;
+  }
+  const avgLen = wordLengthWeights
+    ? Object.entries(wordLengthWeights).reduce((sum, [length, weight]) => sum + Number(length) * weight, 0) /
+      Object.values(wordLengthWeights).reduce((sum, weight) => sum + weight, 0)
+    : (minLen + maxLen) / 2;
   // Fall time shortens steadily over the whole mode (100 levels).
   const progress = (i * STAGE_LEVELS + (level - 1)) / (STAGE_COUNT * STAGE_LEVELS - 1);
   const fall = lerp(t.fallSeconds[0], t.fallSeconds[1], progress);
@@ -196,6 +212,7 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
     maxActiveWords: room(fall, spawn),
     minWordLength: minLen,
     maxWordLength: maxLen,
+    ...(wordLengthWeights ? { wordLengthWeights } : {}),
     modifierProbabilities: {},
     instabilityPerMiss: t.instabilityPerMiss[i]!,
     errorAcceleration: t.errorAcceleration[i]!,
@@ -269,6 +286,6 @@ export function endlessConfig(mode: StageMode, stage: number): DifficultyConfig 
     rampWords: stageLevel(mode, stage, STAGE_LEVELS - 1).requiredWords,
     surges: [],
     speedRampExtra: 0,
-    escalation: { perWords: 25, speed: 0.04, spawn: 0.04 },
+    escalation: { perWords: 25, speed: 0.055, spawn: 0.05 },
   };
 }
