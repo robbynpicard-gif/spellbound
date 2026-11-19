@@ -12,7 +12,7 @@ import { SPELL_IDS, type SpellCharges, type SpellId } from '../gameplay/SpellMan
 import { recordLevel, startRun, summarizeRun, type CampaignMode, type CampaignRun } from '../modes/CampaignMode';
 import { practiceConfig, type ModifierFilter } from '../modes/PracticeMode';
 import { BackdropScene } from '../scenes/BackdropScene';
-import { GameScene, type GameSceneData } from '../scenes/GameScene';
+import { GameScene, type GameSceneData, type GameSceneHooks } from '../scenes/GameScene';
 import type { LevelPick, SaveManager } from '../storage/SaveManager';
 import { FILTER_LABELS, practiceResultsScreen, practiceSetupScreen } from '../ui/practiceScreens';
 import {
