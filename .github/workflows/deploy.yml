@@ -26,12 +26,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run build
-      # Gameplay tests are reported separately while legacy expectations are reconciled.
-      # A passing build remains mandatory for deployment.
-      - name: Gameplay regression tests (non-blocking during migration)
-        continue-on-error: true
-        run: npm test
+      # A failing gameplay test must block publishing, not silently deploy a regression.
+      - run: npm run check
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
