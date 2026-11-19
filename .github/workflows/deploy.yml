@@ -55,8 +55,8 @@ jobs:
           mkdir -p site/preview
           cp -a stable/dist/. site/
           cp -a development/dist/. site/preview/
-          printf 'branch=main\\ncommit=%s\\n' "$(git -C stable rev-parse HEAD)" > site/build-info.txt
-          printf 'branch=design/nov-18-playtest-handoff\\ncommit=%s\\n' "$(git -C development rev-parse HEAD)" > site/preview/build-info.txt
+          printf 'branch=main\ncommit=%s\n' "$(git -C stable rev-parse HEAD)" > site/build-info.txt
+          printf 'branch=design/nov-18-playtest-handoff\ncommit=%s\n' "$(git -C development rev-parse HEAD)" > site/preview/build-info.txt
           touch site/.nojekyll
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
