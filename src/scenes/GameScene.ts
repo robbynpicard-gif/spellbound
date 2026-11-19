@@ -288,6 +288,18 @@ export class GameScene extends Phaser.Scene {
     if (left !== null) this.hud.setSurvival(this.config.survivalMs!, left);
   }
 
+  /** Swap rules and callbacks without recreating the Phaser scene or engine. */
+  continueIntoEndless(config: DifficultyConfig, hooks: GameSceneHooks): void {
+    this.engine.continueIntoEndless(config);
+    this.config = config;
+    this.hooks = hooks;
+    this.hud.setEndlessMode(`Endless · ${config.name}`);
+    this.introRemainingMs = 0;
+    this.accumulator = 0;
+    this.input.keyboard?.enableGlobalCapture();
+    audio.setMood('calm');
+  }
+
   /** Called by the app's Resume button. */
   resumeGame(): void {
     this.setPaused(false);
