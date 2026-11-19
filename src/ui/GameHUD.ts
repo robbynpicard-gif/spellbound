@@ -433,6 +433,15 @@ export class GameHUD {
     this.drawRoll();
   }
 
+  setEndlessMode(label: string): void {
+    this.quota = null;
+    this.survivalMs = null;
+    this.survivalLeftMs = 0;
+    this.completed = 0;
+    this.levelText.setText(label);
+    this.drawRoll();
+  }
+
   setProgress(completed: number): void {
     this.completed = completed;
     this.drawRoll();
