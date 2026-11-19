@@ -535,38 +535,21 @@ describe('casting', () => {
 describe('boss (survival) levels', () => {
   const boss = { requiredWords: null, survivalMs: 10_000, ramp: { initialFallSpeed: 120, spawnInterval: 500, maxActiveWords: 9 } };
 
-  it('are won by surviving the timer, then clearing the words still falling (D-057)', () => {
+  it('wins immediately when the timer expires, preserving falling words for Endless', () => {
     const engine = makeEngine({ ...boss, initialFallSpeed: 5, instabilityPerMiss: 1 });
-    const windDown = vi.fn();
-    engine.events.on('windDown', windDown);
-    for (let i = 0; i < 599; i++) engine.step();
+    for (let i = 0; i < 600; i++) engine.step();
     expect(engine.status).toBe('playing');
-    expect(engine.survivalRemainingMs).toBeCloseTo(16.7, 0);
-    engine.step();
-    engine.step();
-    // The timer is up: no new words, and the level waits for the field to clear.
-    expect(windDown).toHaveBeenCalled();
-    expect(engine.status).toBe('playing');
-    const left = engine.state.words.length;
-    expect(left).toBeGreaterThan(0);
-    for (const w of [...engine.state.words]) {
-      for (const c of w.match) engine.typeChar(c);
-      engine.submit();
-    }
-    expect(engine.state.words.length).toBe(0);
     engine.step();
     expect(engine.status).toBe('won');
+    expect(engine.state.words.length).toBeGreaterThan(0);
+    expect(engine.state.windingDown).toBe(false);
   });
 
-  it('cannot be lost after the timer runs out: late misses sting but the win is secured', () => {
+  it('does not require clearing the battlefield after boss victory', () => {
     const engine = makeEngine({ ...boss, initialFallSpeed: 5, instabilityPerMiss: 99 });
     for (let i = 0; i < 601; i++) engine.step();
-    expect(engine.state.windingDown).toBe(true);
-    expect(engine.state.words.length).toBeGreaterThan(0);
-    // Every word left is missed, which would normally end the run twice over.
-    for (let i = 0; i < 40_000 && engine.status === 'playing'; i++) engine.step();
     expect(engine.status).toBe('won');
-    expect(engine.state.missed).toBeGreaterThan(0);
+    expect(engine.state.words.length).toBeGreaterThan(0);
   });
 
   it('speed up smoothly over the timer', () => {
