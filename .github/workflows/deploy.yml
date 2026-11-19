@@ -1,6 +1,6 @@
 # Deploy stable main and the canonical development preview together.
 name: Deploy to GitHub Pages
-# Typecheck correction: Emergency Summon drop weights.
+# Startup hotfix: validated early campaign word weights.
 
 on:
   push:
