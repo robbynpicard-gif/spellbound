@@ -175,8 +175,18 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
   const i = stage - 1;
   const boss = level === STAGE_LEVELS;
   const [minLen, maxLenStage] = t.lengths[i]!;
-  const maxLen = level <= SPELL_LEVEL && !boss ? Math.max(minLen + 1, maxLenStage - 1) : maxLenStage;
-  const avgLen = (minLen + maxLen) / 2;
+  const maxLen = stage === 1 && mode === 'normal' ? 4 : level <= SPELL_LEVEL && !boss ? Math.max(minLen + 1, maxLenStage - 1) : maxLenStage;
+  // Early Normal: three letters are the staple; two letters are welcome
+  // breathers and four letters preview the difficulty ahead.
+  const wordLengthWeights = stage === 1 && mode === 'normal'
+    ? level <= 3 ? { 2: 0.25, 3: 6, 4: 0.9 }
+      : level <= 9 ? { 2: 0.18, 3: 5, 4: 2 }
+        : { 2: 0.12, 3: 3, 4: 4 }
+    : undefined;
+  const avgLen = wordLengthWeights
+    ? Object.entries(wordLengthWeights).reduce((sum, [length, weight]) => sum + Number(length) * weight, 0) /
+      Object.values(wordLengthWeights).reduce((sum, weight) => sum + weight, 0)
+    : (minLen + maxLen) / 2;
   // Fall time shortens steadily over the whole mode (100 levels).
   const progress = (i * STAGE_LEVELS + (level - 1)) / (STAGE_COUNT * STAGE_LEVELS - 1);
   const fall = lerp(t.fallSeconds[0], t.fallSeconds[1], progress);
@@ -196,6 +206,7 @@ function buildLevel(mode: StageMode, stage: number, level: number): DifficultyCo
     maxActiveWords: room(fall, spawn),
     minWordLength: minLen,
     maxWordLength: maxLen,
+    ...(wordLengthWeights ? { wordLengthWeights } : {}),
     modifierProbabilities: {},
     instabilityPerMiss: t.instabilityPerMiss[i]!,
     errorAcceleration: t.errorAcceleration[i]!,
@@ -269,6 +280,6 @@ export function endlessConfig(mode: StageMode, stage: number): DifficultyConfig 
     rampWords: stageLevel(mode, stage, STAGE_LEVELS - 1).requiredWords,
     surges: [],
     speedRampExtra: 0,
-    escalation: { perWords: 25, speed: 0.04, spawn: 0.04 },
+    escalation: { perWords: 25, speed: 0.055, spawn: 0.05 },
   };
 }
