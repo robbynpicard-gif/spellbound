@@ -1,9 +1,11 @@
-# Builds Wizzy Type and publishes it to GitHub Pages on every push to main.
+# Deploy stable main and the canonical development preview together.
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - design/nov-18-playtest-handoff
   workflow_dispatch:
 
 permissions:
@@ -13,30 +15,53 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npm test
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - id: deployment
+      - name: Checkout stable main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: stable
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+        with:
+          ref: design/nov-18-playtest-handoff
+          path: development
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: stable/package-lock.json
+      - name: Build stable game
+        working-directory: stable
+        run: |
+          npm ci
+          npm run build
+      - name: Build development game
+        working-directory: development
+        run: |
+          npm ci
+          npm run build
+      - name: Assemble independently built sites with version markers
+        run: |
+          mkdir -p site/preview
+          cp -a stable/dist/. site/
+          cp -a development/dist/. site/preview/
+          printf 'branch=main\ncommit=%s\n' "$(git -C stable rev-parse HEAD)" > site/build-info.txt
+          printf 'branch=design/nov-18-playtest-handoff\ncommit=%s\n' "$(git -C development rev-parse HEAD)" > site/preview/build-info.txt
+          touch site/.nojekyll
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy Pages
+        id: deployment
         uses: actions/deploy-pages@v4

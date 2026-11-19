@@ -84,7 +84,7 @@ export const BONUS_RATES = {
   longFrom: 9,
   name: 0.3,
   volleyPer: 0.1,
-  volleyMax: 0.5,
+  volleyMax: 1000, // intentionally uncapped in gameplay; this is not used as a cap
   alliterationPer: 0.15,
   alliterationMax: 0.6,
   librarianPer: 0.1,
@@ -101,8 +101,8 @@ export const BONUS_RATES = {
 /** Quick: captured in the top part of the field; Clutch: in the last part, just before the ward. */
 export const QUICK_ZONE = 0.3;
 export const CLUTCH_ZONE = 0.85;
-/** Volley: captures within this many ticks of each other (2 s). */
-export const VOLLEY_TICKS = 120;
+/** Initial Volley activation gap (1.25s at 60 Hz). */
+export const VOLLEY_TICKS = 75;
 /** Metronome: this many recent keystrokes with even spacing (coefficient of variation below the limit). */
 export const METRONOME_KEYS = 16;
 export const METRONOME_CV = 0.3;

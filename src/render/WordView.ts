@@ -58,6 +58,8 @@ export class WordView extends Phaser.GameObjects.Container {
   private drawnTyped = -1;
   private drawnTarget: boolean | null = null;
   private frozen = false;
+  /** Speed is immutable after spawning except for penalties; cue is visual only. */
+  private readonly fastScroll: boolean;
   private halfWidth = 0;
 
   constructor(
@@ -66,6 +68,8 @@ export class WordView extends Phaser.GameObjects.Container {
   ) {
     super(scene, 0, 0);
     const onColour = word.spell !== null;
+    // A subtle brass warning for unusually fast scrolls; spell coloration wins.
+    this.fastScroll = word.spell === null && word.fastSpawn === true;
     this.restColor = hex(onColour ? 0xf6ecd8 : PALETTE.ink);
     this.glow = scene.add.graphics();
     this.plaque = scene.add.graphics();
@@ -185,8 +189,8 @@ export class WordView extends Phaser.GameObjects.Container {
       gl.fillRect((x0 - 8) * PX, (y0 - 6) * PX, (x1 - x0 + 17) * PX, (y1 - y0 + 13) * PX);
     }
     // Frame: magenta when targeted, teal when frozen, dark otherwise.
-    const frame = w.isTarget ? PALETTE.magentaGlow : this.frozen ? PALETTE.teal : BORDER;
-    const fw = w.isTarget || this.frozen ? 2 : 1;
+    const frame = w.isTarget ? PALETTE.magentaGlow : this.frozen ? PALETTE.teal : this.fastScroll ? STUD : BORDER;
+    const fw = w.isTarget || this.frozen || this.fastScroll ? 2 : 1;
     rect(x0 - fw, y0 - fw, x1 + fw, y1 + fw, frame);
 
     rect(x0, y0, x1, y1, body);
