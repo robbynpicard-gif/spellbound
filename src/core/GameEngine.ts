@@ -54,6 +54,8 @@ export type Command =
   | { tick: number; type: 'backspace' }
   | { tick: number; type: 'clear' }
   | { tick: number; type: 'submit' }
+  | { tick: number; type: 'summon' }
+  | { tick: number; type: 'emergency' }
   | { tick: number; type: 'select'; wordId: number }
   /** Normal only: cast a spell directly (number keys). */
   | { tick: number; type: 'cast'; spell: SpellId };
@@ -86,6 +88,12 @@ export interface Pace {
 
 /** Each word's speed varies by up to this fraction around the level's pace. */
 export const SPEED_VARIANCE = 0.15;
+/** Prototype controls; adjust after playtesting. */
+export const SUMMON_COOLDOWN_TICKS = 8 * 60;
+export const EMERGENCY_COOLDOWN_TICKS = 105 * 60;
+export const SUMMON_MAX_FIELD = 3;
+export const SUMMON_BATCH = 3;
+export const SUMMON_CAPTURE_BONUS = 0.10;
 /** Quota levels: average speed runs from ×(1−this) at the start to ×(1+this) at the quota. */
 export const LEVEL_SPEED_RAMP = 0.15;
 /** During a surge words arrive this much more often, and a few more may be on the field. */
@@ -209,7 +217,7 @@ export class GameEngine {
 
   /** Boss levels: time left to survive (null on quota levels). */
   get survivalRemainingMs(): number | null {
-    return isSurvival(this.config) ? Math.max(0, this.config.survivalMs! - this.elapsedMs) : null;
+    return isSurvival(this.config) ? Math.max(0, this.config.survivalMs! - this.s.survivalElapsedMs) : null;
   }
 
   /**
@@ -220,7 +228,7 @@ export class GameEngine {
     const c = this.config;
     let pace = { fallSpeed: c.initialFallSpeed, spawnInterval: c.spawnInterval, maxActiveWords: c.maxActiveWords };
     if (isSurvival(c) && c.ramp) {
-      const t = Math.min(1, this.elapsedMs / c.survivalMs!);
+      const t = Math.min(1, this.s.survivalElapsedMs / c.survivalMs!);
       const lerp = (a: number, b: number) => a + (b - a) * t;
       pace = {
         fallSpeed: lerp(pace.fallSpeed, c.ramp.initialFallSpeed),
@@ -255,7 +263,7 @@ export class GameEngine {
   private get progress(): number {
     const c = this.config;
     if (c.requiredWords) return Math.min(1, this.s.completed / c.requiredWords);
-    if (c.survivalMs) return Math.min(1, this.elapsedMs / c.survivalMs);
+    if (c.survivalMs) return Math.min(1, this.s.survivalElapsedMs / c.survivalMs);
     // Endless Practice: each quota's worth of words is one lap, with the level's surges again.
     if (c.rampWords) return (this.s.completed % c.rampWords) / c.rampWords;
     return 0;
@@ -327,6 +335,11 @@ export class GameEngine {
     const s = this.s;
     if (s.status !== 'playing') return;
     s.tick++;
+    // The spell duration runs on real simulation ticks, but the boss's
+    // survival clock pauses under Ice and advances at 80% under Slow.
+    if (isSurvival(this.config)) {
+      s.survivalElapsedMs += s.freezeTicks > 0 ? 0 : s.slowStacks.length > 0 ? SIMULATION_STEP_MS * 0.8 : SIMULATION_STEP_MS;
+    }
 
     // Boss level: surviving the whole timer clears it.
     const remaining = this.survivalRemainingMs;
@@ -434,6 +447,20 @@ export class GameEngine {
     return true;
   }
 
+  /** Manually pull quota words forward when the field is quiet. */
+  summon(): boolean {
+    if (this.s.status !== 'playing' || this.config.requiredWords === null || this.s.tick < this.s.summonReadyTick || this.s.words.length > SUMMON_MAX_FIELD) return false;
+    this.record({ tick: this.s.tick, type: 'summon' });
+    return true;
+  }
+
+  /** Long-cooldown gamble: type the random colored scroll to claim its charge. */
+  emergencySummon(): boolean {
+    if (this.s.status !== 'playing' || this.config.availableSpells.length === 0 || this.s.tick < this.s.emergencyReadyTick) return false;
+    this.record({ tick: this.s.tick, type: 'emergency' });
+    return true;
+  }
+
   /** Mouse click on a word: aim the console only at that word. */
   selectTarget(wordId: number): void {
     if (this.s.status !== 'playing' || !this.findWord(wordId)) return;
@@ -457,11 +484,45 @@ export class GameEngine {
         return this.resetInput(true);
       case 'submit':
         return this.applySubmit();
+      case 'summon':
+        return this.applySummon();
+      case 'emergency':
+        return this.applyEmergencySummon();
       case 'select':
         return this.applySelect(command.wordId);
       case 'cast':
         return this.castSpell(command.spell);
     }
+  }
+
+  private applySummon(): void {
+    const s = this.s;
+    const quota = this.config.requiredWords;
+    if (quota === null || s.tick < s.summonReadyTick || s.words.length > SUMMON_MAX_FIELD) return;
+    const available = Math.max(0, quota - s.completed - s.words.length);
+    const n = Math.min(SUMMON_BATCH, available);
+    if (n === 0) return;
+    for (let i = 0; i < n; i++) {
+      this.spawn(this.pace.fallSpeed);
+      s.summonedIds.push(s.words[s.words.length - 1]!.id);
+    }
+    s.summonReadyTick = s.tick + SUMMON_COOLDOWN_TICKS;
+    s.spawnTimerMs = Math.max(s.spawnTimerMs, this.pace.spawnInterval);
+  }
+
+  private applyEmergencySummon(): void {
+    const s = this.s;
+    if (s.tick < s.emergencyReadyTick || this.config.availableSpells.length === 0) return;
+    this.spawn(this.pace.fallSpeed);
+    const word = s.words[s.words.length - 1]!;
+    word.spell = this.rng.weighted(dropWeights(this.config.availableSpells) as Record<SpellId, number>);
+    s.emergencyReadyTick = s.tick + EMERGENCY_COOLDOWN_TICKS;
+  }
+
+  private resetVolley(): void {
+    this.s.volleyCount = 0;
+    this.s.volleyLastTick = -100000;
+    this.s.recentCaptures = [];
   }
 
   private applyChar(char: string): void {
@@ -490,7 +551,8 @@ export class GameEngine {
       // Clean Streak: a typo (even one fixed with Backspace) steps back one milestone (D-046).
       s.entryTypo = true;
       this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
-      if (attempted) this.penalize(attempted);
+      this.setCombo(comboAfterWrongEntry(s.combo));
+      // Correctable typos cost Combo but do not accelerate the falling word.
     }
     this.events.emit('typingError', { wordId: attempted?.id ?? this.s.targetId, char });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
@@ -521,11 +583,12 @@ export class GameEngine {
     // A word already penalised for a typo in this same entry isn't penalised again.
     const guess = pinned ?? guessIntendedWord(s.words, input);
     // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
-    this.setCombo(comboAfterWrongEntry(s.combo));
+    this.setCombo(0);
+    this.resetVolley();
     this.setCleanStreak(0, 'wrongEntry');
     this.shrinkPool();
     if (!guess) s.errors++;
-    else if (guess.id !== s.penalizedId) {
+    else {
       s.errors++;
       this.penalize(guess);
     }
@@ -624,7 +687,10 @@ export class GameEngine {
   /** Error consequence for a word (GDD §7): it falls faster. */
   private penalize(word: WordState): void {
     word.errors++;
-    word.speed += this.config.errorAcceleration;
+    // Deterministic weighted random acceleration; rare recoverable plunge.
+    const roll = this.speedRng.next();
+    const factor = roll < 0.88 ? 0.4 : roll < 0.985 ? 1.2 : 2.5;
+    word.speed += this.config.errorAcceleration * factor;
     this.s.penalizedId = word.id;
   }
 
@@ -720,7 +786,9 @@ export class GameEngine {
     }
     const streak = streakMultiplierOf(s.cleanStreak);
     const bonuses = this.wordBonuses(word);
-    const points = Math.round(scoreWord(word.text.length, multiplier, bonuses, streak));
+    const summoned = s.summonedIds.includes(word.id);
+    s.summonedIds = s.summonedIds.filter((id) => id !== word.id);
+    const points = Math.round(scoreWord(word.text.length, multiplier, bonuses, streak) * (summoned ? 1 + SUMMON_CAPTURE_BONUS : 1));
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
@@ -791,6 +859,7 @@ export class GameEngine {
   private removeWord(word: WordState): void {
     const s = this.s;
     s.words.splice(s.words.indexOf(word), 1);
+    s.summonedIds = s.summonedIds.filter((id) => id !== word.id);
     this.endIceOnEmptyField();
     const wasAimed = s.targetId === word.id || s.pinnedId === word.id;
     if (s.targetId === word.id) {
@@ -876,10 +945,14 @@ export class GameEngine {
     if (word.text[0] !== word.match[0]) add('name', B.name);
 
     // Volley: several captures in quick succession.
-    s.recentCaptures = s.recentCaptures.filter((t) => s.tick - t <= VOLLEY_TICKS);
-    s.recentCaptures.push(s.tick);
-    const volley = s.recentCaptures.length;
-    if (volley >= 3) add('volley', Math.min(B.volleyMax, (volley - 2) * B.volleyPer), volley);
+    const previous = s.volleyCount;
+    const additional = Math.max(0, previous - 4);
+    const maintenance = Math.round(90 * Math.pow(0.95, Math.floor(additional / 4)));
+    const allowed = previous >= 4 ? Math.max(1, maintenance) : VOLLEY_TICKS;
+    s.volleyCount = s.tick - s.volleyLastTick <= allowed ? previous + 1 : 1;
+    s.volleyLastTick = s.tick;
+    const volley = s.volleyCount;
+    if (volley >= 4) add('volley', 0.10 + (volley - 4) * 0.05, volley);
 
     // Alliteration: same first letter as the previous capture.
     const first = word.match[0]!;
