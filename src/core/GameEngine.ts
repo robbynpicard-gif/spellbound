@@ -95,8 +95,6 @@ export const SURGE_EXTRA_WORDS = 3;
 export const OVERFLOW_POINTS = 50;
 /** Fire spares freshly spawned words: it only burns below this share of the field (D-057). */
 export const FIRE_MIN_DEPTH = 0.2;
-/** Each Ice cast while the field is still frozen adds this share of the previous cast's time. */
-export const ICE_STACK_DECAY = 0.7;
 
 /** Transmutation turns long words into words of these lengths. */
 const SHORT_WORD_MIN = 2;
@@ -938,7 +936,7 @@ export class GameEngine {
       freeze: (ticks) => {
         const s = this.s;
         if (s.freezeTicks === 0) s.iceCasts = 0;
-        s.freezeTicks += Math.max(1, Math.round(ticks * ICE_STACK_DECAY ** s.iceCasts));
+        s.freezeTicks += Math.max(1, ticks);
         s.iceCasts++;
         this.events.emit('freezeChanged', { ticks: this.s.freezeTicks });
       },
