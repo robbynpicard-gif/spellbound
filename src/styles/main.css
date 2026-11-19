@@ -78,7 +78,7 @@ body {
   .mobile-keyboard-actions .mobile-key { max-width: 110px; font-size: 10px; }
   .mobile-keyboard-spells .mobile-key { min-height: 26px; background: #342b44; }
   #mobile-keyboard.is-open ~ #app { padding-bottom: 0; }
-  #ui-root.is-active ~ #mobile-keyboard { pointer-events: none; }
+  body:has(#ui-root.is-active) #mobile-keyboard { display: none; }
   @media (orientation: portrait) {
     #game-container { height: 100%; }
     .mobile-key { min-height: 42px; }
