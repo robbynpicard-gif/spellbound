@@ -305,7 +305,8 @@ export class App {
     this.save.setSavedRun(null);
     const summary = summarizeRun(run, victory);
     const outcome = this.save.recordRun(summary, run.mode);
-    this.run = null;
+    if (victory) run.carryWords = words;
+    this.run = victory ? run : null;
     const nextStage = victory && run.stage < STAGE_COUNT ? run.stage + 1 : null;
     this.ui.show(
       runOverScreen(summary, outcome, clearedLevel, {
@@ -325,12 +326,24 @@ export class App {
    * The best score is kept per stage (stored as practice level 0).
    */
   startEndless(mode: CampaignMode, stage: number): void {
+    const previous = this.run;
+    const carry = previous?.mode === mode && previous.stage === stage && previous.level === STAGE_LEVELS ? previous : null;
     this.run = null;
     const pick: LevelPick = { mode, stage, level: 0 };
     const where = `Endless · ${mode === 'hardcore' ? 'Hardcore' : 'Normal'} · Stage ${stage}`;
     this.startScene({
       config: endlessConfig(mode, stage),
       hardcore: mode === 'hardcore',
+      spellSlots: this.save.spellSlots,
+      quickCast: mode === 'normal',
+      ...(carry ? {
+        initialSpells: carry.spellCharges,
+        initialInstability: carry.instability,
+        initialCombo: carry.combo,
+        initialCleanStreak: carry.cleanStreak,
+        initialWords: carry.carryWords,
+        scoreOffset: carry.score,
+      } : {}),
       words: this.words,
       hooks: {
         onPauseChanged: (paused) =>
