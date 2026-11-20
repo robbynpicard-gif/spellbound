@@ -6,7 +6,6 @@
 import { BOSS_SECONDS, INTRO_LEVEL, SPELL_DROP_CHANCE, SPELL_LEVEL, spellsOfStage, STAGE_COUNT, STAGE_LEVELS, STAGE_NAMES, STAGE_TUNING, SURGE_FROM_LEVEL } from '../difficulty/Stages';
 import { HARDCORE_HEAL, HARDCORE_HEAL_LEVELS } from '../modes/CampaignMode';
 import { OVERFLOW_POINTS, SURGE_SPAWN_FACTOR } from '../core/GameEngine';
-import { SCORING, STREAK_MILESTONES, TIERS } from '../gameplay/ScoringSystem';
 import { POOL_GROWTH, SPELL_POOL_SIZE } from '../gameplay/SpellManager';
 import { SPELLS } from '../spells/SpellRegistry';
 
