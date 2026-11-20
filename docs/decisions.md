@@ -1048,3 +1048,11 @@ Implements the D-083 direction and the 2026-11-20 Claude prototype handoff in th
 - **Apprenticeship slice:** four skippable, replayable Wind Master lessons with Grand Wizard framing (placeholder text, no canon) and a Spell Sandbox with a 40-charge stock. Neither records stats, Runes, Triumphs or Campaign progress.
 
 Details, audit and tuning table: `docs/wind-apprenticeship-prototype-2026-11-20.md`.
+
+
+### D-085 — Typel integrated prototype: new front end, nine apprenticeships, provisional Shock/Fire chains, Runes (2026-11-20)
+_2026-11-20 · Owner-directed (structure decided in chat); implementation built on dev; content and numbers are prototype choices_
+
+**Owner decisions recorded (2026-11-20 chat):** the apprenticeship replaces the 5 × 20 campaign as the main mode. Nine apprenticeships: one per spell in a fixed order (Slow, Fire, Ice, Barrier, Shock, Alter, Wind, Harvest), spells cumulative, then a ninth against the Grand Wizard using every spell. Each apprenticeship extracts the old stage difficulty scaling (not 20 literal levels), ends in a spell boss, and only then offers Endless. Difficulty rises across apprenticeships along the old stage 1→5 curve. Normal teaches; Hardcore is the same content expecting mastery and will eventually unlock after Normal (unlocked now for testing). The Sandbox replaces Endless Practice in the menu. Add Typing Trials (raw-speed passages), a Codex with Runes and Triumphs, and the foundation for spell "rune sequences". Prototype Shock's seeded chain and Fire's Combustion Chain. Rebuild audio from scratch with the same character (warm wood/brass keys, sense of wonder). Do not reuse old visual or sound assets. Working title **Typel**. End state is a definitive typing game (possibly Steam), not a browser mini-game.
+
+**Prototype choices (reversible, not owner-approved):** procedural Canvas-2D painting at 1920×1080 (not pixel art); workstation layout (window battlefield, centre typewriter, left score/Combo, right Volley tube and Ward flask, right spell shelf, left mentor letter); 12 levels + boss per apprenticeship; Shock and Fire tuning; 25-Rune catalogue and point values; 8 Triumphs; Hardcore recovery after levels 4 and 8; placeholder Masters and lines; legacy end-of-level bonuses disabled under Arcane scoring. Details: `docs/typel-prototype-2026-11-20.md`. Production `main` unchanged.

@@ -31,8 +31,8 @@
     "id": "shock",
     "name": "Chain Lightning",
     "book": "Shock",
-    "summary": "Zaps nearby words, cashing in your Combo.",
-    "description": "Strikes the lowest word and arcs to the 3 words nearest it. They count toward the level and pay their base points × your Combo multiplier (× All-In if active). Shock never adds Combo or Volley. Its chain odds are not final: this preview keeps the fixed 3 arcs.",
+    "summary": "Strikes the lowest word; may chain onward.",
+    "description": "Always strikes the lowest word. From each struck word, lightning may leap to nearby words: closer words are likelier, and each leap makes the next less likely (seeded, so a replay strikes the same way). Up to 10 words. Struck words count toward the level and pay base points × your Combo (× All-In if active). Shock never adds Combo or Volley. The odds are provisional.",
     "dropWeight": 3,
     "arcs": 3
   },
@@ -50,8 +50,8 @@
     "id": "fire",
     "name": "Incineration",
     "book": "Fire",
-    "summary": "Burns every word away for base points.",
-    "description": "A bailout: burns every word on the field. You get each word's base points (no combo or Clean Streak), but burned words don't count toward the level.",
+    "summary": "Burns the low field; flames spread through crowds.",
+    "description": "Every word in the lower half of the field ignites, and flames leap to any word close enough to a burning one, generation after generation. Words in the top fifth are always spared. Each burned word pays its base points, +25% per generation of spread (a crowded field burns further and pays more). No Combo, Volley or level progress. Combustion Chain is a provisional prototype.",
     "dropWeight": 2
   },
   {

@@ -202,3 +202,6 @@ For **each design conversation** that changes or meaningfully clarifies the game
 - Does the report clearly distinguish **what the owner decided** from **what Claude implemented provisionally** and **what was actually verified in the browser**?
 
 **Do not represent this addendum or register as a perfect transcript of every conversation.** It is a carefully reconciled best-effort current design model. When uncertainty matters, flag it; do not guess.
+
+# IMPLEMENTATION STATUS ADDENDUM — D-085 (2026-11-20, Claude)
+The dev preview now runs an integrated Typel prototype (new procedural workstation visuals, synthesized audio and adaptive music, nine apprenticeships, Sandbox, Typing Trials, Codex with Runes and Triumphs, provisional Shock and Fire chains). Owner decisions from the 2026-11-20 chat are recorded in D-085; everything else there is a prototype choice. Status, tuning, limitations and the playtest script: `docs/typel-prototype-2026-11-20.md`. Not yet owner-playtested; production unchanged.

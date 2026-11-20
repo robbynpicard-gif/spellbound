@@ -1225,7 +1225,8 @@ export class GameEngine {
   }
 
   private end(result: GameResult): void {
-    if (result === 'won') {
+    // Legacy end-of-level bonuses are superseded in Arcane/Typel scoring (four-pillar register).
+    if (result === 'won' && !this.experimentalScoring) {
       const bonuses = this.levelBonuses();
       if (bonuses.length > 0) {
         this.awardedLevelBonuses = bonuses;
