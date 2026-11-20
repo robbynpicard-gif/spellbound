@@ -59,7 +59,7 @@ export class App {
   showMainMenu(): void {
     this.run = null;
     this.showBackdrop();
-    const labAvailable = typeof window !== 'undefined' && /(?:^|\\/)preview(?:\\/|$)/.test(window.location.pathname);
+    const labAvailable = typeof window !== 'undefined' && window.location.pathname.split('/').includes('preview');
     const labActive = previewWordcraftEnabled();
     this.ui.show(
       mainMenuScreen(
