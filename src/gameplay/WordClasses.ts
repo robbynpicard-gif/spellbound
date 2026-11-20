@@ -6,9 +6,9 @@ export const WORD_CLASSES = ['noun', 'verb', 'adjective', 'adverb'] as const;
 export type WordClass = typeof WORD_CLASSES[number];
 
 const EXAMPLES: Record<WordClass, readonly string[]> = {
-  noun: ['wizard', 'dragon', 'castle', 'lantern', 'scroll', 'parchment', 'tower', 'forest', 'river', 'mountain', 'garden', 'library', 'kingdom', 'village', 'knight', 'sword', 'shield', 'crown', 'crystal', 'potion', 'thunder', 'storm', 'shadow', 'moon', 'star', 'book', 'quill', 'ink', 'feather', 'stone', 'flame', 'ember', 'mirror', 'portal', 'treasure', 'merchant', 'apprentice', 'scholar', 'alchemist'],
-  verb: ['wander', 'whisper', 'shimmer', 'tremble', 'sparkle', 'gather', 'protect', 'discover', 'imagine', 'explore', 'summon', 'conjure', 'defend', 'remember', 'travel', 'listen', 'dance', 'climb', 'leap', 'glide', 'hover'],
-  adjective: ['ancient', 'arcane', 'golden', 'silver', 'crimson', 'emerald', 'quiet', 'gentle', 'fierce', 'bright', 'dark', 'swift', 'clever', 'mighty', 'noble', 'sacred', 'hidden', 'enchanted', 'mysterious', 'magical'],
+  noun: ['wizard', 'dragon', 'castle', 'lantern', 'parchment', 'tower', 'forest', 'river', 'mountain', 'library', 'kingdom', 'village', 'knight', 'sword', 'crystal', 'potion', 'thunder', 'moon', 'star', 'quill', 'feather', 'ember', 'portal', 'merchant', 'apprentice', 'scholar', 'alchemist'],
+  verb: ['tremble', 'gather', 'protect', 'discover', 'imagine', 'explore', 'summon', 'conjure', 'defend', 'remember', 'listen', 'climb', 'hover'],
+  adjective: ['ancient', 'arcane', 'golden', 'silver', 'crimson', 'emerald', 'gentle', 'fierce', 'clever', 'mighty', 'noble', 'sacred', 'enchanted', 'mysterious', 'magical'],
   adverb: ['quickly', 'quietly', 'suddenly', 'rapidly', 'readily', 'honestly', 'smoothly', 'strongly', 'directly', 'recently', 'commonly', 'especially', 'totally', 'usually', 'aptly', 'badly', 'dimly', 'dryly', 'duly', 'fully', 'madly', 'newly', 'sadly', 'truly', 'wryly'],
 };
 const LOOKUP = new Map<string, WordClass>();
