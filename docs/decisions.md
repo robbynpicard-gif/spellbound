@@ -948,3 +948,9 @@ Fix the known virtual-clock rewind bug: never decrement `volleyFlowTick`. Freeze
 _2026-11-20 · Owner-directed prototype; dev implementation committed; CI and deployment pending_
 
 Restore a compact always-visible live transcription of the current console input on the physical typewriter. The desk scenery's higher render depth could cover the pre-existing HUD console. Show typed characters and a caret above the desk, with muted placeholder when empty and a gentle error tint for invalid prefixes; the authoritative input remains GameEngine state and no input controls change. Slightly widen the Arcane Volley timing allowance: Normal from 42 + 12 ticks/letter to 52 + 13, Hardcore from 28 + 9 to 34 + 10, preserving the two-capture ignition and Hardcore pressure. Test and tune on preview; do not change production gameplay. Files: `src/scenes/GameScene.ts`, `src/gameplay/ArcaneVolley.ts`, `src/gameplay/ArcaneVolley.test.ts`.
+
+
+### D-069 — Physical sandbox spell contracts and Temporal Flow (2026-11-20)
+_2026-11-20 · Owner-approved direction; Temporal Flow preview implemented; broader contracts provisional_
+
+Treat Time and the physical identities of all eight spells as coherent sandbox properties. Separate player input, world motion, Volley opportunity, spell duration and spawning clocks. Preserve existing spell mechanics unless an interaction is intentionally prototyped. Implement the first testable interaction: while Slow is active, the monotonic Volley clock runs at 80% normal rate (a 25% longer real-time capture opportunity); Slow stacks do not compound the Volley benefit. Player typing remains fully responsive, and Slow does not award a multiplier directly. See `docs/sandbox-interactions.md` for the full spell-by-spell default interaction contracts, current implementations and explicitly unimplemented future possibilities. Engine implementation `3318003` on dev; preview CI and manual validation pending.
