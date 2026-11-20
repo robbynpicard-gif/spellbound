@@ -315,29 +315,11 @@ export function levelClearScreen(
       stat('Level score', `+${stats.score.toLocaleString()}`),
       stat('Accuracy', percent(stats.accuracy)),
       stat('WPM', Math.round(stats.wpm)),
-      stat('Missed', stats.missed),
-      ...(stats.scoringModel === 'arcane' ? [
-        stat('Words captured', stats.completed),
-        stat('Best precision chain', `${stats.maxCombo} flawless words`),
-        stat('Peak Combo multiplier', `×${stats.peakMultiplier}`),
-        stat('Combo at level end', `×${1 + Math.floor(stats.endCombo / 10)} · ${stats.endCombo} flawless words`),
-        stat('Peak Volley multiplier', `×${stats.peakArcaneVolleyMultiplier ?? 1}`),
-        stat('Volley at level end', `×${stats.endArcaneVolleyMultiplier ?? 1}`),
-      ] : [
-        stat('Highest combo', `${stats.maxCombo} words · peak ×${stats.peakMultiplier}`),
-        stat('Volley bonuses', stats.bonusCounts.volley ?? 0),
-        stat('Best volley', `${stats.peakVolley ?? 0} words in 2 seconds`),
-        stat('Clean Streak', `${stats.endCleanStreak ?? 0} (best ${stats.peakCleanStreak ?? 0})`),
-      ]),
-      stat('Typing errors', stats.errors),
-      stat('Average capture', stats.averageCompletionMs > 0 ? `${(stats.averageCompletionMs / 1000).toFixed(2)} s` : '—'),
-      stat('Time', formatTime(stats.elapsedMs)),
+      stat(stats.scoringModel === 'arcane' ? 'Peak Volley' : 'Best combo',
+        stats.scoringModel === 'arcane'
+          ? `×${stats.peakArcaneVolleyMultiplier ?? 1}`
+          : `${stats.maxCombo} words`),
     ),
-    stats.scoringModel === 'arcane'
-      ? h('p', { class: 'spell-summary' }, 'Your legend grows with every flawless capture. Explore the Codex from the main menu to uncover the deeper scoring arts.')
-      : h('p', { class: 'spell-summary' }, (stats.peakVolley ?? 0) < 3
-          ? 'VOLLEY NOT YET EARNED · Capture 3 words within 2 seconds to earn your first Volley bonus.'
-          : `VOLLEY ACHIEVED · Your best burst was ${stats.peakVolley} words in 2 seconds. Each qualifying capture awards bonus points.`),
     run.mode === 'hardcore' &&
       h(
         'p',
@@ -345,9 +327,7 @@ export function levelClearScreen(
         `Ward instability carried: ${Math.round(run.instability)}%${healed ? ` (healed ${HARDCORE_HEAL}%)` : ''}`,
       ),
     spellSummary(run.spellCharges),
-    sessionRuneAwards(stats),
     triumphUnlocks ?? null,
-    extra ?? null,
     h('p', { class: 'next-up' }, `Next: Level ${next.level} · ${next.name}${isSurvival(next) ? ' · Boss' : ''}`),
     h('div', { class: 'button-row' }, button),
   );
