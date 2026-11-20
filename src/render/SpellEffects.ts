@@ -160,6 +160,12 @@ export class SpellEffects {
     const fieldMid = (LAYOUT.hudHeight + LAYOUT.wardY) / 2;
     switch (spell) {
       case 'fire': {
+        // Fire meets frost as steam: the ice is still governed by the engine's
+        // duration, but the presentation reacts to the elemental collision.
+        if (this.frost.visible) {
+          this.steam(cx, fieldMid);
+          this.scene.tweens.add({ targets: this.frost, alpha: 0.12, duration: 420, yoyo: true });
+        }
         // a wall of flame sweeps up the field from the ward line
         const span = LAYOUT.fieldRight - LAYOUT.fieldLeft;
         for (let i = 0; i <= 24; i++) {
@@ -172,6 +178,8 @@ export class SpellEffects {
         break;
       }
       case 'ice': {
+        // Ice quenches the lingering heat of the last cast with a hiss.
+        this.steam(cx, fieldMid, 0.6);
         this.frost.setVisible(true).setAlpha(0);
         this.scene.tweens.add({ targets: this.frost, alpha: 1, duration: 250 });
         this.growIce();
@@ -266,6 +274,20 @@ export class SpellEffects {
     const r = this.scene.add.rectangle(LAYOUT.width / 2, LAYOUT.hudHeight + fieldH / 2, LAYOUT.width, fieldH, color, alpha).setDepth(-5);
     r.setBlendMode(Phaser.BlendModes.ADD);
     this.scene.tweens.add({ targets: r, alpha: 0, duration: ms, onComplete: () => r.destroy() });
+  }
+
+  /** Short-lived pale vapour where heat and frost meet. Kept behind word labels. */
+  private steam(x: number, y: number, scale = 1): void {
+    for (let i = 0; i < 9; i++) {
+      const px = x + (i - 4) * 74;
+      const puff = this.scene.add.ellipse(px, y + 70, 52 * scale, 24 * scale, 0xe1eff0, 0.2)
+        .setDepth(-3);
+      this.scene.tweens.add({
+        targets: puff, y: y - 90 - (i % 3) * 24, x: px + (i % 2 ? 18 : -18),
+        scaleX: 1.8, scaleY: 2.5, alpha: 0, duration: 850 + i * 50,
+        ease: 'Sine.Out', onComplete: () => puff.destroy(),
+      });
+    }
   }
 
   /** Frostbinding: ice crystals grow in from the edges of the field. */
