@@ -960,3 +960,9 @@ Treat Time and the physical identities of all eight spells as coherent sandbox p
 _2026-11-20 · Dev implementation committed; CI and preview validation pending_
 
 Isolate the Volley-only fractional clock in `src/gameplay/TemporalFlow.ts` and test Slow's 80% clock rate, pauses for Ice/empty field, fractional remainder across expiry, two-word Volley ignition and deterministic stepping. Keep world movement, player typing, spawning and spell durations unchanged. `GameEngine` now consumes the shared clock helper rather than maintaining a separate Slow remainder. Tests are in `src/gameplay/TemporalFlow.test.ts`; end-to-end engine overlap and manual preview playtesting remain necessary before calling this fully verified.
+
+
+### D-071 — Spell action preserves Volley; separate level and stage best streaks (2026-11-20)
+_2026-11-20 · Preview implementation; CI and manual testing pending_
+
+Successful spell casts while an active Arcane Volley multiplier is above ×1 grant a bounded 1.5-second pause of the Volley opportunity clock. This is a deliberate tactical window to cast Slow or another spell and re-engage; it does not automatically add a capture or multiplier, and repeated casts while the pause is active do not bank additional time. Failed casts do not qualify. The Level Cleared screen displays only the highest number of consecutive successful Volley captures in that level; the stage-end screen displays the best such streak across the entire stage. Stage aggregation is max, not sum. Historical saved runs may lack this new statistic and display zero until played under the new build. Production unchanged pending approval.
