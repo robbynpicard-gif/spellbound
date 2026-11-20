@@ -22,3 +22,18 @@ export function triumphProgress(lifetime: Readonly<LifetimeStats>) {
     return { ...definition, value, tier, next };
   });
 }
+
+/** Compare before and after lifetime snapshots; only newly crossed tiers are announced.
+ * If a single session crosses several thresholds, announce every tier in order. */
+export function newlyEarnedTriumphs(before: Readonly<LifetimeStats>, after: Readonly<LifetimeStats>) {
+  const previous = triumphProgress(before);
+  return triumphProgress(after).flatMap((current, index) => {
+    const oldTier = previous[index]!.tier;
+    return Array.from({ length: Math.max(0, current.tier - oldTier) }, (_, i) => ({
+      id: current.id,
+      title: current.title,
+      tier: oldTier + i + 1,
+      tierName: TRIUMPH_TIERS[oldTier + i]!,
+    }));
+  });
+}
