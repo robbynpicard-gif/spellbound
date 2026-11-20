@@ -14,6 +14,10 @@ export const TRIUMPH_DEFINITIONS = [
   { glyph: '▤', lore: 'Every volume returns to its rightful shelf.', id: 'librarian', title: 'Keeper of the Lexicon', metric: 'librarianBonuses', targets: [10, 75, 300], unit: 'Librarian bonuses' },
   { glyph: '♫', lore: 'Every keystroke finds its rhythm.', id: 'metronome', title: 'The Clockwork Quill', metric: 'metronomeBonuses', targets: [10, 75, 300], unit: 'Metronome bonuses' },
   { glyph: '✺', lore: 'A clear field is its own reward.', id: 'sweep', title: 'Warden of the Empty Sky', metric: 'sweepBonuses', targets: [5, 30, 150], unit: 'Clean Sweep bonuses' },
+  { glyph: '♧', lore: 'Give every thing its true name.', id: 'nouns', title: 'The Namer of Things', metric: 'nounCaptures', targets: [10, 50, 200], unit: 'classified nouns' },
+  { glyph: '➶', lore: 'Every action begins with a word.', id: 'verbs', title: 'The Spell of Action', metric: 'verbCaptures', targets: [10, 50, 200], unit: 'classified verbs' },
+  { glyph: '❀', lore: 'Color the world with precise language.', id: 'adjectives', title: 'The Illuminator', metric: 'adjectiveCaptures', targets: [10, 50, 200], unit: 'classified adjectives' },
+  { glyph: '◷', lore: 'Master the manner of every motion.', id: 'adverbs', title: 'The Subtle Scribe', metric: 'adverbCaptures', targets: [5, 25, 100], unit: 'classified adverbs' },
 ] as const;
 
 export function triumphProgress(lifetime: Readonly<LifetimeStats>) {
@@ -23,6 +27,10 @@ export function triumphProgress(lifetime: Readonly<LifetimeStats>) {
       : definition.metric === 'librarianBonuses' ? (lifetime.bonusCounts.librarian ?? 0)
       : definition.metric === 'metronomeBonuses' ? (lifetime.bonusCounts.metronome ?? 0)
       : definition.metric === 'sweepBonuses' ? (lifetime.bonusCounts.sweep ?? 0)
+      : definition.metric === 'nounCaptures' ? (lifetime.wordClassCounts.noun ?? 0)
+      : definition.metric === 'verbCaptures' ? (lifetime.wordClassCounts.verb ?? 0)
+      : definition.metric === 'adjectiveCaptures' ? (lifetime.wordClassCounts.adjective ?? 0)
+      : definition.metric === 'adverbCaptures' ? (lifetime.wordClassCounts.adverb ?? 0)
       : lifetime[definition.metric];
     const tier = definition.targets.filter((target) => value >= target).length;
     const next = tier < definition.targets.length ? definition.targets[tier] : null;
