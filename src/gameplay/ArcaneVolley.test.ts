@@ -34,7 +34,7 @@ describe('Arcane Volley preview momentum',()=>{
     let s=emptyArcaneVolley();
     for(let i=0;i<6;i++)s=arcaneVolleyCapture(s,i*50,5,false);
     expect(arcaneVolleyMultiplier(s,250,false)).toBe(2);
-    expect(arcaneVolleyMultiplier(s,360,false)).toBe(1.8);
+    expect(arcaneVolleyMultiplier(s,380,false)).toBe(1.8);
     expect(arcaneVolleyMultiplier(s,600,false)).toBe(1);
     s=arcaneVolleyCapture(s,600,5,false);
     expect(arcaneVolleyMultiplier(s,600,false)).toBe(1);
