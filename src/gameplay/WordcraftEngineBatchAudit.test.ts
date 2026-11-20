@@ -9,7 +9,7 @@ describe('real-engine Wordcraft batch evaluation', () => {
     { name: 'middle-standard', config: stageLevel('normal', 3, 10), ticksPerCharacter: 4 },
     { name: 'late-slow', config: stageLevel('normal', 5, 10), ticksPerCharacter: 9 },
   ];
-  const seeds = [101, 202, 303, 404, 505, 606];
+  const seeds = [101, 202, 303, 404, 505, 606, 707, 808, 909, 1010, 1111, 1212];
 
   it('compares multiple seeds, stages and typing speeds with replay validation', () => {
     const rows = auditEngineWordcraftBatch(WORDS, scenarios, seeds, 1200);
@@ -18,6 +18,8 @@ describe('real-engine Wordcraft batch evaluation', () => {
       console.info('WORDCRAFT_ENGINE_BATCH', JSON.stringify(row));
       expect(row.trials).toBe(seeds.length);
       expect(row.replayFailures).toBe(0);
+      expect(['insufficient-data', 'reject', 'review']).toContain(row.decision);
+      expect(Number.isFinite(row.rates.experimentalPhrasesPer100Captures)).toBe(true);
       expect(row.baseline.spawned).toBeGreaterThan(0);
       expect(row.experimental.spawned).toBeGreaterThan(0);
       expect(row.baseline.phrases).toBeLessThanOrEqual(row.baseline.captured);
