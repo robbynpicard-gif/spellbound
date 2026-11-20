@@ -28,6 +28,18 @@ describe('cosmetic grammatical phrase tracking', () => {
     expect(t.counts.illumination).toBe(0);
   });
 
+  it('does not award phrases for incomplete or unrelated captures merely to raise reward frequency', () => {
+    const t = new PhraseTracker();
+    for (let i = 0; i < 50; i++) {
+      expect(t.capture('dragon')).toBeNull();
+      t.breakChain();
+    }
+    expect(t.counts).toEqual({ awakening: 0, illumination: 0, incantation: 0 });
+    expect(t.capture('dragon')).toBeNull();
+    expect(t.capture('conjure')?.id).toBe('awakening');
+    expect(t.counts.awakening).toBe(1);
+  });
+
   it('never carries sequences across sessions', () => {
     const first = new PhraseTracker();
     first.capture('dragon');
