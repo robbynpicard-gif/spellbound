@@ -1,3 +1,4 @@
+import { triumphProgress } from '../gameplay/Triumphs';
 import { earnedRuneIds } from '../ui/screens';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
@@ -77,6 +78,8 @@ export interface SaveData {
   spellSlots: SpellId[];
   /** Persistent Rune seal counts; additive within save version 5. */
   runeCounts: Record<string, number>;
+  /** Cosmetic-only featured Triumph, null until selected. */
+  featuredTriumph: string | null;
 }
 
 export interface AudioSettings {
@@ -120,6 +123,7 @@ export function emptySave(): SaveData {
     lifetime: emptyLifetime(),
     spellSlots: [...DISCOVERY_ORDER],
     runeCounts: {},
+    featuredTriumph: null,
   };
 }
 
@@ -276,6 +280,7 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
       save.lifetime = parseLifetime(data.lifetime);
       save.spellSlots = parseSpellSlots(data.spellSlots);
       save.runeCounts = parseRuneCounts(data.runeCounts);
+      save.featuredTriumph = typeof data.featuredTriumph === 'string' && ['scribe', 'journey', 'victory', 'precision', 'chain', 'volley'].includes(data.featuredTriumph) ? data.featuredTriumph : null;
     };
     if (data.version === SAVE_VERSION) {
       keepShared();
@@ -415,6 +420,15 @@ export class SaveManager {
 
   setSpellSlots(slots: readonly SpellId[]): void {
     this.save.spellSlots = parseSpellSlots([...slots]);
+    this.write();
+  }
+
+  get featuredTriumph(): string | null { return this.save.featuredTriumph; }
+
+  /** Only unlocked Bronze-or-higher Triumphs can be displayed as a title. */
+  setFeaturedTriumph(id: string | null): void {
+    if (id !== null && !triumphProgress(this.save.lifetime).some((t) => t.id === id && t.tier > 0)) return;
+    this.save.featuredTriumph = id;
     this.write();
   }
 
