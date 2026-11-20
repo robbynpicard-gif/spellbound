@@ -94,6 +94,15 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - **Flawless level/stage examples:** A flawlessly completed level should award a Rune called **Flawless**; a flawlessly completed stage should award **Flawless Perfection**. These names and associations are user-proposed direction; the operational meaning of 'flawless' (typing errors, misses, damage, etc.) still needs a clear decision. Preserve separation from the existing level-end Flawless score bonus and ensure no redundant/double-triggered reward.
 - Prioritize earned, understandable triggers; maintain Trophy Case lifetime counts and Rune-only announcer, and avoid flooding the player with announcements.
 
+## Narrative/Rune Round 2 — confirmed
+
+- **Flawless definition:** A flawless level or stage requires **zero typing mistakes, zero missed scrolls, and zero damage** throughout the applicable level/stage. The Rune names are **Flawless** (level) and **Flawless Perfection** (stage). Clarify how inherited damage, stage boundaries and existing scoring bonuses interact before coding.
+- **Participation Runes:** An intentionally ironic category of collectible Runes recognizing **unusual, memorable, comedic mishaps**. They may include **tiered failures**, not just isolated awards.
+- **Failure is not a scoring opportunity:** Participation Runes award **zero bonus points**, regardless of any ordinary positive-Rune fixed-point scheme. Avoid incentivizing intentional mistakes; anti-farming details remain open.
+- **Generational Fumble:** Proposed Rune for a spectacular mishap that ends a substantial successful/flawless streak; exact streak length and failure criteria TBD.
+- **Grand Wizard audio:** On a sufficiently major fumble, the wizard may occasionally immediately exclaim **"HA! FAIL!"**, with a configurable/defined percentage chance. This is a *voice variation*, not random Rune eligibility; not every ordinary mistake triggers speech. Maintain the Rune-only announcer restriction: a voiced fumble reaction should accompany a qualifying Participation Rune, not arbitrary gameplay failure.
+- Grand Wizard's sarcasm should be playful, not mean-spirited or overwhelming; do not let voice interrupt typing.
+
 ## Still open
 
 - The first concrete Rune catalogue, measurable triggers and rarity thresholds.
