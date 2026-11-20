@@ -1,3 +1,4 @@
+import { arcaneVolleyCapture, arcaneVolleyMultiplier, emptyArcaneVolley, type ArcaneVolleyState } from '../gameplay/ArcaneVolley';
 import { applyElementalStatus, type ElementalStatus } from '../gameplay/ElementalStatus';
 import type { Element } from '../gameplay/ElementalReactions';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
@@ -154,6 +155,7 @@ export class GameEngine {
   private awardedLevelBonuses: Bonus[] = [];
   private peakVolley = 0;
   private flowCaptures: FlowCapture[] = [];
+  private arcaneVolley: ArcaneVolleyState = emptyArcaneVolley();
   private activeVolleyMultiplier = 1;
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
   private readonly easyGenerator: WordGenerator | null;
@@ -229,7 +231,9 @@ export class GameEngine {
 
   /** Current fixed-tick sustained Volley multiplier for the typewriter HUD. */
   get volleyMultiplier(): number {
-    return sustainedVolleyMultiplier(this.flowCaptures, this.s.tick, this.hardcore);
+    return this.experimentalScoring
+      ? arcaneVolleyMultiplier(this.arcaneVolley, this.s.tick, this.hardcore)
+      : sustainedVolleyMultiplier(this.flowCaptures, this.s.tick, this.hardcore);
   }
 
   /** Resume the *same* simulation after the player accepts the boss victory. */
@@ -570,6 +574,7 @@ export class GameEngine {
         this.setCleanStreak(0, 'typo');
         this.shrinkPool();
         this.flowCaptures = [];
+        this.arcaneVolley = emptyArcaneVolley();
         this.activeVolleyMultiplier = 1;
       } else this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
       if (attempted) this.penalize(attempted);
@@ -605,6 +610,7 @@ export class GameEngine {
     // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
     this.setCombo(this.experimentalScoring ? 0 : comboAfterWrongEntry(s.combo));
     this.flowCaptures = [];
+    this.arcaneVolley = emptyArcaneVolley();
     this.activeVolleyMultiplier = 1;
     this.setCleanStreak(0, 'wrongEntry');
     this.shrinkPool();
@@ -835,7 +841,12 @@ export class GameEngine {
     this.flowCaptures = this.flowCaptures.filter((capture) => s.tick - capture.tick <= 300);
     if (perfect) this.flowCaptures.push({ tick: s.tick, letters: word.text.length });
     else this.flowCaptures = [];
-    this.activeVolleyMultiplier = sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
+    if (this.experimentalScoring) this.arcaneVolley = perfect
+      ? arcaneVolleyCapture(this.arcaneVolley, s.tick, word.text.length, this.hardcore)
+      : emptyArcaneVolley();
+    this.activeVolleyMultiplier = this.experimentalScoring
+      ? arcaneVolleyMultiplier(this.arcaneVolley, s.tick, this.hardcore)
+      : sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
     if (this.experimentalScoring && this.activeVolleyMultiplier > 1 && !bonuses.some((b) => b.id === 'volley')) bonuses.push({ id: 'volley', count: this.flowCaptures.length, rate: 0, points: 0 });
     const points = this.experimentalScoring
       ? proposedWordScore(word.text.length, multiplier, this.activeVolleyMultiplier)
