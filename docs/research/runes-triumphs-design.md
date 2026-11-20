@@ -51,6 +51,13 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - **Rune announcer is core identity:** Recognizable spoken Rune/medal callouts, inspired by the celebratory cadence of Halo and Knight Squad, should form part of the iconic feedback layer of the game. Design for memorable names, timing and escalation without disrupting typing. Exact voice, audio mixing, queue priorities and accessibility settings remain open.
 - **Three feedback layers:** actual player feat → mechanical Rune carousel → announcer callout. They should coordinate but never pause gameplay, steal keyboard focus or obstruct falling scrolls.
 
+## Round 10 — confirmed announcer direction
+
+- **Personality:** A mischievous magical entity: playful, witty, occasionally sarcastic, and recognizably its own character. Specific voice casting, wording and persona are open.
+- **Primary behavior:** Escalating callouts, so consecutive qualifying Rune achievements can build energy and intensity.
+- **Practical flexibility:** Award frequency may make announcing every Rune impractical. Preserve the ability to prioritize major feats, suppress/condense minor spoken callouts, and still show earned Runes in the mechanical carousel. Exact queue, priority and interruption rules remain undecided.
+- Announcer callouts must never disrupt typing or obscure the battlefield. Announcer audio should be adjustable and accessible; specific controls remain open.
+
 ## Still open
 
 - The first concrete Rune catalogue, measurable triggers and rarity thresholds.
