@@ -7,7 +7,7 @@ import { FONTS, PALETTE, SIMULATION_STEP_MS } from '../core/GameConfig';
 import { createSeed } from '../core/Random';
 import { WORDS } from '../data/wordList';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
-import { streakTierOf, tierOf, type GameStats } from '../gameplay/ScoringSystem';
+import { streakTierOf, tierOf, VOLLEY_TICKS, type GameStats } from '../gameplay/ScoringSystem';
 import { SPELL_IDS, totalCharges, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { Intake } from '../render/Intake';
 import { Effects } from '../render/Effects';
@@ -352,7 +352,7 @@ export class GameScene extends Phaser.Scene {
     const tier = tierOf(combo);
     this.prototypeCombo.setText('CHAIN ' + combo + '  ·  ×' + (tier + 1));
     const recent = this.engine.state.recentCaptures;
-    const volley = recent.filter((tick) => this.engine.state.tick - tick <= 120).length;
+    const volley = recent.filter((tick) => this.engine.state.tick - tick <= VOLLEY_TICKS).length;
     this.volleyIndicator.setText(volley >= 3 ? 'VOLLEY ×' + volley + '  BONUS!' : 'VOLLEY ' + volley + ' / 3');
     this.volleyIndicator.setColor(volley >= 3 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
