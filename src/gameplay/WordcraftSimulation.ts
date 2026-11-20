@@ -3,6 +3,7 @@ import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { wordComplexity, WordGenerator } from './WordGenerator';
 import { classifyWord, type WordClass } from './WordClasses';
 import { PHRASE_PATTERNS } from './PhraseTracker';
+import { simulateCaptureOrder, type CaptureScenario, type CaptureProxy } from './WordcraftCaptureProxy';
 
 /** OFFLINE EXPERIMENT ONLY. This module is never called by live word spawning.
  * Both arms use seeded draws, the same length, complexity and playable bank.
@@ -19,11 +20,14 @@ export interface SimulationArm {
   recentFirstLetterCollisions: number;
 }
 
+export interface CaptureComparison { scenario: CaptureScenario; baseline: CaptureProxy; candidate: CaptureProxy }
+
 export interface WordcraftSimulation {
   baseline: SimulationArm;
   candidate: SimulationArm;
   wordsPerTrial: number;
   trials: number;
+  captureComparisons: CaptureComparison[];
 }
 
 function measure(words: readonly string[], window: number): SimulationArm {
@@ -103,5 +107,16 @@ export function simulateWordcraftSelection(
   const proposed = measure(candidate, window);
   delete base.lengths[0];
   delete proposed.lengths[0];
-  return { baseline: base, candidate: proposed, wordsPerTrial, trials };
+  const scenarios: CaptureScenario[] = [
+    { fieldSize: 1, missChance: 0, target: 'oldest' },
+    { fieldSize: 4, missChance: 0.1, target: 'oldest' },
+    { fieldSize: 4, missChance: 0.1, target: 'random' },
+    { fieldSize: 5, missChance: 0.25, target: 'random' },
+  ];
+  const captureComparisons = scenarios.map((scenario, index) => ({
+    scenario,
+    baseline: simulateCaptureOrder(baseline, scenario, 98731 + index),
+    candidate: simulateCaptureOrder(candidate, scenario, 98731 + index),
+  }));
+  return { baseline: base, candidate: proposed, wordsPerTrial, trials, captureComparisons };
 }
