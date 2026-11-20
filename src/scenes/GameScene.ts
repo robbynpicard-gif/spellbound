@@ -106,6 +106,7 @@ export class GameScene extends Phaser.Scene {
   static readonly KEY = 'GameScene';
 
   private engine!: GameEngine;
+  private previewWordcraft = false;
   private wordClassCounts = emptyWordClassCounts();
   private phraseTracker = new PhraseTracker();
   private phraseBanner: Phaser.GameObjects.Text | null = null;
@@ -188,7 +189,7 @@ export class GameScene extends Phaser.Scene {
     this.duelMenuOpen = false;
     this.countdownText = null;
     this.scoreOffset = data.scoreOffset ?? 0;
-    const previewWordcraft = !data.duel && previewWordcraftEnabled();
+    this.previewWordcraft = !data.duel && previewWordcraftEnabled();
     this.engine = new GameEngine({
       config: this.config,
       seed: data.seed ?? createSeed(),
@@ -200,7 +201,7 @@ export class GameScene extends Phaser.Scene {
       initialCombo: data.initialCombo,
       initialCleanStreak: data.initialCleanStreak,
       initialWords: data.initialWords,
-      ...(previewWordcraft ? { experimentalWordGenerator: (bank: readonly string[], cfg: DifficultyConfig, rng: import('../core/Random').SeededRandom, seed: number) => new ExperimentalWordcraftGenerator(bank, cfg, rng, seed) } : {}),
+      ...(this.previewWordcraft ? { experimentalWordGenerator: (bank: readonly string[], cfg: DifficultyConfig, rng: import('../core/Random').SeededRandom, seed: number) => new ExperimentalWordcraftGenerator(bank, cfg, rng, seed) } : {}),
     });
     this.wordClassCounts = emptyWordClassCounts();
     this.phraseTracker = new PhraseTracker();
@@ -261,7 +262,7 @@ export class GameScene extends Phaser.Scene {
       this.spellSlots,
       this.quickCast,
     );
-    if (previewWordcraft) this.add.text(LAYOUT.width - 20, 16, 'WORDCRAFT LAB · EXPERIMENTAL', { fontFamily: 'Georgia, serif', fontSize: '15px', color: '#f7d58b', stroke: '#34221a', strokeThickness: 3 }).setOrigin(1, 0).setDepth(100);
+    if (this.previewWordcraft) this.add.text(LAYOUT.width - 20, 16, 'WORDCRAFT LAB · EXPERIMENTAL', { fontFamily: 'Georgia, serif', fontSize: '15px', color: '#f7d58b', stroke: '#34221a', strokeThickness: 3 }).setOrigin(1, 0).setDepth(100);
     this.hud.setSpells(this.engine.state.spells);
     this.hud.setMana(totalCharges(this.engine.state.spells), this.engine.poolLimit);
     this.streakFx = new StreakFeedback(this, this.hud.streakAnchor);
