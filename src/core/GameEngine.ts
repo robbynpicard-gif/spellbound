@@ -78,7 +78,7 @@ export interface EngineOptions {
   /** Clean Streak carried in from the previous level of the same chapter (D-046). */
   initialCleanStreak?: number;
   /** Offline experiments only: inject a seeded generator; never set in production or duels. */
-  experimentalWordGenerator?: (words: readonly string[], config: DifficultyConfig, seed: number) => WordGenerator;
+  experimentalWordGenerator?: (words: readonly string[], config: DifficultyConfig, rng: SeededRandom, seed: number) => WordGenerator;
 }
 
 /** The pace a level is running at right now (boss levels speed up over time). */
@@ -166,7 +166,7 @@ export class GameEngine {
     this.field = options.field ?? FIELD;
     this.rng = new SeededRandom(options.seed);
     this.generator = options.experimentalWordGenerator
-      ? options.experimentalWordGenerator(options.words, options.config, options.seed)
+      ? options.experimentalWordGenerator(options.words, options.config, this.rng, options.seed)
       : new WordGenerator(options.words, options.config, this.rng);
     this.hardcore = options.hardcore === true;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
