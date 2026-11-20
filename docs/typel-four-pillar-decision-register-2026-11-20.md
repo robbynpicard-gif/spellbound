@@ -153,3 +153,52 @@ This is a **decision-status register**, not an instruction to freeze creative wo
 7. Ask owner only about consequential choices that cannot reasonably be prototyped reversibly; **do not silently finalize** rendering style, progression format, master designs, soundtrack or spell tuning.
 
 **FINAL NORTH STAR:** Typel is a magical Renaissance **experience** powered by skillful typing, tactile interaction, physically intuitive spellcraft, spectacular earned scoring, reactive music, discoverable mastery and a living apprenticeship. **Be fluid:** protect the agreed *intent* while remaining willing to replace the existing code, art, layout, audio and progression scaffolding when they fail that intent.
+
+# RECONCILIATION ADDENDUM — historical discussions recovered and precision corrections (2026-11-20)
+
+This addendum was produced after a further search of available prior-conversation context and project files. It refines the register rather than creating another competing bible. It is deliberately conservative: **where earlier discussion and current implementation differ, preserve both as history and explicitly identify which is authoritative**.
+
+## A. Evidence and provenance
+- **Owner discussions, Nov 16:** an early *pixel-art visual reference* with parchment colors, dark magical-library spaces, alchemical typewriter focal point, readable HUD, and names including Apprentice's Tower, Sunken Library, Alchemist's Vault, Storm Spire. **Status now:** pixel art and those exact environments/names were exploration; the later owner's explicit statement that the game is *not defined as pixel art* takes precedence.
+- **Nov 17 decisions D-045–057:** player roster shelved; spell casts weighty; brassy/wooden typing sounds; evolving Clean Streak then 5×20 campaign; revised spell unlock schedule; rising intensity, spell-scroll scarcity, main menu Codex, sound controls, recorded-only announcer, stage music, endless, larger word library, busy openings and spell-pool growth. **Status now:** many remain useful implemented baselines, but Clean Streak scoring, roster, rigid curriculum and legacy spell payout rules were subsequently replaced or reopened.
+- **Nov 18 discussions:** owner wanted to develop level/encounter variety first, spell identities and interactions, scoring/mastery, boss challenges and player progression. This was an **exploratory development order**, not a permanent priority overriding later owner requests.
+- **Nov 19 discussions:** Typel name confirmed; preserve typing feel and fair skill-based difficulty; requested Swarm/Dangerous Word encounter variety and an interim sound pass; earlier Ice proposal involved **6-second stacking freezes that paused spawns and boss timers** while typing continued. **Status now:** D-077's later **8-second Ice and running Volley clock** supersede incompatible parts; the boss-timer behavior must be audited rather than guessed. Interim audio work never constituted final audio approval. The Nov 19 request explicitly deferred the **full** audiovisual overhaul until core gameplay was viable; later owner direction requests an **integrated** vertical slice, superseding that deferral as a development priority.
+- **Nov 20 D-058–084:** Rune integrity, Arcane Volley/Flow Preservation, precision scoring, pressure-driven spells, new Ice/Harvest/Wind contracts, master apprenticeship, and an experimental integrated mechanics slice. Newer rules supersede contradictory older implementations, not necessarily every unrelated earlier behavior.
+
+## B. Clarifications Claude must apply
+1. **Do not overstate the number or final identities of NPC Master Wizards.** The direction is a distinct specialist associated with each spell, potentially eight; the exact cast, count, names, appearances, personalities, and course assignment are **not finalized**. Grand Wizard is a decided role, not a finished character design.
+2. **The game need not remain 2D.** The existing Phaser implementation is 2D; no final renderer or camera decision exists. Similarly, *pixel art is neither a requirement nor a default preference*. Do not confuse feasibility of a prototype with artistic commitment.
+3. **Do not claim the entire soundtrack has already been approved.** The owner liked a RuneScape-like sense of wonder and dynamic musical energy, not a fixed score, instrumentation, key, genre restriction, or licensed soundtrack. Any reference is an emotional comparison, never permission to copy compositions.
+4. **Do not claim every historical feature is decided or discarded.** Practice, Duel, co-op aspirations, Endless, boss encounters, scroll rarity, word library size, spell unlock schedule, current WPM curve and campaign save behavior have different statuses. Existing working mechanics should not be removed merely because final campaign shape is open. Conversely, their existence does not make them final content.
+5. **The 'single-screen 2D' description in earlier handoffs is a description of the current implementation**, not an owner-approved permanent constraint. The world may be reimagined if it improves play.
+6. **Ward is both a mechanic and a dramatic prop.** Wind's scar is not just a HUD percentage; it should have a readable physical consequence in the workstation world. Exact prop design is exploratory.
+7. **Precision Combo semantics are more subtle than an unbroken word count.** Ice can add multiple Combo steps on one capture; a corrected typo may be protected by Barrier but still not perfect; avoid labels that imply an inaccurate literal streak. Audit how one typo, wrong Enter, and missed word affect Combo, Volley, Wind bonus, Ice Focus and mana capacity separately.
+8. **Fire's historical implementation changed repeatedly.** D-049 full-board burn, D-057 below-top-fifth burn, and D-078/079 later explorations must not be collapsed into a single false 'approved full-board Fire' rule. Keep current behavior until verified and explicitly revised.
+9. **Shock has two simultaneous truths:** seeded variable chain is the **approved future direction**; fixed three arcs is the **D-084 experimental implementation**. Do not call the current implementation complete.
+10. **Wind's three wagers under D-084 are emergent from a temporary scar table**, not a once-per-stage rule. Owner rejected arbitrary caps. If tuning changes, preserve physically understandable capacity/risk logic.
+11. **Audio settings include independent ON/OFF switches AND 0–100% sliders** for Music, SFX and Announcer (D-053), not just sliders. Recorded announcer is a future direction; browser TTS is explicitly superseded.
+12. **An 'integrated' prototype is a quality gate, not an order to finalize art.** Coherent reversible visuals/audio, clear interaction feedback, a representative apprenticeship experience and core gameplay must be present; final art medium, voices, music, characters, stage structure and balance remain open.
+13. **Terminology:** Typel is a *working title*; do not convert a working name into a permanent brand mandate. Repository URLs may continue to contain `spellbound` for technical reasons.
+14. **Historical decisions must remain searchable.** Annotate supersession rather than deleting the game bible's history. Every new significant design choice should specify: pillar, status, date, owner authorization, prior decision affected, implementation status, tests and preview verification.
+
+## C. Source-of-truth workflow (to prevent another broken handoff)
+For **each design conversation** that changes or meaningfully clarifies the game:
+- Identify the four-pillar impact, including any cross-pillar consequences.
+- State whether the result is **Decided**, **Exploratory** or **Superseded**. Do not infer owner approval from enthusiastic discussion alone.
+- Record the precise **reason** for a changed decision and what remains unresolved.
+- Update this current-state register **and** append a historical entry to `docs/decisions.md`; cross-reference affected entries rather than rewriting old ones. If repository access or a write fails, explicitly say it was **not synchronized**.
+- Distinguish **design recorded**, **code changed**, **tests passed**, **preview verified**, and **owner playtested**. These are different milestones.
+- Before any Claude handoff, perform a **four-pillar completeness check**, reconcile newer vs older rules, and list known unresolved contradictions. Do not rely on whichever pillar was discussed most recently.
+- Never promise automatic synchronization in future chats unless the repository update was actually executed and verified.
+
+## D. Claude readiness checklist — answer before requesting holistic playtest
+- Is the current working title Typel in player-facing UI where intended, without breaking repo/deploy paths?
+- Does the player inhabit a convincing **Arcane Renaissance workstation** while retaining responsive word readability and live typewriter transcription? Is the rendering medium explicitly **open**?
+- Are typing, captures, spells and danger tactile and responsive? Does dynamic music change with pressure? Are audio channels independently controllable? Is robotic TTS absent?
+- Do Volley and Combo follow the current Arcane rules rather than the superseded Clean Streak model? Is Ice's clock correct?
+- Can Wind heal, wager repeatedly as scar permits, and amplify Harvest without hidden exceptions? Are the numbers clearly experimental?
+- Can a player meet the Grand Wizard/Wind Master and learn through play without forced solutions? Are all current NPC details labeled placeholders?
+- Are Normal/Hardcore carryover, save/load, level transitions, accessibility, deterministic replay and preview/production isolation tested?
+- Does the report clearly distinguish **what the owner decided** from **what Claude implemented provisionally** and **what was actually verified in the browser**?
+
+**Do not represent this addendum or register as a perfect transcript of every conversation.** It is a carefully reconciled best-effort current design model. When uncertainty matters, flag it; do not guess.
