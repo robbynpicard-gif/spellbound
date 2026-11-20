@@ -924,3 +924,9 @@ _2026-11-20 · Accepted design principle (project owner); documentation only_
 _2026-11-20 · Accepted owner direction; dev UI committed; deployment unverified_
 
 The between-level screen should communicate overall performance at a glance and return the player to the action. Show cumulative stage score prominently and just four level indicators: level score, accuracy, WPM and peak Arcane Volley (legacy scoring may show best combo instead). Remove the dense stat grid, routine Rune award grid, scoring tutorial and journey strip from the between-level screen; preserve meaningful newly unlocked Triumph announcements, Hardcore ward carry information, held mana and next-level navigation. The end-of-stage screen is the preferred home for a more detailed performance review; expanding that screen requires separate implementation and accurate stage-level aggregates. This refines D-061/D-062 without changing scoring or Rune eligibility.
+
+
+### D-065 — End-of-stage performance review prototype (2026-11-20)
+_2026-11-20 · Owner authorized prototype; implementation committed to dev; build and preview verification pending_
+
+Keep between-level results minimal (D-064), and offer a richer review at stage completion or run end. The run-over screen now displays final score and best-run status with stage-level accuracy, WPM, words captured/missed, typing errors, best precision chain, levels cleared, elapsed time and, when recorded under Arcane scoring, peak Arcane Volley multiplier. Add optional aggregate fields to CampaignRun totals and RunSummary so older saves remain readable; aggregate peak Volley from actual level stats and avoid invented metrics. No scoring mechanics, level pacing, or production gameplay changed. Future iteration may add stage score progression and more nuanced precision consistency, but requires genuine tracked data. Files: `src/modes/CampaignMode.ts`, `src/ui/screens.ts`.
