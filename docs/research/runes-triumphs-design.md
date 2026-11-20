@@ -103,6 +103,21 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - **Grand Wizard audio:** On a sufficiently major fumble, the wizard may occasionally immediately exclaim **"HA! FAIL!"**, with a configurable/defined percentage chance. This is a *voice variation*, not random Rune eligibility; not every ordinary mistake triggers speech. Maintain the Rune-only announcer restriction: a voiced fumble reaction should accompany a qualifying Participation Rune, not arbitrary gameplay failure.
 - Grand Wizard's sarcasm should be playful, not mean-spirited or overwhelming; do not let voice interrupt typing.
 
+## Narrative/Rune Round 3 — confirmed
+
+- **Participation Rune tiers:** Context-based; severity is measured primarily by the value of the achievement or streak ruined (e.g., ending a 50-word flawless streak is more notable than ending a 10-word streak). Exact thresholds TBD.
+- **Grand Wizard delivery:** Usually speak the earned Participation Rune name. For some qualifying major fumbles, occasionally substitute or add a brief special reaction such as "HA! FAIL!" The percentage and selection logic remain open; the Rune itself must not depend on chance.
+- Participation Runes remain zero-point, collectible-only and should not incentivize deliberate mistakes.
+
+## Playtest ideas — proposals requiring gameplay review, not implementation approval
+
+- **Menu-accessible sentence practice:** Monkeytype-like offline full-sentence typing with WPM/accuracy metrics. Explore compact, varied local banks of original or public-domain/licensed sentences and reusable phrase generation; a large unlicensed movie-quote collection is not approved.
+- **Repeated-word and spell-interaction scrolls:** Consider armored scrolls needing repeated successful typing and rubber/insulated scrolls with spell resistances or interactions. Ensure a typing-based fallback or guaranteed spell availability so a player's streak isn't unfairly lost to RNG.
+- **Endless / Shooting Range:** Explore a configurable menu-accessible mode with difficulty and modifier sliders, plus continuous/sine/sawtooth/square spawn-pressure patterns. Preserve the existing escalating Endless design as a preset or distinct experience pending a deliberate decision.
+- **End-of-level cleanup:** Consider a one-time auto-claim for scrolls within the bottom fifth of the playfield at level completion, avoiding unfair transition effects. Ordinary scrolls may grant modest score but not typing mastery/Rune credit; spell scrolls should **not** grant spell charges and could instead grant small fixed Arcane compensation. Verify existing suspended-scroll/results-screen behavior, streak/Flawless definitions and scoring before changing anything.
+- **Shock:** Explore three (possibly four) guaranteed initial hits, then chance-based branching with diminishing continuation probability. Candidate model is exponential decay p(n)=p0*r^(n-1), not an approved parameterization. Real lightning is shaped by conductivity, geometry, electrical potential and branching channels rather than simple percentage decay; use physical intuition for target preference while tuning gameplay probability for balance.
+- All items above are **exploratory**, not authorizations to change active code, merge, or deploy.
+
 ## Still open
 
 - The first concrete Rune catalogue, measurable triggers and rarity thresholds.
