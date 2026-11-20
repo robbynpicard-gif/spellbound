@@ -864,3 +864,16 @@ docs/mechanics.md.
 
 **Open:** whether Clean Streak should count words or letters, now that early
 words are tiny (the milestones are unchanged for now).
+
+### D-NEW — Core gameplay integrity takes precedence over optional rewards
+_2026-11-20 · Accepted (project owner)_
+
+**Design invariant:** Typal must not change its established core gameplay merely to make a Rune, Triumph, grammar combination, medal, or other optional reward easier or more common to obtain. Rarity, including exceptionally rare rewards, is acceptable; reward frequency is not itself a reason to alter the word generator, typing feel, difficulty progression, targeting, or player agency.
+
+- The default word generator remains the authority for normal play. Grammatical patterns may be **observed from actual captures** and rewarded, but must not bias spawning to manufacture those patterns.
+- Elemental spells and other intentionally gameplay-changing mechanics are distinct: their effects must be intuitive, visible and consistent with their agreed design. This principle does not prohibit intentional core mechanics approved by the owner.
+- Experimental implementations may remain in offline tests and documentation. They are **not** approved for live preview or production simply because a synthetic benchmark reports more rewards.
+- Before implementing any recommendation that significantly changes agreed design, the assistant or contributor must identify the design conflict, expected player-facing impact, and alternatives, then obtain explicit owner approval. Default to preserving the existing behavior.
+- Do not treat low Rune/Triumph acquisition rates as a defect by themselves. Evaluate fairness, clarity, and player experience separately from reward frequency.
+
+**Application:** The grammar-biased Wordcraft generator and its preview opt-in are retired from active gameplay. Offline research and replay tests may remain for historical analysis; the existing capture-order PhraseTracker and optional awards remain.
