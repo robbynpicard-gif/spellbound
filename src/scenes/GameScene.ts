@@ -474,8 +474,8 @@ export class GameScene extends Phaser.Scene {
     const volley = recent.filter((tick) => this.engine.state.tick - tick <= VOLLEY_TICKS).length;
     const volleyMult = this.engine.volleyMultiplier;
     if (!this.duel) this.hud.setVolley(volleyMult, combo);
-    this.volleyIndicator.setText(volleyMult > 1 ? 'VOLLEY ×' + volleyMult + ' · ARCANE FLOW' : 'VOLLEY ×1 · BUILD FLOW');
-    this.volleyIndicator.setColor(volleyMult > 1 ? '#f6d287' : '#bda580');
+    this.volleyIndicator.setText(volleyMult >= 5 ? 'VOLLEY ×' + volleyMult.toFixed(1) + ' · MASTERY' : volleyMult >= 2 ? 'VOLLEY ×' + volleyMult.toFixed(1) + ' · ARCANE SURGE' : 'VOLLEY ×' + volleyMult.toFixed(1) + ' · KINDLING');
+    this.volleyIndicator.setColor(volleyMult >= 5 ? '#cf9dff' : volleyMult >= 2 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
     // Two physical brass gauges: chain strength above, Volley time remaining below.
     // Both read the engine clock, so pauses and hit-stop never desynchronise them.
