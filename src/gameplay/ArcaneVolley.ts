@@ -11,7 +11,7 @@ export const emptyArcaneVolley = (): ArcaneVolleyState => ({captures:0,lastTick:
 export function volleyWindowTicks(letters: number, hardcore: boolean): number {
   // 60 Hz simulation: a modest target-switch allowance plus time for the
   // word's actual length. Longer words must not be intrinsically penalized.
-  return (hardcore ? 28 : 42) + Math.max(1,letters) * (hardcore ? 9 : 12);
+  return (hardcore ? 34 : 52) + Math.max(1,letters) * (hardcore ? 10 : 13);
 }
 export function arcaneVolleyCapture(state: ArcaneVolleyState, tick: number, letters: number, hardcore: boolean): ArcaneVolleyState {
   if (!Number.isInteger(tick) || tick < 0 || !Number.isInteger(letters) || letters < 1) throw new RangeError('invalid capture');
