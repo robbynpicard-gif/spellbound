@@ -156,6 +156,9 @@ export class GameEngine {
   private peakVolley = 0;
   private flowCaptures: FlowCapture[] = [];
   private arcaneVolley: ArcaneVolleyState = emptyArcaneVolley();
+  /** Volley-only clock: excludes empty-field downtime, without affecting combat. */
+  private volleyFlowTick = 0;
+  private volleyFlowProtected = false;
   private activeVolleyMultiplier = 1;
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
   private readonly easyGenerator: WordGenerator | null;
@@ -235,12 +238,12 @@ export class GameEngine {
   get volleyArmedProgress(): number {
     if (!this.experimentalScoring || this.arcaneVolley.captures !== 1 || this.arcaneVolley.lastTick === null) return 0;
     const window = volleyWindowTicks(this.arcaneVolley.lastLetters, this.hardcore);
-    return Math.max(0, 1 - (this.s.tick - this.arcaneVolley.lastTick) / window);
+    return Math.max(0, 1 - (this.volleyFlowTick - this.arcaneVolley.lastTick) / window);
   }
 
   get volleyMultiplier(): number {
     return this.experimentalScoring
-      ? arcaneVolleyMultiplier(this.arcaneVolley, this.s.tick, this.hardcore)
+      ? arcaneVolleyMultiplier(this.arcaneVolley, this.volleyFlowTick, this.hardcore)
       : sustainedVolleyMultiplier(this.flowCaptures, this.s.tick, this.hardcore);
   }
 
@@ -433,6 +436,19 @@ export class GameEngine {
     if (remaining !== null && remaining <= 0) return this.end('won');
 
     this.tickPacing();
+
+    // Flow Preservation belongs to Arcane Volley only. Empty fields freeze its
+    // virtual clock; a newly actionable word receives one 0.4s grace allowance.
+    if (this.experimentalScoring) {
+      if (s.words.length === 0) this.volleyFlowProtected = true;
+      else {
+        if (this.volleyFlowProtected) {
+          this.volleyFlowTick = Math.max(0, this.volleyFlowTick - Math.round(400 / SIMULATION_STEP_MS));
+          this.volleyFlowProtected = false;
+        }
+        if (s.freezeTicks === 0) this.volleyFlowTick++;
+      }
+    }
 
     // Frostbinding: nothing moves and nothing spawns (slow stacks wait too).
     if (s.freezeTicks > 0) {
@@ -850,10 +866,10 @@ export class GameEngine {
     if (perfect) this.flowCaptures.push({ tick: s.tick, letters: word.text.length });
     else this.flowCaptures = [];
     if (this.experimentalScoring) this.arcaneVolley = perfect
-      ? arcaneVolleyCapture(this.arcaneVolley, s.tick, word.text.length, this.hardcore)
+      ? arcaneVolleyCapture(this.arcaneVolley, this.volleyFlowTick, word.text.length, this.hardcore)
       : emptyArcaneVolley();
     this.activeVolleyMultiplier = this.experimentalScoring
-      ? arcaneVolleyMultiplier(this.arcaneVolley, s.tick, this.hardcore)
+      ? arcaneVolleyMultiplier(this.arcaneVolley, this.volleyFlowTick, this.hardcore)
       : sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
     if (this.experimentalScoring && this.activeVolleyMultiplier > 1 && !bonuses.some((b) => b.id === 'volley')) bonuses.push({ id: 'volley', count: this.flowCaptures.length, rate: 0, points: 0 });
     const points = this.experimentalScoring
