@@ -31,6 +31,34 @@ const spellStyle = (id: SpellId) => ({ style: `--spell-color: ${hex(SPELL_COLORS
 const stat = (label: string, value: string | number) =>
   h('div', { class: 'stat' }, h('dt', null, label), h('dd', null, String(value)));
 
+/** Session-only Rune seals: deterministic awards from verified engine statistics.
+ * No permanent collection is claimed until the Trophy Case is implemented. */
+export function sessionRuneAwards(stats: GameStats): HTMLElement {
+  const awards: Array<{ glyph: string; name: string; detail: string }> = [];
+  if ((stats.peakVolley ?? 0) >= 3)
+    awards.push({ glyph: '✦', name: 'Volley Rune', detail: `${stats.peakVolley} words in 2 seconds` });
+  if ((stats.peakCleanStreak ?? 0) >= 10)
+    awards.push({ glyph: '❖', name: 'Precision Rune', detail: `${stats.peakCleanStreak} clean words` });
+  if (stats.maxCombo >= 20)
+    awards.push({ glyph: '✧', name: 'Chain Rune', detail: `${stats.maxCombo}-word chain` });
+  if (stats.completed >= 10 && stats.accuracy >= 0.98)
+    awards.push({ glyph: '✳', name: 'Scribe Rune', detail: `${percent(stats.accuracy)} accuracy` });
+  return h('section', { class: 'rune-awards', attrs: { 'aria-label': 'Runes earned this session' } },
+    h('h3', { class: 'rune-awards-title' }, 'RUNES OF THIS SESSION'),
+    awards.length
+      ? h('div', { class: 'rune-awards-grid' }, ...awards.map((award) =>
+          h('div', { class: 'rune-award' },
+            h('span', { class: 'rune-award-seal', attrs: { 'aria-hidden': 'true' } }, award.glyph),
+            h('span', { class: 'rune-award-copy' },
+              h('strong', null, award.name),
+              h('small', null, award.detail),
+            ),
+          )))
+      : h('p', { class: 'rune-awards-empty' }, 'No Runes earned yet. Build a Volley, a clean streak, or a long chain.'),
+    h('p', { class: 'rune-awards-note' }, 'Session awards · permanent Rune collection coming later'),
+  );
+}
+
 // ───────────────────────── Main menu ─────────────────────────
 
 export interface MainMenuActions {
@@ -292,6 +320,7 @@ export function levelClearScreen(
         `Ward instability carried: ${Math.round(run.instability)}%${healed ? ` (healed ${HARDCORE_HEAL}%)` : ''}`,
       ),
     spellSummary(run.spellCharges),
+    sessionRuneAwards(stats),
     extra ?? null,
     h('p', { class: 'next-up' }, `Next: Level ${next.level} · ${next.name}${isSurvival(next) ? ' · Boss' : ''}`),
     h('div', { class: 'button-row' }, button),
