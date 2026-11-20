@@ -4,6 +4,9 @@ import { classifyWord, type WordClass } from './WordClasses';
 import { PHRASE_PATTERNS } from './PhraseTracker';
 import { WordGenerator, wordComplexity } from './WordGenerator';
 
+export interface WordcraftPolicy { starterChance: number; followupChance: number }
+export const DEFAULT_WORDCRAFT_POLICY: Readonly<WordcraftPolicy> = { starterChance: 0.45, followupChance: 0.8 };
+
 /** Testing-only counterfactual generator. NEVER use in production or duels.
  * The baseline generator still makes every length/complexity-eligible draw.
  * An independent seeded stream occasionally replaces the draw with a
@@ -17,11 +20,13 @@ export class ExperimentalWordcraftGenerator extends WordGenerator {
   private readonly windowSize: number;
   private previousClass: WordClass | null = null;
   /** Experimental knobs, isolated from the live generator. */
-  private readonly starterChance = 0.45;
-  private readonly followupChance = 0.8;
+  private readonly policy: Readonly<WordcraftPolicy>;
 
-  constructor(words: readonly string[], config: DifficultyConfig, rng: SeededRandom, seed: number) {
+  constructor(words: readonly string[], config: DifficultyConfig, rng: SeededRandom, seed: number, policy: Readonly<WordcraftPolicy> = DEFAULT_WORDCRAFT_POLICY) {
     super(words, config, rng);
+    if (![policy.starterChance, policy.followupChance].every((n) => Number.isFinite(n) && n >= 0 && n <= 1))
+      throw new RangeError('Wordcraft probabilities must be between 0 and 1');
+    this.policy = policy;
     this.alternate = new SeededRandom((seed ^ 0x7a1c5eed) >>> 0);
     this.windowSize = Math.max(1, config.maxActiveWords - 1);
     for (const word of words) {
@@ -42,7 +47,7 @@ export class ExperimentalWordcraftGenerator extends WordGenerator {
     // Avoid forcing the same phrase repeatedly by sampling all starter classes.
     const starters: WordClass[] = ['noun', 'adjective', 'adverb'];
     const targets = preferred.length ? preferred : starters;
-    const chance = preferred.length ? this.followupChance : this.starterChance;
+    const chance = preferred.length ? this.policy.followupChance : this.policy.starterChance;
     let chosen = ordinary;
     if (this.alternate.chance(chance)) {
       const eligible = (this.buckets.get(ordinary.length) ?? []).filter((word) => {
