@@ -11,7 +11,7 @@ export function previewWordcraftEnabled(pathname?: string, search?: string): boo
 
 /** URL-only toggle; never stores a setting or activates outside preview. */
 export function setPreviewWordcraftEnabled(enabled: boolean): boolean {
-  if (typeof window === 'undefined' || !/(?:^|\\/)preview(?:\\/|$)/.test(window.location.pathname)) return false;
+  if (typeof window === 'undefined' || !window.location.pathname.split('/').includes('preview')) return false;
   const url = new URL(window.location.href);
   if (enabled) url.searchParams.set('wordcraft', '1');
   else url.searchParams.delete('wordcraft');
