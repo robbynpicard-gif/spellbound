@@ -585,9 +585,9 @@ export class GameScene extends Phaser.Scene {
       audio.capture(combo, bonuses.map((b) => b.id));
       const volley = bonuses.find((b) => b.id === 'volley');
       if (volley && this.volleyCallout) {
-        audio.volley(volley.chain);
+        audio.volley(volley.count);
         this.tweens.killTweensOf(this.volleyCallout);
-        this.volleyCallout.setText('VOLLEY!  ×' + volley.chain).setY(230).setScale(0.8).setAlpha(1);
+        this.volleyCallout.setText('VOLLEY!  ×' + volley.count).setY(230).setScale(0.8).setAlpha(1);
         this.tweens.add({ targets: this.volleyCallout, y: 184, scale: 1.15, alpha: 0, duration: 780, ease: 'Cubic.Out' });
       }
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
