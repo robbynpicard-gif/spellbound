@@ -1,6 +1,6 @@
 # Wordcraft-aware word selection — offline evaluation
 
-Status: **experiment only**. The live `WordGenerator` and `GameEngine` are unchanged. No production or multiplayer selection changes are approved.
+Status: **retired / offline research archive** under accepted decision **D-058**. The standard word generator is used for all live gameplay, including development preview and duels. The experimental generator remains available only to offline simulations and tests. Any historical references below to preview opt-in controls or human-play comparisons describe earlier prototypes that have been removed from live application wiring.
 
 ## Baseline and candidate
 - Baseline: real `WordGenerator`, seeded by trial, using the supplied campaign stage's length weights, complexity ceiling, and recent-word rules.
