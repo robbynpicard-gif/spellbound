@@ -194,6 +194,8 @@ export class GameScene extends Phaser.Scene {
       words: data.duel ? WORDS : (data.words ?? WORDS),
       initialSpells: data.initialSpells,
       hardcore: data.hardcore,
+      // Development preview only. Duel/replay rules remain unchanged.
+      experimentalScoring: !data.duel,
       initialInstability: data.initialInstability,
       initialCombo: data.initialCombo,
       initialCleanStreak: data.initialCleanStreak,
