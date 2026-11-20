@@ -262,7 +262,7 @@ export function levelClearScreen(
   const healed = run.mode === 'hardcore' && HARDCORE_HEAL_LEVELS.includes(cleared.level);
   const element = h(
     'section',
-    { class: 'screen panel results won keeps-field', attrs: { role: 'dialog', 'aria-labelledby': 'clear-title' } },
+    { class: 'screen panel results apprentice-ledger won keeps-field', attrs: { role: 'dialog', 'aria-labelledby': 'clear-title' } },
     h('p', { class: 'score-label' }, 'THE APPRENTICE\'S LEDGER'),
     h('h2', { class: 'screen-title', attrs: { id: 'clear-title' } }, `Level ${cleared.level} Cleared`),
     h('p', { class: 'screen-subtitle' }, `Stage ${run.stage} · ${cleared.name}${run.mode === 'hardcore' ? ' · Hardcore' : ''}`),
