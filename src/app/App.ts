@@ -31,6 +31,7 @@ import type { UIRoot } from '../ui/UIRoot';
 import { CAMPAIGN_UNLOCK_ALL, PRACTICE_UNLOCK_ALL } from './flags';
 import { journeyStrip, statsScreen } from '../ui/statsScreens';
 import { spellbookScreen } from '../ui/spellbookScreen';
+import { trophyCaseScreen } from '../ui/trophyCaseScreen';
 
 /**
  * Top-level flow between screens.
@@ -63,6 +64,7 @@ export class App {
           onOptions: () => this.showOptions(),
           onStats: () => this.showStats(),
           onSpellbook: () => this.showSpellbook(),
+          onTrophyCase: () => this.showTrophyCase(),
           onCodex: () => {
             this.showBackdrop();
             this.ui.show(codexScreen(() => this.showMainMenu()));
@@ -108,6 +110,11 @@ export class App {
   showStats(): void {
     this.showBackdrop();
     this.ui.show(statsScreen(this.save.lifetime, () => this.showMainMenu()));
+  }
+
+  showTrophyCase(): void {
+    this.showBackdrop();
+    this.ui.show(trophyCaseScreen(this.save.runeCounts, () => this.showMainMenu()));
   }
 
   showCredits(): void {
@@ -290,6 +297,7 @@ export class App {
     if (!run) return;
     const clearedLevel = stageLevel(run.mode, run.stage, run.level);
     this.save.recordLevelStats(stats, result, { mode: 'campaign', boss: isSurvival(clearedLevel) });
+    if (result === 'won') this.save.recordRunes(stats);
     const { runOver, victory } = recordLevel(run, result, stats, spells, instability);
     const journey = journeyStrip(run.stage, victory);
 
@@ -438,6 +446,7 @@ export class App {
     this.showBackdrop();
     const outcome = this.save.recordPractice(pick, filter, stats);
     this.save.recordLevelStats(stats, fell ? 'lost' : 'won', { mode: 'practice' });
+    this.save.recordRunes(stats);
     this.ui.show(
       practiceResultsScreen(where, filter, stats, outcome, fell, {
         onAgain: () => this.startPractice(pick, filter),
