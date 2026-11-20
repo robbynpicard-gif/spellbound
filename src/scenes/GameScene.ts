@@ -476,7 +476,8 @@ export class GameScene extends Phaser.Scene {
     const volley = recent.filter((tick) => this.engine.state.tick - tick <= VOLLEY_TICKS).length;
     const volleyMult = this.engine.volleyMultiplier;
     if (!this.duel) this.hud.setVolley(volleyMult, combo);
-    this.volleyIndicator.setText(volleyMult >= 5 ? 'VOLLEY ×' + volleyMult.toFixed(1) + ' · MASTERY' : volleyMult >= 2 ? 'VOLLEY ×' + volleyMult.toFixed(1) + ' · ARCANE SURGE' : 'VOLLEY ×' + volleyMult.toFixed(1) + ' · KINDLING');
+    const armed = !this.duel && volleyMult === 1 ? this.engine.volleyArmedProgress : 0;
+    this.volleyIndicator.setText(armed > 0 ? 'VOLLEY · LINK NEXT!' : volleyMult >= 5 ? 'VOLLEY ×' + volleyMult.toFixed(1) + ' · MASTERY' : volleyMult >= 2 ? 'VOLLEY ×' + volleyMult.toFixed(1) + ' · ARCANE SURGE' : 'VOLLEY ×' + volleyMult.toFixed(1) + ' · KINDLING');
     this.volleyIndicator.setColor(volleyMult >= 5 ? '#cf9dff' : volleyMult >= 2 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
     // Two physical brass gauges: chain strength above, Volley time remaining below.
@@ -485,7 +486,13 @@ export class GameScene extends Phaser.Scene {
     this.prototypeMeter.fillStyle(tier >= 3 ? 0x8dd8c2 : 0xd9a75f, 1);
     if (combo > 0) this.prototypeMeter.fillRoundedRect(22, 148, Math.max(4, 112 * Math.min(1, combo / 25)), 7, 2);
     this.prototypeMeter.fillStyle(0x100c09, 1).fillRoundedRect(22, 160, 112, 5, 2);
-    if (recent.length > 0 && volley > 0) {
+    if (!this.duel && armed > 0) {
+      // A brass fuse burns down after the first word: the next timely word
+      // lights the multiplier. The cue is anchored to the ledger, not the
+      // falling words, and requires no new tutorial or visual obstruction.
+      this.prototypeMeter.fillStyle(0xe8bc70, 1);
+      this.prototypeMeter.fillRoundedRect(22, 160, Math.max(2, 112 * armed), 5, 2);
+    } else if (this.duel && recent.length > 0 && volley > 0) {
       const oldest = recent.find((tick) => this.engine.state.tick - tick <= VOLLEY_TICKS);
       if (oldest !== undefined) {
         const remaining = Math.max(0, 1 - (this.engine.state.tick - oldest) / VOLLEY_TICKS);
@@ -653,7 +660,7 @@ export class GameScene extends Phaser.Scene {
         audio.arcaneVolley(this.lastArcaneVolleySound, currentVolley);
         this.lastArcaneVolleySound = currentVolley;
       }
-      if (volley && this.volleyCallout) {
+      if (volley && this.duel && this.volleyCallout) {
         if (this.duel) audio.volley(volley.count);
         this.tweens.killTweensOf(this.volleyCallout);
         this.volleyCallout.setText('VOLLEY!  ×' + this.engine.volleyMultiplier).setY(230).setScale(0.8).setAlpha(1);
