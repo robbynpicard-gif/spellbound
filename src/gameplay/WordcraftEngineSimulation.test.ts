@@ -26,6 +26,23 @@ describe('real-engine Wordcraft evaluation', () => {
     }
   });
 
+  it('compares both generators with identical seeds, typing speeds and real engine replay', () => {
+    for (const stage of [2, 4]) {
+      const config = stageLevel('normal', stage, 10);
+      for (const seed of [101, 202, 303]) {
+        const baseline = simulateEngineWordcraft(WORDS, config, seed, 1200, 3, 'baseline');
+        const experimental = simulateEngineWordcraft(WORDS, config, seed, 1200, 3, 'experimental');
+        expect(baseline.replayMatched).toBe(true);
+        expect(experimental.replayMatched).toBe(true);
+        expect(experimental.phrases).toBeLessThanOrEqual(experimental.captured);
+        expect(experimental.spawned).toBeGreaterThan(0);
+        console.info('WORDCRAFT_ENGINE_AB', JSON.stringify({
+          stage, seed, baseline, experimental,
+        }));
+      }
+    }
+  });
+
   it('rejects invalid simulated typing rates and tick budgets', () => {
     const config = stageLevel('normal', 1, 10);
     expect(() => simulateEngineWordcraft(WORDS, config, 1, 0)).toThrow();
