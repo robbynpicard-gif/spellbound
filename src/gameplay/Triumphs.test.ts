@@ -35,7 +35,7 @@ describe('lifetime Triumphs', () => {
     const after = emptyLifetime();
     after.wordsCaptured = 101;
     const awards = newlyEarnedTriumphs(before, after);
-    expect(awards).toEqual([{ id: 'scribe', title: 'The Patient Scribe', tier: 1, tierName: 'Bronze' }]);
+    expect(awards).toEqual([expect.objectContaining({ id: 'scribe', title: 'The Patient Scribe', glyph: '✒', tier: 1, tierName: 'Bronze' })]);
     expect(newlyEarnedTriumphs(after, after)).toEqual([]);
   });
 
