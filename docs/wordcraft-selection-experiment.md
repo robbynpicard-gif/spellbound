@@ -35,7 +35,7 @@ The test logs `WORDCRAFT_CAPTURE_AUDIT` with captured, missed, classified and ph
 ## Multi-seed real-engine batch
 `src/gameplay/WordcraftEngineBatchAudit.ts` aggregates real-engine A/B outcomes over a configurable matrix of campaign stages, seeds and synthetic typing speeds. Run `npm test -- src/gameplay/WordcraftEngineBatchAudit.test.ts` and inspect `WORDCRAFT_ENGINE_BATCH` logs.
 
-The default regression matrix compares six seeds across early/fast, middle/standard and late/slow scenarios. It reports baseline/candidate phrase awards, captures, misses, spawns, average spawned-word length, recent duplicate words, recent initial-letter collisions and replay failures. Counts are **not normalized by completed captures**; different run durations or completion outcomes can alter totals. Compare per-capture phrase rates and per-spawn collision rates before deciding.
+The default regression matrix compares twelve seeds across early/fast, middle/standard and late/slow scenarios. It reports baseline/candidate phrase awards, captures, misses, spawns, average spawned-word length, recent duplicate words, recent initial-letter collisions and replay failures. Counts are **not normalized by completed captures**; different run durations or completion outcomes can alter totals. Compare per-capture phrase rates and per-spawn collision rates before deciding.
 
 The test enforces replay integrity and basic metric consistency, **not** a preselected improvement. It must not fail merely because an experiment produces fewer phrases; that is an evaluation result, not a software defect.
 
@@ -46,6 +46,11 @@ The batch report now includes normalized rates per 100 captured words or spawned
 - **Review** only when none of those conditions apply. Review does **not** imply approval to ship; the thresholds are provisional and must be revisited with larger samples and human playtests.
 
 **CI discovery correction:** The Vite test configuration previously discovered only `tests/**/*.test.ts`, excluding source-level Wordcraft tests. It now includes `src/**/*.test.ts`. Earlier green checks therefore did not establish that the Wordcraft source-level tests actually ran. Verify new CI runs before treating any A/B results as validated.
+
+## Experimental policy revision
+The offline candidate now uses a 45% starter-class nudge when no phrase follow-up is pending, and an 80% same-length follow-up nudge when a compatible grammatical starter was spawned. It samples only dictionary-eligible words within the stage's complexity limit. It also tries to avoid duplicate words and first-letter clashes in its own recent spawned-word history, without advancing the main generator's random stream. This is a **hypothesis under test**, not a guarantee of better capture-order phrases or an approved balance adjustment.
+
+The expanded 12-seed A/B matrix should be reviewed against normalized phrase rates, capture and miss rates, target collisions, and reproducibility before any player-facing trial.
 
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
