@@ -15,6 +15,7 @@
 # Refresh preview for D-070 Temporal Flow regression suite.
 # Refresh preview for D-071 Volley spell action and level/stage stats.
 # Refresh preview for D-072 Hardcore spell scoring.
+# CI regression repair: align Arcane Volley fade assertion with revised window.
 name: Deploy to GitHub Pages
 
 on:
