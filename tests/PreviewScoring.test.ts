@@ -24,6 +24,7 @@ describe('solo preview scoring integration', () => {
     capture(e);
     expect(e.state.score).toBe(40);
     expect(e.volleyMultiplier).toBe(1);
+    expect(e.volleyArmedProgress).toBeGreaterThan(0);
     expect(e.state.combo).toBe(1);
   });
   it('uses the new multiplier on the tenth perfect capture', () => {
