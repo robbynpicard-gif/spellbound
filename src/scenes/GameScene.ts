@@ -626,6 +626,22 @@ export class GameScene extends Phaser.Scene {
       this.hud.setMana(totalCharges(charges), this.engine.poolLimit);
       if (stored) {
         audio.pickup();
+        // A captured spell becomes a physical parchment scroll that flies into
+        // the rack. It is purely presentational; the engine already banked it.
+        const sx = screenX(x);
+        const sy = screenY(y);
+        const scroll = this.add.container(sx, sy).setDepth(115);
+        const paper = this.add.rectangle(0, 0, 34, 23, 0xe7c99a)
+          .setStrokeStyle(2, 0x694426);
+        const leftRoll = this.add.ellipse(-17, 0, 7, 27, 0xc69d67);
+        const rightRoll = this.add.ellipse(17, 0, 7, 27, 0xc69d67);
+        const seal = this.add.circle(0, 0, 7, SPELL_COLORS[spell]);
+        scroll.add([paper, leftRoll, rightRoll, seal]);
+        this.tweens.add({
+          targets: scroll, x: LAYOUT.rack.x + LAYOUT.rack.width / 2,
+          y: LAYOUT.rack.y + 68, scale: 0.55, angle: 340,
+          duration: 620, ease: 'Cubic.In', onComplete: () => scroll.destroy(),
+        });
         this.effects.floatText(LAYOUT.width / 2, LAYOUT.panelY - 24, `+1 ${SPELLS[spell].book} mana`, SPELL_COLORS[spell], 20);
         return;
       }
