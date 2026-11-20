@@ -159,6 +159,9 @@ export class GameEngine {
   /** Volley-only clock: excludes empty-field downtime, without affecting combat. */
   private volleyFlowTick = 0;
   private volleyFlowProtected = false;
+  /** One re-engagement grace per successful capture, never a clock rewind. */
+  private volleyGraceAvailable = false;
+  private volleyGraceTicks = 0;
   private activeVolleyMultiplier = 1;
   private peakArcaneVolleyMultiplier = 1;
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
@@ -438,16 +441,24 @@ export class GameEngine {
 
     this.tickPacing();
 
-    // Flow Preservation belongs to Arcane Volley only. Empty fields freeze its
-    // virtual clock; a newly actionable word receives one 0.4s grace allowance.
+    // Flow Preservation: monotonic Volley time. The first return after an
+    // empty field grants at most 0.4 s of paused Volley time, once per
+    // successful capture. Empty/refill cycles cannot stack the allowance.
     if (this.experimentalScoring) {
-      if (s.words.length === 0) this.volleyFlowProtected = true;
-      else {
+      if (s.words.length === 0) {
+        this.volleyFlowProtected = true;
+      } else {
         if (this.volleyFlowProtected) {
-          this.volleyFlowTick = Math.max(0, this.volleyFlowTick - Math.round(400 / SIMULATION_STEP_MS));
+          if (this.volleyGraceAvailable) {
+            this.volleyGraceTicks = Math.round(400 / SIMULATION_STEP_MS);
+            this.volleyGraceAvailable = false;
+          }
           this.volleyFlowProtected = false;
         }
-        if (s.freezeTicks === 0) this.volleyFlowTick++;
+        if (s.freezeTicks === 0) {
+          if (this.volleyGraceTicks > 0) this.volleyGraceTicks--;
+          else this.volleyFlowTick++;
+        }
       }
     }
 
@@ -866,6 +877,10 @@ export class GameEngine {
     this.flowCaptures = this.flowCaptures.filter((capture) => s.tick - capture.tick <= 300);
     if (perfect) this.flowCaptures.push({ tick: s.tick, letters: word.text.length });
     else this.flowCaptures = [];
+    if (this.experimentalScoring) {
+      this.volleyGraceAvailable = perfect;
+      this.volleyGraceTicks = 0;
+    }
     if (this.experimentalScoring) this.arcaneVolley = perfect
       ? arcaneVolleyCapture(this.arcaneVolley, this.volleyFlowTick, word.text.length, this.hardcore)
       : emptyArcaneVolley();
