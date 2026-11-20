@@ -2,7 +2,7 @@
 # The preview is sourced from the dev branch; production game files always come from main.
 # Pages deployment runs must originate on main due to github-pages environment branch restrictions.
 # Development branch changes are validated separately and included on the next main deployment.
-# Refresh isolated preview for Arcane Volley experimental playtest (2026-11-20).
+# Refresh isolated preview with Arcane Volley sound-design accents (2026-11-20).
 # Production remains sourced exclusively from main; preview from the dev branch.
 name: Deploy to GitHub Pages
 
