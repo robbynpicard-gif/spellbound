@@ -966,3 +966,9 @@ Isolate the Volley-only fractional clock in `src/gameplay/TemporalFlow.ts` and t
 _2026-11-20 · Preview implementation; CI and manual testing pending_
 
 Successful spell casts while an active Arcane Volley multiplier is above ×1 grant a bounded 1.5-second pause of the Volley opportunity clock. This is a deliberate tactical window to cast Slow or another spell and re-engage; it does not automatically add a capture or multiplier, and repeated casts while the pause is active do not bank additional time. Failed casts do not qualify. The Level Cleared screen displays only the highest number of consecutive successful Volley captures in that level; the stage-end screen displays the best such streak across the entire stage. Stage aggregation is max, not sum. Historical saved runs may lack this new statistic and display zero until played under the new build. Production unchanged pending approval.
+
+
+### D-072 — Spell rhythm refresh and Hardcore typed-spell rewards (2026-11-20)
+_2026-11-20 · User-approved prototype; CI and gameplay verification pending_
+
+Replace the 1.5-second spell pause with an immediate Volley-window refresh when a charged spell is successfully cast during an active (greater than ×1) Volley. A spell does not add a Volley capture or raise its multiplier. Allow at most one refresh between successful word captures, preventing spell chains from sustaining Volley indefinitely. In Hardcore, a correctly typed and submitted spell name also advances the regular precision combo and earns length-based points using the existing precision-combo formula, without counting as a captured enemy, granting Volley multiplier, or advancing level quotas. Direct cast commands and corrected spell entries do not receive this typed-precision reward. Normal spells do not earn these points. Scope remains preview-only pending validation.
