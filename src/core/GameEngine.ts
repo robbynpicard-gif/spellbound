@@ -143,6 +143,7 @@ export class GameEngine {
   /** 3–4 letter words Transmutation can turn long words into. */
   private readonly shortWords: readonly string[];
   private awardedLevelBonuses: Bonus[] = [];
+  private peakVolley = 0;
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
   private readonly easyGenerator: WordGenerator | null;
   private readonly log: Command[] = [];
@@ -934,6 +935,7 @@ export class GameEngine {
     s.recentCaptures = s.recentCaptures.filter((t) => s.tick - t <= VOLLEY_TICKS);
     s.recentCaptures.push(s.tick);
     const volley = s.recentCaptures.length;
+    this.peakVolley = Math.max(this.peakVolley, volley);
     if (volley >= 3) add('volley', Math.min(B.volleyMax, (volley - 2) * B.volleyPer), volley);
 
     // Alliteration: same first letter as the previous capture.
@@ -1174,6 +1176,7 @@ export class GameEngine {
       accuracy: accuracyOf(s.correctChars, s.errors),
       wpm: wpmOf(s.correctChars, elapsedMs),
       maxCombo: s.maxCombo,
+      peakVolley: this.peakVolley,
       endCombo: s.combo,
       endCleanStreak: s.cleanStreak,
       peakCleanStreak: s.peakCleanStreak,
