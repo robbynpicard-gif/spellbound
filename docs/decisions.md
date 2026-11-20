@@ -936,3 +936,9 @@ Keep between-level results minimal (D-064), and offer a richer review at stage c
 _2026-11-20 · Owner-requested roadmap; proposed prioritization; implementation not started_
 
 Before expanding systems, prioritize Arcane Volley timing correctness (including monotonic clock and bounded Flow Preservation grace), scoring/Codex/Rune consistency, deterministic regression coverage, campaign continuity, save/replay correctness, and preview/production isolation. Adopt small independently testable preview slices; implement accepted, sufficiently specified fixes without additional design meetings; escalate underspecified player-facing rules to the owner before implementation. Keep production unchanged until explicitly approved. See `docs/foundation-roadmap.md` for phases, acceptance gates, and severity classifications.
+
+
+### D-067 — Monotonic Arcane Volley Flow Preservation prototype (2026-11-20)
+_2026-11-20 · Implements accepted D-060/D-063; dev implementation committed; CI and preview playtest pending_
+
+Fix the known virtual-clock rewind bug: never decrement `volleyFlowTick`. Freeze it while no actionable words exist, and grant at most 0.4 seconds of additional frozen Volley time on the first field refill after a successful capture. Consume this allowance once per capture so repeated empty/refill cycles cannot accumulate grace. A new capture resets the allowance; incorrect captures do not earn it. Ice pauses Volley time without changing spawn rules. This is a scoped correctness prototype; verify with CI and focused manual playtesting, especially empty-field Volley ignition and repeated empty/refill cycles. Engine commit `7680c9c`; no production gameplay change.
