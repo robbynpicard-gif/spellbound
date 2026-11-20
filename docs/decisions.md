@@ -996,3 +996,9 @@ Ice retains its eight-second freeze of falling words and spawning while allowing
 _2026-11-20 · Tentative design only; no gameplay change authorized_
 
 Fire's provisional offensive scoring identity is danger-sensitive **base points**: words burned closer to the ward might yield a modestly higher base-point payout, with no Volley captures, Precision Combo, Clean Streak multiplication, or level progress. Exact curve, ceiling, and thresholds are not approved. Retain current full-board emergency incineration for now. The owner senses potential to improve Fire's defensive battlefield management but has not selected a change; avoid change for its own sake. Future candidate experiments: (1) Controlled Burn prioritizes dangerous words while leaving safe typing opportunities, at the cost of less reliable full-board protection; (2) Lingering Embers leaves a brief protective burn zone after clearing, subject to overlap with Barrier; (3) Combustion Chain spreads spatially among nearby words, requiring deterministic and legible targeting. Controlled Burn is the first candidate to test, not a decision. Continue spell-by-spell review without implementing Fire yet.
+
+
+### D-079 — Fire future rework favors Combustion Chain exploration (2026-11-20)
+_2026-11-20 · Deferred design exploration, not an implementation approval_
+
+The owner identifies Fire's complete predictable full-screen reset as a potential limitation. Prioritize **Combustion Chain** for a future design exploration: fire spreads among nearby words and may clear a variable portion of the field based on spatial arrangement. The amount cleared, targeting/spread rules, predictability and reliability of its defensive emergency role remain undecided. The previously tentative danger-sensitive base-score concept remains open, not finalized. Do not change Fire yet; continue the spell-by-spell review with Shock.
