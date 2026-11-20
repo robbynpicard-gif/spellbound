@@ -218,6 +218,11 @@ export class GameEngine {
     return this.s;
   }
 
+  /** Current fixed-tick sustained Volley multiplier for the typewriter HUD. */
+  get volleyMultiplier(): number {
+    return sustainedVolleyMultiplier(this.flowCaptures, this.s.tick, this.hardcore);
+  }
+
   /** Resume the *same* simulation after the player accepts the boss victory. */
   continueIntoEndless(config: DifficultyConfig): void {
     if (this.s.status !== 'won' || !isSurvival(this.config)) return;
