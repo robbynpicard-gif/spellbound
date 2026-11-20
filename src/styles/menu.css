@@ -192,6 +192,104 @@
   opacity: 1;
 }
 
+/* Apprentice's Ledger: parchment framed in engraved brass, with a measured
+   reveal sequence. CSS-only so gameplay, scores, and navigation remain instant. */
+.apprentice-ledger {
+  position: relative;
+  overflow-x: hidden;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 28px, rgb(109 73 30 / 0.045) 29px 30px),
+    linear-gradient(145deg, #f2e1b9 0%, #dcc392 54%, #c8a978 100%);
+  border: 5px double #8b602d;
+  outline: 2px solid #302013;
+  box-shadow:
+    inset 0 0 0 3px rgb(255 239 192 / 0.5),
+    inset 0 0 42px rgb(102 61 23 / 0.22),
+    0 16px 0 rgb(0 0 0 / 0.45),
+    0 24px 50px rgb(0 0 0 / 0.5);
+  color: #392719;
+}
+
+.apprentice-ledger::before,
+.apprentice-ledger::after {
+  content: '✦';
+  position: absolute;
+  top: 12px;
+  color: #93692d;
+  font-size: 22px;
+  pointer-events: none;
+}
+.apprentice-ledger::before { left: 16px; }
+.apprentice-ledger::after { right: 16px; }
+
+.apprentice-ledger .screen-title {
+  color: #67431e;
+  text-shadow: 0 1px 0 rgb(255 245 216 / 0.7);
+}
+.apprentice-ledger.lost .screen-title { color: #943c30; }
+.apprentice-ledger .screen-subtitle,
+.apprentice-ledger .score-label,
+.apprentice-ledger .stat dt { color: #62472c; opacity: 1; }
+.apprentice-ledger .score { color: #6b441e; }
+.apprentice-ledger .stat {
+  background: rgb(255 246 216 / 0.45);
+  border: 1px solid rgb(116 78 39 / 0.35);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35);
+}
+.apprentice-ledger .stat dd { color: #342418; }
+.apprentice-ledger .stat.new-best {
+  outline: 2px solid #a97627;
+  background: rgb(255 232 159 / 0.7);
+}
+.apprentice-ledger .stat-best,
+.apprentice-ledger .spell-summary,
+.apprentice-ledger .personal-best,
+.apprentice-ledger .footnote { color: #62472c; opacity: 1; }
+.apprentice-ledger .reward,
+.apprentice-ledger .next-up,
+.apprentice-ledger .stat.new-best .stat-best { color: #84511c; }
+.apprentice-ledger .menu-button {
+  background: #392719;
+  color: #f6e7c6;
+  border-color: #986e36;
+}
+.apprentice-ledger .menu-button.primary {
+  background: #7d4c25;
+  border-color: #c19a52;
+}
+
+@keyframes ledger-ink-reveal {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ledger-seal {
+  0% { opacity: 0; transform: scale(0.94); }
+  65% { opacity: 1; transform: scale(1.035); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.apprentice-ledger .score {
+  animation: ledger-seal 420ms 100ms both ease-out;
+}
+.apprentice-ledger .stat {
+  animation: ledger-ink-reveal 320ms both ease-out;
+}
+.apprentice-ledger .stat:nth-child(1) { animation-delay: 110ms; }
+.apprentice-ledger .stat:nth-child(2) { animation-delay: 155ms; }
+.apprentice-ledger .stat:nth-child(3) { animation-delay: 200ms; }
+.apprentice-ledger .stat:nth-child(4) { animation-delay: 245ms; }
+.apprentice-ledger .stat:nth-child(5) { animation-delay: 290ms; }
+.apprentice-ledger .stat:nth-child(n+6) { animation-delay: 330ms; }
+.apprentice-ledger .reward,
+.apprentice-ledger .spell-summary {
+  animation: ledger-ink-reveal 340ms 420ms both ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .apprentice-ledger .score,
+  .apprentice-ledger .stat,
+  .apprentice-ledger .reward,
+  .apprentice-ledger .spell-summary { animation: none; }
+}
+
 /* Results */
 .score {
   display: flex;
