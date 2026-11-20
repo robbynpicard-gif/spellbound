@@ -1,4 +1,6 @@
 import { triumphProgress } from '../gameplay/Triumphs';
+import { previewWordcraftEnabled, setPreviewWordcraftEnabled } from '../gameplay/WordcraftPreview';
+import { h } from '../ui/dom';
 import { codexScreen } from '../ui/codexScreen';
 import type { WordState } from '../gameplay/Word';
 import type Phaser from 'phaser';
@@ -57,6 +59,8 @@ export class App {
   showMainMenu(): void {
     this.run = null;
     this.showBackdrop();
+    const labAvailable = typeof window !== 'undefined' && /(?:^|\\/)preview(?:\\/|$)/.test(window.location.pathname);
+    const labActive = previewWordcraftEnabled();
     this.ui.show(
       mainMenuScreen(
         {
@@ -78,6 +82,21 @@ export class App {
         this.save.featuredRune ? ({ volley: { glyph: '✦', name: 'Volley Rune' }, precision: { glyph: '❖', name: 'Precision Rune' }, chain: { glyph: '✧', name: 'Chain Rune' }, scribe: { glyph: '✳', name: 'Scribe Rune' } } as Record<string, { glyph: string; name: string }>)[this.save.featuredRune] ? { ...({ volley: { glyph: '✦', name: 'Volley Rune' }, precision: { glyph: '❖', name: 'Precision Rune' }, chain: { glyph: '✧', name: 'Chain Rune' }, scribe: { glyph: '✳', name: 'Scribe Rune' } } as Record<string, { glyph: string; name: string }>)[this.save.featuredRune], finish: this.save.runeFinish } : null : null,
       ),
     );
+    if (labAvailable) {
+      const menu = document.querySelector('.main-menu .menu-list');
+      if (menu) {
+        const panel = h('section', { class: 'wordcraft-lab-panel', attrs: { 'aria-label': 'Wordcraft preview experiment' } },
+          h('h3', null, 'WORDCRAFT LAB · PREVIEW ONLY'),
+          h('p', null, labActive ? 'Experimental grammar-aware spawning is selected for your next solo game.' : 'Standard word spawning is selected for your next solo game.'),
+          h('button', { class: 'menu-button', onClick: () => {
+            setPreviewWordcraftEnabled(!labActive);
+            this.showMainMenu();
+          } }, labActive ? 'Switch to Standard' : 'Try Experimental Wordcraft'),
+          h('p', { class: 'footnote' }, 'Switch modes between runs. Duels and production always use Standard. The experiment is not a verified balance improvement.'),
+        );
+        menu.after(panel);
+      }
+    }
   }
 
   showOptions(focus: 'music' | 'sfx' | 'voice' | null = null): void {
