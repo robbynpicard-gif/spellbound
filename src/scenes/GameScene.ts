@@ -135,6 +135,7 @@ export class GameScene extends Phaser.Scene {
   private carriage!: Phaser.GameObjects.Rectangle;
   private volleyCallout!: Phaser.GameObjects.Text;
   private lastTierUpAt = -1000;
+  private readonly workshopCandles: Array<(lit: boolean) => void> = [];
 
   constructor() {
     super(GameScene.KEY);
@@ -160,6 +161,7 @@ export class GameScene extends Phaser.Scene {
       initialWords: data.initialWords,
     });
     this.views.clear();
+    this.workshopCandles.length = 0;
     this.accumulator = 0;
     this.introRemainingMs = this.duel ? 0 : INTRO_MS;
     this.paused = false;
@@ -230,14 +232,18 @@ export class GameScene extends Phaser.Scene {
       // The desk is a place, not a static HUD: candles are tangible objects.
       // Click to snuff or rekindle them; they never consume spell charges.
       let lit = true;
+      const setLit = (next: boolean) => {
+        lit = next;
+        outerFlame.setVisible(lit);
+        flame.setVisible(lit);
+        glow.setVisible(lit);
+      };
+      this.workshopCandles.push(setLit);
       const candle = this.add.zone(x, 449, 48, 85).setInteractive({ useHandCursor: true });
       candle.setDepth(32);
       candle.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
         event.stopPropagation();
-        lit = !lit;
-        outerFlame.setVisible(lit);
-        flame.setVisible(lit);
-        glow.setVisible(lit);
+        setLit(!lit);
         if (lit) audio.key();
       });
     }
@@ -653,6 +659,10 @@ export class GameScene extends Phaser.Scene {
       this.hud.setMana(totalCharges(charges), this.engine.poolLimit);
       this.hud.console.flash(SPELL_COLORS[spell]);
       this.spellFx.cast(spell);
+      // World rules: cold and wind extinguish exposed flames; fire relights them.
+      // These are ambient interactions, not extra combat damage or mana costs.
+      if (spell === 'ice' || spell === 'wind') this.workshopCandles.forEach((setLit) => setLit(false));
+      else if (spell === 'fire') this.workshopCandles.forEach((setLit) => setLit(true));
       if (spell === 'ice') for (const view of this.views.values()) view.setFrozen(true);
     });
 
