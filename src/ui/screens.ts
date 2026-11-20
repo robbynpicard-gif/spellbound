@@ -354,6 +354,7 @@ export interface RunOverActions {
   spellWon?: SpellId | null;
   /** Shown above the buttons (the stage journey). */
   extra?: HTMLElement | null;
+  triumphUnlocks?: HTMLElement | null;
   mode?: CampaignMode;
 }
 
@@ -407,6 +408,7 @@ export function runOverScreen(
         )
       : null,
     won && !actions.onNextStage ? h('p', { class: 'reward' }, 'Every stage of this mode is cleared. The world remembers.') : null,
+    actions.triumphUnlocks ?? null,
     actions.extra ?? null,
     h(
       'div',
