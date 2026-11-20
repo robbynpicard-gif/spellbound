@@ -400,6 +400,9 @@
 .triumph-feature-button.selected { background: #805b2e; color: #fff0ca; }
 .triumph-feature-button:focus-visible { outline: 3px solid #b17a24; outline-offset: 2px; }
 
+/* The selected Triumph is a visual honorific, never a gameplay modifier. */
+.featured-title-banner { margin: -4px auto 18px; font-family: var(--font-heading); font-size: 18px; letter-spacing: 0.06em; color: #edc47b; text-shadow: 0 2px 5px rgb(0 0 0 / 0.7); }
+
 /* Results */
 .score {
   display: flex;
