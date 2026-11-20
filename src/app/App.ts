@@ -115,7 +115,7 @@ export class App {
 
   showTrophyCase(): void {
     this.showBackdrop();
-    this.ui.show(trophyCaseScreen(this.save.runeCounts, this.save.lifetime, () => this.showMainMenu()));
+    this.ui.show(trophyCaseScreen(this.save.runeCounts, this.save.lifetime, this.save.featuredTriumph, (id) => { this.save.setFeaturedTriumph(id); this.showTrophyCase(); }, () => this.showMainMenu()));
   }
 
   showCredits(): void {
