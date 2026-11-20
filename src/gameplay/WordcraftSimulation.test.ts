@@ -40,6 +40,16 @@ describe('offline Wordcraft selection experiment', () => {
         candidateFirstLetterCollisions: candidate.recentFirstLetterCollisions,
       };
       console.info('WORDCRAFT_STAGE_AUDIT', JSON.stringify(report));
+      for (const comparison of result.captureComparisons) {
+        console.info('WORDCRAFT_CAPTURE_AUDIT', JSON.stringify({
+          stage, scenario: comparison.scenario,
+          baseline: comparison.baseline, candidate: comparison.candidate,
+        }));
+        expect(comparison.baseline.captured + comparison.baseline.missed).toBe(result.trials * result.wordsPerTrial);
+        expect(comparison.candidate.captured + comparison.candidate.missed).toBe(result.trials * result.wordsPerTrial);
+        expect(comparison.baseline.phrases).toBeLessThanOrEqual(comparison.baseline.captured);
+        expect(comparison.candidate.phrases).toBeLessThanOrEqual(comparison.candidate.captured);
+      }
       expect(candidate.lengths).toEqual(baseline.lengths);
       expect(candidate.recentDuplicateViolations).toBeLessThanOrEqual(baseline.recentDuplicateViolations);
       expect(Number.isFinite(candidate.averageComplexity)).toBe(true);
