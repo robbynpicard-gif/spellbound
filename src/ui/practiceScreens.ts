@@ -189,7 +189,7 @@ export function practiceResultsScreen(
   const again = h('button', { class: 'menu-button primary', onClick: actions.onAgain }, 'Practise again');
   const element = h(
     'section',
-    { class: `screen panel results ${fell ? 'lost' : 'won'}`, attrs: { role: 'dialog', 'aria-labelledby': 'pr-title' } },
+    { class: `screen panel results apprentice-ledger ${fell ? 'lost' : 'won'}`, attrs: { role: 'dialog', 'aria-labelledby': 'pr-title' } },
     h('p', { class: 'score-label' }, 'THE APPRENTICE\'S LEDGER'),
     h('h2', { class: 'screen-title', attrs: { id: 'pr-title' } }, fell ? 'The Wards Have Fallen' : 'Session Ended'),
     h('p', { class: 'screen-subtitle' }, `Practice · ${label} · ${FILTER_LABELS[filter].title}`),
