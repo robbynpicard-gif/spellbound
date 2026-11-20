@@ -67,6 +67,13 @@ const desaturate = (color: number): number => {
 class Bar {
   private readonly g: Phaser.GameObjects.Graphics;
   private shown = 0;
+  /** Recoverable maximum (Ward scars, D-084): the part above it is drawn as scar tissue. */
+  private cap = 100;
+
+  setCap(cap: number): void {
+    this.cap = Math.max(0, Math.min(100, cap));
+    this.draw(this.shown);
+  }
   private readonly t = { v: 0 };
 
   constructor(
@@ -100,6 +107,16 @@ class Bar {
     g.fillRect(x, y, fill, 3 * PX);
     g.fillStyle(shade(this.color, 1.35), 1);
     g.fillRect(x, y, fill, PX);
+    if (this.cap < 100) {
+      // Scarred capacity: a dark crimson band with notches that healing can't reach.
+      const from = Math.round((w * this.cap) / 100 / PX) * PX;
+      g.fillStyle(0x3a0c10, 1);
+      g.fillRect(x + from, y, w - from, 3 * PX);
+      g.fillStyle(0x8a1c24, 1);
+      for (let sx = x + from + PX; sx < x + w; sx += 3 * PX) g.fillRect(sx, y + PX, PX, PX);
+      g.fillStyle(0xe8d8c0, 1);
+      g.fillRect(x + from - PX, y - PX, PX, 5 * PX);
+    }
   }
 }
 
@@ -542,8 +559,33 @@ export class GameHUD {
     this.refreshWard();
   }
 
+  /** Ward maximum after Wind scars (100 = unscarred). */
+  setWardCap(cap: number): void {
+    this.wardCap = cap;
+    this.wardBar.setCap(cap);
+    this.refreshWard();
+  }
+
+  /** All-In seconds left (0 = inactive). Only redraws when the whole second changes. */
+  setAllIn(seconds: number, multiplier: number): void {
+    const s = Math.ceil(seconds);
+    if (s === this.allInSeconds && multiplier === this.allInMult) return;
+    this.allInSeconds = s;
+    this.allInMult = multiplier;
+    this.refreshWard();
+  }
+
+  private wardCap = 100;
+  private allInSeconds = 0;
+  private allInMult = 1;
+
   private refreshWard(stage?: InstabilityStage): void {
-    this.wardText.setText(`WARD ${Math.round(this.ward)}%${this.shield > 0 ? ` · SHIELD ×${this.shield}` : ''}`);
+    // Short enough for the plate: the bar itself shows the scar band.
+    const level = this.wardCap < 100 ? `${Math.round(this.ward)}/${Math.round(this.wardCap)}%` : `${Math.round(this.ward)}%`;
+    const label = this.allInSeconds > 0 ? `ALL-IN ×${this.allInMult} · ${this.allInSeconds}s` : `WARD ${level}`;
+    this.wardText.setText(`${label}${this.shield > 0 ? ` · SHIELD ×${this.shield}` : ''}`);
+    if (this.allInSeconds > 0) this.wardText.setColor(hex(PALETTE.gold));
+    else if (stage === undefined && this.ward > 25) this.wardText.setColor(hex(LABEL));
     if (stage !== undefined) this.wardText.setColor(hex(stage >= 3 ? PALETTE.crimson : LABEL));
   }
 

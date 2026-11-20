@@ -1,6 +1,8 @@
 # Spellbound — Physical Sandbox Interactions
 _2026-11-20 · Working design assumptions under D-069. Only Temporal Flow is newly implemented in code._
 
+> **Superseded in part (D-083/D-084):** Wind, Harvest, Ice and Alter descriptions below are older. Current prototype rules: `docs/wind-apprenticeship-prototype-2026-11-20.md` and the in-game Codex.
+
 ## World rule
 Spells are expressions of physical properties of the arena, not arbitrary score buttons. Interactions should be intuitive, deterministic, readable and grounded in the world's material and temporal rules. Prefer one shared interaction rule to special-case pairs of spells. Player typing/input remains responsive and runs in real time. Avoid granting points or Volley multipliers automatically through environmental interactions.
 

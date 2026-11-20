@@ -79,6 +79,8 @@ export interface MainMenuActions {
   onSpellbook(): void;
   onCodex(): void;
   onTrophyCase(): void;
+  /** Prototype: Wind Master apprenticeship and Spell Sandbox (D-084). */
+  onApprenticeship?(): void;
 }
 
 /** Menu entries that exist in the GDD but are built in later milestones. */
@@ -100,6 +102,9 @@ export function mainMenuScreen(actions: MainMenuActions, progress: string | null
       'nav',
       { class: 'menu-list', attrs: { 'aria-label': 'Main menu' } },
       campaign,
+      actions.onApprenticeship
+        ? h('button', { class: 'menu-button', onClick: actions.onApprenticeship }, 'Apprenticeship', h('span', { class: 'badge' }, 'Prototype'))
+        : null,
       h('button', { class: 'menu-button', onClick: actions.onPractice }, 'Endless Practice'),
       h('button', { class: 'menu-button', onClick: actions.onSpellbook }, 'Spellbook'),
       h('button', { class: 'menu-button', onClick: actions.onCodex }, 'Codex'),

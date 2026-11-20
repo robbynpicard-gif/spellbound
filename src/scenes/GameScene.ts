@@ -373,6 +373,7 @@ export class GameScene extends Phaser.Scene {
     if (startInstability > 0) {
       const stage = instabilityStage(startInstability);
       this.hud.setInstability(startInstability, stage);
+      this.hud.setWardCap(this.engine.wardInfo.cap);
       this.background.setStage(stage);
     }
     if (isSurvival(this.config)) this.hud.setSurvival(this.config.survivalMs!, this.config.survivalMs!);
@@ -415,6 +416,8 @@ export class GameScene extends Phaser.Scene {
   override update(_time: number, delta: number): void {
     // The score counter keeps rolling through the finale.
     if (!this.paused) this.hud.update(Math.min(delta, MAX_FRAME_MS));
+    const ward = this.engine.wardInfo;
+    this.hud.setAllIn((ward.allInTicks * SIMULATION_STEP_MS) / 1000, ward.allInMultiplier);
     if (this.engine.status === 'playing') audio.setDrive(this.drive());
     if (this.duel) return this.updateDuel(this.duel);
     if (this.paused || this.awaitingIntro || this.engine.status !== 'playing') return;
@@ -708,13 +711,15 @@ export class GameScene extends Phaser.Scene {
       if (points > 0) this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 300, `+${points}`, PALETTE.lightning, 30);
     });
 
-    ev.on('wordsHarvested', ({ words, points }) => {
+    ev.on('wordsHarvested', ({ words, points, volley, allIn }) => {
       for (const word of words) {
         const { x, y } = this.viewPosition(word.id, word.x, word.y);
         this.removeView(word.id);
         this.spellFx.burst(x, y, PALETTE.harvest, 24);
       }
       if (points > 0) this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 300, `+${points}`, PALETTE.harvest, 30);
+      const notes = [allIn && allIn > 1 ? `ALL-IN ×${allIn}` : '', volley && volley > 1 ? `VOLLEY ×${volley} SPENT` : ''].filter(Boolean);
+      if (notes.length > 0) this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 345, notes.join(' · '), PALETTE.gold, 20);
     });
 
     ev.on('wordsTransmuted', ({ words }) => {
@@ -732,6 +737,27 @@ export class GameScene extends Phaser.Scene {
       this.spellFx.burst(screenX(word.x), LAYOUT.wardY - 10, PALETTE.shield, 26);
       this.background.flashBlocked();
     });
+
+    // ── Wind All-In, Ward scars, insurance and Focus (D-084 prototype) ──
+    ev.on('windCast', ({ outcome, cap, scar, endedAllIn }) => {
+      this.hud.setWardCap(cap);
+      this.gust(outcome === 'wager' ? 1 : 0.6);
+      const cx = LAYOUT.width / 2;
+      if (outcome === 'wager') {
+        this.effects.floatText(cx, LAYOUT.spawnY + 175, `ALL IN · ×${this.engine.wardInfo.allInMultiplier}`, PALETTE.gold, 36);
+        this.effects.floatText(cx, LAYOUT.spawnY + 225, `Ward scarred −${scar} · max ${cap}%`, PALETTE.crimson, 20);
+      } else if (outcome === 'heal') {
+        this.effects.floatText(cx, LAYOUT.spawnY + 175, cap < 100 ? `WARD MENDED · to ${cap}%` : 'WARD MENDED', SPELL_COLORS.wind, 28);
+        if (endedAllIn) this.effects.floatText(cx, LAYOUT.spawnY + 220, 'All-In released', 0xd8d0c0, 20);
+      } else this.effects.floatText(cx, LAYOUT.spawnY + 175, 'CALM GUST · too scarred to wager', 0xd8d0c0, 24);
+    });
+    ev.on('allInChanged', ({ active, reason }) => {
+      if (!active) this.hud.setAllIn(0, 1);
+      if (reason === 'expired') this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 175, 'ALL-IN FADES', 0xd8d0c0, 24);
+      if (reason === 'breach' || reason === 'mistake') this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 175, 'ALL-IN BROKEN', PALETTE.crimson, 28);
+    });
+    ev.on('scoreInsured', () => this.effects.floatText(LAYOUT.width / 2, LAYOUT.panelY - 24, 'BARRIER HELD YOUR COMBO', SPELL_COLORS.barrier, 22));
+    ev.on('iceFocus', ({ gain }) => this.effects.floatText(LAYOUT.width / 2, LAYOUT.panelY - 24, `FOCUS +${gain}`, SPELL_COLORS.ice, 22));
 
     ev.on('barrierChanged', ({ remaining }) => {
       this.background.setShield(remaining > 0);
@@ -917,6 +943,27 @@ export class GameScene extends Phaser.Scene {
       const shown = s.input.length > 24 ? '…' + s.input.slice(-23) : s.input;
       this.typePreview.setText(shown ? shown.toUpperCase() + '  ▏' : 'TYPE HERE  ▏');
       this.typePreview.setColor(!shown ? '#aa9271' : this.engine.validPrefixLength < s.input.length ? '#f18d81' : '#f5dfb8');
+    }
+  }
+
+  /**
+   * Wind gust (D-081): purely cosmetic. Scroll views tilt and settle; the
+   * engine's positions, speeds and hit tests never change. Skipped with
+   * reduced motion.
+   */
+  private gust(strength: number): void {
+    if (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let i = 0;
+    for (const view of this.views.values()) {
+      const lean = (i++ % 2 === 0 ? 1 : 0.7) * 7 * strength;
+      this.tweens.chain({
+        targets: view,
+        tweens: [
+          { angle: lean, duration: 220, ease: 'Sine.easeOut' },
+          { angle: -lean * 0.4, duration: 360, ease: 'Sine.easeInOut' },
+          { angle: 0, duration: 420, ease: 'Sine.easeOut' },
+        ],
+      });
     }
   }
 

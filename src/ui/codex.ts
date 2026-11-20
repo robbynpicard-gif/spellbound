@@ -77,8 +77,8 @@ export const CODEX: CodexSection[] = [
     title: 'Scoring',
     intro: 'A great score is earned through precision, rhythm and judgement. The rules can be learned; the next run cannot be predicted.',
     points: [
-      'Each letter has a base value of 10 points. Your Combo and Arcane Volley multiply that value.',
-      'For the curious: word points are rounded from letters × 10 × Combo × Volley. Understanding the formula is possible; sustaining its multipliers is the real challenge.',
+      'Each letter has a base value of 10 points. Your Combo and Arcane Volley multiply that value, and Wind’s All-In doubles it while it lasts.',
+      'For the curious: word points are rounded once from letters × 10 × Combo × Volley × All-In. Harvest pays the whole field’s base × Combo × Volley × All-In and spends your Volley; Shock pays base × Combo × All-In. Understanding the formula is possible; sustaining its multipliers is the real challenge.',
       'Combo begins at ×1 and gains ×1 for every 10 consecutive flawless captures. A typo, wrong entry or missed word breaks the precision chain.',
       'Volley ignites after two timely flawless captures at ×1.2. Linked captures build momentum, with increasingly rare mastery beyond ×5. Longer words receive a fairer capture window.',
       'An empty field preserves the Volley window, including its one-word buildup. A returning target offers brief re-engagement grace. Enemies and spawning do not pause.',
@@ -91,6 +91,7 @@ export const CODEX: CodexSection[] = [
         ['Combo', 'Protect a flawless streak; each ten words raises its tier'],
         ['Arcane Volley', 'Two words to ignite; sustained timely captures to grow'],
         ['Field control', 'Clearing the field preserves your window until words return'],
+        ['Wind All-In', 'Risk your Ward and scar its maximum for a ×2 window'],
       ],
     },
   },
@@ -98,7 +99,8 @@ export const CODEX: CodexSection[] = [
     title: 'Mistakes',
     points: [
       'In the current solo scoring system, a typo, wrong entry or missed word breaks the precision chain and Volley momentum.',
-      'A missed word harms the ward unless blocked by Barrier. Mistakes can also make the targeted word fall faster.',
+      'A missed word harms the ward unless blocked by Barrier. Mistakes can also make the targeted word fall faster. A Barrier layer can also absorb one corrected typo, keeping your Combo.',
+      'Ward scars: each Wind All-In lowers the Ward’s maximum. Healing (Wind, Hardcore milestones) never rises above it. Normal clears scars each level; Hardcore keeps them for the stage.',
     ],
   },
   {

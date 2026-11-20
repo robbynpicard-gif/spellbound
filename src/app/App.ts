@@ -1,5 +1,7 @@
 import { triumphProgress } from '../gameplay/Triumphs';
 import { codexScreen } from '../ui/codexScreen';
+import { LESSONS, loadLessonProgress, markLessonDone, SANDBOX_CHARGES, SANDBOX_POOL, sandboxConfig } from './Apprenticeship';
+import { apprenticeshipMenuScreen, mentorScreen, sandboxResultScreen, sandboxSetupScreen } from '../ui/apprenticeshipScreens';
 import type { WordState } from '../gameplay/Word';
 import type Phaser from 'phaser';
 import type { GameResult } from '../core/GameEvents';
@@ -67,6 +69,7 @@ export class App {
           onStats: () => this.showStats(),
           onSpellbook: () => this.showSpellbook(),
           onTrophyCase: () => this.showTrophyCase(),
+          onApprenticeship: () => this.showApprenticeship(),
           onCodex: () => {
             this.showBackdrop();
             this.ui.show(codexScreen(() => this.showMainMenu()));
@@ -79,6 +82,135 @@ export class App {
       ),
     );
 
+  }
+
+  // ───────────────────────── Apprenticeship & Sandbox (prototype, D-084) ─────────────────────────
+  // Nothing in here records stats, Runes, Triumphs or Campaign progress.
+
+  showApprenticeship(): void {
+    this.run = null;
+    this.showBackdrop();
+    this.ui.show(
+      apprenticeshipMenuScreen(LESSONS, loadLessonProgress(), {
+        onPlay: (i) => this.showLessonIntro(i),
+        onSandbox: () => this.showSandbox(),
+        onBack: () => this.showMainMenu(),
+      }),
+    );
+  }
+
+  private showLessonIntro(i: number): void {
+    const lesson = LESSONS[i];
+    if (!lesson) return this.showApprenticeship();
+    this.showBackdrop();
+    this.ui.show(
+      mentorScreen(`Lesson ${i + 1} · ${lesson.title}`, lesson.intro, [
+        { label: 'Begin', onClick: () => this.playLesson(i), primary: true },
+        { label: 'Skip lesson', onClick: () => (i + 1 < LESSONS.length ? this.showLessonIntro(i + 1) : this.showApprenticeship()) },
+        { label: 'Course menu', onClick: () => this.showApprenticeship() },
+      ], () => this.showApprenticeship()),
+    );
+  }
+
+  private playLesson(i: number): void {
+    const lesson = LESSONS[i]!;
+    const config = lesson.config();
+    const label = `Apprenticeship · ${lesson.title}${lesson.hardcore ? ' · Hardcore rules' : ''}`;
+    const known = SPELL_IDS.filter((id) => config.availableSpells.includes(id) || (lesson.spells[id] ?? 0) > 0);
+    this.startScene({
+      config,
+      initialSpells: { ...lesson.spells } as SpellCharges,
+      hardcore: lesson.hardcore,
+      initialInstability: lesson.startInstability,
+      knownSpells: known,
+      spellSlots: this.save.spellSlots,
+      quickCast: !lesson.hardcore,
+      words: this.words,
+      hooks: {
+        onPauseChanged: (paused) =>
+          this.onPause(paused, label, [
+            { label: 'Restart lesson', onClick: () => this.playLesson(i) },
+            { label: 'Leave lesson', onClick: () => this.showApprenticeship() },
+          ], 'Lessons never affect Campaign records'),
+        onGameOver: (result, stats) => this.endLesson(i, result, stats),
+      },
+    });
+  }
+
+  private endLesson(i: number, result: GameResult, stats: GameStats): void {
+    const lesson = LESSONS[i]!;
+    this.showBackdrop();
+    const back = () => this.showApprenticeship();
+    if (result !== 'won') {
+      this.ui.show(
+        mentorScreen('The Ward fell', [{ speaker: 'Wind Master', text: 'Again. The wind is patient, and so am I.' }], [
+          { label: 'Try again', onClick: () => this.playLesson(i), primary: true },
+          { label: 'Skip lesson', onClick: () => (i + 1 < LESSONS.length ? this.showLessonIntro(i + 1) : back()) },
+          { label: 'Course menu', onClick: back },
+        ], back),
+      );
+      return;
+    }
+    markLessonDone(lesson.id);
+    const next = i + 1 < LESSONS.length;
+    this.ui.show(
+      mentorScreen(`${lesson.title} · complete · ${stats.score} points`, lesson.debrief(stats), [
+        next ? { label: 'Next lesson', onClick: () => this.showLessonIntro(i + 1), primary: true } : { label: 'Course menu', onClick: back, primary: true },
+        { label: 'Replay', onClick: () => this.playLesson(i) },
+        ...(next ? [{ label: 'Course menu', onClick: back }] : []),
+      ], back),
+    );
+  }
+
+  private sandboxMode: 'normal' | 'hardcore' = 'normal';
+
+  private showSandbox(): void {
+    this.showBackdrop();
+    this.ui.show(
+      sandboxSetupScreen(this.sandboxMode, {
+        onMode: (mode) => {
+          this.sandboxMode = mode;
+          this.showSandbox();
+        },
+        onStart: (stage) => this.startSandbox(stage),
+        onBack: () => this.showApprenticeship(),
+      }),
+    );
+  }
+
+  private startSandbox(stage: number): void {
+    const mode = this.sandboxMode;
+    const label = `Spell Sandbox · Stage ${stage} · ${mode === 'hardcore' ? 'Hardcore' : 'Normal'} rules`;
+    this.startScene({
+      config: sandboxConfig(mode, stage),
+      initialSpells: { ...SANDBOX_CHARGES } as SpellCharges,
+      poolLimitOverride: SANDBOX_POOL,
+      hardcore: mode === 'hardcore',
+      knownSpells: [...SPELL_IDS],
+      spellSlots: this.save.spellSlots,
+      quickCast: mode === 'normal',
+      words: this.words,
+      hooks: {
+        onPauseChanged: (paused) =>
+          this.onPause(paused, label, [
+            {
+              label: 'End and see results',
+              onClick: () => {
+                const { stats } = this.gameScene.snapshot();
+                this.endSandbox(stage, stats);
+              },
+            },
+            { label: 'Restart (refill charges)', onClick: () => this.startSandbox(stage) },
+            { label: 'Back to sandbox', onClick: () => this.showSandbox() },
+          ], 'Sandbox play is never recorded'),
+        onGameOver: (_result, stats) => this.endSandbox(stage, stats),
+      },
+    });
+  }
+
+  private endSandbox(stage: number, stats: GameStats): void {
+    this.showBackdrop();
+    this.ui.show(sandboxResultScreen(stats, { onAgain: () => this.startSandbox(stage), onBack: () => this.showSandbox() }));
   }
 
   showOptions(focus: 'music' | 'sfx' | 'voice' | null = null): void {
