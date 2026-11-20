@@ -32,6 +32,13 @@ The test logs `WORDCRAFT_CAPTURE_AUDIT` with captured, missed, classified and ph
 
 **Important limitations:** The experiment is not enabled in production. Equal seeds and bot behavior do not imply equal spawned words, fall timing or number of spawns once the sequences diverge. The candidate's replacement policy uses a separate seeded stream and its own recent-word constraints; it is not yet an approved balance change. The bot remains an intentionally simplified synthetic typist.
 
+## Multi-seed real-engine batch
+`src/gameplay/WordcraftEngineBatchAudit.ts` aggregates real-engine A/B outcomes over a configurable matrix of campaign stages, seeds and synthetic typing speeds. Run `npm test -- src/gameplay/WordcraftEngineBatchAudit.test.ts` and inspect `WORDCRAFT_ENGINE_BATCH` logs.
+
+The default regression matrix compares six seeds across early/fast, middle/standard and late/slow scenarios. It reports baseline/candidate phrase awards, captures, misses, spawns, average spawned-word length, recent duplicate words, recent initial-letter collisions and replay failures. Counts are **not normalized by completed captures**; different run durations or completion outcomes can alter totals. Compare per-capture phrase rates and per-spawn collision rates before deciding.
+
+The test enforces replay integrity and basic metric consistency, **not** a preselected improvement. It must not fail merely because an experiment produces fewer phrases; that is an evaluation result, not a software defect.
+
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
 2. Expand samples and inspect early levels where 2–4 letter limits severely constrain grammatical coverage.
