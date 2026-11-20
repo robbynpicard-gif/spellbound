@@ -12,6 +12,7 @@
 # Refresh preview for D-067 Volley Flow Preservation (2026-11-20).
 # Refresh preview for D-068 typewriter input and Volley timing (2026-11-20).
 # Refresh preview for D-069 Temporal Flow sandbox prototype.
+# Refresh preview for D-070 Temporal Flow regression suite.
 name: Deploy to GitHub Pages
 
 on:
