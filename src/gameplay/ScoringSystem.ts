@@ -182,6 +182,11 @@ export interface GameStats {
   peakCleanStreak?: number;
   /** Highest multiplier reached. */
   peakMultiplier: number;
+  /** Which scoring rules produced these statistics. */
+  scoringModel?: 'arcane' | 'legacy';
+  /** Peak and final Arcane Volley multipliers, measured by the engine. */
+  peakArcaneVolleyMultiplier?: number;
+  endArcaneVolleyMultiplier?: number;
   /** How many times each bonus was earned. */
   bonusCounts: Partial<Record<BonusId, number>>;
   /** End-of-level bonuses awarded (already included in `score`). */
