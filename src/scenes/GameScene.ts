@@ -221,10 +221,25 @@ export class GameScene extends Phaser.Scene {
     for (const x of [80, 1215]) {
       this.add.ellipse(x, 477, 56, 12, 0x160f0b, 0.75).setDepth(28);
       this.add.rectangle(x, 452, 19, 49, 0xd9c39a).setStrokeStyle(2, 0x8b673d).setDepth(29);
-      this.add.ellipse(x, 429, 15, 21, 0xffd47e, 0.85).setDepth(30);
+      const outerFlame = this.add.ellipse(x, 429, 15, 21, 0xffd47e, 0.85).setDepth(30);
       const flame = this.add.ellipse(x, 425, 7, 15, 0xfff3b2).setDepth(31);
-      this.tweens.add({ targets: flame, scaleX: 0.68, scaleY: 1.2, alpha: 0.65, yoyo: true, repeat: -1, duration: 550 + (x % 130), ease: 'Sine.InOut' });
-      this.add.ellipse(x, 421, 42, 55, 0xffb759, 0.08).setBlendMode(Phaser.BlendModes.ADD).setDepth(27);
+      const glow = this.add.ellipse(x, 421, 42, 55, 0xffb759, 0.08)
+        .setBlendMode(Phaser.BlendModes.ADD).setDepth(27);
+      this.tweens.add({ targets: flame, scaleX: 0.68, scaleY: 1.2,
+        yoyo: true, repeat: -1, duration: 550 + (x % 130), ease: 'Sine.InOut' });
+      // The desk is a place, not a static HUD: candles are tangible objects.
+      // Click to snuff or rekindle them; they never consume spell charges.
+      let lit = true;
+      const candle = this.add.zone(x, 449, 48, 85).setInteractive({ useHandCursor: true });
+      candle.setDepth(32);
+      candle.on('pointerdown', (_pointer: Phaser.Input.Pointer, _localX: number, _localY: number, event: Phaser.Types.Input.EventData) => {
+        event.stopPropagation();
+        lit = !lit;
+        outerFlame.setVisible(lit);
+        flame.setVisible(lit);
+        glow.setVisible(lit);
+        if (lit) audio.key();
+      });
     }
     // Apprentice's workstation: decorative materials stay below the ward,
     // while instruments remain outside the falling-word lanes.
