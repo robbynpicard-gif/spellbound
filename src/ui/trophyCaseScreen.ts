@@ -1,3 +1,4 @@
+import { isRuneFinishUnlocked } from '../storage/SaveManager';
 import { triumphProgress, TRIUMPH_TIERS } from '../gameplay/Triumphs';
 import type { LifetimeStats } from '../storage/LifetimeStats';
 import { h } from './dom';
@@ -12,7 +13,7 @@ const RUNES = [
   { id: 'scribe', glyph: '✳', name: 'Scribe Rune', rule: 'Complete 10 words with at least 98% accuracy.' },
 ] as const;
 
-export function trophyCaseScreen(counts: Readonly<Record<string, number>>, lifetime: Readonly<LifetimeStats>, featured: string | null, onFeature: (id: string | null) => void, onBack: () => void): Screen {
+export function trophyCaseScreen(counts: Readonly<Record<string, number>>, lifetime: Readonly<LifetimeStats>, featured: string | null, onFeature: (id: string | null) => void, featuredRune: string | null, runeFinish: 'wax' | 'bronze' | 'silver' | 'gold', onRune: (id: string | null) => void, onFinish: (finish: 'wax' | 'bronze' | 'silver' | 'gold') => void, onBack: () => void): Screen {
   const back = h('button', { class: 'menu-button primary', onClick: onBack }, 'Return to workshop');
   const unlocked = RUNES.filter((r) => (counts[r.id] ?? 0) > 0).length;
   const total = RUNES.reduce((sum, r) => sum + (counts[r.id] ?? 0), 0);
@@ -20,14 +21,30 @@ export function trophyCaseScreen(counts: Readonly<Record<string, number>>, lifet
     h('p', { class: 'score-label' }, 'THE GRAND WIZARD’S ARCHIVE'),
     h('h2', { class: 'screen-title', attrs: { id: 'trophy-title' } }, 'Trophy Case'),
     h('p', { class: 'screen-subtitle' }, `${unlocked} of ${RUNES.length} Rune types discovered · ${total} seals earned`),
+    h('p', { class: 'rune-awards-note' }, 'Collect repeat Rune seals to unlock decorative finishes: Bronze at 5, Silver at 20, Gold at 50. No score or gameplay bonuses.'),
+    h('p', { class: 'triumph-featured' }, featuredRune ? `Featured Rune: ${RUNES.find((r) => r.id === featuredRune)?.name ?? 'None'} · ${runeFinish} finish` : 'Featured Rune: None'),
+    featuredRune ? h('button', { class: 'triumph-feature-button', onClick: () => onRune(null) }, 'Clear featured Rune') : null,
+    featuredRune ? h('div', { class: 'rune-finish-picker' }, ...(['wax', 'bronze', 'silver', 'gold'] as const).map((finish) =>
+      h('button', {
+        class: `rune-finish-option finish-${finish}${runeFinish === finish ? ' selected' : ''}`,
+        disabled: !isRuneFinishUnlocked(counts[featuredRune] ?? 0, finish),
+        attrs: { 'aria-pressed': String(runeFinish === finish) },
+        onClick: () => onFinish(finish),
+      }, `${finish[0].toUpperCase() + finish.slice(1)}${isRuneFinishUnlocked(counts[featuredRune] ?? 0, finish) ? '' : ' 🔒'}`),
+    )) : null,
     h('div', { class: 'rune-awards-grid' }, ...RUNES.map((r) => {
       const count = counts[r.id] ?? 0;
-      return h('div', { class: `rune-award trophy-entry${count ? '' : ' locked'}` },
+      return h('div', { class: `rune-award trophy-entry${count ? '' : ' locked'}${featuredRune === r.id ? ` featured finish-${runeFinish}` : ''}` },
         h('span', { class: 'rune-award-seal', attrs: { 'aria-hidden': 'true' } }, count ? r.glyph : '?'),
         h('span', { class: 'rune-award-copy' },
           h('strong', null, count ? r.name : 'Undiscovered Rune'),
           h('small', null, r.rule),
           h('small', null, count ? `Seals earned: ${count}` : 'Not yet earned'),
+          count ? h('button', {
+            class: `triumph-feature-button${featuredRune === r.id ? ' selected' : ''}`,
+            attrs: { 'aria-pressed': String(featuredRune === r.id) },
+            onClick: () => onRune(r.id),
+          }, featuredRune === r.id ? 'Rune displayed ✓' : 'Display this Rune') : null,
         ),
       );
     })),
