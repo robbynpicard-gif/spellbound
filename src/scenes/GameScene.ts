@@ -470,8 +470,9 @@ export class GameScene extends Phaser.Scene {
     this.prototypeCombo.setText('COMBO ' + combo + '  ·  ×' + precisionComboMultiplier(combo));
     const recent = this.engine.state.recentCaptures;
     const volley = recent.filter((tick) => this.engine.state.tick - tick <= VOLLEY_TICKS).length;
-    this.volleyIndicator.setText('VOLLEY · ' + (volley >= 3 ? 'FLOW' : 'BUILDING') + ' · ' + (this.engine.state.tick > 0 ? 'PRECISION + SPEED' : 'READY'));
-    this.volleyIndicator.setColor(volley >= 3 ? '#f6d287' : '#bda580');
+    const volleyMult = this.engine.volleyMultiplier;
+    this.volleyIndicator.setText(volleyMult > 1 ? 'VOLLEY ×' + volleyMult + ' · ARCANE FLOW' : 'VOLLEY ×1 · BUILD FLOW');
+    this.volleyIndicator.setColor(volleyMult > 1 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
     // Two physical brass gauges: chain strength above, Volley time remaining below.
     // Both read the engine clock, so pauses and hit-stop never desynchronise them.
@@ -644,7 +645,7 @@ export class GameScene extends Phaser.Scene {
       if (volley && this.volleyCallout) {
         audio.volley(volley.count);
         this.tweens.killTweensOf(this.volleyCallout);
-        this.volleyCallout.setText('VOLLEY!  ×' + volley.count).setY(230).setScale(0.8).setAlpha(1);
+        this.volleyCallout.setText('VOLLEY!  ×' + this.engine.volleyMultiplier).setY(230).setScale(0.8).setAlpha(1);
         this.tweens.add({ targets: this.volleyCallout, y: 184, scale: 1.15, alpha: 0, duration: 780, ease: 'Cubic.Out' });
       }
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
