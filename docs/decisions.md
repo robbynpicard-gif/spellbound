@@ -954,3 +954,9 @@ Restore a compact always-visible live transcription of the current console input
 _2026-11-20 · Owner-approved direction; Temporal Flow preview implemented; broader contracts provisional_
 
 Treat Time and the physical identities of all eight spells as coherent sandbox properties. Separate player input, world motion, Volley opportunity, spell duration and spawning clocks. Preserve existing spell mechanics unless an interaction is intentionally prototyped. Implement the first testable interaction: while Slow is active, the monotonic Volley clock runs at 80% normal rate (a 25% longer real-time capture opportunity); Slow stacks do not compound the Volley benefit. Player typing remains fully responsive, and Slow does not award a multiplier directly. See `docs/sandbox-interactions.md` for the full spell-by-spell default interaction contracts, current implementations and explicitly unimplemented future possibilities. Engine implementation `3318003` on dev; preview CI and manual validation pending.
+
+
+### D-070 — Deterministic Temporal Flow regression suite (2026-11-20)
+_2026-11-20 · Dev implementation committed; CI and preview validation pending_
+
+Isolate the Volley-only fractional clock in `src/gameplay/TemporalFlow.ts` and test Slow's 80% clock rate, pauses for Ice/empty field, fractional remainder across expiry, two-word Volley ignition and deterministic stepping. Keep world movement, player typing, spawning and spell durations unchanged. `GameEngine` now consumes the shared clock helper rather than maintaining a separate Slow remainder. Tests are in `src/gameplay/TemporalFlow.test.ts`; end-to-end engine overlap and manual preview playtesting remain necessary before calling this fully verified.
