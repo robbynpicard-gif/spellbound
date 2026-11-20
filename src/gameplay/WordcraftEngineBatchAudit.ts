@@ -16,6 +16,8 @@ export interface WordcraftBatchRow {
   captureGain: number;
   missIncrease: number;
   replayFailures: number;
+  decision: 'insufficient-data' | 'reject' | 'review';
+  rates: { baselinePhrasesPer100Captures: number; experimentalPhrasesPer100Captures: number; baselineMissesPer100Spawns: number; experimentalMissesPer100Spawns: number; baselineInitialCollisionsPer100Spawns: number; experimentalInitialCollisionsPer100Spawns: number };
 }
 
 export interface BatchTotals {
@@ -57,7 +59,25 @@ export function auditEngineWordcraftBatch(
       simulateEngineWordcraft(words, scenario.config, seed, maxTicks, scenario.ticksPerCharacter, 'experimental'));
     const a = total(baseline);
     const b = total(experimental);
+    const per100 = (numerator: number, denominator: number) => denominator ? 100 * numerator / denominator : 0;
+    const rates = {
+      baselinePhrasesPer100Captures: per100(a.phrases, a.captured),
+      experimentalPhrasesPer100Captures: per100(b.phrases, b.captured),
+      baselineMissesPer100Spawns: per100(a.missed, a.spawned),
+      experimentalMissesPer100Spawns: per100(b.missed, b.spawned),
+      baselineInitialCollisionsPer100Spawns: per100(a.initialCollisions, a.spawned),
+      experimentalInitialCollisionsPer100Spawns: per100(b.initialCollisions, b.spawned),
+    };
+    // Conservative screening thresholds, not a rollout authorization.
+    // Require at least 100 captures per arm before interpreting rates.
+    const decision = Math.min(a.captured, b.captured) < 100 ? 'insufficient-data'
+      : rates.experimentalPhrasesPer100Captures <= rates.baselinePhrasesPer100Captures
+        || rates.experimentalMissesPer100Spawns > rates.baselineMissesPer100Spawns + 2
+        || rates.experimentalInitialCollisionsPer100Spawns > rates.baselineInitialCollisionsPer100Spawns + 2
+        || b.recentDuplicates > a.recentDuplicates
+        ? 'reject' : 'review';
     return {
+      rates, decision,
       scenario: scenario.name, trials: seeds.length, baseline: a, experimental: b,
       phraseGain: b.phrases - a.phrases,
       captureGain: b.captured - a.captured,
