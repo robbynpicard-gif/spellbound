@@ -106,6 +106,38 @@ export class GameScene extends Phaser.Scene {
   private engine!: GameEngine;
   private wordClassCounts = emptyWordClassCounts();
   private phraseTracker = new PhraseTracker();
+  private phraseBanner: Phaser.GameObjects.Text | null = null;
+
+  /** A single short-lived, noninteractive callout; replaces rather than stacks banners. */
+  private showPhraseBanner(glyph: string, title: string): void {
+    if (this.phraseBanner) {
+      this.tweens.killTweensOf(this.phraseBanner);
+      this.phraseBanner.destroy();
+    }
+    const banner = this.add.text(LAYOUT.width / 2, 165, `${glyph}  ${title.toUpperCase()}  ${glyph}`, {
+      fontFamily: 'Georgia, serif',
+      fontSize: '24px',
+      fontStyle: 'bold',
+      color: '#f4d69c',
+      stroke: '#3b251b',
+      strokeThickness: 5,
+      align: 'center',
+    }).setOrigin(0.5).setDepth(85).setAlpha(1);
+    this.phraseBanner = banner;
+    this.tweens.add({
+      targets: banner,
+      y: 137,
+      alpha: 0,
+      duration: 1150,
+      ease: 'Cubic.Out',
+      onComplete: () => {
+        if (this.phraseBanner === banner) this.phraseBanner = null;
+        banner.destroy();
+      },
+    });
+  }
+
+
   private config!: DifficultyConfig;
   private hooks!: GameSceneHooks;
   private scoreOffset = 0;
@@ -168,6 +200,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.wordClassCounts = emptyWordClassCounts();
     this.phraseTracker = new PhraseTracker();
+    this.phraseBanner = null;
     this.views.clear();
     this.workshopCandles.length = 0;
     this.scrollSeals.length = 0;
@@ -603,7 +636,8 @@ export class GameScene extends Phaser.Scene {
     ev.on('wordCompleted', ({ word, points, combo, multiplier, bonuses }) => {
       const wordClass = classifyWord(word.text);
       if (wordClass) this.wordClassCounts[wordClass]++;
-      this.phraseTracker.capture(word.text);
+      const phrase = this.phraseTracker.capture(word.text);
+      if (phrase) this.showPhraseBanner(phrase.glyph, phrase.title);
       audio.capture(combo, bonuses.map((b) => b.id));
       const volley = bonuses.find((b) => b.id === 'volley');
       if (volley && this.volleyCallout) {
