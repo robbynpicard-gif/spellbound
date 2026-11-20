@@ -128,6 +128,8 @@ export class GameScene extends Phaser.Scene {
   private hitStopMs = 0;
   private streakFx!: StreakFeedback;
   private prototypeCombo!: Phaser.GameObjects.Text;
+  private prototypeMeter!: Phaser.GameObjects.Graphics;
+  private prototypeKey!: Phaser.GameObjects.Rectangle;
   private lastTierUpAt = -1000;
 
   constructor() {
@@ -211,11 +213,25 @@ export class GameScene extends Phaser.Scene {
     this.hud.setMana(totalCharges(this.engine.state.spells), this.engine.poolLimit);
     this.streakFx = new StreakFeedback(this, this.hud.streakAnchor);
     this.hud.setStreak(this.engine.state.cleanStreak);
-    // Temporary readable brass plate; final illustrated HUD comes later.
-    this.add.rectangle(640, 77, 320, 48, 0x211910, 0.9).setStrokeStyle(2, 0xb38b52).setDepth(95);
-    this.prototypeCombo = this.add.text(640, 77, 'SPELL CHAIN  0', {
-      fontFamily: 'Georgia, serif', fontSize: '22px', color: '#f1d5a1',
+    // Temporary art-direction overlay: legible instruments, without replacing
+    // the original gameplay artwork or interfering with keyboard input.
+    this.add.rectangle(640, 68, 420, 70, 0x21180e, 0.94).setStrokeStyle(3, 0xb58a4c).setDepth(95);
+    this.add.rectangle(640, 68, 408, 58, 0x3c2c1b, 0.32).setStrokeStyle(1, 0xe0b77a).setDepth(95);
+    this.add.text(640, 42, 'THE ARCANE PRESS  ·  APPRENTICE TRIAL', {
+      fontFamily: 'Georgia, serif', fontSize: '14px', color: '#d4b37c',
     }).setOrigin(0.5).setDepth(96);
+    this.prototypeCombo = this.add.text(640, 65, 'SPELL CHAIN  0', {
+      fontFamily: 'Georgia, serif', fontSize: '23px', color: '#f1d5a1',
+    }).setOrigin(0.5).setDepth(96);
+    this.prototypeMeter = this.add.graphics().setDepth(96);
+    this.add.rectangle(640, 471, 290, 29, 0x20150f, 0.88).setStrokeStyle(2, 0x9d784b).setDepth(36);
+    this.add.text(640, 471, 'INK  •  BRASS  •  INCANTATION', {
+      fontFamily: 'Georgia, serif', fontSize: '15px', color: '#e7c999',
+    }).setOrigin(0.5).setDepth(37);
+    // A mechanical indicator reacts immediately to the same keypress as combat.
+    this.add.rectangle(425, 557, 30, 25, 0x382516, 1).setStrokeStyle(2, 0xc39a60).setDepth(38);
+    this.prototypeKey = this.add.rectangle(425, 554, 19, 11, 0xc9a36b, 1).setDepth(39);
+    this.refreshPrototypeInstruments();
     if (this.engine.state.barrier > 0) {
       this.background.setShield(true);
       this.hud.setShield(this.engine.state.barrier);
@@ -290,9 +306,20 @@ export class GameScene extends Phaser.Scene {
     const alpha = this.accumulator / SIMULATION_STEP_MS;
     for (const view of this.views.values()) view.sync(alpha);
     this.hud.updateStats(this.engine.stats(), this.engine.state.combo);
-    this.prototypeCombo?.setText('SPELL CHAIN  ' + this.engine.state.combo + '  ·  TIER ' + (tierOf(this.engine.state.combo) + 1));
+    this.refreshPrototypeInstruments();
     const left = this.engine.survivalRemainingMs;
     if (left !== null) this.hud.setSurvival(this.config.survivalMs!, left);
+  }
+
+  private refreshPrototypeInstruments(): void {
+    if (!this.prototypeCombo || !this.prototypeMeter) return;
+    const combo = this.engine.state.combo;
+    const tier = tierOf(combo);
+    this.prototypeCombo.setText('SPELL CHAIN  ' + combo + '   ·   POWER ' + (tier + 1));
+    this.prototypeMeter.clear();
+    this.prototypeMeter.fillStyle(0x100c09, 1).fillRoundedRect(492, 86, 296, 7, 2);
+    this.prototypeMeter.fillStyle(tier >= 3 ? 0x8dd8c2 : 0xd9a75f, 1);
+    if (combo > 0) this.prototypeMeter.fillRoundedRect(492, 86, Math.max(4, 296 * Math.min(1, combo / 25)), 7, 2);
   }
 
   /** Swap rules and callbacks without recreating the Phaser scene or engine. */
