@@ -23,10 +23,17 @@ The same two spawned sequences now pass through four seeded capture scenarios:
 
 The test logs `WORDCRAFT_CAPTURE_AUDIT` with captured, missed, classified and phrase counts for each stage and scenario. This models target choice and chain interruption but **not** actual movement, fall timing, user reaction speed, spell effects, or real gameplay events. The model processes one available word per spawn and flushes the remaining field at trial boundaries; it must not be presented as a measured player outcome.
 
+## Real-engine baseline harness
+`src/gameplay/WordcraftEngineSimulation.ts` now runs the actual `GameEngine` with deterministic synthetic typing commands. The bot selects the lowest (most urgent) falling word, pins it, and types one character every configurable number of ticks. It observes real `wordSpawned`, `wordCompleted`, and `wordMissed` events, tracks PhraseTracker awards, concurrent words and verifies replay from the engine command log.
+
+`npm test -- src/gameplay/WordcraftEngineSimulation.test.ts` checks replay and repeatability and prints `WORDCRAFT_ENGINE_AUDIT` for two typing rates. The bot is intentionally simple, not a human model: no errors, no spell casts, no reaction-time variability, and no strategic target choice beyond urgency.
+
+**Important limitation:** This real-engine harness currently evaluates the *existing baseline generator only*. The experimental Wordcraft-aware candidate is not wired into GameEngine, so the earlier proxy candidate comparisons must not be presented as real-engine head-to-head results.
+
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
 2. Expand samples and inspect early levels where 2–4 letter limits severely constrain grammatical coverage.
-3. Replace the capture-order proxy with real engine-level simulations that include fall timing, player response, spell effects, and capture events.
+3. Extend the real-engine baseline harness to evaluate a seeded candidate generator without modifying production gameplay; add varied reaction times, mistakes and spell effects.
 4. Preserve seeded deterministic fairness and server verification in Wizard Duels; do not use the player's capture history to influence live spawns.
 5. Check the actual candidate generator's recent-word fairness and complexity distributions. If it causes any significant regression, reject it.
 6. Obtain approval before changing the live word-selection policy. Keep it off by default until validated.
