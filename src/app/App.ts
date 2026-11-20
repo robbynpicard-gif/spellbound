@@ -1,7 +1,4 @@
 import { triumphProgress } from '../gameplay/Triumphs';
-import { previewWordcraftEnabled, setPreviewWordcraftEnabled } from '../gameplay/WordcraftPreview';
-import { h } from '../ui/dom';
-import { WordcraftRunComparison } from '../gameplay/WordcraftRunComparison';
 import { codexScreen } from '../ui/codexScreen';
 import type { WordState } from '../gameplay/Word';
 import type Phaser from 'phaser';
@@ -49,7 +46,6 @@ import { triumphUnlockAnnouncement } from '../ui/triumphUnlocks';
  */
 export class App {
   private run: CampaignRun | null = null;
-  private readonly wordcraftRuns = new WordcraftRunComparison();
 
   constructor(
     private readonly game: Phaser.Game,
@@ -61,8 +57,6 @@ export class App {
   showMainMenu(): void {
     this.run = null;
     this.showBackdrop();
-    const labAvailable = typeof window !== 'undefined' && window.location.pathname.split('/').includes('preview');
-    const labActive = previewWordcraftEnabled();
     this.ui.show(
       mainMenuScreen(
         {
@@ -84,32 +78,7 @@ export class App {
         this.save.featuredRune ? ({ volley: { glyph: '✦', name: 'Volley Rune' }, precision: { glyph: '❖', name: 'Precision Rune' }, chain: { glyph: '✧', name: 'Chain Rune' }, scribe: { glyph: '✳', name: 'Scribe Rune' } } as Record<string, { glyph: string; name: string }>)[this.save.featuredRune] ? { ...({ volley: { glyph: '✦', name: 'Volley Rune' }, precision: { glyph: '❖', name: 'Precision Rune' }, chain: { glyph: '✧', name: 'Chain Rune' }, scribe: { glyph: '✳', name: 'Scribe Rune' } } as Record<string, { glyph: string; name: string }>)[this.save.featuredRune], finish: this.save.runeFinish } : null : null,
       ),
     );
-    if (labAvailable) {
-      const menu = document.querySelector('.main-menu .menu-list');
-      if (menu) {
-        const panel = h('section', { class: 'wordcraft-lab-panel', attrs: { 'aria-label': 'Wordcraft preview experiment' } },
-          h('h3', null, 'WORDCRAFT LAB · PREVIEW ONLY'),
-          h('p', null, labActive ? 'Experimental grammar-aware spawning is selected for your next solo game.' : 'Standard word spawning is selected for your next solo game.'),
-          h('button', { class: 'menu-button', onClick: () => {
-            setPreviewWordcraftEnabled(!labActive);
-            this.showMainMenu();
-          } }, labActive ? 'Switch to Standard' : 'Try Experimental Wordcraft'),
-          h('p', { class: 'footnote' }, 'Switch modes between runs. Duels and production always use Standard. The experiment is not a verified balance improvement.'),
-        );
-        const rows = this.wordcraftRuns.runs;
-        if (rows.length) {
-          const table = h('div', { class: 'wordcraft-lab-history', attrs: { 'aria-label': 'Wordcraft session comparisons' } },
-            h('h3', null, 'SESSION COMPARISON · LAST 12'),
-            ...rows.slice().reverse().map((row) =>
-              h('p', { class: 'footnote' },
-                `${row.arm === 'experimental' ? 'Experimental' : 'Standard'} · ${row.context} · ${row.completed} captured · ${row.missed} missed · ${row.phrases} phrases (${row.phrasesPer100Captures.toFixed(1)}/100) · ${(row.accuracy * 100).toFixed(1)}% accuracy · ${row.wpm.toFixed(1)} WPM`)),
-            h('p', { class: 'footnote' }, 'Lab records exist only in this open session and are not stored. Compare matching stages and levels.'),
-          );
-          panel.append(table);
-        }
-        menu.after(panel);
-      }
-    }
+
   }
 
   showOptions(focus: 'music' | 'sfx' | 'voice' | null = null): void {
@@ -332,7 +301,6 @@ export class App {
     const run = this.run;
     if (!run) return;
     const clearedLevel = stageLevel(run.mode, run.stage, run.level);
-    this.recordWordcraftLab(`Campaign · ${run.mode} · Stage ${run.stage} · Level ${run.level}`, stats);
     const lifetimeBefore = structuredClone(this.save.lifetime);
     this.save.recordLevelStats(stats, result, { mode: 'campaign', boss: isSurvival(clearedLevel) });
     const triumphUnlocks = triumphUnlockAnnouncement(lifetimeBefore, this.save.lifetime);
@@ -484,7 +452,6 @@ export class App {
   private endPractice(pick: LevelPick, where: string, filter: ModifierFilter, stats: GameStats, fell: boolean): void {
     // Stop the game (so Esc can't resume it behind the results) and show the sky backdrop.
     this.showBackdrop();
-    this.recordWordcraftLab(`${where} · ${FILTER_LABELS[filter].title}`, stats);
     const outcome = this.save.recordPractice(pick, filter, stats);
     const lifetimeBefore = structuredClone(this.save.lifetime);
     this.save.recordLevelStats(stats, fell ? 'lost' : 'won', { mode: 'practice' });
@@ -497,12 +464,6 @@ export class App {
         onMenu: () => this.showMainMenu(),
       }, triumphUnlocks),
     );
-  }
-
-  /** Lab measurements are ephemeral and never written to the save file. */
-  private recordWordcraftLab(context: string, stats: GameStats): void {
-    if (typeof window === 'undefined' || !window.location.pathname.split('/').includes('preview')) return;
-    this.wordcraftRuns.record(previewWordcraftEnabled() ? 'experimental' : 'standard', context, stats);
   }
 
   // ───────────────────────── shared ─────────────────────────
