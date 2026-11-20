@@ -20,7 +20,7 @@ export function arcaneVolleyCapture(state: ArcaneVolleyState, tick: number, lett
   return {captures:withinWindow ? state.captures+1 : 1,lastTick:tick,lastLetters:letters};
 }
 export function arcaneVolleyMultiplier(state: ArcaneVolleyState, tick: number, hardcore: boolean): number {
-  if (state.lastTick === null || state.captures < 1) return 1;
+  if (state.lastTick === null || state.captures < 2) return 1;
   const gap = tick-state.lastTick;
   if (gap < 0) return 1;
   const window = volleyWindowTicks(state.lastLetters,hardcore);
@@ -28,9 +28,11 @@ export function arcaneVolleyMultiplier(state: ArcaneVolleyState, tick: number, h
   // than abruptly deleting a hard-earned Surge. The next slow capture
   // starts a fresh chain; no banked momentum from idle time.
   const faded = gap <= window ? 0 : gap <= window*1.5 ? 1 : gap <= window*2 ? 2 : state.captures;
-  const n = Math.max(0,state.captures-faded);
+  // The first capture only arms a timing window; the second timely capture
+  // earns ×1.2. A lone or late capture never earns Volley by itself.
+  const n = Math.max(0,state.captures-faded-1);
   if (n === 0) return 1;
-  // Kindle and sustained Surge: +0.2 per capture to ×5 (20 captures).
+  // Kindle and sustained Surge: +0.2 per linked capture to ×5 (21 captures total).
   if (n <= 20) return Math.round((1+n*.2)*10)/10;
   // Soft cap at ×5: +0.1 per progressively harder step.
   let extra=n-20,steps=0;
