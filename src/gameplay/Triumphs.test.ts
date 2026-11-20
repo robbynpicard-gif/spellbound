@@ -1,0 +1,90 @@
+import { describe, expect, it } from 'vitest';
+import { emptyLifetime } from '../storage/LifetimeStats';
+import { newlyEarnedTriumphs, triumphProgress, TRIUMPH_DEFINITIONS } from './Triumphs';
+
+describe('lifetime Triumphs', () => {
+  it('starts locked with a Bronze target', () => {
+    const progress = triumphProgress(emptyLifetime());
+    expect(progress).toHaveLength(TRIUMPH_DEFINITIONS.length);
+    expect(progress.every((t) => t.tier === 0 && t.next === t.targets[0])).toBe(true);
+  });
+
+  it('unlocks tiers at exact thresholds and stops at Gold', () => {
+    const life = emptyLifetime();
+    life.wordsCaptured = 100;
+    expect(triumphProgress(life).find((t) => t.id === 'scribe')?.tier).toBe(1);
+    life.wordsCaptured = 1000;
+    expect(triumphProgress(life).find((t) => t.id === 'scribe')?.tier).toBe(2);
+    life.wordsCaptured = 10000;
+    const gold = triumphProgress(life).find((t) => t.id === 'scribe');
+    expect(gold?.tier).toBe(3);
+    expect(gold?.next).toBeNull();
+  });
+
+  it('reads Volley bonuses from lifetime bonus counts', () => {
+    const life = emptyLifetime();
+    life.bonusCounts.volley = 100;
+    const volley = triumphProgress(life).find((t) => t.id === 'volley');
+    expect(volley?.tier).toBe(2);
+    expect(volley?.next).toBe(500);
+  });
+
+  it('announces only tiers newly crossed by a session', () => {
+    const before = emptyLifetime();
+    before.wordsCaptured = 99;
+    const after = emptyLifetime();
+    after.wordsCaptured = 101;
+    const awards = newlyEarnedTriumphs(before, after);
+    expect(awards).toEqual([expect.objectContaining({ id: 'scribe', title: 'The Patient Scribe', glyph: '✒', tier: 1, tierName: 'Bronze' })]);
+    expect(newlyEarnedTriumphs(after, after)).toEqual([]);
+  });
+
+  it('announces multiple crossed tiers without duplicating prior tiers', () => {
+    const before = emptyLifetime();
+    before.bestCombo = 19;
+    const after = emptyLifetime();
+    after.bestCombo = 105;
+    expect(newlyEarnedTriumphs(before, after).filter((a) => a.id === 'chain').map((a) => a.tierName))
+      .toEqual(['Bronze', 'Silver', 'Gold']);
+  });
+
+  it('recognizes word-pattern and rhythm Triumphs from recorded bonuses', () => {
+    const life = emptyLifetime();
+    life.bonusCounts.alliteration = 10;
+    life.bonusCounts.librarian = 75;
+    life.bonusCounts.metronome = 300;
+    life.bonusCounts.sweep = 5;
+    const progress = triumphProgress(life);
+    expect(progress.find((t) => t.id === 'alliteration')?.tier).toBe(1);
+    expect(progress.find((t) => t.id === 'librarian')?.tier).toBe(2);
+    expect(progress.find((t) => t.id === 'metronome')?.tier).toBe(3);
+    expect(progress.find((t) => t.id === 'sweep')?.tier).toBe(1);
+  });
+
+  it('does not confuse related bonus categories or award unearned medals', () => {
+    const before = emptyLifetime();
+    before.bonusCounts.alliteration = 9;
+    const after = emptyLifetime();
+    after.bonusCounts.alliteration = 10;
+    const earned = newlyEarnedTriumphs(before, after);
+    expect(earned.map((t) => t.id)).toEqual(['alliteration']);
+    expect(earned[0]?.tierName).toBe('Bronze');
+  });
+
+  it('tracks grammatical Triumphs independently from the captured word classes', () => {
+    const life = emptyLifetime();
+    life.wordClassCounts = { noun: 10, verb: 50, adjective: 200, adverb: 5 };
+    const progress = triumphProgress(life);
+    expect(progress.find((t) => t.id === 'nouns')?.tier).toBe(1);
+    expect(progress.find((t) => t.id === 'verbs')?.tier).toBe(2);
+    expect(progress.find((t) => t.id === 'adjectives')?.tier).toBe(3);
+    expect(progress.find((t) => t.id === 'adverbs')?.tier).toBe(1);
+  });
+
+  it('does not mutate saved lifetime statistics', () => {
+    const life = emptyLifetime();
+    life.bestCombo = 25;
+    triumphProgress(life);
+    expect(life.bestCombo).toBe(25);
+  });
+});

@@ -30,6 +30,10 @@ export interface LifetimeStats {
   /** Best words per minute over a level with at least MIN_WORDS_FOR_WPM words. */
   bestWpm: number;
   bonusCounts: Record<string, number>;
+  /** Curated grammatical categories captured since Wordcraft tracking began. */
+  wordClassCounts: Record<string, number>;
+  /** Lifetime grammatical phrase achievements. */
+  phraseCounts: Record<string, number>;
   spellsCast: Record<string, number>;
 }
 
@@ -60,6 +64,8 @@ export function emptyLifetime(): LifetimeStats {
     bestMultiplier: 1,
     bestWpm: 0,
     bonusCounts: {},
+    wordClassCounts: {},
+    phraseCounts: {},
     spellsCast: {},
   };
 }
@@ -83,6 +89,8 @@ export function parseLifetime(raw: unknown): LifetimeStats {
   }
   life.bestMultiplier = Math.max(1, life.bestMultiplier);
   life.bonusCounts = counts(r.bonusCounts);
+  life.wordClassCounts = counts(r.wordClassCounts);
+  life.phraseCounts = counts(r.phraseCounts);
   life.spellsCast = counts(r.spellsCast);
   return life;
 }
@@ -116,6 +124,8 @@ export function recordLevelStats(
   life.bestMultiplier = Math.max(life.bestMultiplier, stats.peakMultiplier);
   if (stats.completed >= MIN_WORDS_FOR_WPM) life.bestWpm = Math.max(life.bestWpm, Math.round(stats.wpm));
   add(life.bonusCounts, stats.bonusCounts);
+  add(life.wordClassCounts, stats.wordClassCounts);
+  add(life.phraseCounts, stats.phraseCounts);
   add(life.spellsCast, stats.spellsCast);
 }
 

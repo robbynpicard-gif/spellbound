@@ -173,6 +173,8 @@ export interface GameStats {
   /** Words per minute, using the standard 5 characters = 1 word. */
   wpm: number;
   maxCombo: number;
+  /** Most captures inside any rolling two-second Volley window. */
+  peakVolley?: number;
   /** Combo at the end of the level (carried into the next level of a Campaign run). */
   endCombo: number;
   /** Clean Streak at the end of the level, and its peak (D-046). */
@@ -180,6 +182,12 @@ export interface GameStats {
   peakCleanStreak?: number;
   /** Highest multiplier reached. */
   peakMultiplier: number;
+  /** Which scoring rules produced these statistics. */
+  scoringModel?: 'arcane' | 'legacy';
+  /** Peak and final Arcane Volley multipliers, measured by the engine. */
+  peakArcaneVolleyMultiplier?: number;
+  peakArcaneVolleyCaptures?: number;
+  endArcaneVolleyMultiplier?: number;
   /** How many times each bonus was earned. */
   bonusCounts: Partial<Record<BonusId, number>>;
   /** End-of-level bonuses awarded (already included in `score`). */
@@ -187,6 +195,10 @@ export interface GameStats {
   elapsedMs: number;
   /** Average time from a word appearing to being completed. */
   averageCompletionMs: number;
+  /** Classified captured words this level; unclassified words do not count. */
+  wordClassCounts?: Partial<Record<'noun' | 'verb' | 'adjective' | 'adverb', number>>;
+  /** Cosmetic grammatical phrase patterns completed this session. */
+  phraseCounts?: Partial<Record<'awakening' | 'illumination' | 'incantation', number>>;
   /** Times each spell was cast this level. */
   spellsCast?: Partial<Record<string, number>>;
 }

@@ -1,19 +1,23 @@
+import { advanceTemporalFlow, emptyTemporalFlowClock } from '../gameplay/TemporalFlow';
+import { arcaneVolleyCapture, arcaneVolleyMultiplier, emptyArcaneVolley, volleyWindowTicks, type ArcaneVolleyState } from '../gameplay/ArcaneVolley';
+import { applyElementalStatus, type ElementalStatus } from '../gameplay/ElementalStatus';
+import type { Element } from '../gameplay/ElementalReactions';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { InstabilityManager } from '../gameplay/InstabilityManager';
 import {
   accuracyOf,
-  BONUS_RATES as B,
-  CLUTCH_ZONE,
   comboAfterWrongEntry,
   streakAfterTypo,
+  scoreWord,
+  multiplierOf,
+  tierOf,
+  BONUS_RATES as B,
+  CLUTCH_ZONE,
   streakMultiplierOf,
   streakTierOf,
   METRONOME_CV,
   METRONOME_KEYS,
-  multiplierOf,
   QUICK_ZONE,
-  scoreWord,
-  tierOf,
   VOLLEY_TICKS,
   wordPoints,
   wpmOf,
@@ -22,6 +26,8 @@ import {
   type GameStats,
 } from '../gameplay/ScoringSystem';
 import { wordComplexity } from '../gameplay/WordGenerator';
+import { precisionComboMultiplier, proposedWordScore } from '../gameplay/PrecisionComboPrototype';
+import { sustainedVolleyMultiplier, type FlowCapture } from '../gameplay/SustainedVolley';
 import {
   addCharge,
   poolSizeFor,
@@ -75,6 +81,10 @@ export interface EngineOptions {
   initialCombo?: number;
   /** Clean Streak carried in from the previous level of the same chapter (D-046). */
   initialCleanStreak?: number;
+  /** Offline experiments only: inject a seeded generator; never set in production or duels. */
+  experimentalWordGenerator?: (words: readonly string[], config: DifficultyConfig, rng: SeededRandom, seed: number) => WordGenerator;
+  /** Development-preview-only scoring experiment; legacy default for existing tests/replays. */
+  experimentalScoring?: boolean;
 }
 
 /** The pace a level is running at right now (boss levels speed up over time). */
@@ -136,6 +146,7 @@ export class GameEngine {
   private readonly generator: WordGenerator;
   private readonly instability: InstabilityManager;
   private readonly hardcore: boolean;
+  private readonly experimentalScoring: boolean;
   /** Separate random stream for word speeds, so the word sequence is unaffected. */
   private readonly speedRng: SeededRandom;
   /** Independent stream for layout sampling: clutter fixes must not change scroll drops. */
@@ -143,9 +154,27 @@ export class GameEngine {
   /** 3–4 letter words Transmutation can turn long words into. */
   private readonly shortWords: readonly string[];
   private awardedLevelBonuses: Bonus[] = [];
+  private peakVolley = 0;
+  private flowCaptures: FlowCapture[] = [];
+  private arcaneVolley: ArcaneVolleyState = emptyArcaneVolley();
+  /** Volley-only clock: excludes empty-field downtime, without affecting combat. */
+  private volleyFlowTick = 0;
+  /** Fixed-point remainder for Temporal Flow: 4 Volley ticks per 5 real ticks. */
+  private volleyClock = emptyTemporalFlowClock();
+  private volleyFlowProtected = false;
+  /** One re-engagement grace per successful capture, never a clock rewind. */
+  private volleyGraceAvailable = false;
+  private volleyGraceTicks = 0;
+  /** Successful spell casts buy a bounded thinking window, not a free capture. */
+  private volleySpellRefreshUsed = false;
+  private peakArcaneVolleyCaptures = 0;
+  private activeVolleyMultiplier = 1;
+  private peakArcaneVolleyMultiplier = 1;
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
   private readonly easyGenerator: WordGenerator | null;
   private readonly log: Command[] = [];
+  private workshopElement: ElementalStatus | null = null;
+  private pendingElementalMultiplier = 1;
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
   private endlessStartedTick: number | null = null;
@@ -158,8 +187,11 @@ export class GameEngine {
     this.seed = options.seed;
     this.field = options.field ?? FIELD;
     this.rng = new SeededRandom(options.seed);
-    this.generator = new WordGenerator(options.words, options.config, this.rng);
+    this.generator = options.experimentalWordGenerator
+      ? options.experimentalWordGenerator(options.words, options.config, this.rng, options.seed)
+      : new WordGenerator(options.words, options.config, this.rng);
     this.hardcore = options.hardcore === true;
+    this.experimentalScoring = options.experimentalScoring === true;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
     this.laneRng = new SeededRandom((this.seed ^ 0x1a4e1a4e) >>> 0);
     this.instability = new InstabilityManager(options.initialInstability ?? 0);
@@ -185,7 +217,7 @@ export class GameEngine {
     this.carried = (options.initialWords ?? []).map((w) => ({ ...w, isTarget: false, typed: 0 }));
     this.s.combo = carried;
     this.s.maxCombo = carried;
-    this.s.peakMultiplier = multiplierOf(carried);
+    this.s.peakMultiplier = this.experimentalScoring ? precisionComboMultiplier(carried) : multiplierOf(carried);
     this.s.cleanStreak = Math.max(0, Math.floor(options.initialCleanStreak ?? 0));
     this.s.peakCleanStreak = this.s.cleanStreak;
     this.spellContext = this.createSpellContext();
@@ -208,6 +240,21 @@ export class GameEngine {
 
   get state(): Readonly<GameState> {
     return this.s;
+  }
+
+  /** Current fixed-tick sustained Volley multiplier for the typewriter HUD. */
+  /** Preview-only readable window for the second-word Volley trigger.
+   * UI consumes simulation state without changing timing or word spawning. */
+  get volleyArmedProgress(): number {
+    if (!this.experimentalScoring || this.arcaneVolley.captures !== 1 || this.arcaneVolley.lastTick === null) return 0;
+    const window = volleyWindowTicks(this.arcaneVolley.lastLetters, this.hardcore);
+    return Math.max(0, 1 - (this.volleyFlowTick - this.arcaneVolley.lastTick) / window);
+  }
+
+  get volleyMultiplier(): number {
+    return this.experimentalScoring
+      ? arcaneVolleyMultiplier(this.arcaneVolley, this.volleyFlowTick, this.hardcore)
+      : sustainedVolleyMultiplier(this.flowCaptures, this.s.tick, this.hardcore);
   }
 
   /** Resume the *same* simulation after the player accepts the boss victory. */
@@ -400,6 +447,29 @@ export class GameEngine {
 
     this.tickPacing();
 
+    // Flow Preservation: monotonic Volley time. The first return after an
+    // empty field grants at most 0.4 s of paused Volley time, once per
+    // successful capture. Empty/refill cycles cannot stack the allowance.
+    if (this.experimentalScoring) {
+      if (s.words.length === 0) {
+        this.volleyFlowProtected = true;
+      } else {
+        if (this.volleyFlowProtected) {
+          if (this.volleyGraceAvailable) {
+            this.volleyGraceTicks = Math.round(400 / SIMULATION_STEP_MS);
+            this.volleyGraceAvailable = false;
+          }
+          this.volleyFlowProtected = false;
+        }
+        if (s.freezeTicks === 0) {
+          const grace = this.volleyGraceTicks > 0;
+          if (this.volleyGraceTicks > 0) this.volleyGraceTicks--;
+          this.volleyClock = advanceTemporalFlow(this.volleyClock, s.slowStacks.length > 0, grace);
+          this.volleyFlowTick = this.volleyClock.tick;
+        }
+      }
+    }
+
     // Frostbinding: nothing moves and nothing spawns (slow stacks wait too).
     if (s.freezeTicks > 0) {
       for (const word of s.words) word.prevY = word.y;
@@ -543,7 +613,14 @@ export class GameEngine {
       s.errors++;
       // Clean Streak: a typo (even one fixed with Backspace) steps back one milestone (D-046).
       s.entryTypo = true;
-      this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
+      if (this.experimentalScoring) {
+        this.setCombo(0);
+        this.setCleanStreak(0, 'typo');
+        this.shrinkPool();
+        this.flowCaptures = [];
+        this.arcaneVolley = emptyArcaneVolley();
+        this.activeVolleyMultiplier = 1;
+      } else this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
       if (attempted) this.penalize(attempted);
     }
     this.events.emit('typingError', { wordId: attempted?.id ?? this.s.targetId, char });
@@ -566,8 +643,9 @@ export class GameEngine {
 
     // 2. A spell name: cast it.
     if (isSpellId(input)) {
+      const cleanSpell = !s.entryTypo;
       this.resetInput(true);
-      return this.castSpell(input);
+      return this.castSpell(input, cleanSpell);
     }
 
     // 3. Anything else is an incomplete or misspelled word:
@@ -575,7 +653,10 @@ export class GameEngine {
     // A word already penalised for a typo in this same entry isn't penalised again.
     const guess = pinned ?? guessIntendedWord(s.words, input);
     // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
-    this.setCombo(comboAfterWrongEntry(s.combo));
+    this.setCombo(this.experimentalScoring ? 0 : comboAfterWrongEntry(s.combo));
+    this.flowCaptures = [];
+    this.arcaneVolley = emptyArcaneVolley();
+    this.activeVolleyMultiplier = 1;
     this.setCleanStreak(0, 'wrongEntry');
     this.shrinkPool();
     if (!guess) s.errors++;
@@ -597,15 +678,43 @@ export class GameEngine {
     this.emitInput();
   }
 
-  private castSpell(spell: SpellId): void {
+  private castSpell(spell: SpellId, cleanTyped = false): void {
     const s = this.s;
     if (!consumeCharge(s.spells, spell)) {
       this.events.emit('spellFizzled', { spell });
       return;
     }
     s.spellsCast[spell]++;
+    if (this.experimentalScoring && !this.volleySpellRefreshUsed && this.volleyMultiplier > 1) {
+      // A successful spell is a rhythm action: refresh, don't pause or capture.
+      this.arcaneVolley = { ...this.arcaneVolley, lastTick: this.volleyFlowTick };
+      this.volleySpellRefreshUsed = true;
+    }
+    if (this.experimentalScoring && this.hardcore && cleanTyped) {
+      // Hardcore rewards the typed spell as a precision combo action, not an enemy capture.
+      this.setCombo(s.combo + 1);
+      s.maxCombo = Math.max(s.maxCombo, s.combo);
+      const points = proposedWordScore(spell.length, precisionComboMultiplier(s.combo), 1);
+      s.score += points;
+      this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
+    }
+    const elementalSpells: Partial<Record<SpellId, Element>> = { fire: 'fire', ice: 'ice', shock: 'shock', wind: 'wind' };
+    const incoming = elementalSpells[spell];
+    this.pendingElementalMultiplier = 1;
+    if (incoming) {
+      const transition = applyElementalStatus(this.workshopElement, incoming, s.tick, Math.round(8000 / SIMULATION_STEP_MS));
+      this.workshopElement = transition.next;
+      this.pendingElementalMultiplier = transition.damageMultiplier;
+      if (transition.previous && transition.outcome.reaction !== 'none') {
+        this.events.emit('elementalReaction', {
+          previous: transition.previous, incoming, reaction: transition.outcome.reaction,
+          damageMultiplier: transition.damageMultiplier,
+        });
+      }
+    }
     this.events.emit('spellCast', { spell, charges: { ...s.spells } });
     SPELLS[spell].cast(this.spellContext);
+    this.pendingElementalMultiplier = 1;
   }
 
   // ───────────────────────── console matching ─────────────────────────
@@ -774,23 +883,46 @@ export class GameEngine {
     const s = this.s;
     this.removeWord(word);
     s.completed++;
-    this.setCombo(s.combo + 1);
+    const perfect = word.errors === 0 && !s.entryTypo;
+    if (!this.experimentalScoring || perfect) this.setCombo(s.combo + 1);
+    else this.setCombo(0);
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.completionTicksTotal += s.tick - word.spawnTick;
-    const multiplier = multiplierOf(s.combo);
+    const multiplier = this.experimentalScoring ? precisionComboMultiplier(s.combo) : multiplierOf(s.combo);
     // Clean Streak: a word typed with no typo adds one. The capture that reaches
     // a milestone already scores at its multiplier (D-046).
     if (word.errors === 0 && !s.entryTypo) {
       this.setCleanStreak(s.cleanStreak + 1, 'capture');
       this.growPool();
     }
-    const streak = streakMultiplierOf(s.cleanStreak);
     const bonuses = this.wordBonuses(word);
-    const points = Math.round(scoreWord(word.text.length, multiplier, bonuses, streak));
+    this.flowCaptures = this.flowCaptures.filter((capture) => s.tick - capture.tick <= 300);
+    if (perfect) this.flowCaptures.push({ tick: s.tick, letters: word.text.length });
+    else this.flowCaptures = [];
+    if (this.experimentalScoring) {
+      this.volleySpellRefreshUsed = false;
+      this.volleyGraceAvailable = perfect;
+      this.volleyGraceTicks = 0;
+    }
+    if (this.experimentalScoring) this.arcaneVolley = perfect
+      ? arcaneVolleyCapture(this.arcaneVolley, this.volleyFlowTick, word.text.length, this.hardcore)
+      : emptyArcaneVolley();
+    this.activeVolleyMultiplier = this.experimentalScoring
+      ? arcaneVolleyMultiplier(this.arcaneVolley, this.volleyFlowTick, this.hardcore)
+      : sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
+    if (this.experimentalScoring) {
+      this.peakArcaneVolleyMultiplier = Math.max(this.peakArcaneVolleyMultiplier, this.activeVolleyMultiplier);
+      if (this.activeVolleyMultiplier > 1)
+        this.peakArcaneVolleyCaptures = Math.max(this.peakArcaneVolleyCaptures, this.arcaneVolley.captures);
+    }
+    if (this.experimentalScoring && this.activeVolleyMultiplier > 1 && !bonuses.some((b) => b.id === 'volley')) bonuses.push({ id: 'volley', count: this.flowCaptures.length, rate: 0, points: 0 });
+    const points = this.experimentalScoring
+      ? proposedWordScore(word.text.length, multiplier, this.activeVolleyMultiplier)
+      : scoreWord(word.text.length, multiplier, bonuses, streakMultiplierOf(s.cleanStreak));
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
-    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: streak });
+    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: this.experimentalScoring ? 1 : streakMultiplierOf(s.cleanStreak) });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     this.emitProgress();
     if (word.spell) this.collect(word);
@@ -802,7 +934,7 @@ export class GameEngine {
     const s = this.s;
     const spell = word.spell!;
     const stored = addCharge(s.spells, spell, this.poolLimit);
-    const overflowPoints = stored ? 0 : OVERFLOW_POINTS * multiplierOf(s.combo);
+    const overflowPoints = stored ? 0 : OVERFLOW_POINTS * (this.experimentalScoring ? precisionComboMultiplier(s.combo) : multiplierOf(s.combo));
     if (overflowPoints > 0) {
       s.score += overflowPoints;
       s.overflows++;
@@ -826,6 +958,8 @@ export class GameEngine {
 
     s.missed++;
     this.setCombo(0);
+    this.flowCaptures = [];
+    this.activeVolleyMultiplier = 1;
     this.setCleanStreak(0, 'miss');
     this.shrinkPool();
     const damage = this.config.instabilityPerMiss;
@@ -869,7 +1003,8 @@ export class GameEngine {
   /** A clean capture: the pool may widen a step. */
   private growPool(): void {
     const before = this.poolLimit;
-    this.s.manaStreak++;
+    if (this.experimentalScoring) this.s.manaStreak = this.s.combo;
+    else this.s.manaStreak++;
     if (this.poolLimit !== before) this.events.emit('manaPoolChanged', { size: this.poolLimit, lost: 0, charges: { ...this.s.spells } });
   }
 
@@ -904,11 +1039,11 @@ export class GameEngine {
   /** Sets the combo, reporting a change of multiplier tier. */
   private setCombo(combo: number): void {
     const s = this.s;
-    const before = tierOf(s.combo);
+    const before = this.experimentalScoring ? Math.floor(s.combo / 10) : tierOf(s.combo);
     s.combo = combo;
-    const after = tierOf(combo);
+    const after = this.experimentalScoring ? Math.floor(combo / 10) : tierOf(combo);
     if (after !== before) {
-      const multiplier = multiplierOf(combo);
+      const multiplier = this.experimentalScoring ? precisionComboMultiplier(combo) : multiplierOf(combo);
       s.peakMultiplier = Math.max(s.peakMultiplier, multiplier);
       this.events.emit('tierChanged', { tier: after, multiplier, up: after > before });
     }
@@ -934,7 +1069,8 @@ export class GameEngine {
     s.recentCaptures = s.recentCaptures.filter((t) => s.tick - t <= VOLLEY_TICKS);
     s.recentCaptures.push(s.tick);
     const volley = s.recentCaptures.length;
-    if (volley >= 3) add('volley', Math.min(B.volleyMax, (volley - 2) * B.volleyPer), volley);
+    this.peakVolley = Math.max(this.peakVolley, volley);
+    if (!this.experimentalScoring && volley >= 3) add('volley', Math.min(B.volleyMax, (volley - 2) * B.volleyPer), volley);
 
     // Alliteration: same first letter as the previous capture.
     const first = word.match[0]!;
@@ -1058,7 +1194,7 @@ export class GameEngine {
     let points = 0;
     for (const word of burned) {
       this.removeWord(word);
-      points += wordPoints(word.text.length, 1);
+      points += Math.round(wordPoints(word.text.length, 1) * this.pendingElementalMultiplier);
     }
     s.score += points;
     this.events.emit('wordsBurned', { words: burned, points });
@@ -1098,7 +1234,7 @@ export class GameEngine {
       .sort((a, b) => dist(a) - dist(b) || a.id - b.id)
       .slice(0, arcs);
     const struck = [first, ...rest];
-    const points = this.claimWords(struck, (w) => wordPoints(w.text.length, 1));
+    const points = this.claimWords(struck, (w) => Math.round(wordPoints(w.text.length, 1) * this.pendingElementalMultiplier));
     this.events.emit('wordsShocked', { words: struck, points });
     this.afterClaim(struck);
   }
@@ -1108,7 +1244,7 @@ export class GameEngine {
     const words = [...this.s.words];
     if (words.length === 0) return;
     // Half base points × the combo and Clean Streak multipliers at the moment of casting.
-    const factor = multiplierOf(this.s.combo) * streakMultiplierOf(this.s.cleanStreak);
+    const factor = this.experimentalScoring ? precisionComboMultiplier(this.s.combo) : multiplierOf(this.s.combo) * streakMultiplierOf(this.s.cleanStreak);
     const points = this.claimWords(words, (w) => Math.round((wordPoints(w.text.length, 1) / 2) * factor));
     this.events.emit('wordsHarvested', { words, points });
     this.afterClaim(words);
@@ -1174,10 +1310,15 @@ export class GameEngine {
       accuracy: accuracyOf(s.correctChars, s.errors),
       wpm: wpmOf(s.correctChars, elapsedMs),
       maxCombo: s.maxCombo,
+      peakVolley: this.peakVolley,
       endCombo: s.combo,
       endCleanStreak: s.cleanStreak,
       peakCleanStreak: s.peakCleanStreak,
       peakMultiplier: s.peakMultiplier,
+      scoringModel: this.experimentalScoring ? 'arcane' : 'legacy',
+      peakArcaneVolleyMultiplier: this.experimentalScoring ? this.peakArcaneVolleyMultiplier : undefined,
+      peakArcaneVolleyCaptures: this.experimentalScoring ? this.peakArcaneVolleyCaptures : undefined,
+      endArcaneVolleyMultiplier: this.experimentalScoring ? this.volleyMultiplier : undefined,
       bonusCounts: { ...s.bonusCounts },
       levelBonuses: [...this.awardedLevelBonuses],
       elapsedMs,

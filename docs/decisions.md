@@ -864,3 +864,169 @@ docs/mechanics.md.
 
 **Open:** whether Clean Streak should count words or letters, now that early
 words are tiny (the milestones are unchanged for now).
+
+### D-058 — Core gameplay integrity takes precedence over optional rewards
+_2026-11-20 · Accepted (project owner)_
+
+**Design invariant:** Typal must not change its established core gameplay merely to make a Rune, Triumph, grammar combination, medal, or other optional reward easier or more common to obtain. Rarity, including exceptionally rare rewards, is acceptable; reward frequency is not itself a reason to alter the word generator, typing feel, difficulty progression, targeting, or player agency.
+
+- The default word generator remains the authority for normal play. Grammatical patterns may be **observed from actual captures** and rewarded, but must not bias spawning to manufacture those patterns.
+- Elemental spells and other intentionally gameplay-changing mechanics are distinct: their effects must be intuitive, visible and consistent with their agreed design. This principle does not prohibit intentional core mechanics approved by the owner.
+- Experimental implementations may remain in offline tests and documentation. They are **not** approved for live preview or production simply because a synthetic benchmark reports more rewards.
+- Before implementing any recommendation that significantly changes agreed design, the assistant or contributor must identify the design conflict, expected player-facing impact, and alternatives, then obtain explicit owner approval. Default to preserving the existing behavior.
+- Do not treat low Rune/Triumph acquisition rates as a defect by themselves. Evaluate fairness, clarity, and player experience separately from reward frequency.
+
+**Application:** The grammar-biased Wordcraft generator and its preview opt-in are retired from active gameplay. Offline research and replay tests may remain for historical analysis; the existing capture-order PhraseTracker and optional awards remain.
+
+### D-059 — Arcane Volley: immediate buildup, ignition, extended Surge, soft-cap mastery
+_2026-11-20 · Accepted design direction; numeric balance and live implementation not approved_
+
+Volley should reward a chain of timely, flawless captures with **immediate visible multiplier progression** (candidate ×1.2, ×1.4, ×1.6, ×1.8), then an **earned arcane eruption** (candidate near ×2), followed by a sustained, escalating Surge. Explore a long Surge arc through approximately ×5, then a **soft cap** where increments become +0.1 (×5.1, ×5.2, ×5.3…) and require progressively more exceptional sustained play. No arbitrary hard ceiling. This replaces the earlier *design target* of a fixed ×1.5/×2/×3 Volley ladder; it does not change the currently deployed prototype.
+
+The emotional sequence—**build → anticipate → erupt → sustain → rare mastery**—is accepted. The exact ignition threshold, stage boundaries, timing, qualification, decay, progression costs and soft-cap position remain intentionally tunable through playtesting. Normal should be accessible; Hardcore should demand more, without changing the reward ceiling. Preserve clear word-length-aware capture rhythm, fair target availability, typing readability, the simple score formula, and D-058's ban on manipulating word generation to accommodate rewards.
+
+**Implementation status:** documentation only. See `docs/arcane-volley-design-goal.md`. Prototype and owner review are required before activating a new Volley mechanic in preview; production stays unchanged.
+
+
+### D-060 — Volley Flow Preservation and two-word activation (2026-11-20)
+_2026-11-20 · Accepted design (project owner); dev implementation committed; deployment unverified_
+
+**Design:** Flow Preservation is part of Arcane Volley itself, not a separate power, bonus or optional reward. A first flawless capture arms Volley; a second timely flawless capture activates the initial ×1.2 multiplier. No multiplier is earned from a single capture or from waiting. When there are no actionable words, Volley's capture clock pauses without altering spawn pacing, enemy movement, difficulty, or other gameplay clocks. Once an actionable target returns, restore the preserved window with a one-time, capped 0.4-second re-engagement grace. Mistakes and misses follow existing chain-break rules. Protect the one-word buildup as well as an active Volley. This is consistent with D-058 (do not manipulate word generation) and extends D-059 (Arcane Volley progression).
+
+**Implementation:** Commit `01fce963` on `dev/apprenticeship-prototype-20261119` introduces a Volley-only virtual clock and empty-field grace in `src/core/GameEngine.ts`, using existing `src/gameplay/ArcaneVolley.ts`. Treat it as a prototype pending verification of actionable-target semantics, timing cap, transitions and regression tests; commit alone does not establish full specification compliance.
+
+**Deployment:** Main's Pages workflow builds production from `main` and preview from `dev/apprenticeship-prototype-20261119` into `/spellbound/preview/`. Workflow refresh commit `63ca72c` was pushed to `main` to trigger rebuilding. Whether that run succeeded and what exact commit is live must be confirmed from GitHub Actions and the preview build stamp; do not infer deployed status from a push.
+
+**Tracking convention:** Every future change should explicitly distinguish (1) design status (proposed/accepted/superseded), (2) implementation status (not started/in progress/committed/tested), and (3) deployment status (not deployed/preview verified/production verified), with branch and commit when known. Append superseding decisions instead of rewriting historical entries.
+
+
+### D-061 — Level-cleared ledger reflects the active scoring model (2026-11-20)
+_2026-11-20 · Owner-requested; implementation committed to dev preview; build/deployment verification pending_
+
+The between-level results ledger must show scoring rules actually used for that level. For experimental Arcane scoring, display the formula `round(letters × 10 × Combo × Volley)`, peak/end precision Combo and peak/end Arcane Volley, words captured, accuracy, WPM, errors, misses, and capture timing. Explain two-word Volley ignition and Flow Preservation. Remove legacy `3 words in 2 seconds` Volley and Clean Streak scoring claims from the Arcane results panel. Preserve legacy results presentation when the legacy engine is in use. Runes and other systems still using historical peak Volley statistics are not redefined by this UI change; audit their criteria separately before purging underlying mechanics. Implementation: `src/ui/screens.ts`, `src/core/GameEngine.ts`, `src/gameplay/ScoringSystem.ts` (dev commit `699406f` and preceding commits). Production remains unchanged; verify the Pages workflow before marking deployed.
+
+
+### D-062 — Scoring knowledge in menu Codex; preserve mystery during play (2026-11-20)
+_2026-11-20 · Accepted design (project owner); dev UI committed; deployment verification pending_
+
+Inspired by Balatro's strategic legibility without score prediction: players can inspect the accurate underlying scoring rules in the **main-menu Codex** and develop their own high-score strategies, but gameplay and the level-cleared ledger should not turn into a scoring tutorial or display projected future scores. Keep the ledger celebratory and performance-oriented (actual earned score, Combo/Volley peaks, accuracy and other run facts), remove the verbatim scoring formula and explanatory paragraphs from the between-level screen. The Codex may give exact calculation mechanics alongside evocative strategy descriptions; avoid implying that future outcomes are guaranteed. Replace legacy Combo/Clean Streak/Volley descriptions in the Codex for the current solo Arcane scoring model. No scoring mathematics are changed by this decision. Dev implementation: `src/ui/screens.ts`, `src/ui/codex.ts`.
+
+
+### D-063 — Strategic predictability, mechanical transparency, emergent uncertainty (2026-11-20)
+_2026-11-20 · Accepted design principle (project owner); documentation only_
+
+**The outcome can be uncertain; the rules should not be.** A player who understands the mechanics must be able to formulate a sound scoring or combat strategy, execute it consistently, and expect the intended result whenever the necessary RNG conditions and player execution occur. Randomness may change opportunities, constraints, risk and timing, but must not secretly override a valid strategy or create unexplained exceptions. Mechanics, interactions, thresholds and scoring calculations must be deterministic and inspectable, with player-visible feedback sufficient to understand success or failure. The main-menu Codex may explicitly disclose the full score formula and relevant rules so players can calculate hypothetical outcomes and plan strategically.
+
+**Preserve wonder in the moment:** Avoid in-run score projections, prescribed optimal strategies, constant formula explanations or other interfaces that turn play into bookkeeping. Surprise should arise from encounter composition, timing, combinations, presentation, sound, and player decisions—not hidden arithmetic or deceptive rules. A strategy is not guaranteed to succeed in every random run, but when its conditions are met it should behave predictably. Apply this principle to future mechanics, elemental interactions, Volley, Runes and Triumphs, and evaluate proposed RNG against it before implementation. This clarifies and extends D-058 and D-062; it does not itself authorize changes to gameplay code or production.
+
+
+### D-064 — Lightweight level-clear performance snapshot (2026-11-20)
+_2026-11-20 · Accepted owner direction; dev UI committed; deployment unverified_
+
+The between-level screen should communicate overall performance at a glance and return the player to the action. Show cumulative stage score prominently and just four level indicators: level score, accuracy, WPM and peak Arcane Volley (legacy scoring may show best combo instead). Remove the dense stat grid, routine Rune award grid, scoring tutorial and journey strip from the between-level screen; preserve meaningful newly unlocked Triumph announcements, Hardcore ward carry information, held mana and next-level navigation. The end-of-stage screen is the preferred home for a more detailed performance review; expanding that screen requires separate implementation and accurate stage-level aggregates. This refines D-061/D-062 without changing scoring or Rune eligibility.
+
+
+### D-065 — End-of-stage performance review prototype (2026-11-20)
+_2026-11-20 · Owner authorized prototype; implementation committed to dev; build and preview verification pending_
+
+Keep between-level results minimal (D-064), and offer a richer review at stage completion or run end. The run-over screen now displays final score and best-run status with stage-level accuracy, WPM, words captured/missed, typing errors, best precision chain, levels cleared, elapsed time and, when recorded under Arcane scoring, peak Arcane Volley multiplier. Add optional aggregate fields to CampaignRun totals and RunSummary so older saves remain readable; aggregate peak Volley from actual level stats and avoid invented metrics. No scoring mechanics, level pacing, or production gameplay changed. Future iteration may add stage score progression and more nuanced precision consistency, but requires genuine tracked data. Files: `src/modes/CampaignMode.ts`, `src/ui/screens.ts`.
+
+
+### D-066 — Foundation-first risk retirement roadmap (2026-11-20)
+_2026-11-20 · Owner-requested roadmap; proposed prioritization; implementation not started_
+
+Before expanding systems, prioritize Arcane Volley timing correctness (including monotonic clock and bounded Flow Preservation grace), scoring/Codex/Rune consistency, deterministic regression coverage, campaign continuity, save/replay correctness, and preview/production isolation. Adopt small independently testable preview slices; implement accepted, sufficiently specified fixes without additional design meetings; escalate underspecified player-facing rules to the owner before implementation. Keep production unchanged until explicitly approved. See `docs/foundation-roadmap.md` for phases, acceptance gates, and severity classifications.
+
+
+### D-067 — Monotonic Arcane Volley Flow Preservation prototype (2026-11-20)
+_2026-11-20 · Implements accepted D-060/D-063; dev implementation committed; CI and preview playtest pending_
+
+Fix the known virtual-clock rewind bug: never decrement `volleyFlowTick`. Freeze it while no actionable words exist, and grant at most 0.4 seconds of additional frozen Volley time on the first field refill after a successful capture. Consume this allowance once per capture so repeated empty/refill cycles cannot accumulate grace. A new capture resets the allowance; incorrect captures do not earn it. Ice pauses Volley time without changing spawn rules. This is a scoped correctness prototype; verify with CI and focused manual playtesting, especially empty-field Volley ignition and repeated empty/refill cycles. Engine commit `7680c9c`; no production gameplay change.
+
+
+### D-068 — Restore live typewriter preview and ease Volley timing (2026-11-20)
+_2026-11-20 · Owner-directed prototype; dev implementation committed; CI and deployment pending_
+
+Restore a compact always-visible live transcription of the current console input on the physical typewriter. The desk scenery's higher render depth could cover the pre-existing HUD console. Show typed characters and a caret above the desk, with muted placeholder when empty and a gentle error tint for invalid prefixes; the authoritative input remains GameEngine state and no input controls change. Slightly widen the Arcane Volley timing allowance: Normal from 42 + 12 ticks/letter to 52 + 13, Hardcore from 28 + 9 to 34 + 10, preserving the two-capture ignition and Hardcore pressure. Test and tune on preview; do not change production gameplay. Files: `src/scenes/GameScene.ts`, `src/gameplay/ArcaneVolley.ts`, `src/gameplay/ArcaneVolley.test.ts`.
+
+
+### D-069 — Physical sandbox spell contracts and Temporal Flow (2026-11-20)
+_2026-11-20 · Owner-approved direction; Temporal Flow preview implemented; broader contracts provisional_
+
+Treat Time and the physical identities of all eight spells as coherent sandbox properties. Separate player input, world motion, Volley opportunity, spell duration and spawning clocks. Preserve existing spell mechanics unless an interaction is intentionally prototyped. Implement the first testable interaction: while Slow is active, the monotonic Volley clock runs at 80% normal rate (a 25% longer real-time capture opportunity); Slow stacks do not compound the Volley benefit. Player typing remains fully responsive, and Slow does not award a multiplier directly. See `docs/sandbox-interactions.md` for the full spell-by-spell default interaction contracts, current implementations and explicitly unimplemented future possibilities. Engine implementation `3318003` on dev; preview CI and manual validation pending.
+
+
+### D-070 — Deterministic Temporal Flow regression suite (2026-11-20)
+_2026-11-20 · Dev implementation committed; CI and preview validation pending_
+
+Isolate the Volley-only fractional clock in `src/gameplay/TemporalFlow.ts` and test Slow's 80% clock rate, pauses for Ice/empty field, fractional remainder across expiry, two-word Volley ignition and deterministic stepping. Keep world movement, player typing, spawning and spell durations unchanged. `GameEngine` now consumes the shared clock helper rather than maintaining a separate Slow remainder. Tests are in `src/gameplay/TemporalFlow.test.ts`; end-to-end engine overlap and manual preview playtesting remain necessary before calling this fully verified.
+
+
+### D-071 — Spell action preserves Volley; separate level and stage best streaks (2026-11-20)
+_2026-11-20 · Preview implementation; CI and manual testing pending_
+
+Successful spell casts while an active Arcane Volley multiplier is above ×1 grant a bounded 1.5-second pause of the Volley opportunity clock. This is a deliberate tactical window to cast Slow or another spell and re-engage; it does not automatically add a capture or multiplier, and repeated casts while the pause is active do not bank additional time. Failed casts do not qualify. The Level Cleared screen displays only the highest number of consecutive successful Volley captures in that level; the stage-end screen displays the best such streak across the entire stage. Stage aggregation is max, not sum. Historical saved runs may lack this new statistic and display zero until played under the new build. Production unchanged pending approval.
+
+
+### D-072 — Spell rhythm refresh and Hardcore typed-spell rewards (2026-11-20)
+_2026-11-20 · User-approved prototype; CI and gameplay verification pending_
+
+Replace the 1.5-second spell pause with an immediate Volley-window refresh when a charged spell is successfully cast during an active (greater than ×1) Volley. A spell does not add a Volley capture or raise its multiplier. Allow at most one refresh between successful word captures, preventing spell chains from sustaining Volley indefinitely. In Hardcore, a correctly typed and submitted spell name also advances the regular precision combo and earns length-based points using the existing precision-combo formula, without counting as a captured enemy, granting Volley multiplier, or advancing level quotas. Direct cast commands and corrected spell entries do not receive this typed-precision reward. Normal spells do not earn these points. Scope remains preview-only pending validation.
+
+
+### D-073 — Pressure-Driven Spell Utility (2026-11-20)
+_2026-11-20 · Core gameplay pillar approved in design discussion; no balance changes yet_
+
+A spell's mechanical identity remains consistent across difficulties, but its strategic role emerges from battlefield pressure. At low pressure, players should find offensive opportunities to use spells to build Volley, score and mastery rather than hoard charges for defense. At medium pressure, using a spell for offense versus conserving it for survival should be a genuine, legible and consequential decision. At high pressure, the same spell should naturally become a survival resource because difficult typing and dangerous field states demand defense. Slow plus Volley is the reference interaction: temporal control creates offensive scoring opportunity in easy levels, a risk/reward dilemma in medium levels, and needed protection in hard levels. Extend the design lens to other spells wherever physically intuitive, without forcing artificial offense/defense modes or changing spell behavior by difficulty. Evaluate opportunities, charge scarcity, visible threat, recovery options, and offensive payoff. Protect player agency: expert players can still choose aggressive lines in difficult encounters. This is a design target, not proof of achieved balance; validate through player tests and deterministic simulations before adjusting numbers.
+
+
+### D-076 — Spell scoring identity informs Rune and announcer themes (2026-11-20)
+_2026-11-20 · Design direction accepted; individual Rune thresholds and mechanics not yet approved_
+
+Each spell should have one primary natural offensive relationship to the scoring system, with defensive utility retained and no forced multi-system scoring bonuses. Slow's approved identity is Volley through its existing timing effect, without additional combo or points buffs. The scoring lever a player skillfully exploits through a spell should inspire the theme of associated Runes and announcer callouts. Award for demonstrated gameplay mastery rather than mere spell activation; example concept: a temporal-themed Rune for an exceptional Volley sustained during Slow. Rune names, eligibility thresholds, exclusivity and announcement priority remain proposals until reviewed spell by spell. Do not alter normal word generation, secretly award Volley captures, or invent unapproved score multipliers to trigger Runes. Keep Rune eligibility legible, deterministic, and consistent with D-058 and existing achievement rules.
+
+
+### D-077 — Ice Frostbound Focus approved; Barrier score insurance candidate (2026-11-20)
+_2026-11-20 · User-approved design; not yet implemented or deployed_
+
+Ice retains its eight-second freeze of falling words and spawning while allowing typing. Unlike the previous implementation, Volley opportunity time continues during Ice, preserving Slow's primary Volley identity. During a single freeze, successive perfectly typed word captures award enhanced Precision Combo increments of +2, +4, +8, then +8 per additional perfect word (cap +8 per word), rather than the ordinary +1. A typing mistake breaks the Frostbound Focus sequence; earned Combo persists after Ice ends; the Focus sequence resets when Ice expires. A precision-themed Rune/announcer callout should recognize mastery, with exact thresholds pending review. Audit how corrected words, Ice recasts, and overlapping freezes interact before implementation; preserve deterministic scoring and explain that Combo represents a precision reward meter, not simply literal consecutive word count. Separately, Barrier's potential offensive scoring identity is *score preservation/insurance* (possibly protecting Combo or Clean Streak); this is a candidate only, with exact rules deferred until Barrier review. No other spell changes approved here.
+
+
+### D-078 — Fire provisional risk-based base scoring and defensive alternatives (2026-11-20)
+_2026-11-20 · Tentative design only; no gameplay change authorized_
+
+Fire's provisional offensive scoring identity is danger-sensitive **base points**: words burned closer to the ward might yield a modestly higher base-point payout, with no Volley captures, Precision Combo, Clean Streak multiplication, or level progress. Exact curve, ceiling, and thresholds are not approved. Retain current full-board emergency incineration for now. The owner senses potential to improve Fire's defensive battlefield management but has not selected a change; avoid change for its own sake. Future candidate experiments: (1) Controlled Burn prioritizes dangerous words while leaving safe typing opportunities, at the cost of less reliable full-board protection; (2) Lingering Embers leaves a brief protective burn zone after clearing, subject to overlap with Barrier; (3) Combustion Chain spreads spatially among nearby words, requiring deterministic and legible targeting. Controlled Burn is the first candidate to test, not a decision. Continue spell-by-spell review without implementing Fire yet.
+
+
+### D-079 — Fire future rework favors Combustion Chain exploration (2026-11-20)
+_2026-11-20 · Deferred design exploration, not an implementation approval_
+
+The owner identifies Fire's complete predictable full-screen reset as a potential limitation. Prioritize **Combustion Chain** for a future design exploration: fire spreads among nearby words and may clear a variable portion of the field based on spatial arrangement. The amount cleared, targeting/spread rules, predictability and reliability of its defensive emergency role remain undecided. The previously tentative danger-sensitive base-score concept remains open, not finalized. Do not change Fire yet; continue the spell-by-spell review with Shock.
+
+
+### D-080 — Shock as a seeded chain-propagation scoring gamble (2026-11-20)
+_2026-11-20 · User-approved direction, mechanics/odds and scoring formula pending; no implementation yet_
+
+Shock should become the high-variance **cash-out gamble** for an existing hard-earned scoring position (Precision Combo and potentially Volley), unlike Slow's Volley opportunity-building or Ice's Combo-building. Preserve a guaranteed minimum defensive strike that claims a word and counts toward score/quota; uncertain further electrical propagation can produce exceptional upside. Favor physically intuitive chain likelihood influenced by word proximity/density, while preserving deterministic replay by using seeded RNG and visible, understandable targeting rules. Shock should not fabricate typed captures, increase Combo, or directly extend Volley. Review whether it may use existing Volley and Combo scoring together, bounded against runaway amplification; exact arc count, probabilities, payout curve, and maximum remain undecided. Avoid true unseeded randomness, hidden difficulty manipulation, and Rune triggers that depend on forced word generation. Potential Rune theme: Chain Reaction for a remarkable propagated cash-out. Do not implement before agreeing on baseline, odds, and scoring safeguards.
+
+
+### D-081 — Wind full-Ward Final Wager and cosmetic gust (2026-11-20)
+_2026-11-20 · Direction approved; once-per-level guard and numerical tuning proposed, not implemented_
+
+Wind's offensive opportunity is available **only when cast at exactly 100% Ward stability**. Such a cast should voluntarily drop Ward to a critical near-death threshold in exchange for an extraordinary temporary scoring opportunity earned by subsequent successful typing, not an immediate payout. The sacrifice does not automatically restore at effect expiry. Normal and Hardcore may differ in strictness, with Hardcore requiring near-perfect or perfect execution; exact scoring formula, threshold, duration, and mistake rules require testing. Wind cast below full Ward retains its existing defensive heal and mistake-acceleration reset, without scoring bonus. Prevent recovery-to-100% plus repeated Wind casts from farming the offensive wager; a once-per-level offensive activation is a proposed simple guard, pending owner approval and review of level boundaries. Additional Wind charges should remain useful for recovery, without allowing repeated wagers in the same eligible scope. Casting Wind should create physically intuitive **cosmetic** gust reactions: scroll sway/tilt, environment and particles respond, but scroll gameplay positions, fall speeds, target/collision geometry, word readability, and input difficulty remain unchanged; support reduced motion. Existing workshop candle reaction should be respected. No gameplay code or balance values changed in this decision record.
+
+
+### D-082 — Wind Ward scarring by Normal level / Hardcore stage (2026-11-20)
+_2026-11-20 · Owner-approved design direction; code audit completed; implementation pending_
+
+The Wind offensive Final Wager requires exactly full (100%) Ward stability. On activation, Ward is reduced to critical and its recoverable maximum is scarred below 100%, preventing repeated offensive Wind casts by healing back to full. In **Normal**, the scar and wager-used state expire at the next level boundary; in **Hardcore**, they expire only at the next stage boundary (a 20-level run). The scar's expiry restores maximum Ward *capacity*, not lost Ward stability. Additional Wind casts remain valuable defensively by healing up to the scarred cap and removing mistake-induced word acceleration, without retriggering Final Wager. Keep visual gust cosmetic and text/input stable as D-081. The exact critical post-cast Ward, scarred maximum, scoring formula/duration, and Normal/Hardcore failure rules remain for bounded preview prototyping and testing; no production changes.
+
+**Audit note:** GameEngine/InstabilityManager use instability 0=fully stable, 100=collapsed, with critical instability at >=75. CampaignMode documents Normal resetting instability each level and Hardcore carrying it across levels with recovery at 5/10/15. `SpellRegistry` currently calls `restoreWard(50)` for Wind, but CampaignMode comments describe Hardcore Wind as halving instability; audit gameplay/UI/Codex against authoritative behaviour before shipping. Persist the scar state across Hardcore levels and saves, reset at stage start; clamp every healing path, including milestone recovery, to the scarred capacity. Preserve seeded replay, score integrity, and preview/production isolation. Implementation should start with isolated state-transition tests.
+
+
+### D-083 — Progressive Wind scarring and spell-master apprenticeship (2026-11-20)
+_2026-11-20 · Owner-directed design evolution; implementation and tuning pending_
+
+**Wind supersedes the single-wager limitation in D-081/D-082 as a design direction.** Keep Wind a reusable defensive spell: subsequent charges may restore Ward up to its current scarred maximum and clear error-induced acceleration. Explore repeatable offensive All-In activation when Ward is at its **current recoverable maximum**, not necessarily the original 100%, with each offensive cast reducing both current stability to a dangerous threshold and the recoverable maximum further. The cumulative scar is the visible, physically motivated consequence of drawing extraordinary arcane power from the Ward; don't impose arbitrary once-per-level/stage use limits when natural capacity, charge supply and risk can constrain repeats. Normal scars tentatively clear at level boundaries; Hardcore scars tentatively persist through a stage, subject to progression/continuity testing. Avoid multiplicative stacking of concurrent Wind bonuses; repeated casts should replace/refresh, not compound. Preserve intuitive Wind interaction with other spells, including Harvest and Shock, under shared, deterministic scoring rules rather than special-case prohibitions. Exact wager eligibility floor, scar progression, scoring bonus and duration, cast behaviour during active wager, and failure rules remain for prototyping and playtesting. Cosmetic gust reactions must not meaningfully alter typing difficulty (D-081). No additional mana meter approved; assess existing clean-typing-based charge pool first.
+
+**Campaign / meta-game vision:** Spellbound is an apprenticeship overseen by the **Grand Wizard**, who remains the overarching mentor, announcer and narrative presence. Each spell can have a distinctive **Master Wizard** specialist who guides a stage/training course centered on that spell's physical properties, defensive and offensive uses, opportunity costs, and expressive combinations. The stage is a learning journey, not merely a linear difficulty staircase: teach through approachable situations, mentor hints, discovery opportunities, then genuine mastery tests. Defensive/offensive teaching order may differ by spell. Preserve room for unprompted player discoveries and Rune announcements; do not force a single prescribed solution or make mentors explain every combination. The current 20-level stage structure is provisional scaffolding, not a permanent narrative constraint. Character designs, stage length/order, progression gates, dialog, and mastery tests are future design tasks; no campaign restructure or gameplay code change authorized by this record.

@@ -23,8 +23,6 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.27.0';
-
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
 /** Inline colour for a spell's name in HTML screens. */
@@ -32,6 +30,43 @@ const spellStyle = (id: SpellId) => ({ style: `--spell-color: ${hex(SPELL_COLORS
 
 const stat = (label: string, value: string | number) =>
   h('div', { class: 'stat' }, h('dt', null, label), h('dd', null, String(value)));
+
+/** Session-only Rune seals: deterministic awards from verified engine statistics.
+ * No permanent collection is claimed until the Trophy Case is implemented. */
+export function earnedRuneIds(stats: GameStats): string[] {
+  return [
+    ...((stats.peakVolley ?? 0) >= 3 ? ['volley'] : []),
+    ...((stats.peakCleanStreak ?? 0) >= 10 ? ['precision'] : []),
+    ...(stats.maxCombo >= 20 ? ['chain'] : []),
+    ...(stats.completed >= 10 && stats.accuracy >= 0.98 ? ['scribe'] : []),
+  ];
+}
+
+export function sessionRuneAwards(stats: GameStats): HTMLElement {
+  const awards: Array<{ glyph: string; name: string; detail: string }> = [];
+  if ((stats.peakVolley ?? 0) >= 3)
+    awards.push({ glyph: '✦', name: 'Volley Rune', detail: `${stats.peakVolley} words in 2 seconds` });
+  if ((stats.peakCleanStreak ?? 0) >= 10)
+    awards.push({ glyph: '❖', name: 'Precision Rune', detail: `${stats.peakCleanStreak} clean words` });
+  if (stats.maxCombo >= 20)
+    awards.push({ glyph: '✧', name: 'Chain Rune', detail: `${stats.maxCombo}-word chain` });
+  if (stats.completed >= 10 && stats.accuracy >= 0.98)
+    awards.push({ glyph: '✳', name: 'Scribe Rune', detail: `${percent(stats.accuracy)} accuracy` });
+  return h('section', { class: 'rune-awards', attrs: { 'aria-label': 'Runes earned this session' } },
+    h('h3', { class: 'rune-awards-title' }, 'RUNES OF THIS SESSION'),
+    awards.length
+      ? h('div', { class: 'rune-awards-grid' }, ...awards.map((award) =>
+          h('div', { class: 'rune-award' },
+            h('span', { class: 'rune-award-seal', attrs: { 'aria-hidden': 'true' } }, award.glyph),
+            h('span', { class: 'rune-award-copy' },
+              h('strong', null, award.name),
+              h('small', null, award.detail),
+            ),
+          )))
+      : h('p', { class: 'rune-awards-empty' }, 'No Runes earned yet. Build a Volley, a clean streak, or a long chain.'),
+    h('p', { class: 'rune-awards-note' }, 'Earned Rune seals are also recorded in your Trophy Case.'),
+  );
+}
 
 // ───────────────────────── Main menu ─────────────────────────
 
@@ -43,6 +78,7 @@ export interface MainMenuActions {
   onStats(): void;
   onSpellbook(): void;
   onCodex(): void;
+  onTrophyCase(): void;
 }
 
 /** Menu entries that exist in the GDD but are built in later milestones. */
@@ -51,13 +87,15 @@ const UPCOMING: [label: string, milestone: string][] = [
 ];
 
 /** `progress`: a line about campaign progress (best scores are per stage, on the stage screen). */
-export function mainMenuScreen(actions: MainMenuActions, progress: string | null, persistent: boolean): Screen {
+export function mainMenuScreen(actions: MainMenuActions, progress: string | null, persistent: boolean, featuredTitle?: string | null, featuredRune?: { glyph: string; name: string; finish: string } | null): Screen {
   const campaign = h('button', { class: 'menu-button primary', onClick: actions.onCampaign }, 'Campaign');
 
   const element = h(
     'section',
     { class: 'screen main-menu', attrs: { 'aria-labelledby': 'title' } },
     h('h1', { class: 'game-title', attrs: { id: 'title' } }, GAME_TITLE),
+    featuredTitle ? h('p', { class: 'featured-title-banner' }, `✦ ${featuredTitle} ✦`) : null,
+    featuredRune ? h('p', { class: `featured-rune-banner finish-${featuredRune.finish}` }, h('span', { class: 'rune-award-seal', attrs: { 'aria-hidden': 'true' } }, featuredRune.glyph), ` ${featuredRune.name}`) : null,
     h(
       'nav',
       { class: 'menu-list', attrs: { 'aria-label': 'Main menu' } },
@@ -65,6 +103,7 @@ export function mainMenuScreen(actions: MainMenuActions, progress: string | null
       h('button', { class: 'menu-button', onClick: actions.onPractice }, 'Endless Practice'),
       h('button', { class: 'menu-button', onClick: actions.onSpellbook }, 'Spellbook'),
       h('button', { class: 'menu-button', onClick: actions.onCodex }, 'Codex'),
+      h('button', { class: 'menu-button', onClick: actions.onTrophyCase }, 'Trophy Case'),
       ...UPCOMING.map(([label, milestone]) =>
         h(
           'button',
@@ -81,7 +120,6 @@ export function mainMenuScreen(actions: MainMenuActions, progress: string | null
     h(
       'p',
       { class: 'footnote' },
-      `Version ${APP_VERSION} · `,
       persistent ? 'Records save in this browser' : 'Records cannot be saved in this browser',
     ),
   );
@@ -259,13 +297,15 @@ export function levelClearScreen(
   stats: GameStats,
   run: Readonly<CampaignRun>,
   onContinue: () => void,
-  extra?: HTMLElement | null,
+  _extra?: HTMLElement | null,
+  triumphUnlocks?: HTMLElement | null,
 ): Screen {
   const button = h('button', { class: 'menu-button primary', onClick: onContinue }, `Continue to level ${next.level}`);
   const healed = run.mode === 'hardcore' && HARDCORE_HEAL_LEVELS.includes(cleared.level);
   const element = h(
     'section',
-    { class: 'screen panel results won keeps-field', attrs: { role: 'dialog', 'aria-labelledby': 'clear-title' } },
+    { class: 'screen panel results apprentice-ledger won keeps-field', attrs: { role: 'dialog', 'aria-labelledby': 'clear-title' } },
+    h('p', { class: 'score-label' }, 'THE APPRENTICE\'S LEDGER'),
     h('h2', { class: 'screen-title', attrs: { id: 'clear-title' } }, `Level ${cleared.level} Cleared`),
     h('p', { class: 'screen-subtitle' }, `Stage ${run.stage} · ${cleared.name}${run.mode === 'hardcore' ? ' · Hardcore' : ''}`),
     h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Stage score'), run.score.toLocaleString()),
@@ -275,10 +315,10 @@ export function levelClearScreen(
       stat('Level score', `+${stats.score.toLocaleString()}`),
       stat('Accuracy', percent(stats.accuracy)),
       stat('WPM', Math.round(stats.wpm)),
-      stat('Missed', stats.missed),
-      stat('Best combo', `${stats.maxCombo} words · ×${stats.peakMultiplier}`),
-      stat('Clean Streak', `${stats.endCleanStreak ?? 0} (best ${stats.peakCleanStreak ?? 0})`),
-      stat('Time', formatTime(stats.elapsedMs)),
+      stat(stats.scoringModel === 'arcane' ? 'Best level Volley' : 'Best combo',
+        stats.scoringModel === 'arcane'
+          ? `${stats.peakArcaneVolleyCaptures ?? 0} words`
+          : `${stats.maxCombo} words`),
     ),
     run.mode === 'hardcore' &&
       h(
@@ -287,7 +327,7 @@ export function levelClearScreen(
         `Ward instability carried: ${Math.round(run.instability)}%${healed ? ` (healed ${HARDCORE_HEAL}%)` : ''}`,
       ),
     spellSummary(run.spellCharges),
-    extra ?? null,
+    triumphUnlocks ?? null,
     h('p', { class: 'next-up' }, `Next: Level ${next.level} · ${next.name}${isSurvival(next) ? ' · Boss' : ''}`),
     h('div', { class: 'button-row' }, button),
   );
@@ -307,6 +347,7 @@ export interface RunOverActions {
   spellWon?: SpellId | null;
   /** Shown above the buttons (the stage journey). */
   extra?: HTMLElement | null;
+  triumphUnlocks?: HTMLElement | null;
   mode?: CampaignMode;
 }
 
@@ -341,15 +382,21 @@ export function runOverScreen(
     h('h2', { class: 'screen-title', attrs: { id: 'run-title' } }, title),
     h('p', { class: 'screen-subtitle' }, subtitle),
     h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Final score'), summary.score.toLocaleString()),
+    h('h3', { class: 'rune-awards-title' }, 'STAGE PERFORMANCE'),
     h(
       'dl',
       { class: 'stat-grid' },
       stat('Accuracy', percent(summary.accuracy)),
       stat('WPM', Math.round(summary.wpm)),
-      stat('Words', summary.completed),
-      stat('Missed', summary.missed),
-      stat('Best combo', `${summary.maxCombo} words`),
-      stat('Time', formatTime(summary.elapsedMs)),
+      stat('Words captured', summary.completed),
+      stat('Words missed', summary.missed),
+      stat('Typing errors', summary.errors ?? '—'),
+      stat('Best precision chain', `${summary.maxCombo} words`),
+      ...(summary.scoringModel === 'arcane'
+        ? [stat('Best stage Volley', `${summary.peakArcaneVolleyCaptures ?? 0} words`)]
+        : []),
+      stat('Levels cleared', summary.levelsCleared),
+      stat('Time played', formatTime(summary.elapsedMs)),
     ),
     h('p', { class: outcome.isNewBest && outcome.previousBest !== null ? 'reward' : 'personal-best' }, bestLine),
     spell
@@ -360,6 +407,7 @@ export function runOverScreen(
         )
       : null,
     won && !actions.onNextStage ? h('p', { class: 'reward' }, 'Every stage of this mode is cleared. The world remembers.') : null,
+    actions.triumphUnlocks ?? null,
     actions.extra ?? null,
     h(
       'div',

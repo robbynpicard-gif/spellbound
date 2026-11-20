@@ -1,3 +1,5 @@
+import { triumphProgress } from '../gameplay/Triumphs';
+import { earnedRuneIds } from '../ui/screens';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
   applyRunResult,
@@ -74,6 +76,13 @@ export interface SaveData {
   lifetime: LifetimeStats;
   /** Spell on each number key, 1–8 (Normal quick-cast). Added within v5. */
   spellSlots: SpellId[];
+  /** Persistent Rune seal counts; additive within save version 5. */
+  runeCounts: Record<string, number>;
+  /** Cosmetic-only featured Triumph, null until selected. */
+  featuredTriumph: string | null;
+  /** Featured Rune and chosen unlocked seal finish, cosmetic only. */
+  featuredRune: string | null;
+  runeFinish: 'wax' | 'bronze' | 'silver' | 'gold';
 }
 
 export interface AudioSettings {
@@ -116,6 +125,10 @@ export function emptySave(): SaveData {
     settings: { ...DEFAULT_AUDIO },
     lifetime: emptyLifetime(),
     spellSlots: [...DISCOVERY_ORDER],
+    runeCounts: {},
+    featuredTriumph: null,
+    featuredRune: null,
+    runeFinish: 'wax',
   };
 }
 
@@ -124,6 +137,23 @@ export function parseSpellSlots(raw: unknown): SpellId[] {
   if (!Array.isArray(raw) || raw.length !== SPELL_IDS.length) return [...DISCOVERY_ORDER];
   const ok = raw.every((id) => isSpellId(id)) && new Set(raw).size === SPELL_IDS.length;
   return ok ? (raw as SpellId[]) : [...DISCOVERY_ORDER];
+}
+
+const RUNE_IDS = ['volley', 'precision', 'chain', 'scribe'] as const;
+/** Repeat Rune seals unlock cosmetic finishes at 5, 20 and 50 earned. */
+export function isRuneFinishUnlocked(count: number, finish: SaveData['runeFinish']): boolean {
+  return count >= ({ wax: 1, bronze: 5, silver: 20, gold: 50 }[finish]);
+}
+
+export function parseRuneCounts(raw: unknown): Record<string, number> {
+  const result: Record<string, number> = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return result;
+  for (const id of RUNE_IDS) {
+    const count = (raw as Record<string, unknown>)[id];
+    if (typeof count === 'number' && Number.isSafeInteger(count) && count > 0)
+      result[id] = Math.min(count, 1_000_000);
+  }
+  return result;
 }
 
 const num = (v: unknown, fallback = 0): number =>
@@ -259,6 +289,11 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
       save.settings = parseSettings(data.settings);
       save.lifetime = parseLifetime(data.lifetime);
       save.spellSlots = parseSpellSlots(data.spellSlots);
+      save.runeCounts = parseRuneCounts(data.runeCounts);
+      save.featuredTriumph = typeof data.featuredTriumph === 'string' && ['scribe', 'journey', 'victory', 'precision', 'chain', 'volley', 'alliteration', 'librarian', 'metronome', 'sweep', 'nouns', 'verbs', 'adjectives', 'adverbs', 'awakening', 'illumination', 'incantation'].includes(data.featuredTriumph) ? data.featuredTriumph : null;
+      save.featuredRune = typeof data.featuredRune === 'string' && (save.runeCounts[data.featuredRune] ?? 0) > 0 ? data.featuredRune : null;
+      save.runeFinish = ['wax', 'bronze', 'silver', 'gold'].includes(String(data.runeFinish)) ? data.runeFinish as SaveData['runeFinish'] : 'wax';
+      if (save.featuredRune && !isRuneFinishUnlocked(save.runeCounts[save.featuredRune] ?? 0, save.runeFinish)) save.runeFinish = 'wax';
     };
     if (data.version === SAVE_VERSION) {
       keepShared();
@@ -399,6 +434,43 @@ export class SaveManager {
   setSpellSlots(slots: readonly SpellId[]): void {
     this.save.spellSlots = parseSpellSlots([...slots]);
     this.write();
+  }
+
+  get featuredTriumph(): string | null { return this.save.featuredTriumph; }
+
+  /** Only unlocked Bronze-or-higher Triumphs can be displayed as a title. */
+  setFeaturedTriumph(id: string | null): void {
+    if (id !== null && !triumphProgress(this.save.lifetime).some((t) => t.id === id && t.tier > 0)) return;
+    this.save.featuredTriumph = id;
+    this.write();
+  }
+
+  get featuredRune(): string | null { return this.save.featuredRune; }
+  get runeFinish(): SaveData['runeFinish'] { return this.save.runeFinish; }
+
+  setFeaturedRune(id: string | null): void {
+    if (id !== null && (this.save.runeCounts[id] ?? 0) < 1) return;
+    this.save.featuredRune = id;
+    this.save.runeFinish = 'wax';
+    this.write();
+  }
+
+  setRuneFinish(finish: SaveData['runeFinish']): void {
+    if (!this.save.featuredRune || !isRuneFinishUnlocked(this.save.runeCounts[this.save.featuredRune] ?? 0, finish)) return;
+    this.save.runeFinish = finish;
+    this.write();
+  }
+
+  get runeCounts(): Readonly<Record<string, number>> {
+    return { ...this.save.runeCounts };
+  }
+
+  /** A completed session can earn each Rune once. Never grant on failed/abandoned Campaign levels. */
+  recordRunes(stats: GameStats): string[] {
+    const earned = earnedRuneIds(stats);
+    for (const id of earned) this.save.runeCounts[id] = Math.min(1_000_000, (this.save.runeCounts[id] ?? 0) + 1);
+    if (earned.length) this.write();
+    return earned;
   }
 
   get lifetime(): Readonly<LifetimeStats> {

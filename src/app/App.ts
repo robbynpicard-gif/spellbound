@@ -1,3 +1,4 @@
+import { triumphProgress } from '../gameplay/Triumphs';
 import { codexScreen } from '../ui/codexScreen';
 import type { WordState } from '../gameplay/Word';
 import type Phaser from 'phaser';
@@ -31,6 +32,8 @@ import type { UIRoot } from '../ui/UIRoot';
 import { CAMPAIGN_UNLOCK_ALL, PRACTICE_UNLOCK_ALL } from './flags';
 import { journeyStrip, statsScreen } from '../ui/statsScreens';
 import { spellbookScreen } from '../ui/spellbookScreen';
+import { trophyCaseScreen } from '../ui/trophyCaseScreen';
+import { triumphUnlockAnnouncement } from '../ui/triumphUnlocks';
 
 /**
  * Top-level flow between screens.
@@ -63,6 +66,7 @@ export class App {
           onOptions: () => this.showOptions(),
           onStats: () => this.showStats(),
           onSpellbook: () => this.showSpellbook(),
+          onTrophyCase: () => this.showTrophyCase(),
           onCodex: () => {
             this.showBackdrop();
             this.ui.show(codexScreen(() => this.showMainMenu()));
@@ -70,8 +74,11 @@ export class App {
         },
         this.progressLine(),
         this.save.persistent,
+        this.save.featuredTriumph ? (triumphProgress(this.save.lifetime).find((t) => t.id === this.save.featuredTriumph && t.tier > 0)?.title ?? null) : null,
+        this.save.featuredRune ? ({ volley: { glyph: '✦', name: 'Volley Rune' }, precision: { glyph: '❖', name: 'Precision Rune' }, chain: { glyph: '✧', name: 'Chain Rune' }, scribe: { glyph: '✳', name: 'Scribe Rune' } } as Record<string, { glyph: string; name: string }>)[this.save.featuredRune] ? { ...({ volley: { glyph: '✦', name: 'Volley Rune' }, precision: { glyph: '❖', name: 'Precision Rune' }, chain: { glyph: '✧', name: 'Chain Rune' }, scribe: { glyph: '✳', name: 'Scribe Rune' } } as Record<string, { glyph: string; name: string }>)[this.save.featuredRune], finish: this.save.runeFinish } : null : null,
       ),
     );
+
   }
 
   showOptions(focus: 'music' | 'sfx' | 'voice' | null = null): void {
@@ -108,6 +115,11 @@ export class App {
   showStats(): void {
     this.showBackdrop();
     this.ui.show(statsScreen(this.save.lifetime, () => this.showMainMenu()));
+  }
+
+  showTrophyCase(): void {
+    this.showBackdrop();
+    this.ui.show(trophyCaseScreen(this.save.runeCounts, this.save.lifetime, this.save.featuredTriumph, (id) => { this.save.setFeaturedTriumph(id); this.showTrophyCase(); }, this.save.featuredRune, this.save.runeFinish, (id) => { this.save.setFeaturedRune(id); this.showTrophyCase(); }, (finish) => { this.save.setRuneFinish(finish); this.showTrophyCase(); }, () => this.showMainMenu()));
   }
 
   showCredits(): void {
@@ -185,7 +197,7 @@ export class App {
   /** Testing toggle on the Campaign screen (D-055): everything open, or real progress. */
   private get unlockAll(): boolean {
     try {
-      const v = localStorage.getItem('wizzytype.unlockAll');
+      const v = localStorage.getItem('spellbound.preview.wizzytype.unlockAll');
       return v === null ? CAMPAIGN_UNLOCK_ALL : v === '1';
     } catch {
       return CAMPAIGN_UNLOCK_ALL;
@@ -194,7 +206,7 @@ export class App {
 
   private setUnlockAll(on: boolean): void {
     try {
-      localStorage.setItem('wizzytype.unlockAll', on ? '1' : '0');
+      localStorage.setItem('spellbound.preview.wizzytype.unlockAll', on ? '1' : '0');
     } catch {
       /* storage blocked: the toggle lasts this visit only */
     }
@@ -289,7 +301,10 @@ export class App {
     const run = this.run;
     if (!run) return;
     const clearedLevel = stageLevel(run.mode, run.stage, run.level);
+    const lifetimeBefore = structuredClone(this.save.lifetime);
     this.save.recordLevelStats(stats, result, { mode: 'campaign', boss: isSurvival(clearedLevel) });
+    const triumphUnlocks = triumphUnlockAnnouncement(lifetimeBefore, this.save.lifetime);
+    if (result === 'won') this.save.recordRunes(stats);
     const { runOver, victory } = recordLevel(run, result, stats, spells, instability);
     const journey = journeyStrip(run.stage, victory);
 
@@ -297,7 +312,7 @@ export class App {
       run.carryWords = words;
       this.save.setSavedRun(run);
       this.ui.show(
-        levelClearScreen(clearedLevel, stageLevel(run.mode, run.stage, run.level), stats, run, () => this.playCurrentLevel(), journey),
+        levelClearScreen(clearedLevel, stageLevel(run.mode, run.stage, run.level), stats, run, () => this.playCurrentLevel(), journey, triumphUnlocks),
       );
       return;
     }
@@ -317,6 +332,7 @@ export class App {
         onEndless: victory ? () => this.startEndless(run.mode, run.stage) : undefined,
         spellWon: victory ? spellsOfStage(run.stage).fromBoss : null,
         extra: journey,
+        triumphUnlocks,
         onMenu: () => this.showMainMenu(),
         mode: run.mode,
       }),
@@ -437,13 +453,16 @@ export class App {
     // Stop the game (so Esc can't resume it behind the results) and show the sky backdrop.
     this.showBackdrop();
     const outcome = this.save.recordPractice(pick, filter, stats);
+    const lifetimeBefore = structuredClone(this.save.lifetime);
     this.save.recordLevelStats(stats, fell ? 'lost' : 'won', { mode: 'practice' });
+    const triumphUnlocks = triumphUnlockAnnouncement(lifetimeBefore, this.save.lifetime);
+    this.save.recordRunes(stats);
     this.ui.show(
       practiceResultsScreen(where, filter, stats, outcome, fell, {
         onAgain: () => this.startPractice(pick, filter),
         onChangeLevel: () => this.showPracticeSetup(),
         onMenu: () => this.showMainMenu(),
-      }),
+      }, triumphUnlocks),
     );
   }
 

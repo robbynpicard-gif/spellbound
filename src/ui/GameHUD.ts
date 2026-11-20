@@ -8,6 +8,7 @@ import {
   streakTierOf,
   tierOf,
 } from '../gameplay/ScoringSystem';
+import { precisionComboMultiplier } from '../gameplay/PrecisionComboPrototype';
 import { FONTS, PALETTE } from '../core/GameConfig';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
 import type { GameStats } from '../gameplay/ScoringSystem';
@@ -330,7 +331,7 @@ export class GameHUD {
 
   // ───────────────────────── score, combo, accuracy ─────────────────────────
 
-  updateStats(stats: GameStats | null, combo = 0): void {
+  updateStats(stats: GameStats | null, combo = 0, precision = false): void {
     const score = this.scoreOffset + (stats?.score ?? 0);
     if (score !== this.shownScore) {
       const grew = this.shownScore >= 0 && score > this.shownScore;
@@ -346,8 +347,8 @@ export class GameHUD {
         this.scene.tweens.add({ targets: this.counterGlow, alpha: 0, duration: 400 });
       }
     }
-    const tier = tierOf(combo);
-    this.comboText.setText(`×${multiplierOf(combo)} · ${combo}`).setColor(hex(TIER_COLORS[tier]!));
+    const tier = precision ? Math.floor(combo / 10) : tierOf(combo);
+    this.comboText.setText(`×${precision ? precisionComboMultiplier(combo) : multiplierOf(combo)} · ${combo}`).setColor(hex(TIER_COLORS[Math.min(tier, TIER_COLORS.length - 1)]!));
     const acc = stats ? Math.round(stats.accuracy * 100) : 100;
     const wpm = stats ? Math.round(stats.wpm) : 0;
     this.accuracyText.setText(`${acc}% ACCURACY · ${wpm} WPM`);
@@ -363,6 +364,14 @@ export class GameHUD {
     const from = STREAK_MILESTONES[tier]!.at;
     this.streakBar.set(next ? ((count - from) / (next.at - from)) * 100 : 100, color);
     this.streakNext.setText(next ? `${next.at - count} more for ×${next.multiplier.toFixed(2)}` : 'MASTERY: highest multiplier');
+  }
+
+  /** Solo-preview scoring: replace the obsolete Clean Streak panel with Volley. */
+  setVolley(multiplier: number, combo: number): void {
+    const color = multiplier > 1 ? 0xf6d287 : LABEL;
+    this.streakText.setText(`VOLLEY ×${multiplier}`).setColor(hex(color));
+    this.streakBar.set(multiplier === 1 ? 0 : multiplier === 1.5 ? 40 : multiplier === 2 ? 70 : 100, color);
+    this.streakNext.setText(multiplier > 1 ? `ARCANE FLOW · COMBO ×${precisionComboMultiplier(combo)}` : 'TYPE FAST AND CLEAN TO IGNITE');
   }
 
   /** A setback on the Clean Streak: the panel shakes (harder for bigger losses). */

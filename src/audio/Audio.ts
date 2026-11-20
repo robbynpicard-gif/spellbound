@@ -224,14 +224,14 @@ class AudioEngine {
     const sy = this.sy, out = this.sfxBus;
     const p = this.vary(1, 0.05);
     // 1. the key goes down: a short, solid thunk with a felt-and-wood body (not a hollow boom)
-    sy.tone(out, now, 140 * p, 0.05, this.vary(0.14, 0.12), { glideTo: 95 * p, attack: 0.003, filter: { type: 'lowpass', freq: 500 } });
+    sy.tone(out, now, 128 * p, 0.075, this.vary(0.18, 0.12), { glideTo: 82 * p, attack: 0.002, filter: { type: 'lowpass', freq: 500 } });
     sy.noiseHit(out, now, 0.035, this.vary(0.2, 0.15), { type: 'bandpass', freq: 480 * p, q: 0.9 });
     // 2. the brass typebar strikes close behind: a tight metal ring and a firm click
     const strike = now + this.vary(0.012, 0.25);
-    sy.brass(out, strike, 600 * p, this.vary(0.06, 0.15), 0.15);
+    sy.brass(out, strike, 520 * p, this.vary(0.09, 0.15), 0.19);
     sy.noiseHit(out, strike, 0.012, this.vary(0.13, 0.2), { type: 'bandpass', freq: 2000 * p, q: 0.8 });
     // 3. the mechanism settles: a dense, dry knock right after
-    sy.noiseHit(out, strike + 0.01, 0.025, this.vary(0.12, 0.2), { type: 'bandpass', freq: 900 * p, q: 1.2 });
+    sy.noiseHit(out, strike + 0.01, 0.035, this.vary(0.15, 0.2), { type: 'bandpass', freq: 900 * p, q: 1.2 });
   }
 
   /** A slip of the finger: a soft, hollow wooden knock (the combo survives it). */
@@ -282,6 +282,42 @@ class AudioEngine {
     });
     if (bonuses.includes('clutch')) sy.bell(out, now + 0.05, midi(81), 0.05, 0.5, 1.8);
     if (bonuses.includes('sweep')) [0, 2, 4, 5, 7].forEach((st, k) => sy.tone(out, now + 0.1 + k * 0.06, midi(PENTA[st + 5]!), 0.6, 0.06, { type: 'sine', attack: 0.01, send: 0.5 }));
+  }
+
+  /** A rolling three-word burst: bright ink seal, then a quick ascending flourish. */
+  volley(chain: number): void {
+    if (!this.ready) return;
+    const now = this.t, sy = this.sy, out = this.sfxBus;
+    const intensity = Math.min(5, Math.max(0, chain - 3));
+    sy.noiseHit(out, now, 0.045, 0.11, { type: 'bandpass', freq: 1850 });
+    sy.brass(out, now + 0.018, 620 + intensity * 60, 0.11, 0.16);
+    for (let i = 0; i < 3; i++) {
+      sy.tone(out, now + 0.035 + i * 0.065, midi(PENTA[7 + i + intensity]!), 0.35, 0.055, { type: 'sine', attack: 0.007, send: 0.25 });
+    }
+  }
+
+  /** Preview-only Arcane Volley: restrained rising charge, a distinct ignition,
+   * and a warmer, rarer mastery accent. No extra sound on idle frames. */
+  arcaneVolley(previous: number, current: number): void {
+    if (!this.ready || current <= previous) return;
+    const now = this.t, sy = this.sy, out = this.sfxBus;
+    const ignition = previous < 2 && current >= 2;
+    const mastery = previous < 5 && current >= 5;
+    if (ignition || mastery) {
+      // A small brass release followed by an ascending arcane resonance.
+      sy.brass(out, now, mastery ? 510 : 430, 0.22, mastery ? 0.18 : 0.14);
+      [62, 69, 74, 81].forEach((n, i) => {
+        sy.tone(out, now + 0.055 + i * 0.085, midi(n + (mastery ? 12 : 0)), 0.4, 0.065,
+          { type: 'sine', attack: 0.012, send: 0.32 });
+      });
+      sy.bell(out, now + 0.37, midi(mastery ? 89 : 86), 0.07, 0.65, 2);
+    } else {
+      // Each successful charge feels like a light typebar resonance, not a
+      // second full capture flourish; higher charge lifts its pitch.
+      const step = Math.min(12, Math.max(0, Math.round((current - 1) * 3)));
+      sy.tone(out, now + 0.035, midi(PENTA[step]!), 0.18, 0.045,
+        { type: 'triangle', attack: 0.008, send: 0.18 });
+    }
   }
 
   /** A new multiplier tier: a brass stab and a bell, grander each tier, in the music's key. */
@@ -370,6 +406,20 @@ class AudioEngine {
   }
 
   /** A spell scroll captured: parchment unrolling and a rising, rounded shimmer. */
+  /** Spatial-feeling parchment flight: an airy whoosh with a soft rack landing. */
+  scrollFlight(distance = 1): void {
+    if (!this.ready) return;
+    const sy = this.sy, out = this.sfxBus, now = this.t;
+    const travel = Math.max(0.65, Math.min(1.3, distance));
+    sy.noiseHit(out, now, 0.42, 0.16 * travel,
+      { type: 'bandpass', freq: 450, to: 2900, q: 0.85 },
+      { attack: 0.11 });
+    sy.noiseHit(out, now + 0.48, 0.07, 0.12,
+      { type: 'bandpass', freq: 720, to: 380, q: 1.2 });
+    sy.tone(out, now + 0.49, 245, 0.09, 0.065,
+      { type: 'sine', attack: 0.004 });
+  }
+
   pickup(): void {
     if (!this.ready) return;
     const sy = this.sy, out = this.sfxBus, now = this.t;

@@ -1,0 +1,112 @@
+/* Development-only art exploration: enchanted brass writing instrument.
+   Visual treatment only; the original Phaser combat and input remain intact. */
+:root {
+  --color-midnight: #100e0c;
+  --color-charcoal: #221c17;
+  --color-iron: #725536;
+  --color-rust: #aa6034;
+  --color-gold: #e3bb72;
+  --color-arcane: #75b5a8;
+  --color-parchment: #f2dfb9;
+  --color-crimson: #a84232;
+  --color-crimson-text: #e48d70;
+  --font-heading: Georgia, 'Times New Roman', serif;
+  --font-ui: 'Atkinson Hyperlegible', Georgia, serif;
+}
+body {
+  background:
+    radial-gradient(ellipse at 50% 12%, #53402b 0%, #1c1713 48%, #0d0b0a 100%);
+}
+#app { filter: sepia(.08); }
+#ui-root.is-active:has(.panel) {
+  background: radial-gradient(ellipse at center, rgb(19 15 12 / .65), rgb(9 7 6 / .92));
+}
+.panel {
+  border: 3px ridge #bb9359;
+  border-radius: 13px;
+  background:
+    linear-gradient(145deg, rgb(91 65 38 / .16), transparent 40%),
+    repeating-linear-gradient(0deg, transparent 0 6px, rgb(255 229 174 / .012) 7px 8px),
+    #211a15;
+  box-shadow:
+    inset 0 0 0 2px #302319,
+    inset 0 0 0 5px rgb(224 176 99 / .13),
+    inset 0 0 48px rgb(0 0 0 / .5),
+    0 20px 60px rgb(0 0 0 / .7);
+}
+.game-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  letter-spacing: .065em;
+  text-shadow: 0 2px 0 #523419, 0 5px 0 #1a100b, 0 12px 24px #050403;
+}
+.menu-button, button {
+  transition: transform 75ms ease, box-shadow 75ms ease, background 120ms ease;
+}
+.menu-button:active, button:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 8px rgb(0 0 0 / .65);
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-button, button { transition: none; }
+}
+
+/* Typal: the menu is a parchment folio laid over the apprentice's study. */
+.main-menu {
+  position: relative;
+  padding: clamp(20px, 4vw, 42px);
+  border: 4px double #b89155;
+  border-radius: 12px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgb(236 192 116 / .17), transparent 58%),
+    repeating-linear-gradient(90deg, transparent 0 22px, rgb(238 210 152 / .012) 23px 24px),
+    linear-gradient(145deg, #30251a, #17130f 75%);
+  box-shadow: 0 25px 90px #000b, inset 0 0 0 5px #21180e, inset 0 0 0 7px #84643c;
+}
+.main-menu::before {
+  content: '✦  THE APPRENTICE\'S CHRONICLE  ✦';
+  display: block;
+  color: #d5ae71;
+  font: 13px Georgia, serif;
+  letter-spacing: .18em;
+  margin-bottom: 14px;
+}
+.main-menu .game-title {
+  font-family: Georgia, serif;
+  font-size: clamp(60px, 9vw, 100px);
+  line-height: 1;
+  color: #f1d29c;
+  letter-spacing: .14em;
+  text-shadow: 0 3px #65452c, 0 8px 22px #000;
+}
+.main-menu .menu-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(540px, 100%);
+  margin: 25px auto 0;
+}
+.main-menu .menu-button {
+  min-width: 0;
+  width: 100%;
+  border: 2px solid #a8834f;
+  border-radius: 6px;
+  background: linear-gradient(#55402a, #302216);
+  color: #f2dfb9;
+  font-family: Georgia, serif;
+  font-size: 17px;
+  box-shadow: inset 0 1px #dfb77855, 0 4px #110d0a;
+}
+.main-menu .menu-button.primary {
+  grid-column: 1 / -1;
+  background: linear-gradient(#947046, #594024);
+  font-size: 21px;
+}
+.main-menu .menu-button:hover:not(:disabled) {
+  background: linear-gradient(#8c6338, #4b321e);
+  border-color: #f2d59e;
+}
+.main-menu .footnote { color: #d0b68b; }
+@media (max-width: 520px) {
+  .main-menu .menu-list { grid-template-columns: 1fr; }
+  .main-menu .menu-button.primary { grid-column: auto; }
+}
