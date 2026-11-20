@@ -13,6 +13,13 @@ describe('Arcane Volley preview momentum',()=>{
     s=arcaneVolleyCapture(s,1380,5,false);
     expect(arcaneVolleyMultiplier(s,1380,false)).toBe(5.1);
   });
+  it('uses slightly more forgiving preview windows without removing Hardcore pressure',()=>{
+    expect(volleyWindowTicks(5,false)).toBe(117);
+    expect(volleyWindowTicks(5,true)).toBe(84);
+    let s=arcaneVolleyCapture(emptyArcaneVolley(),0,5,false);
+    s=arcaneVolleyCapture(s,110,5,false);
+    expect(arcaneVolleyMultiplier(s,110,false)).toBe(1.2);
+  });
   it('requires faster capture rhythm on Hardcore and scales with word length',()=>{
     expect(volleyWindowTicks(5,false)).toBeGreaterThan(volleyWindowTicks(5,true));
     expect(volleyWindowTicks(9,false)).toBeGreaterThan(volleyWindowTicks(3,false));
