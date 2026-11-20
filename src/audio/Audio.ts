@@ -296,6 +296,30 @@ class AudioEngine {
     }
   }
 
+  /** Preview-only Arcane Volley: restrained rising charge, a distinct ignition,
+   * and a warmer, rarer mastery accent. No extra sound on idle frames. */
+  arcaneVolley(previous: number, current: number): void {
+    if (!this.ready || current <= previous) return;
+    const now = this.t, sy = this.sy, out = this.sfxBus;
+    const ignition = previous < 2 && current >= 2;
+    const mastery = previous < 5 && current >= 5;
+    if (ignition || mastery) {
+      // A small brass release followed by an ascending arcane resonance.
+      sy.brass(out, now, mastery ? 510 : 430, 0.22, mastery ? 0.18 : 0.14);
+      [62, 69, 74, 81].forEach((n, i) => {
+        sy.tone(out, now + 0.055 + i * 0.085, midi(n + (mastery ? 12 : 0)), 0.4, 0.065,
+          { type: 'sine', attack: 0.012, send: 0.32 });
+      });
+      sy.bell(out, now + 0.37, midi(mastery ? 89 : 86), 0.07, 0.65, 2);
+    } else {
+      // Each successful charge feels like a light typebar resonance, not a
+      // second full capture flourish; higher charge lifts its pitch.
+      const step = Math.min(12, Math.max(0, Math.round((current - 1) * 3)));
+      sy.tone(out, now + 0.035, midi(PENTA[step]!), 0.18, 0.045,
+        { type: 'triangle', attack: 0.008, send: 0.18 });
+    }
+  }
+
   /** A new multiplier tier: a brass stab and a bell, grander each tier, in the music's key. */
   tierUp(tier: number): void {
     if (!this.ready) return;
