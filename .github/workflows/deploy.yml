@@ -68,6 +68,17 @@ jobs:
             echo 'Preview still contains unbuilt source entry point' >&2
             exit 1
           fi
+      - name: Preserve preview as a static Pages directory
+        run: |
+          touch production/dist/.nojekyll
+          printf 'Typal preview published from %s\\n' "$(git -C development rev-parse --short HEAD)" > production/dist/preview/health.txt
+          test -f production/dist/preview/index.html
+          test -f production/dist/preview/health.txt
+          test -f production/dist/.nojekyll
+          echo 'Pages artifact top-level:'
+          ls -la production/dist
+          echo 'Preview artifact directory:'
+          ls -la production/dist/preview
       - uses: actions/upload-pages-artifact@v3
         with:
           path: production/dist
