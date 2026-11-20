@@ -69,6 +69,11 @@ The preview main menu now offers a **WORDCRAFT LAB · PREVIEW ONLY** panel with 
 
 For a fair hands-on comparison, play the same Campaign stage and level in each mode, noting phrases earned, missed words, accuracy and whether the word selection feels natural. Existing lifetime stats are **not separated by experimental mode**, so do not interpret Trophy Case totals as A/B evidence. A dedicated per-run results comparison remains future work.
 
+## Human-play session comparison (preview)
+The Wordcraft Lab panel now shows the **last 12 completed Campaign levels or ended Practice sessions** from the current browser-page session, separated into Standard and Experimental rows. Each row shows stage/level context, captured words, missed words, grammatical phrases, phrases per 100 captures, accuracy and WPM. Data is kept only in an App-owned in-memory ring buffer: no localStorage, telemetry, or new SaveManager fields. Reloading the page clears the lab history.
+
+The comparison is **descriptive**, not a controlled trial: seeds, spell choices, run duration, and player skill can differ. For meaningful comparison use matching stage/level settings and similar play duration. The game still applies its pre-existing lifetime-stat and achievement behavior to these sessions; the *lab comparison records themselves* are separate and never added to lifetime totals. Do not interpret accumulated Trophy Case counts as A/B measurements.
+
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
 2. Expand samples and inspect early levels where 2–4 letter limits severely constrain grammatical coverage.
