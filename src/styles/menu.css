@@ -1341,3 +1341,8 @@
   color: var(--color-gold);
   text-align: left;
 }
+
+/* The Grammarian's Ledger: compact reference counters, not gameplay boosts. */
+.wordclass-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 12px 0 20px; }
+.wordclass-count { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border: 2px double #a18157; background: #eee0c1; color: #50331d; font-family: Georgia, serif; }
+.wordclass-count span { font-variant-numeric: tabular-nums; font-weight: bold; font-size: 19px; }
