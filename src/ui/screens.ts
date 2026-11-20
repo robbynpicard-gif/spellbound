@@ -315,9 +315,9 @@ export function levelClearScreen(
       stat('Level score', `+${stats.score.toLocaleString()}`),
       stat('Accuracy', percent(stats.accuracy)),
       stat('WPM', Math.round(stats.wpm)),
-      stat(stats.scoringModel === 'arcane' ? 'Peak Volley' : 'Best combo',
+      stat(stats.scoringModel === 'arcane' ? 'Best level Volley' : 'Best combo',
         stats.scoringModel === 'arcane'
-          ? `×${stats.peakArcaneVolleyMultiplier ?? 1}`
+          ? `${stats.peakArcaneVolleyCaptures ?? 0} words`
           : `${stats.maxCombo} words`),
     ),
     run.mode === 'hardcore' &&
@@ -392,8 +392,8 @@ export function runOverScreen(
       stat('Words missed', summary.missed),
       stat('Typing errors', summary.errors ?? '—'),
       stat('Best precision chain', `${summary.maxCombo} words`),
-      ...(summary.scoringModel === 'arcane' && summary.peakArcaneVolleyMultiplier !== undefined
-        ? [stat('Peak Arcane Volley', `×${summary.peakArcaneVolleyMultiplier}`)]
+      ...(summary.scoringModel === 'arcane'
+        ? [stat('Best stage Volley', `${summary.peakArcaneVolleyCaptures ?? 0} words`)]
         : []),
       stat('Levels cleared', summary.levelsCleared),
       stat('Time played', formatTime(summary.elapsedMs)),
