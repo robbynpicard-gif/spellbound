@@ -6,15 +6,12 @@ import {
   accuracyOf,
   BONUS_RATES as B,
   CLUTCH_ZONE,
-  comboAfterWrongEntry,
-  streakAfterTypo,
   streakMultiplierOf,
   streakTierOf,
   METRONOME_CV,
   METRONOME_KEYS,
   multiplierOf,
   QUICK_ZONE,
-  scoreWord,
   tierOf,
   VOLLEY_TICKS,
   wordPoints,
@@ -24,6 +21,8 @@ import {
   type GameStats,
 } from '../gameplay/ScoringSystem';
 import { wordComplexity } from '../gameplay/WordGenerator';
+import { precisionComboMultiplier, proposedWordScore } from '../gameplay/PrecisionComboPrototype';
+import { sustainedVolleyMultiplier, type FlowCapture } from '../gameplay/SustainedVolley';
 import {
   addCharge,
   poolSizeFor,
@@ -148,6 +147,8 @@ export class GameEngine {
   private readonly shortWords: readonly string[];
   private awardedLevelBonuses: Bonus[] = [];
   private peakVolley = 0;
+  private flowCaptures: FlowCapture[] = [];
+  private activeVolleyMultiplier = 1;
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
   private readonly easyGenerator: WordGenerator | null;
   private readonly log: Command[] = [];
@@ -194,7 +195,7 @@ export class GameEngine {
     this.carried = (options.initialWords ?? []).map((w) => ({ ...w, isTarget: false, typed: 0 }));
     this.s.combo = carried;
     this.s.maxCombo = carried;
-    this.s.peakMultiplier = multiplierOf(carried);
+    this.s.peakMultiplier = precisionComboMultiplier(carried);
     this.s.cleanStreak = Math.max(0, Math.floor(options.initialCleanStreak ?? 0));
     this.s.peakCleanStreak = this.s.cleanStreak;
     this.spellContext = this.createSpellContext();
@@ -552,7 +553,11 @@ export class GameEngine {
       s.errors++;
       // Clean Streak: a typo (even one fixed with Backspace) steps back one milestone (D-046).
       s.entryTypo = true;
-      this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
+      this.setCombo(0);
+      this.setCleanStreak(0, 'typo');
+      this.shrinkPool();
+      this.flowCaptures = [];
+      this.activeVolleyMultiplier = 1;
       if (attempted) this.penalize(attempted);
     }
     this.events.emit('typingError', { wordId: attempted?.id ?? this.s.targetId, char });
@@ -584,7 +589,9 @@ export class GameEngine {
     // A word already penalised for a typo in this same entry isn't penalised again.
     const guess = pinned ?? guessIntendedWord(s.words, input);
     // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
-    this.setCombo(comboAfterWrongEntry(s.combo));
+    this.setCombo(0);
+    this.flowCaptures = [];
+    this.activeVolleyMultiplier = 1;
     this.setCleanStreak(0, 'wrongEntry');
     this.shrinkPool();
     if (!guess) s.errors++;
@@ -798,23 +805,28 @@ export class GameEngine {
     const s = this.s;
     this.removeWord(word);
     s.completed++;
-    this.setCombo(s.combo + 1);
+    const perfect = word.errors === 0 && !s.entryTypo;
+    if (perfect) this.setCombo(s.combo + 1);
+    else this.setCombo(0);
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.completionTicksTotal += s.tick - word.spawnTick;
-    const multiplier = multiplierOf(s.combo);
+    const multiplier = precisionComboMultiplier(s.combo);
     // Clean Streak: a word typed with no typo adds one. The capture that reaches
     // a milestone already scores at its multiplier (D-046).
     if (word.errors === 0 && !s.entryTypo) {
       this.setCleanStreak(s.cleanStreak + 1, 'capture');
       this.growPool();
     }
-    const streak = streakMultiplierOf(s.cleanStreak);
     const bonuses = this.wordBonuses(word);
-    const points = Math.round(scoreWord(word.text.length, multiplier, bonuses, streak));
+    this.flowCaptures = this.flowCaptures.filter((capture) => s.tick - capture.tick <= 300);
+    if (perfect) this.flowCaptures.push({ tick: s.tick, letters: word.text.length });
+    else this.flowCaptures = [];
+    this.activeVolleyMultiplier = sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
+    const points = proposedWordScore(word.text.length, multiplier, this.activeVolleyMultiplier);
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
-    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: streak });
+    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: 1 });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     this.emitProgress();
     if (word.spell) this.collect(word);
@@ -826,7 +838,7 @@ export class GameEngine {
     const s = this.s;
     const spell = word.spell!;
     const stored = addCharge(s.spells, spell, this.poolLimit);
-    const overflowPoints = stored ? 0 : OVERFLOW_POINTS * multiplierOf(s.combo);
+    const overflowPoints = stored ? 0 : OVERFLOW_POINTS * precisionComboMultiplier(s.combo);
     if (overflowPoints > 0) {
       s.score += overflowPoints;
       s.overflows++;
@@ -850,6 +862,8 @@ export class GameEngine {
 
     s.missed++;
     this.setCombo(0);
+    this.flowCaptures = [];
+    this.activeVolleyMultiplier = 1;
     this.setCleanStreak(0, 'miss');
     this.shrinkPool();
     const damage = this.config.instabilityPerMiss;
@@ -893,7 +907,7 @@ export class GameEngine {
   /** A clean capture: the pool may widen a step. */
   private growPool(): void {
     const before = this.poolLimit;
-    this.s.manaStreak++;
+    this.s.manaStreak = this.s.combo;
     if (this.poolLimit !== before) this.events.emit('manaPoolChanged', { size: this.poolLimit, lost: 0, charges: { ...this.s.spells } });
   }
 
@@ -928,11 +942,11 @@ export class GameEngine {
   /** Sets the combo, reporting a change of multiplier tier. */
   private setCombo(combo: number): void {
     const s = this.s;
-    const before = tierOf(s.combo);
+    const before = Math.floor(s.combo / 10);
     s.combo = combo;
-    const after = tierOf(combo);
+    const after = Math.floor(combo / 10);
     if (after !== before) {
-      const multiplier = multiplierOf(combo);
+      const multiplier = precisionComboMultiplier(combo);
       s.peakMultiplier = Math.max(s.peakMultiplier, multiplier);
       this.events.emit('tierChanged', { tier: after, multiplier, up: after > before });
     }
@@ -959,7 +973,7 @@ export class GameEngine {
     s.recentCaptures.push(s.tick);
     const volley = s.recentCaptures.length;
     this.peakVolley = Math.max(this.peakVolley, volley);
-    if (volley >= 3) add('volley', Math.min(B.volleyMax, (volley - 2) * B.volleyPer), volley);
+    if (this.activeVolleyMultiplier > 1) add('volley', 0, volley);
 
     // Alliteration: same first letter as the previous capture.
     const first = word.match[0]!;
@@ -1133,7 +1147,7 @@ export class GameEngine {
     const words = [...this.s.words];
     if (words.length === 0) return;
     // Half base points × the combo and Clean Streak multipliers at the moment of casting.
-    const factor = multiplierOf(this.s.combo) * streakMultiplierOf(this.s.cleanStreak);
+    const factor = precisionComboMultiplier(this.s.combo);
     const points = this.claimWords(words, (w) => Math.round((wordPoints(w.text.length, 1) / 2) * factor));
     this.events.emit('wordsHarvested', { words, points });
     this.afterClaim(words);
