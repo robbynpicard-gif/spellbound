@@ -76,53 +76,39 @@ export const CODEX: CodexSection[] = [
   },
   {
     title: 'Scoring',
-    intro: `Word score = (${SCORING.pointsPerLetter} × letters × (1 + bonus %) + flat bonus) × combo multiplier × Clean Streak multiplier.`,
+    intro: 'A great score is earned through precision, rhythm and judgement. The rules can be learned; the next run cannot be predicted.',
     points: [
-      'Combo: +1 for every word captured. Score, combo and Clean Streak carry across all 20 levels of a stage.',
-      'Clean Streak: words captured in a row without a single typo.',
+      'Each letter has a base value of 10 points. Your Combo and Arcane Volley multiply that value.',
+      'For the curious: word points are rounded from letters × 10 × Combo × Volley. Understanding the formula is possible; sustaining its multipliers is the real challenge.',
+      'Combo begins at ×1 and gains ×1 for every 10 consecutive flawless captures. A typo, wrong entry or missed word breaks the precision chain.',
+      'Volley ignites after two timely flawless captures at ×1.2. Linked captures build momentum, with increasingly rare mastery beyond ×5. Longer words receive a fairer capture window.',
+      'An empty field preserves the Volley window, including its one-word buildup. A returning target offers brief re-engagement grace. Enemies and spawning do not pause.',
+      'Find your own balance between longer words, maintaining precision and keeping your rhythm. The game will not predict your future score for you.',
     ],
-    table: { head: ['Combo', 'Multiplier'], rows: TIERS.map((t, i) => [`${t.at}${TIERS[i + 1] ? `–${TIERS[i + 1]!.at - 1}` : '+'}`, `×${t.mult}`]) },
-    table2: { head: ['Clean Streak', 'Multiplier'], rows: STREAK_MILESTONES.map((m) => [`${m.at}+`, `×${m.multiplier}`]) },
+    table: {
+      head: ['Scoring art', 'Strategic consideration'],
+      rows: [
+        ['Word value', 'More letters mean more base points'],
+        ['Combo', 'Protect a flawless streak; each ten words raises its tier'],
+        ['Arcane Volley', 'Two words to ignite; sustained timely captures to grow'],
+        ['Field control', 'Clearing the field preserves your window until words return'],
+      ],
+    },
   },
   {
     title: 'Mistakes',
-    table: {
-      head: ['Mistake', 'Combo', 'Clean Streak', 'Also'],
-      rows: [
-        ['Typo (even if fixed)', 'Kept', 'Back one milestone', 'That word falls faster'],
-        ['Wrong Enter', 'Down one tier', 'Reset to 0', 'The word you meant falls faster'],
-        ['Missed word', 'Reset to 0', 'Reset to 0', 'Ward damage'],
-        ['Word stopped by Barrier', 'Kept', 'Kept', 'No damage'],
-      ],
-    },
+    points: [
+      'In the current solo scoring system, a typo, wrong entry or missed word breaks the precision chain and Volley momentum.',
+      'A missed word harms the ward unless blocked by Barrier. Mistakes can also make the targeted word fall faster.',
+    ],
   },
   {
     title: 'Bonuses',
-    intro: 'Each captured word can earn bonuses; their percentages add together before the multipliers.',
-    table: {
-      head: ['Bonus', 'How to earn it', 'Worth'],
-      rows: [
-        ['Perfect', 'No typos on the word', '+25%'],
-        ['Quick', 'Capture it in the top 30% of the field', '+20%'],
-        ['Clutch', 'Capture it in the last 15% before the ward', '+50%'],
-        ['Arcane', 'A hard word (rare letters, clusters)', '+15% per point, up to +60%'],
-        ['Long', 'A word of 9+ letters', '+20%'],
-        ['Name', 'A proper name', '+30%'],
-        ['Volley', 'Captures within 2 s of each other', '+10% per link, up to +50%'],
-        ['Alliteration', 'Captures in a row with the same first letter', '+15% per link, up to +60%'],
-        ['Librarian', 'Captures in alphabetical order', '+10% per link, up to +50%'],
-        ['Metronome', '16 keystrokes in a very even rhythm', '+15%'],
-        ['Clean Sweep', 'Empty the screen after 3+ captures', '+100 points (× multipliers)'],
-      ],
-    },
-    table2: {
-      head: ['End of level', 'How to earn it', 'Worth'],
-      rows: [
-        ['Flawless', 'No words missed', '+25% of the level’s points'],
-        ['Under Par', 'Finish the level quickly', '+15% of the level’s points'],
-        ['Comeback', 'Win after the ward fell to 25% or less', '+20% of the level’s points'],
-      ],
-    },
+    intro: 'Stylish captures, Runes and Triumphs enrich the arena, but they are not extra multipliers in the current solo word-score formula.',
+    points: [
+      'Experiment with precision, rhythm and elemental opportunities instead of chasing a projected number.',
+      'Some older Rune criteria still use historical Volley statistics and are being reconciled separately.',
+    ],
   },
 ];
 
