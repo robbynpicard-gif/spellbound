@@ -56,8 +56,9 @@ export function trophyCaseScreen(counts: Readonly<Record<string, number>>, lifet
       : 'Featured title: None'),
     featured ? h('button', { class: 'menu-button', onClick: () => onFeature(null) }, 'Clear featured title') : null,
     h('p', { class: 'rune-awards-note' }, 'Lifetime feats · each Triumph advances from Bronze to Silver to Gold.'),
+    h('p', { class: 'rune-awards-note' }, 'Rare wordcraft medals reward Alliteration, Librarian, Metronome and Clean Sweep bonuses already earned in play. No new scoring modifiers.'),
     h('div', { class: 'triumph-grid' }, ...triumphProgress(lifetime).map((t) =>
-      h('div', { class: `triumph-entry${t.tier ? ` unlocked tier-${t.tier}` : ''}` },
+      h('div', { class: `triumph-entry${t.tier ? ` unlocked tier-${t.tier}` : ''}${['alliteration', 'librarian', 'metronome', 'sweep'].includes(t.id) ? ' wordcraft-triumph' : ''}` },
         h('span', { class: 'triumph-medal', attrs: { 'aria-hidden': 'true' } }, t.tier ? t.glyph : '◇'),
         h('div', { class: 'triumph-copy' },
           h('strong', null, t.title),
