@@ -10,7 +10,6 @@ import {
   streakTierOf,
   METRONOME_CV,
   METRONOME_KEYS,
-  multiplierOf,
   QUICK_ZONE,
   VOLLEY_TICKS,
   wordPoints,
