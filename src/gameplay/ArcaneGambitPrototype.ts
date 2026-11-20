@@ -2,42 +2,38 @@ import { SeededRandom } from '../core/Random';
 import { SPELL_IDS, type SpellId } from './SpellManager';
 
 /**
- * OFFLINE DESIGN EXPERIMENT ONLY — NOT A LIVE GAMEPLAY SYSTEM.
- *
- * Arcane Gambit: a separate emergency slot-machine summon. The player spends
- * one hypothetical gambit charge to call down one random spell-bearing scroll.
- * They must still type the falling scroll to claim its spell. This module does
- * not spawn words, award charges, alter the existing spell pool or touch the
- * GameEngine's RNG. No production code imports it.
+ * OFFLINE PROTOTYPE ONLY — not wired into live gameplay.
+ * A single speculative emergency roll per Campaign stage, with no cooldown,
+ * secondary recharge system, or change to the normal spell economy.
  */
 export interface GambitState {
-  charges: number;
-  readyAtTick: number;
+  stage: number;
+  available: boolean;
 }
 
 export type GambitResult =
-  | { outcome: 'unavailable'; reason: 'cooldown' | 'no-charge'; state: GambitState }
+  | { outcome: 'unavailable'; reason: 'already-used'; state: GambitState }
   | { outcome: 'summoned'; spell: SpellId; state: GambitState };
 
-export const GAMBIT_COOLDOWN_TICKS = 90 * 60; // provisional 90 active-play seconds
+/** Start each new stage with one possible emergency summon. */
+export function startGambitStage(stage: number): GambitState {
+  if (!Number.isInteger(stage) || stage < 1) throw new RangeError('stage must be a positive integer');
+  return { stage, available: true };
+}
 
-export function attemptArcaneGambit(
-  state: Readonly<GambitState>,
-  tick: number,
-  rng: SeededRandom,
-  cooldownTicks: number = GAMBIT_COOLDOWN_TICKS,
-): GambitResult {
-  if (!Number.isInteger(tick) || tick < 0 || !Number.isInteger(cooldownTicks) || cooldownTicks < 1) {
-    throw new RangeError('tick must be nonnegative and cooldown must be positive');
-  }
-  if (!Number.isInteger(state.charges) || state.charges < 0 || !Number.isInteger(state.readyAtTick) || state.readyAtTick < 0) {
+/**
+ * The outcome is only a hypothetical spell-bearing scroll ID. No actual word
+ * is spawned and no spell is awarded; players would still have to capture it.
+ * An independent RNG ensures this roll cannot perturb ordinary word spawning.
+ */
+export function attemptArcaneGambit(state: Readonly<GambitState>, rng: SeededRandom): GambitResult {
+  if (!Number.isInteger(state.stage) || state.stage < 1 || typeof state.available !== 'boolean') {
     throw new RangeError('invalid gambit state');
   }
-  if (tick < state.readyAtTick) return { outcome: 'unavailable', reason: 'cooldown', state: { ...state } };
-  if (state.charges === 0) return { outcome: 'unavailable', reason: 'no-charge', state: { ...state } };
+  if (!state.available) return { outcome: 'unavailable', reason: 'already-used', state: { ...state } };
   return {
     outcome: 'summoned',
     spell: rng.pick(SPELL_IDS),
-    state: { charges: state.charges - 1, readyAtTick: tick + cooldownTicks },
+    state: { stage: state.stage, available: false },
   };
 }
