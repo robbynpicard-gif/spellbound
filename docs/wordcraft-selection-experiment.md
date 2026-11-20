@@ -64,6 +64,11 @@ To try it on the development preview, open `/spellbound/preview/?wordcraft=1` (f
 
 **Deployment caveat:** This link works only after the development-preview deployment includes the relevant commits. A committed feature or green CI does not by itself prove the preview has deployed. The toggle does not persist across URLs and makes no permanent save-setting changes; normal game statistics may still accrue during solo play.
 
+## Preview Wordcraft Lab menu
+The preview main menu now offers a **WORDCRAFT LAB · PREVIEW ONLY** panel with a **Try Experimental Wordcraft / Switch to Standard** control. It changes the preview URL query parameter using browser history without reloading and applies to the next solo game. This is a between-runs switch, not a mid-run generator mutation. Production paths do not show the panel and cannot activate the experiment; duels remain baseline.
+
+For a fair hands-on comparison, play the same Campaign stage and level in each mode, noting phrases earned, missed words, accuracy and whether the word selection feels natural. Existing lifetime stats are **not separated by experimental mode**, so do not interpret Trophy Case totals as A/B evidence. A dedicated per-run results comparison remains future work.
+
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
 2. Expand samples and inspect early levels where 2–4 letter limits severely constrain grammatical coverage.
