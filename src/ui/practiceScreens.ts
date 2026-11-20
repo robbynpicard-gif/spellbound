@@ -173,6 +173,7 @@ export function practiceResultsScreen(
   outcome: PracticeOutcome,
   fell: boolean,
   actions: PracticeResultsActions,
+  triumphUnlocks?: HTMLElement | null,
 ): Screen {
   const best = new Set<RecordField>(outcome.improved);
   const r = outcome.record;
@@ -223,6 +224,7 @@ export function practiceResultsScreen(
       ? 'VOLLEY NOT YET EARNED · Capture 3 words within 2 seconds to earn your first Volley bonus.'
       : `VOLLEY ACHIEVED · Your fastest burst: ${stats.peakVolley} words in 2 seconds.`),
     sessionRuneAwards(stats),
+    triumphUnlocks ?? null,
     h('p', { class: 'footnote' }, 'Practice records are kept separately from Campaign.'),
     h(
       'div',
