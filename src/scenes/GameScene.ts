@@ -217,6 +217,15 @@ export class GameScene extends Phaser.Scene {
     this.hud.setMana(totalCharges(this.engine.state.spells), this.engine.poolLimit);
     this.streakFx = new StreakFeedback(this, this.hud.streakAnchor);
     this.hud.setStreak(this.engine.state.cleanStreak);
+    // Candles and wax seals frame the combat window without obscuring words.
+    for (const x of [80, 1215]) {
+      this.add.ellipse(x, 477, 56, 12, 0x160f0b, 0.75).setDepth(28);
+      this.add.rectangle(x, 452, 19, 49, 0xd9c39a).setStrokeStyle(2, 0x8b673d).setDepth(29);
+      this.add.ellipse(x, 429, 15, 21, 0xffd47e, 0.85).setDepth(30);
+      const flame = this.add.ellipse(x, 425, 7, 15, 0xfff3b2).setDepth(31);
+      this.tweens.add({ targets: flame, scaleX: 0.68, scaleY: 1.2, alpha: 0.65, yoyo: true, repeat: -1, duration: 550 + (x % 130), ease: 'Sine.InOut' });
+      this.add.ellipse(x, 421, 42, 55, 0xffb759, 0.08).setBlendMode(Phaser.BlendModes.ADD).setDepth(27);
+    }
     // Apprentice's workstation: decorative materials stay below the ward,
     // while instruments remain outside the falling-word lanes.
     const desk = this.add.graphics().setDepth(34);
@@ -239,14 +248,14 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5).setDepth(39);
 
     // Small, high-contrast instruments at the side of the battlefield.
-    this.add.rectangle(106, 111, 194, 114, 0x23170f, 0.94).setStrokeStyle(3, 0xb58a4c).setDepth(95);
-    this.add.text(106, 72, 'APPRENTICE LEDGER', {
+    this.add.rectangle(78, 111, 142, 114, 0x23170f, 0.94).setStrokeStyle(3, 0xb58a4c).setDepth(95);
+    this.add.text(78, 72, 'ARCANE LEDGER', {
       fontFamily: 'Georgia, serif', fontSize: '13px', color: '#d4b37c',
     }).setOrigin(0.5).setDepth(96);
-    this.prototypeCombo = this.add.text(106, 100, 'CHAIN 0', {
+    this.prototypeCombo = this.add.text(78, 100, 'CHAIN 0', {
       fontFamily: 'Georgia, serif', fontSize: '19px', color: '#f1d5a1',
     }).setOrigin(0.5).setDepth(96);
-    this.volleyIndicator = this.add.text(106, 125, 'VOLLEY  0 / 3', {
+    this.volleyIndicator = this.add.text(78, 125, 'VOLLEY  0 / 3', {
       fontFamily: 'Georgia, serif', fontSize: '14px', color: '#bda580',
     }).setOrigin(0.5).setDepth(96);
     this.prototypeMeter = this.add.graphics().setDepth(96);
@@ -256,6 +265,7 @@ export class GameScene extends Phaser.Scene {
       fontFamily: 'Georgia, serif', fontSize: '40px', fontStyle: 'bold',
       color: '#f6d287', stroke: '#2b170d', strokeThickness: 6,
     }).setOrigin(0.5).setAlpha(0).setDepth(120);
+    this.add.text(1194, 630, 'SCROLLS & SIGILS', { fontFamily: 'Georgia, serif', fontSize: '13px', color: '#f0c98e' }).setOrigin(0.5).setDepth(45);
     this.refreshPrototypeInstruments();
     if (this.engine.state.barrier > 0) {
       this.background.setShield(true);
@@ -345,9 +355,9 @@ export class GameScene extends Phaser.Scene {
     this.volleyIndicator.setText(volley >= 3 ? 'VOLLEY ×' + volley + '  BONUS!' : 'VOLLEY ' + volley + ' / 3');
     this.volleyIndicator.setColor(volley >= 3 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
-    this.prototypeMeter.fillStyle(0x100c09, 1).fillRoundedRect(35, 148, 142, 7, 2);
+    this.prototypeMeter.fillStyle(0x100c09, 1).fillRoundedRect(22, 148, 112, 7, 2);
     this.prototypeMeter.fillStyle(tier >= 3 ? 0x8dd8c2 : 0xd9a75f, 1);
-    if (combo > 0) this.prototypeMeter.fillRoundedRect(35, 148, Math.max(4, 142 * Math.min(1, combo / 25)), 7, 2);
+    if (combo > 0) this.prototypeMeter.fillRoundedRect(22, 148, Math.max(4, 112 * Math.min(1, combo / 25)), 7, 2);
   }
 
   /** Swap rules and callbacks without recreating the Phaser scene or engine. */
