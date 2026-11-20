@@ -1,6 +1,7 @@
 import { GameEngine } from '../core/GameEngine';
 import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { PhraseTracker } from './PhraseTracker';
+import { ExperimentalWordcraftGenerator } from './ExperimentalWordcraftGenerator';
 
 /** Real GameEngine run with a deterministic synthetic typist.
  * No browser, Phaser, modified generator, or live gameplay changes.
@@ -17,6 +18,7 @@ export interface EngineWordcraftReport {
   maxConcurrentWords: number;
   finalStatus: string;
   replayMatched: boolean;
+  generator: 'baseline' | 'experimental';
 }
 
 export function simulateEngineWordcraft(
@@ -25,10 +27,13 @@ export function simulateEngineWordcraft(
   seed: number,
   maxTicks = 2400,
   ticksPerCharacter = 3,
+  generator: 'baseline' | 'experimental' = 'baseline',
 ): EngineWordcraftReport {
   if (!Number.isInteger(maxTicks) || maxTicks < 1) throw new RangeError('maxTicks must be positive');
   if (!Number.isInteger(ticksPerCharacter) || ticksPerCharacter < 1) throw new RangeError('ticksPerCharacter must be positive');
-  const options = { words, config, seed };
+  const options = generator === 'experimental'
+    ? { words, config, seed, experimentalWordGenerator: (bank: readonly string[], cfg: DifficultyConfig, rng: import('../core/Random').SeededRandom, trialSeed: number) => new ExperimentalWordcraftGenerator(bank, cfg, rng, trialSeed) }
+    : { words, config, seed };
   const engine = new GameEngine(options);
   const tracker = new PhraseTracker();
   let spawned = 0;
@@ -59,6 +64,6 @@ export function simulateEngineWordcraft(
   return {
     seed, ticks: engine.state.tick, spawned, captured, missed,
     phrases: Object.values(tracker.counts).reduce((sum, n) => sum + n, 0),
-    maxConcurrentWords, finalStatus: engine.status, replayMatched,
+    maxConcurrentWords, finalStatus: engine.status, replayMatched, generator,
   };
 }
