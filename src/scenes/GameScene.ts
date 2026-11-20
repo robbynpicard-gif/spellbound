@@ -433,9 +433,20 @@ export class GameScene extends Phaser.Scene {
     this.volleyIndicator.setText(volley >= 3 ? 'VOLLEY ×' + volley + '  BONUS!' : volley === 0 ? 'VOLLEY 0/3 · 2s' : 'VOLLEY ' + volley + '/3 · 2s');
     this.volleyIndicator.setColor(volley >= 3 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
+    // Two physical brass gauges: chain strength above, Volley time remaining below.
+    // Both read the engine clock, so pauses and hit-stop never desynchronise them.
     this.prototypeMeter.fillStyle(0x100c09, 1).fillRoundedRect(22, 148, 112, 7, 2);
     this.prototypeMeter.fillStyle(tier >= 3 ? 0x8dd8c2 : 0xd9a75f, 1);
     if (combo > 0) this.prototypeMeter.fillRoundedRect(22, 148, Math.max(4, 112 * Math.min(1, combo / 25)), 7, 2);
+    this.prototypeMeter.fillStyle(0x100c09, 1).fillRoundedRect(22, 160, 112, 5, 2);
+    if (recent.length > 0 && volley > 0) {
+      const oldest = recent.find((tick) => this.engine.state.tick - tick <= VOLLEY_TICKS);
+      if (oldest !== undefined) {
+        const remaining = Math.max(0, 1 - (this.engine.state.tick - oldest) / VOLLEY_TICKS);
+        this.prototypeMeter.fillStyle(volley >= 3 ? 0xf6d287 : 0x9cc8bd, 1);
+        this.prototypeMeter.fillRoundedRect(22, 160, Math.max(2, 112 * remaining), 5, 2);
+      }
+    }
   }
 
   /** Swap rules and callbacks without recreating the Phaser scene or engine. */
