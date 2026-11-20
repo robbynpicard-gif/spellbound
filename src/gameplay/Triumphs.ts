@@ -4,12 +4,12 @@ import type { LifetimeStats } from '../storage/LifetimeStats';
  * Tiers are earned once, never spent or repeatedly awarded. */
 export const TRIUMPH_TIERS = ['Bronze', 'Silver', 'Gold'] as const;
 export const TRIUMPH_DEFINITIONS = [
-  { id: 'scribe', title: 'The Patient Scribe', metric: 'wordsCaptured', targets: [100, 1000, 10000], unit: 'words captured' },
-  { id: 'journey', title: 'The Long Apprenticeship', metric: 'levelsPlayed', targets: [10, 100, 500], unit: 'levels played' },
-  { id: 'victory', title: 'Keeper of the Wards', metric: 'levelsWon', targets: [5, 50, 250], unit: 'levels won' },
-  { id: 'precision', title: 'Unbroken Quill', metric: 'bestCleanStreak', targets: [10, 25, 50], unit: 'best clean streak' },
-  { id: 'chain', title: 'Weaver of Words', metric: 'bestCombo', targets: [20, 50, 100], unit: 'best combo' },
-  { id: 'volley', title: 'Storm of Letters', metric: 'volleyBonuses', targets: [10, 100, 500], unit: 'Volley bonuses' },
+  { glyph: '✒', lore: 'Every word leaves its mark.', id: 'scribe', title: 'The Patient Scribe', metric: 'wordsCaptured', targets: [100, 1000, 10000], unit: 'words captured' },
+  { glyph: '⌛', lore: 'Every lesson becomes a legend.', id: 'journey', title: 'The Long Apprenticeship', metric: 'levelsPlayed', targets: [10, 100, 500], unit: 'levels played' },
+  { glyph: '♜', lore: 'The wards endure through your resolve.', id: 'victory', title: 'Keeper of the Wards', metric: 'levelsWon', targets: [5, 50, 250], unit: 'levels won' },
+  { glyph: '❖', lore: 'The flawless line is forged in focus.', id: 'precision', title: 'Unbroken Quill', metric: 'bestCleanStreak', targets: [10, 25, 50], unit: 'best clean streak' },
+  { glyph: '⛓', lore: 'One word binds the next.', id: 'chain', title: 'Weaver of Words', metric: 'bestCombo', targets: [20, 50, 100], unit: 'best combo' },
+  { glyph: 'ϟ', lore: 'The storm answers swift hands.', id: 'volley', title: 'Storm of Letters', metric: 'volleyBonuses', targets: [10, 100, 500], unit: 'Volley bonuses' },
 ] as const;
 
 export function triumphProgress(lifetime: Readonly<LifetimeStats>) {
@@ -32,6 +32,8 @@ export function newlyEarnedTriumphs(before: Readonly<LifetimeStats>, after: Read
     return Array.from({ length: Math.max(0, current.tier - oldTier) }, (_, i) => ({
       id: current.id,
       title: current.title,
+      glyph: current.glyph,
+      lore: current.lore,
       tier: oldTier + i + 1,
       tierName: TRIUMPH_TIERS[oldTier + i]!,
     }));
