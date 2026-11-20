@@ -166,7 +166,7 @@ export class GameEngine {
   private volleyGraceAvailable = false;
   private volleyGraceTicks = 0;
   /** Successful spell casts buy a bounded thinking window, not a free capture. */
-  private volleySpellPauseTicks = 0;
+  private volleySpellRefreshUsed = false;
   private peakArcaneVolleyCaptures = 0;
   private activeVolleyMultiplier = 1;
   private peakArcaneVolleyMultiplier = 1;
@@ -462,9 +462,8 @@ export class GameEngine {
           this.volleyFlowProtected = false;
         }
         if (s.freezeTicks === 0) {
-          const grace = this.volleyGraceTicks > 0 || this.volleySpellPauseTicks > 0;
+          const grace = this.volleyGraceTicks > 0;
           if (this.volleyGraceTicks > 0) this.volleyGraceTicks--;
-          if (this.volleySpellPauseTicks > 0) this.volleySpellPauseTicks--;
           this.volleyClock = advanceTemporalFlow(this.volleyClock, s.slowStacks.length > 0, grace);
           this.volleyFlowTick = this.volleyClock.tick;
         }
@@ -685,11 +684,18 @@ export class GameEngine {
       return;
     }
     s.spellsCast[spell]++;
-    if (this.experimentalScoring && this.arcaneVolley.lastTick !== null &&
-        this.volleyMultiplier > 1 && this.volleySpellPauseTicks === 0) {
-      // A deliberate spell action preserves earned momentum for 1.5 seconds.
-      // No multiplier is awarded and repeated casts cannot bank extra time.
-      this.volleySpellPauseTicks = Math.round(1500 / SIMULATION_STEP_MS);
+    if (this.experimentalScoring && !this.volleySpellRefreshUsed && this.volleyMultiplier > 1) {
+      // A successful spell is a rhythm action: refresh, don't pause or capture.
+      this.arcaneVolley = { ...this.arcaneVolley, lastTick: this.volleyFlowTick };
+      this.volleySpellRefreshUsed = true;
+    }
+    if (this.experimentalScoring && this.hardcore) {
+      // Hardcore rewards the typed spell as a precision combo action, not an enemy capture.
+      this.setCombo(s.combo + 1);
+      s.maxCombo = Math.max(s.maxCombo, s.combo);
+      const points = proposedWordScore(spell.length, precisionComboMultiplier(s.combo), 1);
+      s.score += points;
+      this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     }
     const elementalSpells: Partial<Record<SpellId, Element>> = { fire: 'fire', ice: 'ice', shock: 'shock', wind: 'wind' };
     const incoming = elementalSpells[spell];
@@ -893,6 +899,7 @@ export class GameEngine {
     if (perfect) this.flowCaptures.push({ tick: s.tick, letters: word.text.length });
     else this.flowCaptures = [];
     if (this.experimentalScoring) {
+      this.volleySpellRefreshUsed = false;
       this.volleyGraceAvailable = perfect;
       this.volleyGraceTicks = 0;
     }
