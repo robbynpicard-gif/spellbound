@@ -78,6 +78,22 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - **Gameplay-first:** This is an identity/story layer on top of the typing-first loop, not permission to add interruptions, mandatory exposition, forced dialogue or mechanics changes. The game should remain compelling with the voice muted.
 - Story framing, mentor characterization, exact darkness lore, stage mapping, final boss mechanics and whether/how to show the wizard outside Rune callouts remain **open for discussion**.
 
+## Narrative Round 1 — confirmed
+
+- **Darkness:** A real magical force under the Grand Wizard's control. He deliberately uses it to train **other wizards**, including the player apprentice; avoid a creepy/horror framing.
+- **Mentor arc:** The Grand Wizard begins playfully teasing the apprentice and becomes gradually, genuinely impressed as the apprentice earns **more impressive Rune feats or advances through Rune chains**. The voice remains Rune-only and should not crowd the core gameplay.
+- The eventual Grand Wizard final-boss examination remains a **possible future narrative direction**, not a committed boss design.
+
+## Rune catalogue scope refinement — confirmed direction, proposed examples
+
+- **Favor simplicity and recognizability over a sprawling catalogue.** Earlier lists of 12 candidates and equal family allocations are exploratory, not quotas or approved implementations.
+- **Spellcraft:** Aim for **one distinctive Rune or Rune chain per spell**; triggers should celebrate a meaningful feat enabled by a cast, not casting itself. Leave room for later mechanics/modifiers.
+- **Typing skill:** A small handful of especially unusual/impressive feats, plus **substantial flawless typing streaks**.
+- **Language:** Selective quirky grammar/parts-of-speech correlations or patterns, including the previously discussed noun family; don't include every possible variation.
+- **Failure/comedy:** Include some rare, memorable mishap/failure Runes that let the Grand Wizard tease the apprentice playfully, without encouraging failure farming or interrupting gameplay.
+- **Flawless level/stage examples:** A flawlessly completed level should award a Rune called **Flawless**; a flawlessly completed stage should award **Flawless Perfection**. These names and associations are user-proposed direction; the operational meaning of 'flawless' (typing errors, misses, damage, etc.) still needs a clear decision. Preserve separation from the existing level-end Flawless score bonus and ensure no redundant/double-triggered reward.
+- Prioritize earned, understandable triggers; maintain Trophy Case lifetime counts and Rune-only announcer, and avoid flooding the player with announcements.
+
 ## Still open
 
 - The first concrete Rune catalogue, measurable triggers and rarity thresholds.
