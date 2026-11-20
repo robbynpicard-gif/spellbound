@@ -87,13 +87,14 @@ const UPCOMING: [label: string, milestone: string][] = [
 ];
 
 /** `progress`: a line about campaign progress (best scores are per stage, on the stage screen). */
-export function mainMenuScreen(actions: MainMenuActions, progress: string | null, persistent: boolean): Screen {
+export function mainMenuScreen(actions: MainMenuActions, progress: string | null, persistent: boolean, featuredTitle?: string | null): Screen {
   const campaign = h('button', { class: 'menu-button primary', onClick: actions.onCampaign }, 'Campaign');
 
   const element = h(
     'section',
     { class: 'screen main-menu', attrs: { 'aria-labelledby': 'title' } },
     h('h1', { class: 'game-title', attrs: { id: 'title' } }, GAME_TITLE),
+    featuredTitle ? h('p', { class: 'featured-title-banner' }, `✦ ${featuredTitle} ✦`) : null,
     h(
       'nav',
       { class: 'menu-list', attrs: { 'aria-label': 'Main menu' } },
