@@ -290,6 +290,61 @@
   .apprentice-ledger .spell-summary { animation: none; }
 }
 
+/* Session Rune award tray: physical wax-and-brass seals, not permanent trophies. */
+.apprentice-ledger .rune-awards {
+  margin: 18px 0 12px;
+  padding: 12px 14px;
+  border-top: 2px solid #9c743f;
+  border-bottom: 2px solid #9c743f;
+  background: rgb(100 61 25 / 0.09);
+}
+.rune-awards-title {
+  margin: 0 0 10px;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  letter-spacing: 0.12em;
+  color: #74491e;
+}
+.rune-awards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  text-align: left;
+}
+.rune-award {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid rgb(111 74 36 / 0.4);
+  background: rgb(255 245 216 / 0.5);
+  animation: ledger-ink-reveal 360ms 480ms both ease-out;
+}
+.rune-award-seal {
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 3px double #d2a85d;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #b86c3d, #6e3022);
+  box-shadow: 0 2px 3px rgb(52 28 13 / 0.3);
+  color: #ffdf9d;
+  font-size: 24px;
+}
+.rune-award-copy { display: flex; flex-direction: column; min-width: 0; color: #392719; }
+.rune-award-copy strong { font-size: 14px; }
+.rune-award-copy small { font-size: 12px; color: #6b4c2e; }
+.rune-awards-empty, .rune-awards-note { margin: 6px 0; font-size: 12px; color: #6b4c2e; }
+.rune-awards-note { font-style: italic; }
+@media (max-width: 560px) {
+  .rune-awards-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rune-award { animation: none; }
+}
+
 /* Results */
 .score {
   display: flex;
