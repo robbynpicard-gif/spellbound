@@ -26,7 +26,14 @@ const game = new Phaser.Game({
   scene: [BootScene, BackdropScene, GameScene],
 });
 
-const save = new SaveManager(browserStorage(), CAMPAIGN_LEVELS.count);
+// The preview runs on the same GitHub Pages origin as production. Namespace all
+// browser storage so testing never overwrites a player's live-game progress.
+const backingStorage = browserStorage();
+const previewStorage = backingStorage && {
+  getItem: (key: string) => backingStorage.getItem('spellbound.preview.' + key),
+  setItem: (key: string, value: string) => backingStorage.setItem('spellbound.preview.' + key, value),
+};
+const save = new SaveManager(previewStorage, CAMPAIGN_LEVELS.count);
 audio.applySettings(save.audio);
 // Browsers only allow sound after the player clicks or presses a key.
 for (const type of ['pointerdown', 'pointerup', 'mousedown', 'click', 'touchend', 'keydown', 'keyup'] as const) {
