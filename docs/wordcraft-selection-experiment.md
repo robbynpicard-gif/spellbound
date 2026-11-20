@@ -57,6 +57,13 @@ The validated 12-seed baseline-versus-current-policy audit reported **0 vs 0 phr
 
 The next experiment makes the two nudging probabilities configurable **only in the offline candidate**, validates them within [0,1], and sweeps conservative (25%/50%), current (45%/80%) and aggressive (65%/95%) policies over the same twelve seeds and three stage/speed scenarios. Run `npm test -- src/gameplay/WordcraftPolicySweep.test.ts` and inspect `WORDCRAFT_POLICY_SWEEP` output. **Do not pick a winner before checking actual CI results and player-facing feel.** Production and default generator behavior are unchanged.
 
+## Development-preview opt-in trial
+The 12-seed sweep returned **middle/late phrases**: conservative **13/23**, current **44/61**, aggressive **55/81**. The tested scenarios reported no misses, recent duplicate words, initial-letter collisions or replay failures for any policy. All three returned zero early-stage phrases. The **current 45%/80% policy** is selected for the initial human trial because it offers strong middle/late gains without using the most aggressive setting; this is a provisional qualitative choice, not evidence of a global optimum.
+
+To try it on the development preview, open `/spellbound/preview/?wordcraft=1` (full URL: `https://robbynpicard-gif.github.io/spellbound/preview/?wordcraft=1`). The standard preview at `/spellbound/preview/` remains the baseline. When enabled, the game displays **WORDCRAFT LAB · EXPERIMENTAL** during play. The feature is activated only when the URL pathname contains a full `preview` segment and the query parameter is exactly `wordcraft=1`; Wizard Duels always use the baseline. The production path `/spellbound/` cannot activate it even if the parameter is supplied.
+
+**Deployment caveat:** This link works only after the development-preview deployment includes the relevant commits. A committed feature or green CI does not by itself prove the preview has deployed. The toggle does not persist across URLs and makes no permanent save-setting changes; normal game statistics may still accrue during solo play.
+
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
 2. Expand samples and inspect early levels where 2–4 letter limits severely constrain grammatical coverage.
