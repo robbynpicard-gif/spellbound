@@ -290,7 +290,7 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
       save.lifetime = parseLifetime(data.lifetime);
       save.spellSlots = parseSpellSlots(data.spellSlots);
       save.runeCounts = parseRuneCounts(data.runeCounts);
-      save.featuredTriumph = typeof data.featuredTriumph === 'string' && ['scribe', 'journey', 'victory', 'precision', 'chain', 'volley'].includes(data.featuredTriumph) ? data.featuredTriumph : null;
+      save.featuredTriumph = typeof data.featuredTriumph === 'string' && ['scribe', 'journey', 'victory', 'precision', 'chain', 'volley', 'alliteration', 'librarian', 'metronome', 'sweep', 'nouns', 'verbs', 'adjectives', 'adverbs'].includes(data.featuredTriumph) ? data.featuredTriumph : null;
       save.featuredRune = typeof data.featuredRune === 'string' && (save.runeCounts[data.featuredRune] ?? 0) > 0 ? data.featuredRune : null;
       save.runeFinish = ['wax', 'bronze', 'silver', 'gold'].includes(String(data.runeFinish)) ? data.runeFinish as SaveData['runeFinish'] : 'wax';
       if (save.featuredRune && !isRuneFinishUnlocked(save.runeCounts[save.featuredRune] ?? 0, save.runeFinish)) save.runeFinish = 'wax';
