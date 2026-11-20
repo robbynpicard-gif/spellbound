@@ -127,6 +127,7 @@ export class GameScene extends Phaser.Scene {
   /** A brief freeze of game time when a spell is cast, so the moment lands (D-045). */
   private hitStopMs = 0;
   private streakFx!: StreakFeedback;
+  private prototypeCombo!: Phaser.GameObjects.Text;
   private lastTierUpAt = -1000;
 
   constructor() {
@@ -210,6 +211,11 @@ export class GameScene extends Phaser.Scene {
     this.hud.setMana(totalCharges(this.engine.state.spells), this.engine.poolLimit);
     this.streakFx = new StreakFeedback(this, this.hud.streakAnchor);
     this.hud.setStreak(this.engine.state.cleanStreak);
+    // Temporary readable brass plate; final illustrated HUD comes later.
+    this.add.rectangle(640, 77, 320, 48, 0x211910, 0.9).setStrokeStyle(2, 0xb38b52).setDepth(95);
+    this.prototypeCombo = this.add.text(640, 77, 'SPELL CHAIN  0', {
+      fontFamily: 'Georgia, serif', fontSize: '22px', color: '#f1d5a1',
+    }).setOrigin(0.5).setDepth(96);
     if (this.engine.state.barrier > 0) {
       this.background.setShield(true);
       this.hud.setShield(this.engine.state.barrier);
@@ -284,6 +290,7 @@ export class GameScene extends Phaser.Scene {
     const alpha = this.accumulator / SIMULATION_STEP_MS;
     for (const view of this.views.values()) view.sync(alpha);
     this.hud.updateStats(this.engine.stats(), this.engine.state.combo);
+    this.prototypeCombo?.setText('SPELL CHAIN  ' + this.engine.state.combo + '  ·  TIER ' + (tierOf(this.engine.state.combo) + 1));
     const left = this.engine.survivalRemainingMs;
     if (left !== null) this.hud.setSurvival(this.config.survivalMs!, left);
   }
