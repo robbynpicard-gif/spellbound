@@ -28,7 +28,9 @@ The test logs `WORDCRAFT_CAPTURE_AUDIT` with captured, missed, classified and ph
 
 `npm test -- src/gameplay/WordcraftEngineSimulation.test.ts` checks replay and repeatability and prints `WORDCRAFT_ENGINE_AUDIT` for two typing rates. The bot is intentionally simple, not a human model: no errors, no spell casts, no reaction-time variability, and no strategic target choice beyond urgency.
 
-**Important limitation:** This real-engine harness currently evaluates the *existing baseline generator only*. The experimental Wordcraft-aware candidate is not wired into GameEngine, so the earlier proxy candidate comparisons must not be presented as real-engine head-to-head results.
+**Experimental A/B now available:** The engine has an explicit `experimentalWordGenerator` injection hook, unused by production callers. `ExperimentalWordcraftGenerator` retains the baseline seeded draw, optionally substitutes a same-length complexity-eligible word, and bases its decisions only on the prior spawned words. The engine test compares both generators with identical stage, seed, tick budget and synthetic typist, and checks each arm's replay fidelity. Inspect `WORDCRAFT_ENGINE_AB` logs for captures, misses, phrases, field concurrency and completion status.
+
+**Important limitations:** The experiment is not enabled in production. Equal seeds and bot behavior do not imply equal spawned words, fall timing or number of spawns once the sequences diverge. The candidate's replacement policy uses a separate seeded stream and its own recent-word constraints; it is not yet an approved balance change. The bot remains an intentionally simplified synthetic typist.
 
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
