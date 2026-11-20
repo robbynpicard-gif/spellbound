@@ -20,6 +20,33 @@ describe('offline Wordcraft selection experiment', () => {
     }
   });
 
+  it('reports a seeded comparison across early, middle and late campaign stages', () => {
+    const stages = [1, 3, 5] as const;
+    for (const stage of stages) {
+      const config = stageLevel('normal', stage, 10);
+      const result = simulateWordcraftSelection(WORDS, config, 20, 120);
+      const { baseline, candidate } = result;
+      const report = {
+        stage,
+        baselinePhrases: baseline.phrases,
+        candidatePhrases: candidate.phrases,
+        baselineClassified: baseline.classified,
+        candidateClassified: candidate.classified,
+        baselineComplexity: Number(baseline.averageComplexity.toFixed(3)),
+        candidateComplexity: Number(candidate.averageComplexity.toFixed(3)),
+        baselineRecentDuplicates: baseline.recentDuplicateViolations,
+        candidateRecentDuplicates: candidate.recentDuplicateViolations,
+        baselineFirstLetterCollisions: baseline.recentFirstLetterCollisions,
+        candidateFirstLetterCollisions: candidate.recentFirstLetterCollisions,
+      };
+      console.info('WORDCRAFT_STAGE_AUDIT', JSON.stringify(report));
+      expect(candidate.lengths).toEqual(baseline.lengths);
+      expect(candidate.recentDuplicateViolations).toBeLessThanOrEqual(baseline.recentDuplicateViolations);
+      expect(Number.isFinite(candidate.averageComplexity)).toBe(true);
+      expect(candidate.averageComplexity).toBeLessThanOrEqual(config.maxComplexity ?? Infinity);
+    }
+  });
+
   it('does not modify the supplied word pool or game configuration', () => {
     const pool = ['dragon', 'conjure', 'ancient', 'castle', 'quickly', 'summon'];
     const config = { minWordLength: 5, maxWordLength: 7 };
