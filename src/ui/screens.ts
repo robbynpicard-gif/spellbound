@@ -297,7 +297,7 @@ export function levelClearScreen(
   stats: GameStats,
   run: Readonly<CampaignRun>,
   onContinue: () => void,
-  extra?: HTMLElement | null,
+  _extra?: HTMLElement | null,
   triumphUnlocks?: HTMLElement | null,
 ): Screen {
   const button = h('button', { class: 'menu-button primary', onClick: onContinue }, `Continue to level ${next.level}`);
