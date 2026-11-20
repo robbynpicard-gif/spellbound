@@ -1,0 +1,187 @@
+/**
+ * Observes the engine's own events and awards Runes (prototype, D-085).
+ * Runs inside the deterministic simulation, so replays award the same Runes.
+ * Spell Runes use per-cast opportunity windows ("rune sequences").
+ */
+import type { EventBus } from '../../core/EventBus';
+import type { GameEvents } from '../../core/GameEvents';
+import { classifyWord } from '../WordClasses';
+import type { SpellId } from '../SpellManager';
+import { RUNE_BY_ID, type RuneDef } from './RuneCatalogue';
+
+export interface RuneContext {
+  tick(): number;
+  fieldHeight: number;
+  volley(): number;
+  allIn(): number;
+  wordsOnField(): number;
+  combo(): number;
+}
+
+interface SpellWindow {
+  spell: SpellId;
+  start: number;
+  /** Fixed end tick, or null while it waits for an end event. */
+  end: number | null;
+  perfect: number;
+  points: number;
+  done: Set<string>;
+  /** Fire: ids of words alive just after the cast. */
+  survivors?: Set<number>;
+  survivorCaptures?: number;
+}
+
+const TICKS = (s: number) => Math.round(s * 60);
+const TIMED: Partial<Record<SpellId, number>> = { slow: TICKS(8), alter: TICKS(8), fire: TICKS(4) };
+
+export class RuneTracker {
+  private perfectRun = 0;
+  private nouns = 0;
+  private letterRun: string[] = [];
+  private alphaRun: string[] = [];
+  private recentCaptures: number[] = [];
+  private windows: SpellWindow[] = [];
+  private allIn: { points: number; awarded: boolean } | null = null;
+
+  constructor(
+    events: EventBus<GameEvents>,
+    private readonly ctx: RuneContext,
+    private readonly award: (rune: RuneDef) => void,
+    private readonly fieldWords: () => readonly { id: number }[],
+  ) {
+    events.on('wordCompleted', (e) => this.onCapture(e.word.id, e.word.text, e.word.y, e.perfect === true, e.points, e.word.originalLength !== undefined));
+    events.on('typingError', () => this.onSlip());
+    events.on('submitMissed', () => this.onSlip());
+    events.on('wordMissed', () => this.onSlip());
+    events.on('spellCast', ({ spell }) => this.open(spell));
+    events.on('spellEnded', ({ spell }) => this.close(spell));
+    events.on('wordsShocked', ({ words }) => {
+      if (words.length >= 8) this.give('chain-8');
+      else if (words.length >= 5) this.give('chain-5');
+      this.addWindowPoints(0);
+    });
+    events.on('wordsBurned', (e) => {
+      const deepest = Math.max(0, ...(e.depths ?? [0]));
+      if (deepest >= 2) this.give('pyre');
+      const w = this.latest('fire');
+      if (w) w.survivors = new Set(this.fieldWords().map((x) => x.id));
+    });
+    events.on('wordsHarvested', ({ points, volley, allIn }) => {
+      if ((allIn ?? 1) > 1 && (volley ?? 1) >= 2) this.give('reap');
+      this.addAllIn(points);
+    });
+    events.on('wordsShocked', ({ points }) => this.addAllIn(points));
+    events.on('scoreInsured', () => {
+      if (this.ctx.combo() >= 20) this.give('unbroken');
+    });
+    events.on('windCast', ({ outcome, wagers }) => {
+      if (outcome !== 'wager') return;
+      this.allIn = { points: 0, awarded: false };
+      if (wagers === 3) this.give('thrice-scarred');
+    });
+    events.on('allInChanged', ({ active }) => {
+      if (!active) this.allIn = null;
+    });
+  }
+
+  private give(id: string): void {
+    const def = RUNE_BY_ID.get(id);
+    if (def) this.award(def);
+  }
+
+  private latest(spell: SpellId): SpellWindow | undefined {
+    for (let i = this.windows.length - 1; i >= 0; i--) if (this.windows[i]!.spell === spell) return this.windows[i];
+    return undefined;
+  }
+
+  private open(spell: SpellId): void {
+    const now = this.ctx.tick();
+    const span = TIMED[spell];
+    this.windows.push({ spell, start: now, end: span !== undefined ? now + span : null, perfect: 0, points: 0, done: new Set() });
+    if (this.windows.length > 24) this.windows.shift();
+  }
+
+  /** Untimed windows (Ice) close when their effect ends. */
+  private close(spell: SpellId): void {
+    for (const w of this.windows) if (w.spell === spell && w.end === null) w.end = this.ctx.tick();
+  }
+
+  private active(): SpellWindow[] {
+    const now = this.ctx.tick();
+    this.windows = this.windows.filter((w) => w.end === null || w.end >= now - 1);
+    return this.windows.filter((w) => w.end === null || now <= w.end);
+  }
+
+  private addWindowPoints(points: number): void {
+    for (const w of this.active()) w.points += points;
+  }
+
+  private addAllIn(points: number): void {
+    if (!this.allIn || this.allIn.awarded) return;
+    this.allIn.points += points;
+    if (this.allIn.points >= 1000) {
+      this.allIn.awarded = true;
+      this.give('final-wager');
+    }
+  }
+
+  private onSlip(): void {
+    this.perfectRun = 0;
+  }
+
+  private onCapture(id: number, text: string, y: number, perfect: boolean, points: number, altered: boolean): void {
+    const lower = text.toLowerCase();
+    const share = y / this.ctx.fieldHeight;
+    const now = this.ctx.tick();
+
+    // Typing mastery
+    if (perfect) {
+      this.perfectRun++;
+      if (this.perfectRun === 10) this.give('quill-10');
+      if (this.perfectRun === 25) this.give('quill-25');
+      if (this.perfectRun === 50) this.give('quill-50');
+      if (share >= 0.95) this.give('by-a-thread');
+      if (text.length >= 10) this.give('tome-reader');
+    }
+    if (share <= 0.1) this.give('first-light');
+    this.recentCaptures = [...this.recentCaptures.filter((t) => now - t <= TICKS(5)), now];
+    if (this.recentCaptures.length >= 5 && this.ctx.wordsOnField() === 0) {
+      this.give('clean-desk');
+      this.recentCaptures = [];
+    }
+
+    // Wordplay (from real captures)
+    this.nouns = classifyWord(lower) === 'noun' ? this.nouns + 1 : 0;
+    if (this.nouns === 2) this.give('noun-2');
+    if (this.nouns === 3) this.give('noun-3');
+    if (this.nouns === 5) this.give('noun-5');
+    this.letterRun = this.letterRun.length && this.letterRun[0]![0] === lower[0] ? [...this.letterRun, lower] : [lower];
+    if (this.letterRun.length === 3) this.give('alliterator');
+    const prev = this.alphaRun.at(-1);
+    this.alphaRun = prev !== undefined && prev < lower ? [...this.alphaRun, lower] : [lower];
+    if (this.alphaRun.length === 4) this.give('alphabetist');
+
+    // Spell rune sequences
+    this.addAllIn(points);
+    for (const w of this.active()) {
+      w.points += points;
+      if (perfect) w.perfect++;
+      if (w.spell === 'ice' && perfect) {
+        for (const [n, id] of [[3, 'frost-3'], [5, 'frost-5'], [8, 'frost-8']] as const)
+          if (w.perfect === n && !w.done.has(id)) (w.done.add(id), this.give(id));
+      }
+      if (w.spell === 'slow' && this.ctx.volley() >= 2 && !w.done.has('borrowed-time')) {
+        w.done.add('borrowed-time');
+        this.give('borrowed-time');
+      }
+      if (w.spell === 'fire' && w.survivors?.has(id)) {
+        w.survivorCaptures = (w.survivorCaptures ?? 0) + 1;
+        if (w.survivorCaptures === 3 && !w.done.has('phoenix-ash')) (w.done.add('phoenix-ash'), this.give('phoenix-ash'));
+      }
+      if (w.spell === 'alter' && perfect && altered) {
+        w.survivorCaptures = (w.survivorCaptures ?? 0) + 1;
+        if (w.survivorCaptures === 4 && !w.done.has('adaptation')) (w.done.add('adaptation'), this.give('adaptation'));
+      }
+    }
+  }
+}

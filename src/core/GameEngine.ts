@@ -29,6 +29,9 @@ import {
 import { wordComplexity } from '../gameplay/WordGenerator';
 import { precisionComboMultiplier } from '../gameplay/PrecisionComboPrototype';
 import { sustainedVolleyMultiplier, type FlowCapture } from '../gameplay/SustainedVolley';
+import { combustionChain, FIRE_TUNING, shockChain, type ChainLink } from '../gameplay/SpellChains';
+import { RuneTracker } from '../gameplay/runes/RuneTracker';
+import type { RuneDef } from '../gameplay/runes/RuneCatalogue';
 import { allInMultiplier, arcaneScore, castWind, freshWard, parseWard, tickAllIn, type WardScarState } from '../gameplay/WardScar';
 import {
   addCharge,
@@ -193,6 +196,9 @@ export class GameEngine {
   private insuredEntry = false;
   private readonly poolOverride: number | null;
   private readonly allIn = { wagers: 0, points: 0, harvests: 0, shocks: 0, typedPoints: 0 };
+  /** Typel Runes earned this level (id → count). Arcane preview only. */
+  private readonly runeCounts: Record<string, number> = {};
+  private runePoints = 0;
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
   private endlessStartedTick: number | null = null;
@@ -242,6 +248,30 @@ export class GameEngine {
     this.s.cleanStreak = Math.max(0, Math.floor(options.initialCleanStreak ?? 0));
     this.s.peakCleanStreak = this.s.cleanStreak;
     this.spellContext = this.createSpellContext();
+    if (this.experimentalScoring) {
+      new RuneTracker(
+        this.events,
+        {
+          tick: () => this.s.tick,
+          fieldHeight: this.field.height,
+          volley: () => this.volleyMultiplier,
+          allIn: () => allInMultiplier(this.ward),
+          wordsOnField: () => this.s.words.length,
+          combo: () => this.s.combo,
+        },
+        (rune) => this.awardRune(rune),
+        () => this.s.words,
+      );
+    }
+  }
+
+  /** Runes pay small fixed points, never multiplied (provisional, D-085). */
+  private awardRune(rune: RuneDef): void {
+    this.runeCounts[rune.id] = (this.runeCounts[rune.id] ?? 0) + 1;
+    this.runePoints += rune.points;
+    this.s.score += rune.points;
+    this.events.emit('runeAwarded', { id: rune.id, name: rune.name, points: rune.points, category: rune.category });
+    this.events.emit('scoreChanged', { score: this.s.score, combo: this.s.combo });
   }
 
   /** Re-run a recorded game up to `untilTick` and return the engine. */
@@ -994,7 +1024,7 @@ export class GameEngine {
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
-    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: this.experimentalScoring ? 1 : streakMultiplierOf(s.cleanStreak) });
+    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: this.experimentalScoring ? 1 : streakMultiplierOf(s.cleanStreak), perfect, volley: this.activeVolleyMultiplier });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     this.emitProgress();
     if (word.spell) this.collect(word);
@@ -1279,6 +1309,22 @@ export class GameEngine {
    */
   private burnAllWords(): void {
     const s = this.s;
+    if (this.experimentalScoring) {
+      // D-079 direction, provisional: Combustion Chain. The lower half ignites;
+      // flames leap between nearby words. Base points × (1 + 0.25 per generation);
+      // no Combo, Volley or quota.
+      const { burned, links } = combustionChain(s.words, this.field.height);
+      if (burned.length === 0) return;
+      let points = 0;
+      for (const { word, depth } of burned) {
+        this.removeWord(word);
+        points += Math.round(wordPoints(word.text.length, 1) * (1 + FIRE_TUNING.depthBonus * depth) * this.pendingElementalMultiplier);
+      }
+      s.score += points;
+      this.events.emit('wordsBurned', { words: burned.map((b) => b.word), points, depths: burned.map((b) => b.depth), links });
+      this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
+      return;
+    }
     const burned = s.words.filter((w) => w.y >= this.field.height * FIRE_MIN_DEPTH);
     if (burned.length === 0) return;
     let points = 0;
@@ -1323,6 +1369,12 @@ export class GameEngine {
       .filter((w) => w !== first)
       .sort((a, b) => dist(a) - dist(b) || a.id - b.id)
       .slice(0, arcs);
+    if (this.experimentalScoring) {
+      // D-080 direction, provisional odds: guaranteed first strike, seeded spatial chain.
+      const rng = new SeededRandom((this.seed ^ Math.imul(this.s.tick + 7, 0x85ebca6b)) >>> 0);
+      const chain = shockChain(this.s.words, first, rng);
+      return this.shockPayout(chain.struck, chain.links);
+    }
     const struck = [first, ...rest];
     if (this.experimentalScoring) {
       // Prototype cash-out: base × earned Combo × All-In; arcs unchanged (D-080 odds undecided).
@@ -1353,10 +1405,25 @@ export class GameEngine {
     s.peakInstability = Math.max(s.peakInstability, s.instability);
     if (r.outcome === 'wager') this.allIn.wagers++;
     this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
-    this.events.emit('windCast', { outcome: r.outcome, stability: r.stability, cap: r.ward.cap, scar: r.scar, endedAllIn: r.endedAllIn });
+    this.events.emit('windCast', { outcome: r.outcome, stability: r.stability, cap: r.ward.cap, scar: r.scar, endedAllIn: r.endedAllIn, wagers: r.ward.wagers });
     if (r.outcome === 'wager')
       this.events.emit('allInChanged', { active: true, ticks: r.ward.allInTicks, multiplier: allInMultiplier(r.ward), reason: 'wager' });
     else if (r.endedAllIn) this.events.emit('allInChanged', { active: false, ticks: 0, multiplier: 1, reason: 'heal' });
+  }
+
+  /** Shock cash-out: base × earned Combo × All-In; never adds Combo or Volley; counts quota. */
+  private shockPayout(struck: WordState[], links: ChainLink[]): void {
+    const base = struck.reduce((sum, w) => sum + Math.round(this.basePoints(w) * this.pendingElementalMultiplier), 0);
+    const allIn = allInMultiplier(this.ward);
+    const total = arcaneScore(base, precisionComboMultiplier(this.s.combo), 1, allIn);
+    this.claimWords(struck, () => 0);
+    this.s.score += total;
+    if (allIn > 1) {
+      this.allIn.points += total;
+      this.allIn.shocks++;
+    }
+    this.events.emit('wordsShocked', { words: struck, points: total, links });
+    this.afterClaim(struck);
   }
 
   /** Harvest: every word counts toward the quota, at half its base points. */
@@ -1474,6 +1541,8 @@ export class GameEngine {
             allInShocks: this.allIn.shocks,
             wardCap: this.ward.cap,
             wardWagers: this.ward.wagers,
+            runeCounts: { ...this.runeCounts },
+            runePoints: this.runePoints,
           }
         : {}),
     };

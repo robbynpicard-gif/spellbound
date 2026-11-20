@@ -22,7 +22,7 @@ describe('solo preview scoring integration', () => {
   it('keeps Volley at ×1 until a second timely clean capture', () => {
     const e = engine();
     capture(e);
-    expect(e.state.score).toBe(40);
+    expect(e.state.score - (e.stats().runePoints ?? 0)).toBe(40); // Runes pay fixed points on top
     expect(e.volleyMultiplier).toBe(1);
     expect(e.volleyArmedProgress).toBeGreaterThan(0);
     expect(e.state.combo).toBe(1);
@@ -31,7 +31,7 @@ describe('solo preview scoring integration', () => {
     const e = engine(9);
     capture(e);
     expect(e.state.combo).toBe(10);
-    expect(e.state.score).toBe(80);
+    expect(e.state.score - (e.stats().runePoints ?? 0)).toBe(80);
   });
   it('resets Combo immediately on an incorrect key even if corrected', () => {
     const e = engine(19);

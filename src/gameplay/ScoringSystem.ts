@@ -210,6 +210,9 @@ export interface GameStats {
   /** Ward maximum and wagers at the end of the level (Hardcore carries them). */
   wardCap?: number;
   wardWagers?: number;
+  /** Typel Runes earned this level and the fixed points they paid. */
+  runeCounts?: Record<string, number>;
+  runePoints?: number;
 }
 
 export function accuracyOf(correct: number, errors: number): number {

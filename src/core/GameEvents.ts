@@ -20,6 +20,10 @@ export interface GameEvents {
     bonuses: Bonus[];
     /** Clean Streak multiplier applied to this word (D-046). */
     streakMultiplier: number;
+    /** Arcane: captured with no typo in the entry. */
+    perfect?: boolean;
+    /** Arcane: Volley multiplier applied to this capture. */
+    volley?: number;
   };
   /** The combo multiplier moved to another tier (up on a streak; down on a wrong entry or a miss). */
   tierChanged: { tier: number; multiplier: number; up: boolean };
@@ -27,13 +31,16 @@ export interface GameEvents {
   levelBonuses: { bonuses: Bonus[]; total: number };
   wordMissed: { word: WordState; instability: number };
   /** Words destroyed by Incineration (not typed; no points, no progress). */
-  wordsBurned: { words: WordState[]; points: number };
+  /** Fire. Typel prototype adds each word's spread generation and the flame links. */
+  wordsBurned: { words: WordState[]; points: number; depths?: number[]; links?: { from: number; to: number; depth: number }[] };
   /** Words destroyed by Chain Lightning, in strike order (first = the most urgent). */
-  wordsShocked: { words: WordState[]; points: number };
+  wordsShocked: { words: WordState[]; points: number; links?: { from: number; to: number; depth: number }[] };
+  /** A Typel Rune (prototype) was earned. */
+  runeAwarded: { id: string; name: string; points: number; category: string };
   /** Words claimed by Harvest. */
   wordsHarvested: { words: WordState[]; points: number; volley?: number; allIn?: number };
   /** Wind's decision (D-084): healed toward the scarred maximum, wagered All-In, or a calm gust. */
-  windCast: { outcome: 'wager' | 'heal' | 'calm'; stability: number; cap: number; scar: number; endedAllIn: boolean };
+  windCast: { outcome: 'wager' | 'heal' | 'calm'; stability: number; cap: number; scar: number; endedAllIn: boolean; wagers: number };
   /** The All-In scoring window opened or closed. */
   allInChanged: { active: boolean; ticks: number; multiplier: number; reason: 'wager' | 'expired' | 'breach' | 'mistake' | 'heal' };
   /** Barrier absorbed a corrected typo: Combo and Volley are kept. */

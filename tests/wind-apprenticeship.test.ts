@@ -51,12 +51,14 @@ function cast(e: GameEngine, spell: string): void {
   type(e, spell);
   e.submit();
 }
+/** Score without the fixed Rune points (Runes are tested separately). */
+const pts = (e: GameEngine) => e.state.score - (e.stats().runePoints ?? 0);
 function capture(e: GameEngine): number {
   const w = [...e.state.words].sort((a, b) => b.y - a.y)[0]!;
-  const before = e.state.score;
+  const before = pts(e);
   type(e, w.match);
   e.submit();
-  return e.state.score - before;
+  return pts(e) - before;
 }
 
 /** Type the first letter, slip, Backspace, finish: a corrected capture. */
@@ -179,9 +181,9 @@ describe('Harvest, Shock, Ice, Barrier, Alter (Arcane preview)', () => {
     const base = e.state.words.reduce((sum, w) => sum + w.text.length * 10, 0);
     const combo = e.state.combo;
     const completed = e.state.completed;
-    const before = e.state.score;
+    const before = pts(e);
     cast(e, 'harvest');
-    expect(e.state.score - before).toBe(Math.round(base * 3 * 1.2 * 2));
+    expect(pts(e) - before).toBe(Math.round(base * 3 * 1.2 * 2));
     expect(e.state.combo).toBe(combo);
     expect(e.volleyMultiplier).toBe(1);
     expect(e.state.completed).toBe(completed + 3);
@@ -247,10 +249,10 @@ describe('Harvest, Shock, Ice, Barrier, Alter (Arcane preview)', () => {
     cast(e, 'alter');
     const changed = e.state.words.find((w) => w.originalLength !== undefined)!;
     expect(changed.text.length).toBeLessThan(changed.originalLength!);
-    const before = e.state.score;
+    const before = pts(e);
     type(e, changed.match);
     e.submit();
-    expect(e.state.score - before).toBe(changed.originalLength! * 10);
+    expect(pts(e) - before).toBe(changed.originalLength! * 10);
   });
 });
 
