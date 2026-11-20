@@ -1,5 +1,6 @@
 import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { simulateEngineWordcraft, type EngineWordcraftReport } from './WordcraftEngineSimulation';
+import type { WordcraftPolicy } from './ExperimentalWordcraftGenerator';
 
 export interface WordcraftBatchScenario {
   name: string;
@@ -51,12 +52,13 @@ export function auditEngineWordcraftBatch(
   scenarios: readonly WordcraftBatchScenario[],
   seeds: readonly number[],
   maxTicks = 1800,
+  policy?: Readonly<WordcraftPolicy>,
 ): WordcraftBatchRow[] {
   return scenarios.map((scenario) => {
     const baseline = seeds.map((seed) =>
       simulateEngineWordcraft(words, scenario.config, seed, maxTicks, scenario.ticksPerCharacter, 'baseline'));
     const experimental = seeds.map((seed) =>
-      simulateEngineWordcraft(words, scenario.config, seed, maxTicks, scenario.ticksPerCharacter, 'experimental'));
+      simulateEngineWordcraft(words, scenario.config, seed, maxTicks, scenario.ticksPerCharacter, 'experimental', policy));
     const a = total(baseline);
     const b = total(experimental);
     const per100 = (numerator: number, denominator: number) => denominator ? 100 * numerator / denominator : 0;
