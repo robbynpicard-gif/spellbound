@@ -39,6 +39,14 @@ The default regression matrix compares six seeds across early/fast, middle/stand
 
 The test enforces replay integrity and basic metric consistency, **not** a preselected improvement. It must not fail merely because an experiment produces fewer phrases; that is an evaluation result, not a software defect.
 
+## Acceptance screening (not rollout authorization)
+The batch report now includes normalized rates per 100 captured words or spawned words. The preliminary gate is:
+- **Insufficient data** if either arm has fewer than 100 captures.
+- **Reject** if phrase rate does not improve, miss rate increases by more than 2 percentage points, initial-letter collision rate increases by more than 2 percentage points, or recent duplicate-word counts increase.
+- **Review** only when none of those conditions apply. Review does **not** imply approval to ship; the thresholds are provisional and must be revisited with larger samples and human playtests.
+
+**CI discovery correction:** The Vite test configuration previously discovered only `tests/**/*.test.ts`, excluding source-level Wordcraft tests. It now includes `src/**/*.test.ts`. Earlier green checks therefore did not establish that the Wordcraft source-level tests actually ran. Verify new CI runs before treating any A/B results as validated.
+
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
 2. Expand samples and inspect early levels where 2–4 letter limits severely constrain grammatical coverage.
