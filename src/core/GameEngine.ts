@@ -12,7 +12,6 @@ import {
   METRONOME_KEYS,
   multiplierOf,
   QUICK_ZONE,
-  tierOf,
   VOLLEY_TICKS,
   wordPoints,
   wpmOf,
@@ -822,6 +821,7 @@ export class GameEngine {
     if (perfect) this.flowCaptures.push({ tick: s.tick, letters: word.text.length });
     else this.flowCaptures = [];
     this.activeVolleyMultiplier = sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
+    if (this.activeVolleyMultiplier > 1 && !bonuses.some((b) => b.id === 'volley')) bonuses.push({ id: 'volley', count: this.flowCaptures.length, rate: 0, points: 0 });
     const points = proposedWordScore(word.text.length, multiplier, this.activeVolleyMultiplier);
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
@@ -973,7 +973,7 @@ export class GameEngine {
     s.recentCaptures.push(s.tick);
     const volley = s.recentCaptures.length;
     this.peakVolley = Math.max(this.peakVolley, volley);
-    if (this.activeVolleyMultiplier > 1) add('volley', 0, volley);
+    // Volley is now a separate sustained-flow multiplier, not a score bonus.
 
     // Alliteration: same first letter as the previous capture.
     const first = word.match[0]!;
