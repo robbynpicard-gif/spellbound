@@ -18,6 +18,9 @@ export const TRIUMPH_DEFINITIONS = [
   { glyph: '➶', lore: 'Every action begins with a word.', id: 'verbs', title: 'The Spell of Action', metric: 'verbCaptures', targets: [10, 50, 200], unit: 'classified verbs' },
   { glyph: '❀', lore: 'Color the world with precise language.', id: 'adjectives', title: 'The Illuminator', metric: 'adjectiveCaptures', targets: [10, 50, 200], unit: 'classified adjectives' },
   { glyph: '◷', lore: 'Master the manner of every motion.', id: 'adverbs', title: 'The Subtle Scribe', metric: 'adverbCaptures', targets: [5, 25, 100], unit: 'classified adverbs' },
+  { glyph: '⚔', lore: 'A name awakens an action.', id: 'awakening', title: 'The Awakening', metric: 'awakeningPhrases', targets: [3, 15, 60], unit: 'noun → verb phrases' },
+  { glyph: '✧', lore: 'The description illuminates its subject.', id: 'illumination', title: 'The Illuminated Phrase', metric: 'illuminationPhrases', targets: [3, 15, 60], unit: 'adjective → noun phrases' },
+  { glyph: '✦', lore: 'Manner and motion become one.', id: 'incantation', title: 'The Precise Incantation', metric: 'incantationPhrases', targets: [3, 15, 60], unit: 'adverb → verb phrases' },
 ] as const;
 
 export function triumphProgress(lifetime: Readonly<LifetimeStats>) {
@@ -31,6 +34,9 @@ export function triumphProgress(lifetime: Readonly<LifetimeStats>) {
       : definition.metric === 'verbCaptures' ? (lifetime.wordClassCounts.verb ?? 0)
       : definition.metric === 'adjectiveCaptures' ? (lifetime.wordClassCounts.adjective ?? 0)
       : definition.metric === 'adverbCaptures' ? (lifetime.wordClassCounts.adverb ?? 0)
+      : definition.metric === 'awakeningPhrases' ? (lifetime.phraseCounts.awakening ?? 0)
+      : definition.metric === 'illuminationPhrases' ? (lifetime.phraseCounts.illumination ?? 0)
+      : definition.metric === 'incantationPhrases' ? (lifetime.phraseCounts.incantation ?? 0)
       : lifetime[definition.metric];
     const tier = definition.targets.filter((target) => value >= target).length;
     const next = tier < definition.targets.length ? definition.targets[tier] : null;
