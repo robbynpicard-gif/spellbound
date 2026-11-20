@@ -1,3 +1,4 @@
+import { triumphProgress } from '../gameplay/Triumphs';
 import { codexScreen } from '../ui/codexScreen';
 import type { WordState } from '../gameplay/Word';
 import type Phaser from 'phaser';
@@ -73,6 +74,7 @@ export class App {
         },
         this.progressLine(),
         this.save.persistent,
+        this.save.featuredTriumph ? (triumphProgress(this.save.lifetime).find((t) => t.id === this.save.featuredTriumph && t.tier > 0)?.title ?? null) : null,
       ),
     );
   }
