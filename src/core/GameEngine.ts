@@ -165,6 +165,9 @@ export class GameEngine {
   /** One re-engagement grace per successful capture, never a clock rewind. */
   private volleyGraceAvailable = false;
   private volleyGraceTicks = 0;
+  /** Successful spell casts buy a bounded thinking window, not a free capture. */
+  private volleySpellPauseTicks = 0;
+  private peakArcaneVolleyCaptures = 0;
   private activeVolleyMultiplier = 1;
   private peakArcaneVolleyMultiplier = 1;
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
@@ -459,8 +462,9 @@ export class GameEngine {
           this.volleyFlowProtected = false;
         }
         if (s.freezeTicks === 0) {
-          const grace = this.volleyGraceTicks > 0;
-          if (grace) this.volleyGraceTicks--;
+          const grace = this.volleyGraceTicks > 0 || this.volleySpellPauseTicks > 0;
+          if (this.volleyGraceTicks > 0) this.volleyGraceTicks--;
+          if (this.volleySpellPauseTicks > 0) this.volleySpellPauseTicks--;
           this.volleyClock = advanceTemporalFlow(this.volleyClock, s.slowStacks.length > 0, grace);
           this.volleyFlowTick = this.volleyClock.tick;
         }
@@ -681,6 +685,12 @@ export class GameEngine {
       return;
     }
     s.spellsCast[spell]++;
+    if (this.experimentalScoring && this.arcaneVolley.lastTick !== null &&
+        this.volleyMultiplier > 1 && this.volleySpellPauseTicks === 0) {
+      // A deliberate spell action preserves earned momentum for 1.5 seconds.
+      // No multiplier is awarded and repeated casts cannot bank extra time.
+      this.volleySpellPauseTicks = Math.round(1500 / SIMULATION_STEP_MS);
+    }
     const elementalSpells: Partial<Record<SpellId, Element>> = { fire: 'fire', ice: 'ice', shock: 'shock', wind: 'wind' };
     const incoming = elementalSpells[spell];
     this.pendingElementalMultiplier = 1;
@@ -892,7 +902,11 @@ export class GameEngine {
     this.activeVolleyMultiplier = this.experimentalScoring
       ? arcaneVolleyMultiplier(this.arcaneVolley, this.volleyFlowTick, this.hardcore)
       : sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
-    if (this.experimentalScoring) this.peakArcaneVolleyMultiplier = Math.max(this.peakArcaneVolleyMultiplier, this.activeVolleyMultiplier);
+    if (this.experimentalScoring) {
+      this.peakArcaneVolleyMultiplier = Math.max(this.peakArcaneVolleyMultiplier, this.activeVolleyMultiplier);
+      if (this.activeVolleyMultiplier > 1)
+        this.peakArcaneVolleyCaptures = Math.max(this.peakArcaneVolleyCaptures, this.arcaneVolley.captures);
+    }
     if (this.experimentalScoring && this.activeVolleyMultiplier > 1 && !bonuses.some((b) => b.id === 'volley')) bonuses.push({ id: 'volley', count: this.flowCaptures.length, rate: 0, points: 0 });
     const points = this.experimentalScoring
       ? proposedWordScore(word.text.length, multiplier, this.activeVolleyMultiplier)
@@ -1295,6 +1309,7 @@ export class GameEngine {
       peakMultiplier: s.peakMultiplier,
       scoringModel: this.experimentalScoring ? 'arcane' : 'legacy',
       peakArcaneVolleyMultiplier: this.experimentalScoring ? this.peakArcaneVolleyMultiplier : undefined,
+      peakArcaneVolleyCaptures: this.experimentalScoring ? this.peakArcaneVolleyCaptures : undefined,
       endArcaneVolleyMultiplier: this.experimentalScoring ? this.volleyMultiplier : undefined,
       bonusCounts: { ...s.bonusCounts },
       levelBonuses: [...this.awardedLevelBonuses],
