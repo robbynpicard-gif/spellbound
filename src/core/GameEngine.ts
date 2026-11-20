@@ -643,8 +643,9 @@ export class GameEngine {
 
     // 2. A spell name: cast it.
     if (isSpellId(input)) {
+      const cleanSpell = !s.entryTypo;
       this.resetInput(true);
-      return this.castSpell(input, true);
+      return this.castSpell(input, cleanSpell);
     }
 
     // 3. Anything else is an incomplete or misspelled word:
@@ -677,7 +678,7 @@ export class GameEngine {
     this.emitInput();
   }
 
-  private castSpell(spell: SpellId, typed = false): void {
+  private castSpell(spell: SpellId, cleanTyped = false): void {
     const s = this.s;
     if (!consumeCharge(s.spells, spell)) {
       this.events.emit('spellFizzled', { spell });
@@ -689,7 +690,7 @@ export class GameEngine {
       this.arcaneVolley = { ...this.arcaneVolley, lastTick: this.volleyFlowTick };
       this.volleySpellRefreshUsed = true;
     }
-    if (this.experimentalScoring && this.hardcore && typed && !s.entryTypo) {
+    if (this.experimentalScoring && this.hardcore && cleanTyped) {
       // Hardcore rewards the typed spell as a precision combo action, not an enemy capture.
       this.setCombo(s.combo + 1);
       s.maxCombo = Math.max(s.maxCombo, s.combo);
