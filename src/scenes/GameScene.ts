@@ -136,6 +136,7 @@ export class GameScene extends Phaser.Scene {
   private volleyCallout!: Phaser.GameObjects.Text;
   private lastTierUpAt = -1000;
   private readonly workshopCandles: Array<(lit: boolean) => void> = [];
+  private readonly scrollSeals: Phaser.GameObjects.Arc[] = [];
 
   constructor() {
     super(GameScene.KEY);
@@ -162,6 +163,7 @@ export class GameScene extends Phaser.Scene {
     });
     this.views.clear();
     this.workshopCandles.length = 0;
+    this.scrollSeals.length = 0;
     this.accumulator = 0;
     this.introRemainingMs = this.duel ? 0 : INTRO_MS;
     this.paused = false;
@@ -287,6 +289,20 @@ export class GameScene extends Phaser.Scene {
       color: '#f6d287', stroke: '#2b170d', strokeThickness: 6,
     }).setOrigin(0.5).setAlpha(0).setDepth(120);
     this.add.text(1194, 630, 'SCROLLS & SIGILS', { fontFamily: 'Georgia, serif', fontSize: '13px', color: '#f0c98e' }).setOrigin(0.5).setDepth(45);
+    // Eight wax seals provide a physical glanceable inventory below the rack.
+    // Their colours are the actual spell colours, dimmed when no scroll is held.
+    SPELL_IDS.forEach((spell, i) => {
+      const x = 1121 + (i % 4) * 43;
+      const y = 654 + Math.floor(i / 4) * 32;
+      this.add.circle(x, y, 13, 0x39271b).setStrokeStyle(1.5, 0x8e6c45).setDepth(45);
+      const seal = this.add.circle(x, y, 9, SPELL_COLORS[spell], 0.2).setDepth(46);
+      this.scrollSeals.push(seal);
+      this.add.text(x, y, String(i + 1), {
+        fontFamily: 'Georgia, serif', fontSize: '11px',
+        color: '#f8e5c5', stroke: '#2d1c12', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(47);
+    });
+    this.refreshScrollSeals(this.engine.state.spells);
     this.refreshPrototypeInstruments();
     if (this.engine.state.barrier > 0) {
       this.background.setShield(true);
@@ -365,6 +381,16 @@ export class GameScene extends Phaser.Scene {
     this.refreshPrototypeInstruments();
     const left = this.engine.survivalRemainingMs;
     if (left !== null) this.hud.setSurvival(this.config.survivalMs!, left);
+  }
+
+  private refreshScrollSeals(charges: SpellCharges): void {
+    SPELL_IDS.forEach((spell, i) => {
+      const seal = this.scrollSeals[i];
+      if (!seal) return;
+      const count = charges[spell] ?? 0;
+      seal.setAlpha(count > 0 ? 1 : 0.2);
+      seal.setScale(count > 1 ? 1.14 : 1);
+    });
   }
 
   /** The scroll physically unrolls from its rack before its magic disperses. */
@@ -652,6 +678,7 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('spellCollected', ({ spell, stored, charges, overflowPoints, x, y }) => {
       this.hud.setSpells(charges, stored ? spell : undefined);
+      this.refreshScrollSeals(charges);
       this.hud.setMana(totalCharges(charges), this.engine.poolLimit);
       if (stored) {
         audio.pickup();
@@ -686,6 +713,7 @@ export class GameScene extends Phaser.Scene {
     });
     ev.on('manaPoolChanged', ({ size, lost, charges }) => {
       this.hud.setSpells(charges);
+      this.refreshScrollSeals(charges);
       this.hud.setMana(totalCharges(charges), size, lost > 0 ? 'lost' : 'grew');
       if (lost > 0) {
         audio.overflow();
@@ -702,6 +730,7 @@ export class GameScene extends Phaser.Scene {
       audio.cast(spell);
       if (!this.duel) this.hitStopMs = 140;
       this.hud.setSpells(charges, spell);
+      this.refreshScrollSeals(charges);
       this.hud.setMana(totalCharges(charges), this.engine.poolLimit);
       this.hud.console.flash(SPELL_COLORS[spell]);
       this.spellFx.cast(spell);
