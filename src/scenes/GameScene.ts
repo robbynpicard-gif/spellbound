@@ -185,6 +185,7 @@ export class GameScene extends Phaser.Scene {
     this.config = data.config;
     this.hooks = data.hooks;
     this.duel = data.duel ?? null;
+    this.lastArcaneVolleySound = 1;
     this.duelMenuOpen = false;
     this.countdownText = null;
     this.scoreOffset = data.scoreOffset ?? 0;
@@ -601,7 +602,7 @@ export class GameScene extends Phaser.Scene {
   private wireEngineEvents(): void {
     const ev = this.engine.events;
 
-    ev.on('wordMissed', () => this.phraseTracker.breakChain());
+    ev.on('wordMissed', () => { this.phraseTracker.breakChain(); this.lastArcaneVolleySound = 1; });
     ev.on('wordSpawned', ({ word }) => {
       this.views.set(
         word.id,
