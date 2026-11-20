@@ -761,6 +761,17 @@ export class GameScene extends Phaser.Scene {
       .setShadow(3, 3, hex(PALETTE.midnight), 0, false, true)
       .setOrigin(0.5)
       .setDepth(40);
+    // The Grand Wizard offers a concise lesson on the first level; the
+    // instruction fades with the level proclamation and never blocks typing.
+    if (!this.duel && this.config.level === 1) {
+      const mentor = this.add.text(cx, cy + 139,
+        'GRAND WIZARD: Type the falling words and press Enter.\nBuild a chain to unleash a Volley. Bank spells and cast with 1–8.',
+        { fontFamily: 'Georgia, serif', fontSize: '18px', color: '#f0d3a3',
+          align: 'center', lineSpacing: 7, stroke: '#24160e', strokeThickness: 3 })
+        .setOrigin(0.5).setDepth(41);
+      this.tweens.add({ targets: mentor, alpha: 0, delay: INTRO_MS - 300,
+        duration: 500, onComplete: () => mentor.destroy() });
+    }
     this.tweens.add({
       targets: [title, sub],
       alpha: 0,
