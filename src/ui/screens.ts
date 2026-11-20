@@ -334,13 +334,7 @@ export function levelClearScreen(
       stat('Time', formatTime(stats.elapsedMs)),
     ),
     stats.scoringModel === 'arcane'
-      ? h('section', { class: 'spell-summary', attrs: { 'aria-label': 'Current scoring rules' } },
-          h('strong', null, 'HOW YOUR SCORE WORKS'),
-          h('p', null, 'Word points = letters × 10 × Combo × Volley (rounded).'),
-          h('p', null, 'Combo: ×1 to start, +1× every 10 consecutive flawless captures. A typo or miss breaks the precision chain.'),
-          h('p', null, 'Volley: first flawless capture arms the window; the second timely capture earns ×1.2. Linked captures grow the multiplier. Empty fields preserve the Volley timing window, with a brief re-engagement grace.'),
-          h('p', null, 'Accuracy, WPM, typing errors and capture time are performance statistics, not additional score multipliers.'),
-        )
+      ? h('p', { class: 'spell-summary' }, 'Your legend grows with every flawless capture. Explore the Codex from the main menu to uncover the deeper scoring arts.')
       : h('p', { class: 'spell-summary' }, (stats.peakVolley ?? 0) < 3
           ? 'VOLLEY NOT YET EARNED · Capture 3 words within 2 seconds to earn your first Volley bonus.'
           : `VOLLEY ACHIEVED · Your best burst was ${stats.peakVolley} words in 2 seconds. Each qualifying capture awards bonus points.`),
