@@ -48,6 +48,29 @@ describe('lifetime Triumphs', () => {
       .toEqual(['Bronze', 'Silver', 'Gold']);
   });
 
+  it('recognizes word-pattern and rhythm Triumphs from recorded bonuses', () => {
+    const life = emptyLifetime();
+    life.bonusCounts.alliteration = 10;
+    life.bonusCounts.librarian = 75;
+    life.bonusCounts.metronome = 300;
+    life.bonusCounts.sweep = 5;
+    const progress = triumphProgress(life);
+    expect(progress.find((t) => t.id === 'alliteration')?.tier).toBe(1);
+    expect(progress.find((t) => t.id === 'librarian')?.tier).toBe(2);
+    expect(progress.find((t) => t.id === 'metronome')?.tier).toBe(3);
+    expect(progress.find((t) => t.id === 'sweep')?.tier).toBe(1);
+  });
+
+  it('does not confuse related bonus categories or award unearned medals', () => {
+    const before = emptyLifetime();
+    before.bonusCounts.alliteration = 9;
+    const after = emptyLifetime();
+    after.bonusCounts.alliteration = 10;
+    const earned = newlyEarnedTriumphs(before, after);
+    expect(earned.map((t) => t.id)).toEqual(['alliteration']);
+    expect(earned[0]?.tierName).toBe('Bronze');
+  });
+
   it('does not mutate saved lifetime statistics', () => {
     const life = emptyLifetime();
     life.bestCombo = 25;
