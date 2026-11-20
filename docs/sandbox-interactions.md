@@ -32,3 +32,24 @@ Spells are expressions of physical properties of the arena, not arbitrary score 
 - No surprise resource generation, changes to word spawning, or hidden achievements.
 - Test Slow/Volley before expanding to additional interactions. Evaluate stacking, Ice overlap, empty-field Flow Preservation and the exact moment Slow expires.
 - Change existing spell semantics only with explicit acceptance or a reversible, narrowly scoped preview experiment.
+
+## D-074 — Offensive/defensive utility review (2026-11-20)
+Design interpretation of D-073; no gameplay changes authorized by this review.
+
+| Spell | Offensive utility | Defensive utility | Constraint / proposed contract |
+| --- | --- | --- | --- |
+| Slow | Stretch Volley opportunity and sustain scoring | Delay breaches | Keep existing bounded 80% Volley clock; do not multiply benefit by stacks |
+| Ice | Freeze a favorable board and plan typed captures | Stop motion and spawning | Preserve stasis identity; inspect interaction with spell refresh and Flow Preservation |
+| Fire | Sacrifice unfavorable board to reset scoring opportunities | Emergency full-field clear | Base points only, no level progress or free Volley; distinguish from Harvest |
+| Shock | Remove troublesome targets to improve remaining board | Eliminate urgent low words and neighbors | Spatial deterministic chains; no free Volley captures |
+| Barrier | Enable deliberate risk-taking while protection remains | Block next misses | No direct score bonus; protection is its offensive enabling value |
+| Alter | Shorter/easier words support reliable Volley and combo | Reduce demanding typing sequences | Retain lower per-word base value; no compensatory points |
+| Wind | Restore a stable platform for aggressive play | Heal ward and undo mistake acceleration | Do not invent damage or bonus; asymmetrical spell identities are desirable |
+| Harvest | Cash out current board into points and progress | Clear immediate threats | Existing half-point × combo/Clean Streak; no free Volley |
+
+**World interaction rule:** prefer intuitive consistent properties (cold suppresses exposed flames; airflow displaces exposed effects; conduction depends on actual conductive media), not arbitrary pair-specific bonus tables. Ambient reactions already implemented do not imply gameplay combat reactions exist.
+
+**Design caution:** Offensive opportunity does not require every spell to score directly. Preserve player agency and distinguish tempo-building (Slow), stasis (Ice), reset (Fire), precision clearing (Shock), risk underwriting (Barrier), difficulty shaping (Alter), recovery (Wind), and cash-out (Harvest). Treat new cross-reactions and altered numerical rules as separate proposals requiring playtest and approval.
+
+## D-075 — Pressure/charge balance evaluation plan (2026-11-20)
+No balance numbers are changed. Use the existing Slow–Volley interaction as the baseline. Measure the same fixed-seed encounter situations at early/medium/late pressure with at least three policies: spend Slow offensively when Volley is active; conserve Slow for threatened breaches; adaptive policy using visible threat and charge count. Compare completed words, Volley best, score, ward loss, charges spent/remaining, and survival. Repeat with varied seeds and realistic typing accuracy/speed, and distinguish the player-facing difficulty setting from actual battlefield pressure. Desired qualitative outcomes: early offensive play is attractive and not required for survival; medium yields credible competing decisions with visible opportunity cost; high naturally favors survival but skilled aggressive play remains viable. Inspect charge supply, threat visibility, and ability availability before changing durations, drop weights, or scoring. No hidden difficulty-dependent spell mechanics or forced defensive mode. Prototype and validate numerical adjustments individually.
