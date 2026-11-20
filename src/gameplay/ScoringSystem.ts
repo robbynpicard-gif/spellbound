@@ -189,6 +189,8 @@ export interface GameStats {
   elapsedMs: number;
   /** Average time from a word appearing to being completed. */
   averageCompletionMs: number;
+  /** Classified captured words this level; unclassified words do not count. */
+  wordClassCounts?: Partial<Record<'noun' | 'verb' | 'adjective' | 'adverb', number>>;
   /** Times each spell was cast this level. */
   spellsCast?: Partial<Record<string, number>>;
 }
