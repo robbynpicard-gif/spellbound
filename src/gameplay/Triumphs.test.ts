@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { emptyLifetime } from '../storage/LifetimeStats';
-import { triumphProgress, TRIUMPH_DEFINITIONS } from './Triumphs';
+import { newlyEarnedTriumphs, triumphProgress, TRIUMPH_DEFINITIONS } from './Triumphs';
 
 describe('lifetime Triumphs', () => {
   it('starts locked with a Bronze target', () => {
@@ -27,6 +27,25 @@ describe('lifetime Triumphs', () => {
     const volley = triumphProgress(life).find((t) => t.id === 'volley');
     expect(volley?.tier).toBe(2);
     expect(volley?.next).toBe(500);
+  });
+
+  it('announces only tiers newly crossed by a session', () => {
+    const before = emptyLifetime();
+    before.wordsCaptured = 99;
+    const after = emptyLifetime();
+    after.wordsCaptured = 101;
+    const awards = newlyEarnedTriumphs(before, after);
+    expect(awards).toEqual([{ id: 'scribe', title: 'The Patient Scribe', tier: 1, tierName: 'Bronze' }]);
+    expect(newlyEarnedTriumphs(after, after)).toEqual([]);
+  });
+
+  it('announces multiple crossed tiers without duplicating prior tiers', () => {
+    const before = emptyLifetime();
+    before.bestCombo = 19;
+    const after = emptyLifetime();
+    after.bestCombo = 105;
+    expect(newlyEarnedTriumphs(before, after).filter((a) => a.id === 'chain').map((a) => a.tierName))
+      .toEqual(['Bronze', 'Silver', 'Gold']);
   });
 
   it('does not mutate saved lifetime statistics', () => {
