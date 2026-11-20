@@ -877,3 +877,12 @@ _2026-11-20 · Accepted (project owner)_
 - Do not treat low Rune/Triumph acquisition rates as a defect by themselves. Evaluate fairness, clarity, and player experience separately from reward frequency.
 
 **Application:** The grammar-biased Wordcraft generator and its preview opt-in are retired from active gameplay. Offline research and replay tests may remain for historical analysis; the existing capture-order PhraseTracker and optional awards remain.
+
+### D-059 — Arcane Volley: immediate buildup, ignition, extended Surge, soft-cap mastery
+_2026-11-20 · Accepted design direction; numeric balance and live implementation not approved_
+
+Volley should reward a chain of timely, flawless captures with **immediate visible multiplier progression** (candidate ×1.2, ×1.4, ×1.6, ×1.8), then an **earned arcane eruption** (candidate near ×2), followed by a sustained, escalating Surge. Explore a long Surge arc through approximately ×5, then a **soft cap** where increments become +0.1 (×5.1, ×5.2, ×5.3…) and require progressively more exceptional sustained play. No arbitrary hard ceiling. This replaces the earlier *design target* of a fixed ×1.5/×2/×3 Volley ladder; it does not change the currently deployed prototype.
+
+The emotional sequence—**build → anticipate → erupt → sustain → rare mastery**—is accepted. The exact ignition threshold, stage boundaries, timing, qualification, decay, progression costs and soft-cap position remain intentionally tunable through playtesting. Normal should be accessible; Hardcore should demand more, without changing the reward ceiling. Preserve clear word-length-aware capture rhythm, fair target availability, typing readability, the simple score formula, and D-058's ban on manipulating word generation to accommodate rewards.
+
+**Implementation status:** documentation only. See `docs/arcane-volley-design-goal.md`. Prototype and owner review are required before activating a new Volley mechanic in preview; production stays unchanged.
