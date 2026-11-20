@@ -415,6 +415,11 @@
 .featured-rune-banner { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 0 auto 15px; color: #f1d5a0; font-family: var(--font-heading); font-size: 16px; }
 .featured-rune-banner .rune-award-seal { flex-basis: 32px; width: 32px; height: 32px; font-size: 19px; }
 
+/* Rare wordcraft medals carry an ink-blue manuscript border. */
+.triumph-entry.wordcraft-triumph { border-style: double; border-width: 3px; border-color: #657b87; }
+.triumph-entry.wordcraft-triumph .triumph-medal { font-family: Georgia, serif; }
+.triumph-entry.wordcraft-triumph.unlocked { box-shadow: inset 0 0 0 1px rgb(235 225 199 / 0.7); }
+
 /* Results */
 .score {
   display: flex;
