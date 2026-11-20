@@ -263,6 +263,7 @@ export function levelClearScreen(
   const element = h(
     'section',
     { class: 'screen panel results won keeps-field', attrs: { role: 'dialog', 'aria-labelledby': 'clear-title' } },
+    h('p', { class: 'score-label' }, 'THE APPRENTICE\'S LEDGER'),
     h('h2', { class: 'screen-title', attrs: { id: 'clear-title' } }, `Level ${cleared.level} Cleared`),
     h('p', { class: 'screen-subtitle' }, `Stage ${run.stage} · ${cleared.name}${run.mode === 'hardcore' ? ' · Hardcore' : ''}`),
     h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Stage score'), run.score.toLocaleString()),
@@ -276,10 +277,14 @@ export function levelClearScreen(
       stat('Highest combo', `${stats.maxCombo} words · peak ×${stats.peakMultiplier}`),
       stat('Volley bonuses', stats.bonusCounts.volley ?? 0),
       stat('Best volley', `${stats.peakVolley ?? 0} words in 2 seconds`),
+      stat('Typing errors', stats.errors),
+      stat('Average capture', stats.averageCompletionMs > 0 ? `${(stats.averageCompletionMs / 1000).toFixed(2)} s` : '—'),
       stat('Clean Streak', `${stats.endCleanStreak ?? 0} (best ${stats.peakCleanStreak ?? 0})`),
       stat('Time', formatTime(stats.elapsedMs)),
     ),
-    h('p', { class: 'spell-summary' }, 'Volley: capture 3 or more words within a rolling 2-second window. Best volley shows your fastest burst; each qualifying capture earns bonus points. Try to beat your best!'),
+    h('p', { class: 'spell-summary' }, (stats.peakVolley ?? 0) < 3
+      ? 'VOLLEY NOT YET EARNED · Capture 3 words within 2 seconds to earn your first Volley bonus.'
+      : `VOLLEY ACHIEVED · Your best burst was ${stats.peakVolley} words in 2 seconds. Each qualifying capture awards bonus points.`),
     run.mode === 'hardcore' &&
       h(
         'p',
