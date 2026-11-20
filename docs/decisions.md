@@ -942,3 +942,9 @@ Before expanding systems, prioritize Arcane Volley timing correctness (including
 _2026-11-20 · Implements accepted D-060/D-063; dev implementation committed; CI and preview playtest pending_
 
 Fix the known virtual-clock rewind bug: never decrement `volleyFlowTick`. Freeze it while no actionable words exist, and grant at most 0.4 seconds of additional frozen Volley time on the first field refill after a successful capture. Consume this allowance once per capture so repeated empty/refill cycles cannot accumulate grace. A new capture resets the allowance; incorrect captures do not earn it. Ice pauses Volley time without changing spawn rules. This is a scoped correctness prototype; verify with CI and focused manual playtesting, especially empty-field Volley ignition and repeated empty/refill cycles. Engine commit `7680c9c`; no production gameplay change.
+
+
+### D-068 — Restore live typewriter preview and ease Volley timing (2026-11-20)
+_2026-11-20 · Owner-directed prototype; dev implementation committed; CI and deployment pending_
+
+Restore a compact always-visible live transcription of the current console input on the physical typewriter. The desk scenery's higher render depth could cover the pre-existing HUD console. Show typed characters and a caret above the desk, with muted placeholder when empty and a gentle error tint for invalid prefixes; the authoritative input remains GameEngine state and no input controls change. Slightly widen the Arcane Volley timing allowance: Normal from 42 + 12 ticks/letter to 52 + 13, Hardcore from 28 + 9 to 34 + 10, preserving the two-capture ignition and Hardcore pressure. Test and tune on preview; do not change production gameplay. Files: `src/scenes/GameScene.ts`, `src/gameplay/ArcaneVolley.ts`, `src/gameplay/ArcaneVolley.test.ts`.
