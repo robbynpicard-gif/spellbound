@@ -52,6 +52,11 @@ The offline candidate now uses a 45% starter-class nudge when no phrase follow-u
 
 The expanded 12-seed A/B matrix should be reviewed against normalized phrase rates, capture and miss rates, target collisions, and reproducibility before any player-facing trial.
 
+## Policy sweep and measured baseline (2026-11-20)
+The validated 12-seed baseline-versus-current-policy audit reported **0 vs 0 phrases** in early/fast, **0 vs 44** in middle/standard, and **0 vs 61** in late/slow. Captures were equal in each pair (204, 204 and 180 respectively); no misses, recent duplicate words or first-letter collisions were recorded. These are deterministic synthetic-typist results, not human data. Early-stage vocabulary/length restrictions leave little opportunity for curated grammatical patterns.
+
+The next experiment makes the two nudging probabilities configurable **only in the offline candidate**, validates them within [0,1], and sweeps conservative (25%/50%), current (45%/80%) and aggressive (65%/95%) policies over the same twelve seeds and three stage/speed scenarios. Run `npm test -- src/gameplay/WordcraftPolicySweep.test.ts` and inspect `WORDCRAFT_POLICY_SWEEP` output. **Do not pick a winner before checking actual CI results and player-facing feel.** Production and default generator behavior are unchanged.
+
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
 2. Expand samples and inspect early levels where 2–4 letter limits severely constrain grammatical coverage.
