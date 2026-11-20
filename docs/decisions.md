@@ -865,7 +865,7 @@ docs/mechanics.md.
 **Open:** whether Clean Streak should count words or letters, now that early
 words are tiny (the milestones are unchanged for now).
 
-### D-NEW — Core gameplay integrity takes precedence over optional rewards
+### D-058 — Core gameplay integrity takes precedence over optional rewards
 _2026-11-20 · Accepted (project owner)_
 
 **Design invariant:** Typal must not change its established core gameplay merely to make a Rune, Triumph, grammar combination, medal, or other optional reward easier or more common to obtain. Rarity, including exceptionally rare rewards, is acceptable; reward frequency is not itself a reason to alter the word generator, typing feel, difficulty progression, targeting, or player agency.
