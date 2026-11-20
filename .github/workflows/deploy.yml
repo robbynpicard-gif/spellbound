@@ -66,6 +66,10 @@ jobs:
         run: |
           mkdir -p production/dist/preview
           cp -R development/dist/. production/dist/preview/
+      - name: Keep the preview badge out of production
+        run: |
+          sed -i '/id="preview-build-marker"/d' production/dist/index.html
+          ! grep -q 'preview-build-marker' production/dist/index.html
       - name: Stamp preview with actual development commit
         run: |
           DEV_SHA=$(git -C development rev-parse --short HEAD)
