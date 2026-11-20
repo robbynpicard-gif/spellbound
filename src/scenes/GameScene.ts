@@ -172,6 +172,7 @@ export class GameScene extends Phaser.Scene {
   private carriage!: Phaser.GameObjects.Rectangle;
   private volleyCallout!: Phaser.GameObjects.Text;
   private lastTierUpAt = -1000;
+  private lastArcaneVolleySound = 1;
   private readonly workshopCandles: Array<(lit: boolean) => void> = [];
   private readonly scrollSeals: Phaser.GameObjects.Arc[] = [];
   /** Last elemental spell lingering in the workshop, for visible spell reactions. */
@@ -646,8 +647,13 @@ export class GameScene extends Phaser.Scene {
       if (phrase) this.showPhraseBanner(phrase.id, phrase.glyph, phrase.title);
       audio.capture(combo, bonuses.map((b) => b.id));
       const volley = bonuses.find((b) => b.id === 'volley');
+      if (!this.duel) {
+        const currentVolley = this.engine.volleyMultiplier;
+        audio.arcaneVolley(this.lastArcaneVolleySound, currentVolley);
+        this.lastArcaneVolleySound = currentVolley;
+      }
       if (volley && this.volleyCallout) {
-        audio.volley(volley.count);
+        if (this.duel) audio.volley(volley.count);
         this.tweens.killTweensOf(this.volleyCallout);
         this.volleyCallout.setText('VOLLEY!  ×' + this.engine.volleyMultiplier).setY(230).setScale(0.8).setAlpha(1);
         this.tweens.add({ targets: this.volleyCallout, y: 184, scale: 1.15, alpha: 0, duration: 780, ease: 'Cubic.Out' });
