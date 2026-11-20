@@ -7,6 +7,7 @@
 # Preview refresh requested after D-060 design-bible update (2026-11-20).
 # Refresh preview for D-061 scoring ledger (2026-11-20).
 # Refresh preview for D-062 scoring Codex design (2026-11-20).
+# Refresh preview for D-064 streamlined level clear (2026-11-20).
 name: Deploy to GitHub Pages
 
 on:
