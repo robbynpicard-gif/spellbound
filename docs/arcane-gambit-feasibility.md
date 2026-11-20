@@ -1,38 +1,41 @@
-# Arcane Gambit — emergency-scroll feasibility experiment
+# Arcane Gambit — single emergency roll per stage
 
-**Status: PROTOTYPE ONLY / NOT APPROVED FOR LIVE GAMEPLAY.** D-058 governs. Implemented offline in `src/gameplay/ArcaneGambitPrototype.ts` with deterministic tests. Nothing is connected to `GameEngine`, `GameScene`, UI, saves, scroll drops or production.
+**Status: OFFLINE PROTOTYPE ONLY.** Not connected to the playable preview, GameEngine, UI, saves or production. Governed by D-058.
 
-## Recovering the actual brainstorm
+## Player's intended moment
 
-Two different ideas were discussed and should **not** be conflated:
+The interesting decision occurs when the player has **run out of spells or is saving their last strategic charges**. They may choose to risk a single hail-Mary summon. A random spell-bearing scroll appears, and they must still type and capture it. The outcome may help or may be useless. **The gamble is the point**, not a guaranteed rescue.
 
-1. **Ordinary Summon:** a low-density batch of ordinary falling words/scrolls, potentially repeatable on a cooldown; captured items still require typing and count toward quota. This is an offensive or tempo-oriented action, not an emergency rescue.
-2. **Arcane Gambit / emergency hail-Mary:** a **separate long-cooldown slot-machine ability**, used when the player is overwhelmed and their spell backlog is depleted. Activating it summons **one random spell-bearing scroll**, not a directly usable spell charge. The player must type and capture that scroll; it may not be the spell they need. The original discussion floated **90–120 seconds of active gameplay** for its cooldown. Ordinary natural scroll drops remain the primary source of spells.
+The user explicitly wants this **simple**, and suggested **one use per stage** rather than a separate elaborate cooldown bank. That is the leading prototype assumption, not an approved live rule.
 
-The user now clarifies they envision a **separate bank of cooldown-style scrolls/arcane abilities**, possibly spending a charge to call down a random scroll in a crunch. That is a feasibility question, **not** permission to alter the live game.
+## Minimal offline implementation
 
-## Implemented, isolated thought experiment
+`src/gameplay/ArcaneGambitPrototype.ts` models:
+- One available emergency roll at the start of a stage.
+- The roll consumes the opportunity, selecting one random existing spell ID with an independent seeded RNG.
+- Further rolls in the same stage fail without consuming RNG.
+- The next stage explicitly resets the opportunity.
+- No cooldown timer, earned Gambit charges, extra scroll storage, score bonuses, spell changes, word-spawn bias, or alterations to the existing eight-charge pool.
 
-The prototype models a *hypothetical separate Gambit charge*, a 90-second fixed-tick cooldown, and one uniformly random spell ID from the existing eight spells. It refuses requests on cooldown or without a charge. It returns a **spell identity for a hypothetical falling scroll**, not a cast, a free spell charge, or an actual spawned word. The seed is independent of the engine RNG. Tests check deterministic outcomes, charge/cooldown safety and that different seeds do not guarantee the same spell.
+The result is **not** a spawned word or a granted spell. A future playable trial would need to spawn a normal capturable scroll using existing targeting and typing rules. Tests cover determinism, one-use behavior, stage reset and uncertain outcome.
 
-**Not modeled:** how Gambit charges are earned; where summoned scrolls spawn; whether the player can capture them under pressure; visual readability; whether Ice halts their fall; how the summoned scroll interacts with the existing full spell pool; whether the random distribution should match natural drop weights; or how this affects campaign balance. The 90-second timer, charge economy and uniform roll are **test assumptions, not approved values**.
+## Design comparison
 
-## D-058 viability assessment
+| Criterion | Existing spell pool only | One-use Arcane Gambit |
+| --- | --- | --- |
+| Emergency agency when out of charges | No additional option | One uncertain option |
+| Gameplay complexity | None added | One activation control, one stage-use indicator |
+| Reward reliability | Existing held spells are known | Random scroll may be unhelpful |
+| Typing remains central | Yes | Yes **if** scroll must be captured normally |
+| New economy | None | One stage-limited opportunity; no recharge |
+| Main risk | Few hail-Mary moments | Adds clutter under pressure and overlaps ordinary scroll drops |
 
-**Potential upside:** a desperate, uncertain choice can create memorable moments. Keeping the prize as a falling scroll preserves the typing requirement, and an independent seeded RNG can preserve deterministic replays.
+## Kill criteria
 
-**Major risks:**
-- **Overlaps existing spells and scroll collection:** an additional button/charge bank competes with the existing eight-charge shared pool and Spellbook.
-- **Emergency usability paradox:** summoning *another falling word* when already overwhelmed can make a bad situation worse. A random scroll may be irrelevant, unreachable or immediately lost.
-- **Two resource economies:** if Gambit charges are earned or banked, the source, persistence, capacity and recharge behavior must be defined. Avoid silently awarding them for typing achievements or manipulating word spawns.
-- **Pressure on the core loop:** UI controls, cooldown displays, target selection and on-field clutter can reduce typing clarity.
-- **Balance:** an extra source of spells could reduce the intended significance of natural scroll drops, especially at bosses.
-- **Misleading reliability:** a synthetic RNG test proves deterministic bookkeeping, **not** that the feature is fun or viable.
+Abandon the idea if it requires changing ordinary word frequency, targeting, word difficulty, spell balance or auto-capture to be useful; if the emergency scroll adds frustrating clutter; or if a one-time extra spell trivializes bosses. **Do not increase reward frequency to make the feature look successful.**
 
-## Recommendation and stop condition
+## Pending design authorization
 
-**Do not integrate yet.** The offline implementation is intentionally cheap to abandon. Before a live prototype, explicitly decide whether a separate bank earns its complexity relative to the existing spell pool. If it needs boosted scroll drops, automatic captures, altered target locks, or softened difficulty to feel useful, **abandon it under D-058** rather than contort Typal around it.
+The user has proposed, but not finalized, the once-per-stage rule. Before connecting the prototype to live preview, confirm **whether one use per Campaign stage is the intended rule**. Then build a reversible preview-only trial with a single activation control and a visible used/available state, retaining natural word capture and no changes to production. The prototype's uniformly random selection is also provisional; spell weighting should be decided before live testing.
 
-If the owner wants to proceed with a *preview-only, reversible* player trial, seek explicit approval for the following **three** changes together: (1) an independent Gambit charge economy and its acquisition method, (2) one activation input and cooldown indicator, (3) spawning one ordinary capturable scroll using existing word-generation and target rules. Keep normal and production behavior unchanged until the experiment proves useful. Do not bundle Ordinary Summon into this trial.
-
-**Next best step:** evaluate whether the existing shared spell pool can deliver the same last-second decision without an extra bank, using a side-by-side design sketch and usability criteria, before adding any gameplay code.
+**Next recommended step:** get the one-use-per-stage rule confirmed, then implement a small preview-only usability trial rather than a full new scroll-bank system.
