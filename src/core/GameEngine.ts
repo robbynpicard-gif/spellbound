@@ -388,6 +388,10 @@ export class GameEngine {
 
   // ───────────────────────── time ─────────────────────────
 
+  /** Volley-only clock: pauses while no word can be captured. */
+  private volleyClock = 0;
+  private volleyWaitingForTarget = false;
+
   /** Advance the simulation by one fixed tick. */
   step(): void {
     const s = this.s;
@@ -399,6 +403,18 @@ export class GameEngine {
     if (remaining !== null && remaining <= 0) return this.end('won');
 
     this.tickPacing();
+
+    // Preserve Volley through empty fields, without pausing enemies or spawning.
+    // A returning target receives one capped 0.4-second re-engagement grace.
+    if (s.words.length === 0) {
+      this.volleyWaitingForTarget = true;
+    } else {
+      if (this.volleyWaitingForTarget) {
+        this.volleyClock -= Math.round(400 / SIMULATION_STEP_MS);
+        this.volleyWaitingForTarget = false;
+      }
+      if (s.freezeTicks === 0) this.volleyClock++;
+    }
 
     // Frostbinding: nothing moves and nothing spawns (slow stacks wait too).
     if (s.freezeTicks > 0) {
@@ -930,11 +946,12 @@ export class GameEngine {
     if (word.text.length >= B.longFrom) add('long', B.long);
     if (word.text[0] !== word.match[0]) add('name', B.name);
 
-    // Volley: several captures in quick succession.
-    s.recentCaptures = s.recentCaptures.filter((t) => s.tick - t <= VOLLEY_TICKS);
-    s.recentCaptures.push(s.tick);
+    // Volley: two captures activate the bonus. The clock freezes when the
+    // field is empty, so clearing every target cannot punish fast typing.
+    s.recentCaptures = s.recentCaptures.filter((t) => this.volleyClock - t <= VOLLEY_TICKS);
+    s.recentCaptures.push(this.volleyClock);
     const volley = s.recentCaptures.length;
-    if (volley >= 3) add('volley', Math.min(B.volleyMax, (volley - 2) * B.volleyPer), volley);
+    if (volley >= 2) add('volley', Math.min(B.volleyMax, (volley - 1) * 0.2), volley);
 
     // Alliteration: same first letter as the previous capture.
     const first = word.match[0]!;
