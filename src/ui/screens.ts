@@ -276,10 +276,12 @@ export function levelClearScreen(
       stat('Accuracy', percent(stats.accuracy)),
       stat('WPM', Math.round(stats.wpm)),
       stat('Missed', stats.missed),
-      stat('Best combo', `${stats.maxCombo} words · ×${stats.peakMultiplier}`),
+      stat('Highest combo', `${stats.maxCombo} words · peak ×${stats.peakMultiplier}`),
+      stat('Volley bonuses', stats.bonusCounts.volley ?? 0),
       stat('Clean Streak', `${stats.endCleanStreak ?? 0} (best ${stats.peakCleanStreak ?? 0})`),
       stat('Time', formatTime(stats.elapsedMs)),
     ),
+    h('p', { class: 'spell-summary' }, 'Volley: capture 3 or more words within 2 seconds. Each qualifying capture earns a Volley bonus; the count above shows how many earned it.'),
     run.mode === 'hardcore' &&
       h(
         'p',
