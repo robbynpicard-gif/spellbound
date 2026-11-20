@@ -1,10 +1,12 @@
-# Builds Wizzy Type and publishes it to GitHub Pages on every push to main.
-# Recovery deployment: restore the original single-branch playtest workflow.
+# Publish the stable game at /spellbound/ and the isolated development prototype at /spellbound/preview/.
+# The preview is sourced from the dev branch; production game files always come from main.
 name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+      - dev/apprenticeship-prototype-20261119
   workflow_dispatch:
 
 permissions:
@@ -20,17 +22,33 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout production main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
-      # A failing gameplay test must block publishing, not silently deploy a regression.
-      - run: npm run check
+          cache-dependency-path: production/package-lock.json
+      - name: Validate and build production
+        working-directory: production
+        run: |
+          npm ci
+          npm run check
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+        with:
+          ref: dev/apprenticeship-prototype-20261119
+          path: development
+      - name: Install isolated browser prototype
+        run: |
+          mkdir -p production/dist/preview
+          cp development/prototype.html production/dist/preview/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: production/dist
 
   deploy:
     needs: build
