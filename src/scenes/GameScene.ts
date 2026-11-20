@@ -21,6 +21,7 @@ import { GameHUD } from '../ui/GameHUD';
 import { instabilityStage } from '../gameplay/InstabilityManager';
 import { STAGE_NAMES } from '../difficulty/Stages';
 import { StreakFeedback } from '../render/StreakFeedback';
+import { resolveElementalReaction, type Element } from '../gameplay/ElementalReactions';
 
 /** How the scene reports back to the app (menus are HTML, outside Phaser). */
 export interface GameSceneHooks {
@@ -137,6 +138,8 @@ export class GameScene extends Phaser.Scene {
   private lastTierUpAt = -1000;
   private readonly workshopCandles: Array<(lit: boolean) => void> = [];
   private readonly scrollSeals: Phaser.GameObjects.Arc[] = [];
+  /** Last elemental spell lingering in the workshop, for visible spell reactions. */
+  private ambientElement: Element | null = null;
 
   constructor() {
     super(GameScene.KEY);
@@ -164,6 +167,7 @@ export class GameScene extends Phaser.Scene {
     this.views.clear();
     this.workshopCandles.length = 0;
     this.scrollSeals.length = 0;
+    this.ambientElement = null;
     this.accumulator = 0;
     this.introRemainingMs = this.duel ? 0 : INTRO_MS;
     this.paused = false;
@@ -735,6 +739,23 @@ export class GameScene extends Phaser.Scene {
       this.hud.console.flash(SPELL_COLORS[spell]);
       this.spellFx.cast(spell);
       this.animateScrollCast(spell);
+      // Typal's physical magic grammar: consecutive elemental casts visibly
+      // interact in the workshop. This is presentation only until the engine
+      // owns per-target elemental statuses and deterministic damage resolution.
+      const incoming: Partial<Record<SpellId, Element>> = {
+        ice: 'ice', shock: 'shock', fire: 'fire', wind: 'wind',
+      };
+      const element = incoming[spell];
+      if (element) {
+        const outcome = resolveElementalReaction(this.ambientElement, element);
+        if (outcome.reaction !== 'none') {
+          const label = outcome.reaction.toUpperCase();
+          const color = SPELL_COLORS[spell];
+          this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 175, label, color, 32);
+          this.spellFx.burst(LAYOUT.width / 2, LAYOUT.spawnY + 225, color, 26);
+        }
+        this.ambientElement = element;
+      }
       // World rules: cold and wind extinguish exposed flames; fire relights them.
       // These are ambient interactions, not extra combat damage or mana costs.
       if (spell === 'ice' || spell === 'wind') this.workshopCandles.forEach((setLit) => setLit(false));
