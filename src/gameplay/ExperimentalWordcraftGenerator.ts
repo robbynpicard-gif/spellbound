@@ -31,7 +31,7 @@ export class ExperimentalWordcraftGenerator extends WordGenerator {
 
   override next(): string {
     const ordinary = super.next();
-    const preferred = PHRASE_PATTERNS.filter((p) => p.first === this.previousClass).map((p) => p.second);
+    const preferred: WordClass[] = PHRASE_PATTERNS.filter((p) => p.first === this.previousClass).map((p) => p.second);
     let chosen = ordinary;
     if (preferred.length && this.alternate.chance(0.2)) {
       const eligible = (this.buckets.get(ordinary.length) ?? []).filter((word) => {
