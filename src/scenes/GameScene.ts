@@ -630,6 +630,7 @@ export class GameScene extends Phaser.Scene {
         // the rack. It is purely presentational; the engine already banked it.
         const sx = screenX(x);
         const sy = screenY(y);
+        audio.scrollFlight(Math.hypot(LAYOUT.rack.x + LAYOUT.rack.width / 2 - sx, LAYOUT.rack.y + 68 - sy) / 700);
         const scroll = this.add.container(sx, sy).setDepth(115);
         const paper = this.add.rectangle(0, 0, 34, 23, 0xe7c99a)
           .setStrokeStyle(2, 0x694426);
