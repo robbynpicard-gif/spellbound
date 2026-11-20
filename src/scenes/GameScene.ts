@@ -769,6 +769,9 @@ export class GameScene extends Phaser.Scene {
     }
     if (key.length === 1) {
       audio.key();
+      this.prototypeKey?.setY(559);
+      this.tweens.killTweensOf(this.prototypeKey);
+      if (this.prototypeKey) this.tweens.add({ targets: this.prototypeKey, y: 554, duration: 85, ease: 'Cubic.Out' });
       this.engine.typeChar(key);
     }
   }
