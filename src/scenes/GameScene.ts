@@ -725,6 +725,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     ev.on('typingError', ({ wordId }) => {
+      this.lastArcaneVolleySound = 1;
       audio.typo();
       if (wordId !== null) this.views.get(wordId)?.flashError();
     });
