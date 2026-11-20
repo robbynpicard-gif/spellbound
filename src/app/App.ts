@@ -32,6 +32,7 @@ import { CAMPAIGN_UNLOCK_ALL, PRACTICE_UNLOCK_ALL } from './flags';
 import { journeyStrip, statsScreen } from '../ui/statsScreens';
 import { spellbookScreen } from '../ui/spellbookScreen';
 import { trophyCaseScreen } from '../ui/trophyCaseScreen';
+import { triumphUnlockAnnouncement } from '../ui/triumphUnlocks';
 
 /**
  * Top-level flow between screens.
@@ -296,7 +297,9 @@ export class App {
     const run = this.run;
     if (!run) return;
     const clearedLevel = stageLevel(run.mode, run.stage, run.level);
+    const lifetimeBefore = structuredClone(this.save.lifetime);
     this.save.recordLevelStats(stats, result, { mode: 'campaign', boss: isSurvival(clearedLevel) });
+    const triumphUnlocks = triumphUnlockAnnouncement(lifetimeBefore, this.save.lifetime);
     if (result === 'won') this.save.recordRunes(stats);
     const { runOver, victory } = recordLevel(run, result, stats, spells, instability);
     const journey = journeyStrip(run.stage, victory);
@@ -305,7 +308,7 @@ export class App {
       run.carryWords = words;
       this.save.setSavedRun(run);
       this.ui.show(
-        levelClearScreen(clearedLevel, stageLevel(run.mode, run.stage, run.level), stats, run, () => this.playCurrentLevel(), journey),
+        levelClearScreen(clearedLevel, stageLevel(run.mode, run.stage, run.level), stats, run, () => this.playCurrentLevel(), journey, triumphUnlocks),
       );
       return;
     }
@@ -445,14 +448,16 @@ export class App {
     // Stop the game (so Esc can't resume it behind the results) and show the sky backdrop.
     this.showBackdrop();
     const outcome = this.save.recordPractice(pick, filter, stats);
+    const lifetimeBefore = structuredClone(this.save.lifetime);
     this.save.recordLevelStats(stats, fell ? 'lost' : 'won', { mode: 'practice' });
+    const triumphUnlocks = triumphUnlockAnnouncement(lifetimeBefore, this.save.lifetime);
     this.save.recordRunes(stats);
     this.ui.show(
       practiceResultsScreen(where, filter, stats, outcome, fell, {
         onAgain: () => this.startPractice(pick, filter),
         onChangeLevel: () => this.showPracticeSetup(),
         onMenu: () => this.showMainMenu(),
-      }),
+      }, triumphUnlocks),
     );
   }
 
