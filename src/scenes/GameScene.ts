@@ -9,7 +9,8 @@ import { FONTS, PALETTE, SIMULATION_STEP_MS } from '../core/GameConfig';
 import { createSeed } from '../core/Random';
 import { WORDS } from '../data/wordList';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
-import { streakTierOf, tierOf, VOLLEY_TICKS, type GameStats } from '../gameplay/ScoringSystem';
+import { streakTierOf, VOLLEY_TICKS, type GameStats } from '../gameplay/ScoringSystem';
+import { precisionComboMultiplier } from '../gameplay/PrecisionComboPrototype';
 import { SPELL_IDS, totalCharges, type SpellCharges, type SpellId } from '../gameplay/SpellManager';
 import { Intake } from '../render/Intake';
 import { Effects } from '../render/Effects';
@@ -238,7 +239,7 @@ export class GameScene extends Phaser.Scene {
     const boss = isSurvival(this.config);
     audio.setMood(boss ? 'boss' : 'calm');
     audio.setStress(instabilityStage(this.engine.state.instability));
-    audio.setHeat(tierOf(this.engine.state.combo));
+    audio.setHeat(Math.min(4, Math.floor(this.engine.state.combo / 10)));
     audio.setDrive(this.drive());
     audio.levelStart();
     this.background = new FieldBackground(this, chapter, boss ? 4 : Math.min(3, Math.floor(((this.config.stageLevel ?? this.config.level) - 1) / 5)), boss);
@@ -465,11 +466,11 @@ export class GameScene extends Phaser.Scene {
   private refreshPrototypeInstruments(): void {
     if (!this.prototypeCombo || !this.prototypeMeter) return;
     const combo = this.engine.state.combo;
-    const tier = tierOf(combo);
-    this.prototypeCombo.setText('CHAIN ' + combo + '  ·  ×' + (tier + 1));
+    const tier = Math.floor(combo / 10);
+    this.prototypeCombo.setText('COMBO ' + combo + '  ·  ×' + precisionComboMultiplier(combo));
     const recent = this.engine.state.recentCaptures;
     const volley = recent.filter((tick) => this.engine.state.tick - tick <= VOLLEY_TICKS).length;
-    this.volleyIndicator.setText(volley >= 3 ? 'VOLLEY ×' + volley + '  BONUS!' : volley === 0 ? 'VOLLEY 0/3 · 2s' : 'VOLLEY ' + volley + '/3 · 2s');
+    this.volleyIndicator.setText('VOLLEY · ' + (volley >= 3 ? 'FLOW' : 'BUILDING') + ' · ' + (this.engine.state.tick > 0 ? 'PRECISION + SPEED' : 'READY'));
     this.volleyIndicator.setColor(volley >= 3 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
     // Two physical brass gauges: chain strength above, Volley time remaining below.
