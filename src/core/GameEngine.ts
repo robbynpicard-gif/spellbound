@@ -1,4 +1,4 @@
-import { arcaneVolleyCapture, arcaneVolleyMultiplier, emptyArcaneVolley, type ArcaneVolleyState } from '../gameplay/ArcaneVolley';
+import { arcaneVolleyCapture, arcaneVolleyMultiplier, emptyArcaneVolley, volleyWindowTicks, type ArcaneVolleyState } from '../gameplay/ArcaneVolley';
 import { applyElementalStatus, type ElementalStatus } from '../gameplay/ElementalStatus';
 import type { Element } from '../gameplay/ElementalReactions';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
@@ -230,6 +230,14 @@ export class GameEngine {
   }
 
   /** Current fixed-tick sustained Volley multiplier for the typewriter HUD. */
+  /** Preview-only readable window for the second-word Volley trigger.
+   * UI consumes simulation state without changing timing or word spawning. */
+  get volleyArmedProgress(): number {
+    if (!this.experimentalScoring || this.arcaneVolley.captures !== 1 || this.arcaneVolley.lastTick === null) return 0;
+    const window = volleyWindowTicks(this.arcaneVolley.lastLetters, this.hardcore);
+    return Math.max(0, 1 - (this.s.tick - this.arcaneVolley.lastTick) / window);
+  }
+
   get volleyMultiplier(): number {
     return this.experimentalScoring
       ? arcaneVolleyMultiplier(this.arcaneVolley, this.s.tick, this.hardcore)
