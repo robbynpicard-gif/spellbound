@@ -1,4 +1,6 @@
 # SPELLBOUND — Claude Code prototype handoff
+
+> **CRITICAL CREATIVE OVERRIDE (2026-11-20):** Before implementing or asking the owner to test a *definitive* preview, read **[`docs/definitive-creative-direction-2026-11-20.md`](definitive-creative-direction-2026-11-20.md)**. This original handoff omitted approved Arcane Renaissance art, workstation layout, tactile combat and reactive audio direction. The approved working title is **Typel**; `spellbound` is the repository name. The newer creative document supersedes older incompatible visual/audio defaults. A mechanics-only preview must be labeled as such, not presented as the integrated game.
 _2026-11-20 · Owner-requested, actionable design-to-development brief · Dev branch only_
 
 ## Mission and authority
