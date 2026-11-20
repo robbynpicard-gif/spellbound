@@ -49,6 +49,14 @@ export function trophyCaseScreen(counts: Readonly<Record<string, number>>, lifet
       );
     })),
     h('p', { class: 'rune-awards-note' }, 'Runes are repeatable session awards saved in this browser.'),
+    h('h3', { class: 'rune-awards-title' }, 'THE GRAMMARIAN’S LEDGER'),
+    h('p', { class: 'rune-awards-note' }, 'A curated collection of unambiguous words from the game dictionary. Only recognized captures count; unfamiliar and ambiguous words are excluded. Counts begin when this feature is installed.'),
+    h('div', { class: 'wordclass-grid' }, ...(['noun', 'verb', 'adjective', 'adverb'] as const).map((part) =>
+      h('div', { class: 'wordclass-count' },
+        h('strong', null, part[0]!.toUpperCase() + part.slice(1)),
+        h('span', null, String(lifetime.wordClassCounts?.[part] ?? 0)),
+      ),
+    )),
     h('h3', { class: 'rune-awards-title' }, 'TRIUMPHS OF THE APPRENTICE'),
     h('p', { class: 'rune-awards-note' }, 'Cosmetic reward: choose an earned Triumph as your featured title. Titles never change scores or gameplay.'),
     h('p', { class: 'triumph-featured' }, featured
@@ -58,7 +66,7 @@ export function trophyCaseScreen(counts: Readonly<Record<string, number>>, lifet
     h('p', { class: 'rune-awards-note' }, 'Lifetime feats · each Triumph advances from Bronze to Silver to Gold.'),
     h('p', { class: 'rune-awards-note' }, 'Rare wordcraft medals reward Alliteration, Librarian, Metronome and Clean Sweep bonuses already earned in play. No new scoring modifiers.'),
     h('div', { class: 'triumph-grid' }, ...triumphProgress(lifetime).map((t) =>
-      h('div', { class: `triumph-entry${t.tier ? ` unlocked tier-${t.tier}` : ''}${['alliteration', 'librarian', 'metronome', 'sweep'].includes(t.id) ? ' wordcraft-triumph' : ''}` },
+      h('div', { class: `triumph-entry${t.tier ? ` unlocked tier-${t.tier}` : ''}${['alliteration', 'librarian', 'metronome', 'sweep', 'nouns', 'verbs', 'adjectives', 'adverbs'].includes(t.id) ? ' wordcraft-triumph' : ''}` },
         h('span', { class: 'triumph-medal', attrs: { 'aria-hidden': 'true' } }, t.tier ? t.glyph : '◇'),
         h('div', { class: 'triumph-copy' },
           h('strong', null, t.title),
