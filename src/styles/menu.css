@@ -345,6 +345,14 @@
   .rune-award { animation: none; }
 }
 
+/* Persistent Trophy Case shares the physical Rune-seal language. */
+.trophy-case { overflow-y: auto; }
+.trophy-case .rune-awards-grid { margin: 18px 0; }
+.trophy-case .trophy-entry { min-height: 84px; }
+.trophy-case .trophy-entry.locked { opacity: 0.66; filter: grayscale(0.8); }
+.trophy-case .trophy-entry.locked .rune-award-seal { background: #6d6051; border-color: #8d8170; }
+.trophy-case .button-row { margin-top: 20px; }
+
 /* Results */
 .score {
   display: flex;
