@@ -291,7 +291,7 @@ export class GameScene extends Phaser.Scene {
     this.add.text(1194, 630, 'SCROLLS & SIGILS', { fontFamily: 'Georgia, serif', fontSize: '13px', color: '#f0c98e' }).setOrigin(0.5).setDepth(45);
     // Eight wax seals provide a physical glanceable inventory below the rack.
     // Their colours are the actual spell colours, dimmed when no scroll is held.
-    SPELL_IDS.forEach((spell, i) => {
+    this.spellSlots.forEach((spell, i) => {
       const x = 1121 + (i % 4) * 43;
       const y = 654 + Math.floor(i / 4) * 32;
       this.add.circle(x, y, 13, 0x39271b).setStrokeStyle(1.5, 0x8e6c45).setDepth(45);
@@ -384,7 +384,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   private refreshScrollSeals(charges: SpellCharges): void {
-    SPELL_IDS.forEach((spell, i) => {
+    this.spellSlots.forEach((spell, i) => {
       const seal = this.scrollSeals[i];
       if (!seal) return;
       const count = charges[spell] ?? 0;
