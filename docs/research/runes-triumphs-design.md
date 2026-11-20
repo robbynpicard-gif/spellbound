@@ -58,6 +58,14 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - **Practical flexibility:** Award frequency may make announcing every Rune impractical. Preserve the ability to prioritize major feats, suppress/condense minor spoken callouts, and still show earned Runes in the mechanical carousel. Exact queue, priority and interruption rules remain undecided.
 - Announcer callouts must never disrupt typing or obscure the battlefield. Announcer audio should be adjustable and accessible; specific controls remain open.
 
+## Round 11 — confirmed announcer scope and escalation
+
+- **Rune-only announcer:** Spoken announcements are reserved for **Rune awards**. The announcer does **not** narrate general gameplay, spell casts, victories, failures, bosses, or unrelated events.
+- **Escalation is family-specific:** Named Rune chains/families (e.g. Double Noun → Triple Noun → Nountacular) can build the announcer's intensity across their milestones. **Not all Rune triggers are chains**; standalone Runes receive their own distinct callout without requiring a sequence.
+- **Occasional personality:** Rare witty commentary may accompany exceptional **Rune awards only**; keep Rune names recognizable and central. Do not interpret this as permission for ambient chatter.
+- Preserve Round 10's practical option to prioritize important spoken Rune awards when frequency is high. Every earned Rune still receives visual carousel recognition.
+- Exact cooldowns, spoken queue, family progression timing, mixing, voice lines and implementation remain open.
+
 ## Still open
 
 - The first concrete Rune catalogue, measurable triggers and rarity thresholds.
