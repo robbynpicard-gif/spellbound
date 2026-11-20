@@ -10,6 +10,7 @@
 # Refresh preview for D-064 streamlined level clear (2026-11-20).
 # Refresh preview for D-065 stage performance report (2026-11-20).
 # Refresh preview for D-067 Volley Flow Preservation (2026-11-20).
+# Refresh preview for D-068 typewriter input and Volley timing (2026-11-20).
 name: Deploy to GitHub Pages
 
 on:
