@@ -8,6 +8,7 @@ import { WordGenerator, wordComplexity } from './WordGenerator';
  * The baseline generator still makes every length/complexity-eligible draw.
  * An independent seeded stream occasionally replaces the draw with a
  * grammar-compatible word of identical length and permitted complexity.
+ * Starter-class nudges make the eligible follow-up more likely on the next spawn.
  * Decisions depend on spawned words, never captures or misses. */
 export class ExperimentalWordcraftGenerator extends WordGenerator {
   private readonly alternate: SeededRandom;
@@ -15,6 +16,9 @@ export class ExperimentalWordcraftGenerator extends WordGenerator {
   private readonly recentCandidate: string[] = [];
   private readonly windowSize: number;
   private previousClass: WordClass | null = null;
+  /** Experimental knobs, isolated from the live generator. */
+  private readonly starterChance = 0.45;
+  private readonly followupChance = 0.8;
 
   constructor(words: readonly string[], config: DifficultyConfig, rng: SeededRandom, seed: number) {
     super(words, config, rng);
@@ -31,16 +35,35 @@ export class ExperimentalWordcraftGenerator extends WordGenerator {
 
   override next(): string {
     const ordinary = super.next();
-    const preferred: WordClass[] = PHRASE_PATTERNS.filter((p) => p.first === this.previousClass).map((p) => p.second);
+    const preferred: WordClass[] = this.previousClass
+      ? PHRASE_PATTERNS.filter((p) => p.first === this.previousClass).map((p) => p.second)
+      : [];
+    // When no follow-up is pending, encourage a possible first word.
+    // Avoid forcing the same phrase repeatedly by sampling all starter classes.
+    const starters: WordClass[] = ['noun', 'adjective', 'adverb'];
+    const targets = preferred.length ? preferred : starters;
+    const chance = preferred.length ? this.followupChance : this.starterChance;
     let chosen = ordinary;
-    if (preferred.length && this.alternate.chance(0.2)) {
+    if (this.alternate.chance(chance)) {
       const eligible = (this.buckets.get(ordinary.length) ?? []).filter((word) => {
         const lower = word.toLowerCase();
-        return preferred.includes(classifyWord(word)!)
+        return targets.includes(classifyWord(word)!)
           && !this.recentCandidate.includes(lower)
           && !this.recentCandidate.some((recent) => recent[0] === lower[0]);
       });
       if (eligible.length) chosen = this.alternate.pick(eligible);
+    }
+    // Reject a baseline draw that collides with the candidate's actual recent
+    // spawns when a same-length safe alternative exists. No extra main RNG draws.
+    const lower = chosen.toLowerCase();
+    if (this.recentCandidate.includes(lower)
+      || this.recentCandidate.some((recent) => recent[0] === lower[0])) {
+      const safe = (this.buckets.get(ordinary.length) ?? []).filter((word) => {
+        const text = word.toLowerCase();
+        return !this.recentCandidate.includes(text)
+          && !this.recentCandidate.some((recent) => recent[0] === text[0]);
+      });
+      if (safe.length) chosen = this.alternate.pick(safe);
     }
     this.previousClass = classifyWord(chosen);
     this.recentCandidate.push(chosen.toLowerCase());
