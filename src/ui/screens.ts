@@ -23,8 +23,6 @@ import { SPELLS } from '../spells/SpellRegistry';
 import { formatTime, h, percent } from './dom';
 import type { Screen } from './UIRoot';
 
-const APP_VERSION = '0.27.0';
-
 const MODE_TITLES: Record<CampaignMode, string> = { normal: 'Normal', hardcore: 'Hardcore' };
 
 /** Inline colour for a spell's name in HTML screens. */
@@ -81,7 +79,6 @@ export function mainMenuScreen(actions: MainMenuActions, progress: string | null
     h(
       'p',
       { class: 'footnote' },
-      `Version ${APP_VERSION} · `,
       persistent ? 'Records save in this browser' : 'Records cannot be saved in this browser',
     ),
   );
