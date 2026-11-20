@@ -2,6 +2,7 @@
 # The preview is sourced from the dev branch; production game files always come from main.
 # Pages deployment runs must originate on main due to github-pages environment branch restrictions.
 # Development branch changes are validated separately and included on the next main deployment.
+# Refresh the isolated preview build from the validated development branch (2026-11-20).
 name: Deploy to GitHub Pages
 
 on:
