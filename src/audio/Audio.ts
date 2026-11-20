@@ -284,6 +284,18 @@ class AudioEngine {
     if (bonuses.includes('sweep')) [0, 2, 4, 5, 7].forEach((st, k) => sy.tone(out, now + 0.1 + k * 0.06, midi(PENTA[st + 5]!), 0.6, 0.06, { type: 'sine', attack: 0.01, send: 0.5 }));
   }
 
+  /** A rolling three-word burst: bright ink seal, then a quick ascending flourish. */
+  volley(chain: number): void {
+    if (!this.ready) return;
+    const now = this.t, sy = this.sy, out = this.sfxBus;
+    const intensity = Math.min(5, Math.max(0, chain - 3));
+    sy.noiseHit(out, now, 0.045, 0.11, { type: 'bandpass', freq: 1850 });
+    sy.brass(out, now + 0.018, 620 + intensity * 60, 0.11, 0.16);
+    for (let i = 0; i < 3; i++) {
+      sy.tone(out, now + 0.035 + i * 0.065, midi(PENTA[7 + i + intensity]!), 0.35, 0.055, { type: 'sine', attack: 0.007, send: 0.25 });
+    }
+  }
+
   /** A new multiplier tier: a brass stab and a bell, grander each tier, in the music's key. */
   tierUp(tier: number): void {
     if (!this.ready) return;
