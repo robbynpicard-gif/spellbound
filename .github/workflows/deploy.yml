@@ -13,6 +13,7 @@
 # Refresh preview for D-068 typewriter input and Volley timing (2026-11-20).
 # Refresh preview for D-069 Temporal Flow sandbox prototype.
 # Refresh preview for D-070 Temporal Flow regression suite.
+# Refresh preview for D-071 Volley spell action and level/stage stats.
 name: Deploy to GitHub Pages
 
 on:
