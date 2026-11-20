@@ -13,6 +13,7 @@ import {
   type RecordField,
 } from '../modes/PracticeMode';
 import { formatTime, h, percent } from './dom';
+import { sessionRuneAwards } from './screens';
 import type { Screen } from './UIRoot';
 
 export const FILTER_LABELS: Record<ModifierFilter, { title: string; detail: string }> = {
@@ -221,6 +222,7 @@ export function practiceResultsScreen(
     h('p', { class: 'spell-summary' }, (stats.peakVolley ?? 0) < 3
       ? 'VOLLEY NOT YET EARNED · Capture 3 words within 2 seconds to earn your first Volley bonus.'
       : `VOLLEY ACHIEVED · Your fastest burst: ${stats.peakVolley} words in 2 seconds.`),
+    sessionRuneAwards(stats),
     h('p', { class: 'footnote' }, 'Practice records are kept separately from Campaign.'),
     h(
       'div',
