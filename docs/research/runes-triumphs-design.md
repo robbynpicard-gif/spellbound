@@ -34,6 +34,14 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - Consider a curated **Arcane Lexicon** of magic-specific words for distinctive visual recognition and Rune triggers. This is an idea, not yet a mechanic.
 - Prioritize intuitive triggers, typing-first fairness, accessible presentation and avoiding redundant scoring bonuses.
 
+## Round 8 — confirmed design direction
+
+- **Grammar classification:** A word may have multiple valid parts of speech (e.g. noun and verb). A capture may advance a relevant chain for each recognized category, with the award engine enforcing the agreed related-tier overlap rules. Use reliable, deterministic word metadata; do not infer categories from spelling during live gameplay.
+- **Arcane vocabulary:** Magic-specific words should be visibly distinct on the battlefield, not merely tracked invisibly for Rune conditions. Preferred initial treatment: a **shimmering arcane-blue** accent plus a non-color glyph/marking for accessibility. Exact art treatment remains open.
+- **Spell-duration Rune sequences:** Explore easy-to-understand, hard-to-master escalating feats performed **while a cast spell remains active**. Recognition should reward typing actions during the effect, not just spell casting.
+- **Proposed Ice family (not yet approved):** Frostscribe (3 typed captures in one Ice effect), Frostweaver (5), Frostmaster (8). Test feasibility against Ice's spawn freeze, active duration and typical field size; don't force artificial stockpiling.
+- The first twelve proposed Runes discussed in chat are **candidates**, not confirmed triggers or balanced thresholds. Keep the catalogue open to refinement.
+
 ## Still open
 
 - The first concrete Rune catalogue, measurable triggers and rarity thresholds.
