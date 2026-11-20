@@ -71,6 +71,16 @@ describe('lifetime Triumphs', () => {
     expect(earned[0]?.tierName).toBe('Bronze');
   });
 
+  it('tracks grammatical Triumphs independently from the captured word classes', () => {
+    const life = emptyLifetime();
+    life.wordClassCounts = { noun: 10, verb: 50, adjective: 200, adverb: 5 };
+    const progress = triumphProgress(life);
+    expect(progress.find((t) => t.id === 'nouns')?.tier).toBe(1);
+    expect(progress.find((t) => t.id === 'verbs')?.tier).toBe(2);
+    expect(progress.find((t) => t.id === 'adjectives')?.tier).toBe(3);
+    expect(progress.find((t) => t.id === 'adverbs')?.tier).toBe(1);
+  });
+
   it('does not mutate saved lifetime statistics', () => {
     const life = emptyLifetime();
     life.bestCombo = 25;
