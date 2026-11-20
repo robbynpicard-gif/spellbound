@@ -1,4 +1,5 @@
 import { triumphProgress } from '../gameplay/Triumphs';
+import { parseWard } from '../gameplay/WardScar';
 import { earnedRuneIds } from '../ui/screens';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
@@ -206,6 +207,7 @@ function parseSavedRun(raw: unknown): CampaignRun | null {
     stage: clampStage(r.stage),
     level: clampLevel(r.level, STAGE_LEVELS),
     instability: Math.min(num(r.instability), 99),
+    ...(r.wardCap !== undefined ? (({ cap, wagers }) => ({ wardCap: cap, wardWagers: wagers }))(parseWard(r.wardCap, r.wardWagers)) : {}),
     score: num(r.score),
     levelsCleared: Math.min(num(r.levelsCleared), STAGE_LEVELS),
     spellCharges: sanitizeCharges(r.spellCharges as never),

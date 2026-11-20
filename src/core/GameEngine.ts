@@ -6,6 +6,7 @@ import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfi
 import { InstabilityManager } from '../gameplay/InstabilityManager';
 import {
   accuracyOf,
+  SCORING,
   comboAfterWrongEntry,
   streakAfterTypo,
   scoreWord,
@@ -26,13 +27,15 @@ import {
   type GameStats,
 } from '../gameplay/ScoringSystem';
 import { wordComplexity } from '../gameplay/WordGenerator';
-import { precisionComboMultiplier, proposedWordScore } from '../gameplay/PrecisionComboPrototype';
+import { precisionComboMultiplier } from '../gameplay/PrecisionComboPrototype';
 import { sustainedVolleyMultiplier, type FlowCapture } from '../gameplay/SustainedVolley';
+import { allInMultiplier, arcaneScore, castWind, freshWard, parseWard, tickAllIn, type WardScarState } from '../gameplay/WardScar';
 import {
   addCharge,
   poolSizeFor,
   trimToPool,
   consumeCharge,
+  emptyCharges,
   isSpellId,
   sanitizeCharges,
   SPELL_IDS,
@@ -85,7 +88,14 @@ export interface EngineOptions {
   experimentalWordGenerator?: (words: readonly string[], config: DifficultyConfig, rng: SeededRandom, seed: number) => WordGenerator;
   /** Development-preview-only scoring experiment; legacy default for existing tests/replays. */
   experimentalScoring?: boolean;
+  /** Arcane preview: Ward maximum and wagers carried in (Hardcore keeps scars for the stage, D-084). */
+  initialWard?: { cap: number; wagers: number };
+  /** Sandbox only: hold this many charges, ignoring the mana pool. Never set in Campaign or duels. */
+  poolLimitOverride?: number;
 }
+
+/** Ice Frostbound Focus (D-077): Combo gained per successive perfect capture during one freeze. EXPERIMENTAL. */
+export const ICE_FOCUS_STEPS: readonly number[] = [2, 4, 8];
 
 /** The pace a level is running at right now (boss levels speed up over time). */
 export interface Pace {
@@ -175,6 +185,14 @@ export class GameEngine {
   private readonly log: Command[] = [];
   private workshopElement: ElementalStatus | null = null;
   private pendingElementalMultiplier = 1;
+  /** Ward scars and All-In wager (D-084). Legacy scoring keeps a fresh, unused Ward. */
+  private ward: WardScarState = freshWard();
+  /** Perfect captures in the current freeze (Frostbound Focus). */
+  private iceFocus = 0;
+  /** Barrier absorbed a corrected typo in the current entry (score insurance). */
+  private insuredEntry = false;
+  private readonly poolOverride: number | null;
+  private readonly allIn = { wagers: 0, points: 0, harvests: 0, shocks: 0, typedPoints: 0 };
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
   private endlessStartedTick: number | null = null;
@@ -194,7 +212,10 @@ export class GameEngine {
     this.experimentalScoring = options.experimentalScoring === true;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
     this.laneRng = new SeededRandom((this.seed ^ 0x1a4e1a4e) >>> 0);
-    this.instability = new InstabilityManager(options.initialInstability ?? 0);
+    this.ward = this.experimentalScoring && options.initialWard ? parseWard(options.initialWard.cap, options.initialWard.wagers) : freshWard();
+    // A scarred Ward can never start above its maximum.
+    this.instability = new InstabilityManager(Math.max(100 - this.ward.cap, options.initialInstability ?? 0));
+    this.poolOverride = options.poolLimitOverride && options.poolLimitOverride > 0 ? Math.floor(options.poolLimitOverride) : null;
     const carried = Math.max(0, Math.floor(options.initialCombo ?? 0));
     this.shortWords = options.words.filter((w) => w.length >= SHORT_WORD_MIN && w.length <= SHORT_WORD_MAX);
     let easy: WordGenerator | null = null;
@@ -213,7 +234,7 @@ export class GameEngine {
       easy = null; // a word list with no short words: Alter only shortens
     }
     this.easyGenerator = easy;
-    this.s = createInitialState(sanitizeCharges(options.initialSpells), this.instability.value);
+    this.s = createInitialState(this.poolOverride ? rawCharges(options.initialSpells) : sanitizeCharges(options.initialSpells), this.instability.value);
     this.carried = (options.initialWords ?? []).map((w) => ({ ...w, isTarget: false, typed: 0 }));
     this.s.combo = carried;
     this.s.maxCombo = carried;
@@ -336,7 +357,24 @@ export class GameEngine {
 
   /** How many charges fit right now: the base pool, widened by a clean run (D-057). */
   get poolLimit(): number {
-    return poolSizeFor(this.s.manaStreak);
+    return this.poolOverride ?? poolSizeFor(this.s.manaStreak);
+  }
+
+  /** Ward as the player sees it: stability, scarred maximum and All-In window. */
+  get wardInfo(): { stability: number; cap: number; wagers: number; allInTicks: number; allInMultiplier: number } {
+    return {
+      stability: 100 - this.instability.value,
+      cap: this.ward.cap,
+      wagers: this.ward.wagers,
+      allInTicks: this.ward.allInTicks,
+      allInMultiplier: allInMultiplier(this.ward),
+    };
+  }
+
+  private endAllIn(reason: 'breach' | 'mistake' | 'heal'): void {
+    if (this.ward.allInTicks === 0) return;
+    this.ward = { ...this.ward, allInTicks: 0 };
+    this.events.emit('allInChanged', { active: false, ticks: 0, multiplier: 1, reason });
   }
 
   /** Deterministic Endless pressure cycle: build, surge, relief, settle. */
@@ -447,6 +485,11 @@ export class GameEngine {
 
     this.tickPacing();
 
+    if (this.ward.allInTicks > 0) {
+      this.ward = tickAllIn(this.ward);
+      if (this.ward.allInTicks === 0) this.events.emit('allInChanged', { active: false, ticks: 0, multiplier: 1, reason: 'expired' });
+    }
+
     // Flow Preservation: monotonic Volley time. The first return after an
     // empty field grants at most 0.4 s of paused Volley time, once per
     // successful capture. Empty/refill cycles cannot stack the allowance.
@@ -461,19 +504,22 @@ export class GameEngine {
           }
           this.volleyFlowProtected = false;
         }
-        if (s.freezeTicks === 0) {
-          const grace = this.volleyGraceTicks > 0;
-          if (this.volleyGraceTicks > 0) this.volleyGraceTicks--;
-          this.volleyClock = advanceTemporalFlow(this.volleyClock, s.slowStacks.length > 0, grace);
-          this.volleyFlowTick = this.volleyClock.tick;
-        }
+        // D-077: Volley time keeps running during Ice. Slow's timer is paused by
+        // the freeze, so its 80% Volley clock pauses with it.
+        const grace = this.volleyGraceTicks > 0;
+        if (this.volleyGraceTicks > 0) this.volleyGraceTicks--;
+        this.volleyClock = advanceTemporalFlow(this.volleyClock, s.slowStacks.length > 0 && s.freezeTicks === 0, grace);
+        this.volleyFlowTick = this.volleyClock.tick;
       }
     }
 
     // Frostbinding: nothing moves and nothing spawns (slow stacks wait too).
     if (s.freezeTicks > 0) {
       for (const word of s.words) word.prevY = word.y;
-      if (--s.freezeTicks === 0) this.events.emit('spellEnded', { spell: 'ice' });
+      if (--s.freezeTicks === 0) {
+        this.iceFocus = 0;
+        this.events.emit('spellEnded', { spell: 'ice' });
+      }
       return;
     }
 
@@ -614,12 +660,23 @@ export class GameEngine {
       // Clean Streak: a typo (even one fixed with Backspace) steps back one milestone (D-046).
       s.entryTypo = true;
       if (this.experimentalScoring) {
-        this.setCombo(0);
-        this.setCleanStreak(0, 'typo');
-        this.shrinkPool();
-        this.flowCaptures = [];
-        this.arcaneVolley = emptyArcaneVolley();
-        this.activeVolleyMultiplier = 1;
+        this.iceFocus = 0;
+        if (!this.insuredEntry && s.barrier > 0) {
+          // Barrier score insurance (prototype): one layer covers this entry's typos.
+          s.barrier--;
+          this.insuredEntry = true;
+          this.events.emit('barrierChanged', { remaining: s.barrier });
+          this.events.emit('scoreInsured', { barrierLeft: s.barrier });
+        }
+        if (!this.insuredEntry) {
+          this.setCombo(0);
+          this.setCleanStreak(0, 'typo');
+          this.shrinkPool();
+          this.flowCaptures = [];
+          this.arcaneVolley = emptyArcaneVolley();
+          this.activeVolleyMultiplier = 1;
+          if (this.hardcore) this.endAllIn('mistake');
+        }
       } else this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
       if (attempted) this.penalize(attempted);
     }
@@ -654,6 +711,10 @@ export class GameEngine {
     const guess = pinned ?? guessIntendedWord(s.words, input);
     // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
     this.setCombo(this.experimentalScoring ? 0 : comboAfterWrongEntry(s.combo));
+    if (this.experimentalScoring) {
+      this.iceFocus = 0;
+      if (this.hardcore) this.endAllIn('mistake');
+    }
     this.flowCaptures = [];
     this.arcaneVolley = emptyArcaneVolley();
     this.activeVolleyMultiplier = 1;
@@ -694,7 +755,8 @@ export class GameEngine {
       // Hardcore rewards the typed spell as a precision combo action, not an enemy capture.
       this.setCombo(s.combo + 1);
       s.maxCombo = Math.max(s.maxCombo, s.combo);
-      const points = proposedWordScore(spell.length, precisionComboMultiplier(s.combo), 1);
+      const points = arcaneScore(spell.length * SCORING.pointsPerLetter, precisionComboMultiplier(s.combo), 1, allInMultiplier(this.ward));
+      if (this.ward.allInTicks > 0) this.allIn.points += points;
       s.score += points;
       this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     }
@@ -791,6 +853,7 @@ export class GameEngine {
     s.input = '';
     s.penalizedId = null;
     s.entryTypo = false;
+    this.insuredEntry = false;
     if (unpin) s.pinnedId = null;
     const target = this.target;
     if (target) target.typed = 0;
@@ -881,11 +944,16 @@ export class GameEngine {
 
   private complete(word: WordState): void {
     const s = this.s;
+    // Read before removeWord: removing the aimed word resets the entry.
+    const entryInsured = this.insuredEntry;
     this.removeWord(word);
     s.completed++;
     const perfect = word.errors === 0 && !s.entryTypo;
-    if (!this.experimentalScoring || perfect) this.setCombo(s.combo + 1);
-    else this.setCombo(0);
+    // Barrier insurance: a protected corrected capture is not perfect; it keeps Combo/Volley but adds nothing.
+    const insured = this.experimentalScoring && !perfect && entryInsured;
+    if (!this.experimentalScoring) this.setCombo(s.combo + 1);
+    else if (perfect) this.setCombo(s.combo + this.comboStep());
+    else if (!insured) this.setCombo(0);
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.completionTicksTotal += s.tick - word.spawnTick;
     const multiplier = this.experimentalScoring ? precisionComboMultiplier(s.combo) : multiplierOf(s.combo);
@@ -906,7 +974,7 @@ export class GameEngine {
     }
     if (this.experimentalScoring) this.arcaneVolley = perfect
       ? arcaneVolleyCapture(this.arcaneVolley, this.volleyFlowTick, word.text.length, this.hardcore)
-      : emptyArcaneVolley();
+      : insured ? this.arcaneVolley : emptyArcaneVolley();
     this.activeVolleyMultiplier = this.experimentalScoring
       ? arcaneVolleyMultiplier(this.arcaneVolley, this.volleyFlowTick, this.hardcore)
       : sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
@@ -917,8 +985,12 @@ export class GameEngine {
     }
     if (this.experimentalScoring && this.activeVolleyMultiplier > 1 && !bonuses.some((b) => b.id === 'volley')) bonuses.push({ id: 'volley', count: this.flowCaptures.length, rate: 0, points: 0 });
     const points = this.experimentalScoring
-      ? proposedWordScore(word.text.length, multiplier, this.activeVolleyMultiplier)
+      ? arcaneScore(this.basePoints(word), multiplier, this.activeVolleyMultiplier, allInMultiplier(this.ward))
       : scoreWord(word.text.length, multiplier, bonuses, streakMultiplierOf(s.cleanStreak));
+    if (this.experimentalScoring && this.ward.allInTicks > 0) {
+      this.allIn.points += points;
+      this.allIn.typedPoints += points;
+    }
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
@@ -957,6 +1029,7 @@ export class GameEngine {
     }
 
     s.missed++;
+    if (this.experimentalScoring) this.endAllIn('breach');
     this.setCombo(0);
     this.flowCaptures = [];
     this.activeVolleyMultiplier = 1;
@@ -1137,6 +1210,20 @@ export class GameEngine {
     this.events.emit('gameOver', { result, stats: this.stats() });
   }
 
+  /** Combo gained by a perfect capture: +1, or Frostbound Focus steps during Ice. */
+  private comboStep(): number {
+    if (this.s.freezeTicks === 0) return 1;
+    const step = ICE_FOCUS_STEPS[Math.min(this.iceFocus, ICE_FOCUS_STEPS.length - 1)]!;
+    this.iceFocus++;
+    this.events.emit('iceFocus', { streak: this.iceFocus, gain: step });
+    return step;
+  }
+
+  /** Arcane base points: Alter keeps the original word's value (prototype). */
+  private basePoints(word: WordState): number {
+    return (word.originalLength ?? word.text.length) * SCORING.pointsPerLetter;
+  }
+
   private findWord(id: number): WordState | undefined {
     return this.s.words.find((w) => w.id === id);
   }
@@ -1171,9 +1258,12 @@ export class GameEngine {
       harvestAll: () => this.harvestAll(),
       restoreWard: (points) => {
         const s = this.s;
-        s.instability = this.instability.add(-Math.min(points, this.instability.value));
+        // Every heal obeys the scarred maximum.
+        const floor = 100 - this.ward.cap;
+        s.instability = this.instability.add(-Math.max(0, Math.min(points, this.instability.value - floor)));
         this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
       },
+      wind: (heal) => this.castWindSpell(heal),
       resetWordSpeeds: () => {
         const speed = this.pace.fallSpeed;
         const cap = speed * (1 + (this.config.speedVariance ?? SPEED_VARIANCE));
@@ -1234,15 +1324,64 @@ export class GameEngine {
       .sort((a, b) => dist(a) - dist(b) || a.id - b.id)
       .slice(0, arcs);
     const struck = [first, ...rest];
+    if (this.experimentalScoring) {
+      // Prototype cash-out: base × earned Combo × All-In; arcs unchanged (D-080 odds undecided).
+      const base = struck.reduce((sum, w) => sum + Math.round(this.basePoints(w) * this.pendingElementalMultiplier), 0);
+      const allIn = allInMultiplier(this.ward);
+      const total = arcaneScore(base, precisionComboMultiplier(this.s.combo), 1, allIn);
+      this.claimWords(struck, () => 0);
+      this.s.score += total;
+      if (allIn > 1) {
+        this.allIn.points += total;
+        this.allIn.shocks++;
+      }
+      this.events.emit('wordsShocked', { words: struck, points: total });
+      return this.afterClaim(struck);
+    }
     const points = this.claimWords(struck, (w) => Math.round(wordPoints(w.text.length, 1) * this.pendingElementalMultiplier));
     this.events.emit('wordsShocked', { words: struck, points });
     this.afterClaim(struck);
+  }
+
+  /** The single authoritative Wind decision (D-084); legacy rules keep the flat heal. */
+  private castWindSpell(heal: number): void {
+    const s = this.s;
+    if (!this.experimentalScoring) return this.spellContext.restoreWard(heal);
+    const r = castWind(this.ward, 100 - this.instability.value);
+    this.ward = r.ward;
+    s.instability = this.instability.add(100 - r.stability - this.instability.value);
+    s.peakInstability = Math.max(s.peakInstability, s.instability);
+    if (r.outcome === 'wager') this.allIn.wagers++;
+    this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
+    this.events.emit('windCast', { outcome: r.outcome, stability: r.stability, cap: r.ward.cap, scar: r.scar, endedAllIn: r.endedAllIn });
+    if (r.outcome === 'wager')
+      this.events.emit('allInChanged', { active: true, ticks: r.ward.allInTicks, multiplier: allInMultiplier(r.ward), reason: 'wager' });
+    else if (r.endedAllIn) this.events.emit('allInChanged', { active: false, ticks: 0, multiplier: 1, reason: 'heal' });
   }
 
   /** Harvest: every word counts toward the quota, at half its base points. */
   private harvestAll(): void {
     const words = [...this.s.words];
     if (words.length === 0) return;
+    if (this.experimentalScoring) {
+      // D-084: full original base × earned Combo × active Volley × All-In, rounded once.
+      // Volley is consumed after paying out; Combo persists; no captures are added.
+      const base = words.reduce((sum, w) => sum + this.basePoints(w), 0);
+      const volley = this.volleyMultiplier;
+      const allIn = allInMultiplier(this.ward);
+      const total = arcaneScore(base, precisionComboMultiplier(this.s.combo), volley, allIn);
+      this.claimWords(words, () => 0);
+      this.s.score += total;
+      if (allIn > 1) {
+        this.allIn.points += total;
+        this.allIn.harvests++;
+      }
+      this.arcaneVolley = emptyArcaneVolley();
+      this.activeVolleyMultiplier = 1;
+      this.flowCaptures = [];
+      this.events.emit('wordsHarvested', { words, points: total, volley, allIn });
+      return this.afterClaim(words);
+    }
     // Half base points × the combo and Clean Streak multipliers at the moment of casting.
     const factor = this.experimentalScoring ? precisionComboMultiplier(this.s.combo) : multiplierOf(this.s.combo) * streakMultiplierOf(this.s.cleanStreak);
     const points = this.claimWords(words, (w) => Math.round((wordPoints(w.text.length, 1) / 2) * factor));
@@ -1280,6 +1419,7 @@ export class GameEngine {
       if (!text) continue;
       onField.add(text.toLowerCase());
       firstLetters.add(text.toLowerCase()[0]);
+      word.originalLength ??= word.text.length;
       word.text = text;
       word.match = text.toLowerCase();
       word.lengthClass = lengthClassOf(text.length);
@@ -1325,6 +1465,27 @@ export class GameEngine {
       averageCompletionMs:
         s.completed === 0 ? 0 : (s.completionTicksTotal / s.completed) * SIMULATION_STEP_MS,
       spellsCast: { ...s.spellsCast },
+      ...(this.experimentalScoring
+        ? {
+            allInWagers: this.allIn.wagers,
+            allInPoints: this.allIn.points,
+            allInTypedPoints: this.allIn.typedPoints,
+            allInHarvests: this.allIn.harvests,
+            allInShocks: this.allIn.shocks,
+            wardCap: this.ward.cap,
+            wardWagers: this.ward.wagers,
+          }
+        : {}),
     };
   }
+}
+
+/** Sandbox charges: whole non-negative numbers, no pool trimming. */
+function rawCharges(input?: Partial<SpellCharges>): SpellCharges {
+  const charges = emptyCharges();
+  for (const id of SPELL_IDS) {
+    const v = input?.[id];
+    if (typeof v === 'number' && Number.isFinite(v)) charges[id] = Math.max(0, Math.floor(v));
+  }
+  return charges;
 }

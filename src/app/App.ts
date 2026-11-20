@@ -264,6 +264,7 @@ export class App {
       scoreOffset: run.score,
       hardcore: run.mode === 'hardcore',
       initialInstability: run.instability,
+      initialWard: run.wardCap !== undefined ? { cap: run.wardCap, wagers: run.wardWagers ?? 0 } : undefined,
       initialCombo: run.combo,
       initialCleanStreak: run.cleanStreak,
       initialWords: run.carryWords,
@@ -372,6 +373,7 @@ export class App {
       ...(carry ? {
         initialSpells: carry.spellCharges,
         initialInstability: carry.instability,
+        initialWard: carry.wardCap !== undefined ? { cap: carry.wardCap, wagers: carry.wardWagers ?? 0 } : undefined,
         initialCombo: carry.combo,
         initialCleanStreak: carry.cleanStreak,
         initialWords: carry.carryWords,

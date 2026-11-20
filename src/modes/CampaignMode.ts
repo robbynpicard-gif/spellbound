@@ -52,6 +52,9 @@ export interface CampaignRun {
   level: number;
   /** Instability carried into the next level (always 0 in Normal). */
   instability: number;
+  /** Arcane preview Wind scars (D-084): Ward maximum and wagers taken. Hardcore keeps them for the stage; optional for older saves. */
+  wardCap?: number;
+  wardWagers?: number;
   /** Total score so far across all levels of this run. */
   score: number;
   levelsCleared: number;
@@ -162,9 +165,20 @@ export function recordLevel(
   run.combo = won ? Math.max(0, stats.endCombo ?? 0) : 0;
   run.cleanStreak = won ? Math.max(0, stats.endCleanStreak ?? 0) : 0;
   if (run.mode === 'hardcore') {
+    // Scars persist through the Hardcore stage; milestone healing never rises above the scarred maximum.
+    if (stats.wardCap !== undefined) {
+      run.wardCap = stats.wardCap;
+      run.wardWagers = stats.wardWagers ?? 0;
+    }
+    const floor = 100 - (run.wardCap ?? 100);
     const heal = won && HARDCORE_HEAL_LEVELS.includes(run.level) ? HARDCORE_HEAL : 0;
-    run.instability = Math.max(0, Math.min(100, instabilityAfter) - heal);
-  } else run.instability = 0;
+    run.instability = Math.max(floor, Math.min(100, instabilityAfter) - heal);
+  } else {
+    // Normal: Ward and scars are fresh every level.
+    run.instability = 0;
+    delete run.wardCap;
+    delete run.wardWagers;
+  }
 
   if (!won) return { runOver: true, victory: false };
   run.levelsCleared++;

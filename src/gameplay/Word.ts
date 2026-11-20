@@ -36,6 +36,8 @@ export interface WordState {
   readonly spawnTick: number;
   /** Wrong keystrokes made while this word was the target. */
   errors: number;
+  /** Alter (Arcane preview): letters of the word before it was shortened; it keeps that base value. */
+  originalLength?: number;
 }
 
 export function lengthClassOf(length: number): LengthClass {

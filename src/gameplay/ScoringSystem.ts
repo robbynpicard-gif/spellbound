@@ -201,6 +201,15 @@ export interface GameStats {
   phraseCounts?: Partial<Record<'awakening' | 'illumination' | 'incantation', number>>;
   /** Times each spell was cast this level. */
   spellsCast?: Partial<Record<string, number>>;
+  /** Arcane preview Wind (D-084): wagers taken, points scored inside All-In windows and how. */
+  allInWagers?: number;
+  allInPoints?: number;
+  allInTypedPoints?: number;
+  allInHarvests?: number;
+  allInShocks?: number;
+  /** Ward maximum and wagers at the end of the level (Hardcore carries them). */
+  wardCap?: number;
+  wardWagers?: number;
 }
 
 export function accuracyOf(correct: number, errors: number): number {

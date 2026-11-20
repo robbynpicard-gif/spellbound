@@ -31,7 +31,15 @@ export interface GameEvents {
   /** Words destroyed by Chain Lightning, in strike order (first = the most urgent). */
   wordsShocked: { words: WordState[]; points: number };
   /** Words claimed by Harvest. */
-  wordsHarvested: { words: WordState[]; points: number };
+  wordsHarvested: { words: WordState[]; points: number; volley?: number; allIn?: number };
+  /** Wind's decision (D-084): healed toward the scarred maximum, wagered All-In, or a calm gust. */
+  windCast: { outcome: 'wager' | 'heal' | 'calm'; stability: number; cap: number; scar: number; endedAllIn: boolean };
+  /** The All-In scoring window opened or closed. */
+  allInChanged: { active: boolean; ticks: number; multiplier: number; reason: 'wager' | 'expired' | 'breach' | 'mistake' | 'heal' };
+  /** Barrier absorbed a corrected typo: Combo and Volley are kept. */
+  scoreInsured: { barrierLeft: number };
+  /** Frostbound Focus: a perfect capture during Ice gained `gain` Combo. */
+  iceFocus: { streak: number; gain: number };
   /** Words changed by Transmutation (their text is already the new text). */
   wordsTransmuted: { words: WordState[] };
   /** A word reached the ward line but Arcane Shield stopped it. */

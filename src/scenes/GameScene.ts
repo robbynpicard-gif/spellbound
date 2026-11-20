@@ -49,6 +49,10 @@ export interface GameSceneData {
   hardcore?: boolean;
   /** Instability carried in (Hardcore). */
   initialInstability?: number;
+  /** Ward maximum and wagers carried in (Hardcore scars, D-084). */
+  initialWard?: { cap: number; wagers: number };
+  /** Sandbox: hold this many charges regardless of the mana pool. */
+  poolLimitOverride?: number;
   /** Combo carried from the previous Campaign level. */
   initialCombo?: number;
   /** Campaign: Clean Streak carried in from the previous level of the chapter (D-046). */
@@ -200,6 +204,8 @@ export class GameScene extends Phaser.Scene {
       // Development preview only. Duel/replay rules remain unchanged.
       experimentalScoring: !data.duel,
       initialInstability: data.initialInstability,
+      initialWard: data.duel ? undefined : data.initialWard,
+      poolLimitOverride: data.duel ? undefined : data.poolLimitOverride,
       initialCombo: data.initialCombo,
       initialCleanStreak: data.initialCleanStreak,
       initialWords: data.initialWords,

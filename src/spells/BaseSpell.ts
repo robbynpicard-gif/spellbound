@@ -51,6 +51,8 @@ export interface SpellContext {
   /** Arcane Purge: instability to 0% (Normal) or reduced by `hardcoreFraction` of itself (Hardcore). */
   /** Lowers instability by `points` percentage points (not below 0). */
   restoreWard(points: number): void;
+  /** Wind (D-084): heal toward the scarred maximum, or wager All-In at it. Legacy: flat heal of `heal`. */
+  wind(heal: number): void;
   /** Remove extra speed that mistakes added to words. */
   resetWordSpeeds(): void;
   /** Converts milliseconds to simulation ticks. */

@@ -17,7 +17,7 @@ const EFFECTS: Record<SpellId, (ctx: SpellContext, data: SpellData) => void> = {
   },
   fire: (ctx) => ctx.burnAllWords(),
   wind: (ctx, data) => {
-    ctx.restoreWard(data.heal ?? 50);
+    ctx.wind(data.heal ?? 50);
     ctx.resetWordSpeeds();
   },
   harvest: (ctx) => ctx.harvestAll(),
