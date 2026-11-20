@@ -384,6 +384,16 @@
 @keyframes triumph-reveal { from { opacity: 0; transform: translateY(12px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @media (prefers-reduced-motion: reduce) { .triumph-unlock { animation: none; } }
 
+/* Distinct metalwork for Triumph tiers: bronze, silver, and gold.
+   Visual recognition only; no passive stat boosts or score changes. */
+.triumph-entry.tier-1, .triumph-unlock.tier-1 { border-color: #ad7042; }
+.triumph-entry.tier-2, .triumph-unlock.tier-2 { border-color: #8c9da8; background: linear-gradient(120deg, #f0eadc, #c6d0d0); }
+.triumph-entry.tier-3, .triumph-unlock.tier-3 { border-color: #c99a2e; background: linear-gradient(120deg, #fff2bd, #dfb75b); }
+.triumph-entry.tier-1 .triumph-medal, .triumph-unlock.tier-1 .triumph-unlock-medal { color: #a25c2f; }
+.triumph-entry.tier-2 .triumph-medal, .triumph-unlock.tier-2 .triumph-unlock-medal { color: #607a8b; }
+.triumph-entry.tier-3 .triumph-medal, .triumph-unlock.tier-3 .triumph-unlock-medal { color: #a97812; text-shadow: 0 1px 0 #fff1ae, 0 0 10px rgb(250 195 58 / 0.45); }
+.triumph-lore { font-style: italic; }
+
 /* Results */
 .score {
   display: flex;
