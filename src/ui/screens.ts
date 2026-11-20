@@ -296,6 +296,7 @@ export function levelClearScreen(
   run: Readonly<CampaignRun>,
   onContinue: () => void,
   extra?: HTMLElement | null,
+  triumphUnlocks?: HTMLElement | null,
 ): Screen {
   const button = h('button', { class: 'menu-button primary', onClick: onContinue }, `Continue to level ${next.level}`);
   const healed = run.mode === 'hardcore' && HARDCORE_HEAL_LEVELS.includes(cleared.level);
@@ -332,6 +333,7 @@ export function levelClearScreen(
       ),
     spellSummary(run.spellCharges),
     sessionRuneAwards(stats),
+    triumphUnlocks ?? null,
     extra ?? null,
     h('p', { class: 'next-up' }, `Next: Level ${next.level} · ${next.name}${isSurvival(next) ? ' · Boss' : ''}`),
     h('div', { class: 'button-row' }, button),
