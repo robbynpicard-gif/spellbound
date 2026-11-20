@@ -51,6 +51,16 @@ jobs:
         run: |
           mkdir -p production/dist/preview
           cp -R development/dist/. production/dist/preview/
+      - name: Verify preview is Typal and contains built assets
+        run: |
+          test -f production/dist/preview/index.html
+          grep -q 'TYPAL · DEV PREVIEW' production/dist/preview/index.html
+          test -d production/dist/preview/assets
+          find production/dist/preview/assets -type f -name '*.js' | grep -q .
+          if grep -q 'src="/src/main.ts"' production/dist/preview/index.html; then
+            echo 'Preview still contains unbuilt source entry point' >&2
+            exit 1
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: production/dist
