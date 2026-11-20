@@ -42,11 +42,14 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - **Proposed Ice family (not yet approved):** Frostscribe (3 typed captures in one Ice effect), Frostweaver (5), Frostmaster (8). Test feasibility against Ice's spawn freeze, active duration and typical field size; don't force artificial stockpiling.
 - The first twelve proposed Runes discussed in chat are **candidates**, not confirmed triggers or balanced thresholds. Keep the catalogue open to refinement.
 
-## Round 9 — confirmed spellcraft sequence rules
+## Round 9 — confirmed and clarified
 
-- **Per-cast window:** Each individual spell activation opens a fresh Rune sequence opportunity. A later cast does not extend the prior cast's Rune count, even if the gameplay effect itself stacks or extends. Sequence timing and eligibility must be deterministic and tested for overlapping casts.
-- **Subtle physical progress:** Small engraved pips/marks on or near the typewriter illuminate as an active Rune sequence progresses. Avoid a large counter, distracting animation, focus changes or obscuring falling scrolls. The analog Rune carousel remains the completed-award display.
-- Exact UI layout, pips count, interaction of multiple simultaneous spell windows and thresholds remain open.
+- **Spell activations open feat opportunities, not automatic Rune sequences.** Each cast may create a specific, observable gameplay situation in which a player can attempt a defined Rune challenge. Merely casting a spell never awards a Rune or automatically starts counting a generic spell sequence.
+- **Per-cast opportunities:** When a Rune is tied to a particular cast, that cast defines its own eligibility window; later casts do not automatically extend or merge the earlier window. The exact beginning/end of each opportunity is defined by the Rune, not a universal spell timer.
+- **Example under consideration (not yet approved trigger):** Fire may leave surviving scrolls near the top of the screen. Capturing/eliminating those survivors within a defined time after the cast could qualify for a Fire-related Rune. Confirm the actual Fire behavior and tune its measurable window before implementation.
+- **Subtle physical progress indicators:** Where a Rune challenge has meaningful progress, small engraved pips/marks near the typewriter may show it without obscuring gameplay. No progress display is required for every cast.
+- **Rune announcer is core identity:** Recognizable spoken Rune/medal callouts, inspired by the celebratory cadence of Halo and Knight Squad, should form part of the iconic feedback layer of the game. Design for memorable names, timing and escalation without disrupting typing. Exact voice, audio mixing, queue priorities and accessibility settings remain open.
+- **Three feedback layers:** actual player feat → mechanical Rune carousel → announcer callout. They should coordinate but never pause gameplay, steal keyboard focus or obstruct falling scrolls.
 
 ## Still open
 
