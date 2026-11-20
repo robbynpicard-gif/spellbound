@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { previewWordcraftEnabled } from './WordcraftPreview';
+import { previewWordcraftEnabled, setPreviewWordcraftEnabled } from './WordcraftPreview';
 
 describe('preview-only Wordcraft experiment gate', () => {
+  it('cannot toggle without a browser context', () => {
+    expect(setPreviewWordcraftEnabled(true)).toBe(false);
+  });
+
   it('requires both a preview path and an explicit opt-in', () => {
     expect(previewWordcraftEnabled('/spellbound/preview/', '?wordcraft=1')).toBe(true);
     expect(previewWordcraftEnabled('/preview/', '?wordcraft=1')).toBe(true);
