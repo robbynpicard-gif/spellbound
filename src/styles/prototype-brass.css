@@ -1,0 +1,52 @@
+/* Development-only art exploration: enchanted brass writing instrument.
+   Visual treatment only; the original Phaser combat and input remain intact. */
+:root {
+  --color-midnight: #100e0c;
+  --color-charcoal: #221c17;
+  --color-iron: #725536;
+  --color-rust: #aa6034;
+  --color-gold: #e3bb72;
+  --color-arcane: #75b5a8;
+  --color-parchment: #f2dfb9;
+  --color-crimson: #a84232;
+  --color-crimson-text: #e48d70;
+  --font-heading: Georgia, 'Times New Roman', serif;
+  --font-ui: 'Atkinson Hyperlegible', Georgia, serif;
+}
+body {
+  background:
+    radial-gradient(ellipse at 50% 12%, #53402b 0%, #1c1713 48%, #0d0b0a 100%);
+}
+#app { filter: sepia(.08); }
+#ui-root.is-active:has(.panel) {
+  background: radial-gradient(ellipse at center, rgb(19 15 12 / .65), rgb(9 7 6 / .92));
+}
+.panel {
+  border: 3px ridge #bb9359;
+  border-radius: 13px;
+  background:
+    linear-gradient(145deg, rgb(91 65 38 / .16), transparent 40%),
+    repeating-linear-gradient(0deg, transparent 0 6px, rgb(255 229 174 / .012) 7px 8px),
+    #211a15;
+  box-shadow:
+    inset 0 0 0 2px #302319,
+    inset 0 0 0 5px rgb(224 176 99 / .13),
+    inset 0 0 48px rgb(0 0 0 / .5),
+    0 20px 60px rgb(0 0 0 / .7);
+}
+.game-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 700;
+  letter-spacing: .065em;
+  text-shadow: 0 2px 0 #523419, 0 5px 0 #1a100b, 0 12px 24px #050403;
+}
+.menu-button, button {
+  transition: transform 75ms ease, box-shadow 75ms ease, background 120ms ease;
+}
+.menu-button:active, button:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 2px 8px rgb(0 0 0 / .65);
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-button, button { transition: none; }
+}
