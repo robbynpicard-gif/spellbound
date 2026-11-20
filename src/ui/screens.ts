@@ -316,17 +316,34 @@ export function levelClearScreen(
       stat('Accuracy', percent(stats.accuracy)),
       stat('WPM', Math.round(stats.wpm)),
       stat('Missed', stats.missed),
-      stat('Highest combo', `${stats.maxCombo} words · peak ×${stats.peakMultiplier}`),
-      stat('Volley bonuses', stats.bonusCounts.volley ?? 0),
-      stat('Best volley', `${stats.peakVolley ?? 0} words in 2 seconds`),
+      ...(stats.scoringModel === 'arcane' ? [
+        stat('Words captured', stats.completed),
+        stat('Best precision chain', `${stats.maxCombo} flawless words`),
+        stat('Peak Combo multiplier', `×${stats.peakMultiplier}`),
+        stat('Combo at level end', `×${1 + Math.floor(stats.endCombo / 10)} · ${stats.endCombo} flawless words`),
+        stat('Peak Volley multiplier', `×${stats.peakArcaneVolleyMultiplier ?? 1}`),
+        stat('Volley at level end', `×${stats.endArcaneVolleyMultiplier ?? 1}`),
+      ] : [
+        stat('Highest combo', `${stats.maxCombo} words · peak ×${stats.peakMultiplier}`),
+        stat('Volley bonuses', stats.bonusCounts.volley ?? 0),
+        stat('Best volley', `${stats.peakVolley ?? 0} words in 2 seconds`),
+        stat('Clean Streak', `${stats.endCleanStreak ?? 0} (best ${stats.peakCleanStreak ?? 0})`),
+      ]),
       stat('Typing errors', stats.errors),
       stat('Average capture', stats.averageCompletionMs > 0 ? `${(stats.averageCompletionMs / 1000).toFixed(2)} s` : '—'),
-      stat('Clean Streak', `${stats.endCleanStreak ?? 0} (best ${stats.peakCleanStreak ?? 0})`),
       stat('Time', formatTime(stats.elapsedMs)),
     ),
-    h('p', { class: 'spell-summary' }, (stats.peakVolley ?? 0) < 3
-      ? 'VOLLEY NOT YET EARNED · Capture 3 words within 2 seconds to earn your first Volley bonus.'
-      : `VOLLEY ACHIEVED · Your best burst was ${stats.peakVolley} words in 2 seconds. Each qualifying capture awards bonus points.`),
+    stats.scoringModel === 'arcane'
+      ? h('section', { class: 'spell-summary', attrs: { 'aria-label': 'Current scoring rules' } },
+          h('strong', null, 'HOW YOUR SCORE WORKS'),
+          h('p', null, 'Word points = letters × 10 × Combo × Volley (rounded).'),
+          h('p', null, 'Combo: ×1 to start, +1× every 10 consecutive flawless captures. A typo or miss breaks the precision chain.'),
+          h('p', null, 'Volley: first flawless capture arms the window; the second timely capture earns ×1.2. Linked captures grow the multiplier. Empty fields preserve the Volley timing window, with a brief re-engagement grace.'),
+          h('p', null, 'Accuracy, WPM, typing errors and capture time are performance statistics, not additional score multipliers.'),
+        )
+      : h('p', { class: 'spell-summary' }, (stats.peakVolley ?? 0) < 3
+          ? 'VOLLEY NOT YET EARNED · Capture 3 words within 2 seconds to earn your first Volley bonus.'
+          : `VOLLEY ACHIEVED · Your best burst was ${stats.peakVolley} words in 2 seconds. Each qualifying capture awards bonus points.`),
     run.mode === 'hardcore' &&
       h(
         'p',
