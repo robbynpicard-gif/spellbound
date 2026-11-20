@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyWord, emptyWordClassCounts } from './WordClasses';
+import { classifyWord, emptyWordClassCounts, WORD_CLASS_EXAMPLES, WORD_CLASSES } from './WordClasses';
 import { WORDS } from '../data/wordList';
 
 describe('curated word-class recognition', () => {
@@ -15,6 +15,13 @@ describe('curated word-class recognition', () => {
   it('only classifies words that actually exist in the shipped dictionary', () => {
     const bank = new Set(WORDS.map((word) => word.toLowerCase()));
     for (const word of ['dragon', 'conjure', 'ancient', 'quickly']) expect(bank.has(word)).toBe(true);
+  });
+
+  it('keeps every curated entry inside the actual playable word pool with no duplicates', () => {
+    const playable = new Set(WORDS.map((word) => word.toLowerCase()));
+    const classified = WORD_CLASSES.flatMap((part) => WORD_CLASS_EXAMPLES[part]);
+    expect(new Set(classified).size).toBe(classified.length);
+    for (const word of classified) expect(playable.has(word), `Unplayable Wordcraft word: ${word}`).toBe(true);
   });
 
   it('starts a fresh session counter without sharing mutable state', () => {
