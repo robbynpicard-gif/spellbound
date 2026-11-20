@@ -367,6 +367,35 @@ export class GameScene extends Phaser.Scene {
     if (left !== null) this.hud.setSurvival(this.config.survivalMs!, left);
   }
 
+  /** The scroll physically unrolls from its rack before its magic disperses. */
+  private animateScrollCast(spell: SpellId): void {
+    const x = LAYOUT.rack.x + LAYOUT.rack.width / 2;
+    const y = LAYOUT.rack.y + 68;
+    const color = SPELL_COLORS[spell];
+    const scroll = this.add.container(x, y).setDepth(116);
+    const parchment = this.add.rectangle(0, 0, 30, 26, 0xe7c99a)
+      .setStrokeStyle(2, 0x76502c);
+    const rollTop = this.add.ellipse(0, -13, 35, 8, 0xc69d67);
+    const rollBottom = this.add.ellipse(0, 13, 35, 8, 0xc69d67);
+    const glyph = this.add.text(0, 0, '✦', {
+      fontFamily: 'Georgia, serif', fontSize: '18px',
+      color: '#5b3b20', align: 'center',
+    }).setOrigin(0.5);
+    scroll.add([parchment, rollTop, rollBottom, glyph]);
+    this.tweens.add({
+      targets: scroll, x: x - 85, y: y - 78, angle: -14,
+      scaleX: 1.7, scaleY: 2.1, duration: 240, ease: 'Cubic.Out',
+      onComplete: () => {
+        this.spellFx.burst(x - 85, y - 78, color, 18);
+        this.tweens.add({
+          targets: scroll, alpha: 0, y: y - 115, scale: 2.5,
+          duration: 240, ease: 'Cubic.In',
+          onComplete: () => scroll.destroy(),
+        });
+      },
+    });
+  }
+
   private refreshPrototypeInstruments(): void {
     if (!this.prototypeCombo || !this.prototypeMeter) return;
     const combo = this.engine.state.combo;
@@ -676,6 +705,7 @@ export class GameScene extends Phaser.Scene {
       this.hud.setMana(totalCharges(charges), this.engine.poolLimit);
       this.hud.console.flash(SPELL_COLORS[spell]);
       this.spellFx.cast(spell);
+      this.animateScrollCast(spell);
       // World rules: cold and wind extinguish exposed flames; fire relights them.
       // These are ambient interactions, not extra combat damage or mana costs.
       if (spell === 'ice' || spell === 'wind') this.workshopCandles.forEach((setLit) => setLit(false));
