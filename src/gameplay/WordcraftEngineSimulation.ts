@@ -19,6 +19,9 @@ export interface EngineWordcraftReport {
   finalStatus: string;
   replayMatched: boolean;
   generator: 'baseline' | 'experimental';
+  averageSpawnLength: number;
+  repeatedRecentWords: number;
+  repeatedRecentInitials: number;
 }
 
 export function simulateEngineWordcraft(
@@ -40,7 +43,20 @@ export function simulateEngineWordcraft(
   let captured = 0;
   let missed = 0;
   let maxConcurrentWords = 0;
-  engine.events.on('wordSpawned', () => { spawned++; });
+  let totalSpawnLength = 0;
+  let repeatedRecentWords = 0;
+  let repeatedRecentInitials = 0;
+  const recentSpawns: string[] = [];
+  const recentWindow = Math.max(1, config.maxActiveWords - 1);
+  engine.events.on('wordSpawned', ({ word }) => {
+    spawned++;
+    totalSpawnLength += word.text.length;
+    const lower = word.text.toLowerCase();
+    if (recentSpawns.includes(lower)) repeatedRecentWords++;
+    if (recentSpawns.some((w) => w[0] === lower[0])) repeatedRecentInitials++;
+    recentSpawns.push(lower);
+    if (recentSpawns.length > recentWindow) recentSpawns.shift();
+  });
   engine.events.on('wordCompleted', ({ word }) => { captured++; tracker.capture(word.text); });
   engine.events.on('wordMissed', () => { missed++; tracker.breakChain(); });
   for (let i = 0; i < maxTicks && engine.status === 'playing'; i++) {
@@ -65,5 +81,7 @@ export function simulateEngineWordcraft(
     seed, ticks: engine.state.tick, spawned, captured, missed,
     phrases: Object.values(tracker.counts).reduce((sum, n) => sum + n, 0),
     maxConcurrentWords, finalStatus: engine.status, replayMatched, generator,
+    averageSpawnLength: spawned ? totalSpawnLength / spawned : 0,
+    repeatedRecentWords, repeatedRecentInitials,
   };
 }
