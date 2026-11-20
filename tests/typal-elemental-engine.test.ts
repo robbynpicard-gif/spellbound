@@ -11,17 +11,18 @@ const config: DifficultyConfig = {
   availableSpells: [], spellDropChance: 0, speedVariance: 0, speedRamp: 0,
 };
 
-function engine(): GameEngine {
+function engine(overrides: Partial<DifficultyConfig> = {}): GameEngine {
   return new GameEngine({
-    config, seed: 41, words: ['ember', 'frost', 'rune'],
+    config: { ...config, ...overrides }, seed: 41, words: ['ember', 'frost', 'rune'],
     initialSpells: { ice: 2, fire: 2, shock: 2, wind: 2 },
   });
 }
 
 describe('elemental spells in the real simulation', () => {
   it('emits a melting reaction and boosts fire spell points', () => {
-    const game = engine();
-    game.step();
+    const game = engine({ initialFallSpeed: 500, spawnInterval: 50 });
+    for (let i = 0; i < 45; i++) game.step();
+    const eligible = game.state.words.filter(w => w.y >= 0.2 * 720);
     const reaction = vi.fn();
     const burned = vi.fn();
     game.events.on('elementalReaction', reaction);
@@ -31,8 +32,10 @@ describe('elemental spells in the real simulation', () => {
     expect(reaction).toHaveBeenCalledWith(expect.objectContaining({
       previous: 'ice', incoming: 'fire', reaction: 'melt', damageMultiplier: 1.5,
     }));
-    // Fire does not burn words near the spawn line; test scoring separately
-    // once a target has entered its eligible field depth.
+    if (eligible.length > 0) {
+      const expected = eligible.reduce((sum, w) => sum + Math.round(wordPoints(w.text.length, 1) * 1.5), 0);
+      expect(burned).toHaveBeenCalledWith(expect.objectContaining({ points: expected }));
+    }
   });
 
   it('reacts to fire followed by wind without awarding damage for wind', () => {
