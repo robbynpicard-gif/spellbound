@@ -1,5 +1,6 @@
 import type { WordState } from '../gameplay/Word';
 import { classifyWord, emptyWordClassCounts } from '../gameplay/WordClasses';
+import { PhraseTracker } from '../gameplay/PhraseTracker';
 import Phaser from 'phaser';
 import { audio } from '../audio/Audio';
 import { GameEngine } from '../core/GameEngine';
@@ -104,6 +105,7 @@ export class GameScene extends Phaser.Scene {
 
   private engine!: GameEngine;
   private wordClassCounts = emptyWordClassCounts();
+  private phraseTracker = new PhraseTracker();
   private config!: DifficultyConfig;
   private hooks!: GameSceneHooks;
   private scoreOffset = 0;
@@ -165,6 +167,7 @@ export class GameScene extends Phaser.Scene {
       initialWords: data.initialWords,
     });
     this.wordClassCounts = emptyWordClassCounts();
+    this.phraseTracker = new PhraseTracker();
     this.views.clear();
     this.workshopCandles.length = 0;
     this.scrollSeals.length = 0;
@@ -551,7 +554,7 @@ export class GameScene extends Phaser.Scene {
 
   /** Current results, for ending a Practice session from the pause menu. */
   snapshot(): { stats: GameStats; spells: SpellCharges } {
-    return { stats: { ...this.engine.stats(), wordClassCounts: { ...this.wordClassCounts } }, spells: { ...this.engine.state.spells } };
+    return { stats: { ...this.engine.stats(), wordClassCounts: { ...this.wordClassCounts }, phraseCounts: { ...this.phraseTracker.counts } }, spells: { ...this.engine.state.spells } };
   }
 
   // ───────────────────────── engine → screen ─────────────────────────
@@ -559,6 +562,7 @@ export class GameScene extends Phaser.Scene {
   private wireEngineEvents(): void {
     const ev = this.engine.events;
 
+    ev.on('wordMissed', () => this.phraseTracker.breakChain());
     ev.on('wordSpawned', ({ word }) => {
       this.views.set(
         word.id,
@@ -599,6 +603,7 @@ export class GameScene extends Phaser.Scene {
     ev.on('wordCompleted', ({ word, points, combo, multiplier, bonuses }) => {
       const wordClass = classifyWord(word.text);
       if (wordClass) this.wordClassCounts[wordClass]++;
+      this.phraseTracker.capture(word.text);
       audio.capture(combo, bonuses.map((b) => b.id));
       const volley = bonuses.find((b) => b.id === 'volley');
       if (volley && this.volleyCallout) {
@@ -825,7 +830,7 @@ export class GameScene extends Phaser.Scene {
       const handOver = () => {
         if (handed) return;
         handed = true;
-        this.hooks.onGameOver(result, { ...stats, wordClassCounts: { ...this.wordClassCounts } }, spells, instability, this.engine.state.words.map((w) => ({ ...w })));
+        this.hooks.onGameOver(result, { ...stats, wordClassCounts: { ...this.wordClassCounts }, phraseCounts: { ...this.phraseTracker.counts } }, spells, instability, this.engine.state.words.map((w) => ({ ...w })));
       };
       const delay = Math.max(RESULTS_DELAY_MS, finaleMs);
       this.time.delayedCall(delay, handOver);
