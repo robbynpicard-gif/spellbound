@@ -190,6 +190,7 @@ export function practiceResultsScreen(
   const element = h(
     'section',
     { class: `screen panel results ${fell ? 'lost' : 'won'}`, attrs: { role: 'dialog', 'aria-labelledby': 'pr-title' } },
+    h('p', { class: 'score-label' }, 'THE APPRENTICE\'S LEDGER'),
     h('h2', { class: 'screen-title', attrs: { id: 'pr-title' } }, fell ? 'The Wards Have Fallen' : 'Session Ended'),
     h('p', { class: 'screen-subtitle' }, `Practice · ${label} · ${FILTER_LABELS[filter].title}`),
     h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Score'), stats.score.toLocaleString()),
@@ -203,6 +204,10 @@ export function practiceResultsScreen(
       stat('WPM', String(Math.round(stats.wpm)), 'bestWpm', `Best ${Math.round(r.bestWpm)}`),
       stat('Avg. time per word', secs(stats.averageCompletionMs), 'fastestAverageMs', `Best ${secs(r.fastestAverageMs)}`),
       stat('Best combo', `${stats.maxCombo} words · ×${stats.peakMultiplier}`, 'bestCombo', `Best ${r.bestCombo}`),
+      stat('Clean Streak', `${stats.peakCleanStreak ?? 0} words`, null, ''),
+      stat('Volley bonuses', String(stats.bonusCounts.volley ?? 0), null, ''),
+      stat('Best volley', `${stats.peakVolley ?? 0} words in 2 seconds`, null, ''),
+      stat('Typing errors', String(stats.errors), null, ''),
     ),
     h(
       'p',
@@ -213,6 +218,9 @@ export function practiceResultsScreen(
           ? `New best score! Sessions here: ${r.sessions}`
           : `Best score ${r.bestScore.toLocaleString()} · Sessions here: ${r.sessions}`,
     ),
+    h('p', { class: 'spell-summary' }, (stats.peakVolley ?? 0) < 3
+      ? 'VOLLEY NOT YET EARNED · Capture 3 words within 2 seconds to earn your first Volley bonus.'
+      : `VOLLEY ACHIEVED · Your fastest burst: ${stats.peakVolley} words in 2 seconds.`),
     h('p', { class: 'footnote' }, 'Practice records are kept separately from Campaign.'),
     h(
       'div',
