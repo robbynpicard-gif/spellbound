@@ -130,6 +130,10 @@ export class GameScene extends Phaser.Scene {
   private prototypeCombo!: Phaser.GameObjects.Text;
   private prototypeMeter!: Phaser.GameObjects.Graphics;
   private prototypeKey!: Phaser.GameObjects.Rectangle;
+  private volleyIndicator!: Phaser.GameObjects.Text;
+  private typebar!: Phaser.GameObjects.Rectangle;
+  private carriage!: Phaser.GameObjects.Rectangle;
+  private volleyCallout!: Phaser.GameObjects.Text;
   private lastTierUpAt = -1000;
 
   constructor() {
@@ -213,24 +217,45 @@ export class GameScene extends Phaser.Scene {
     this.hud.setMana(totalCharges(this.engine.state.spells), this.engine.poolLimit);
     this.streakFx = new StreakFeedback(this, this.hud.streakAnchor);
     this.hud.setStreak(this.engine.state.cleanStreak);
-    // Temporary art-direction overlay: legible instruments, without replacing
-    // the original gameplay artwork or interfering with keyboard input.
-    this.add.rectangle(640, 68, 420, 70, 0x21180e, 0.94).setStrokeStyle(3, 0xb58a4c).setDepth(95);
-    this.add.rectangle(640, 68, 408, 58, 0x3c2c1b, 0.32).setStrokeStyle(1, 0xe0b77a).setDepth(95);
-    this.add.text(640, 42, 'THE ARCANE PRESS  ·  APPRENTICE TRIAL', {
-      fontFamily: 'Georgia, serif', fontSize: '14px', color: '#d4b37c',
+    // Apprentice's workstation: decorative materials stay below the ward,
+    // while instruments remain outside the falling-word lanes.
+    const desk = this.add.graphics().setDepth(34);
+    desk.fillStyle(0x25160e, 0.95).fillRoundedRect(356, 510, 610, 130, 14);
+    desk.lineStyle(4, 0x9b7040).strokeRoundedRect(356, 510, 610, 130, 14);
+    desk.fillStyle(0x48301b, 1).fillRoundedRect(366, 520, 590, 112, 10);
+    desk.lineStyle(2, 0xd0a05b, 0.7).strokeRoundedRect(366, 520, 590, 112, 10);
+    desk.fillStyle(0x1b120d, 0.9).fillRoundedRect(386, 575, 360, 43, 8);
+    desk.lineStyle(2, 0x947047).strokeRoundedRect(386, 575, 360, 43, 8);
+    // Brass typebar teeth: a visual rhythm behind the existing parchment input.
+    for (let i = 0; i < 14; i++) {
+      this.add.rectangle(407 + i * 23, 598, 15, 19, i % 2 ? 0x8b6943 : 0xb58b52)
+        .setStrokeStyle(1, 0x24170e).setDepth(35);
+    }
+    this.add.rectangle(568, 532, 218, 8, 0xd6b780).setStrokeStyle(1, 0x49301d).setDepth(35);
+    this.carriage = this.add.rectangle(568, 532, 36, 9, 0xf1d29a).setDepth(37);
+    this.typebar = this.add.rectangle(402, 585, 6, 26, 0xe3b878).setDepth(38);
+    this.add.text(565, 626, 'THE ARCANE PRESS  ·  BRASS & INK', {
+      fontFamily: 'Georgia, serif', fontSize: '12px', color: '#e5c48b',
+    }).setOrigin(0.5).setDepth(39);
+
+    // Small, high-contrast instruments at the side of the battlefield.
+    this.add.rectangle(106, 111, 194, 114, 0x23170f, 0.94).setStrokeStyle(3, 0xb58a4c).setDepth(95);
+    this.add.text(106, 72, 'APPRENTICE LEDGER', {
+      fontFamily: 'Georgia, serif', fontSize: '13px', color: '#d4b37c',
     }).setOrigin(0.5).setDepth(96);
-    this.prototypeCombo = this.add.text(640, 65, 'SPELL CHAIN  0', {
-      fontFamily: 'Georgia, serif', fontSize: '23px', color: '#f1d5a1',
+    this.prototypeCombo = this.add.text(106, 100, 'CHAIN 0', {
+      fontFamily: 'Georgia, serif', fontSize: '19px', color: '#f1d5a1',
+    }).setOrigin(0.5).setDepth(96);
+    this.volleyIndicator = this.add.text(106, 125, 'VOLLEY  0 / 3', {
+      fontFamily: 'Georgia, serif', fontSize: '14px', color: '#bda580',
     }).setOrigin(0.5).setDepth(96);
     this.prototypeMeter = this.add.graphics().setDepth(96);
-    this.add.rectangle(640, 471, 290, 29, 0x20150f, 0.88).setStrokeStyle(2, 0x9d784b).setDepth(36);
-    this.add.text(640, 471, 'INK  •  BRASS  •  INCANTATION', {
-      fontFamily: 'Georgia, serif', fontSize: '15px', color: '#e7c999',
-    }).setOrigin(0.5).setDepth(37);
-    // A mechanical indicator reacts immediately to the same keypress as combat.
-    this.add.rectangle(425, 557, 30, 25, 0x382516, 1).setStrokeStyle(2, 0xc39a60).setDepth(38);
-    this.prototypeKey = this.add.rectangle(425, 554, 19, 11, 0xc9a36b, 1).setDepth(39);
+    this.add.rectangle(399, 598, 30, 28, 0x382516, 1).setStrokeStyle(2, 0xc39a60).setDepth(38);
+    this.prototypeKey = this.add.rectangle(399, 593, 19, 11, 0xc9a36b, 1).setDepth(39);
+    this.volleyCallout = this.add.text(635, 230, '', {
+      fontFamily: 'Georgia, serif', fontSize: '40px', fontStyle: 'bold',
+      color: '#f6d287', stroke: '#2b170d', strokeThickness: 6,
+    }).setOrigin(0.5).setAlpha(0).setDepth(120);
     this.refreshPrototypeInstruments();
     if (this.engine.state.barrier > 0) {
       this.background.setShield(true);
@@ -315,11 +340,14 @@ export class GameScene extends Phaser.Scene {
     if (!this.prototypeCombo || !this.prototypeMeter) return;
     const combo = this.engine.state.combo;
     const tier = tierOf(combo);
-    this.prototypeCombo.setText('SPELL CHAIN  ' + combo + '   ·   POWER ' + (tier + 1));
+    this.prototypeCombo.setText('CHAIN ' + combo + '  ·  ×' + (tier + 1));
+    const volley = this.engine.state.recentCaptures.length;
+    this.volleyIndicator.setText(volley >= 3 ? 'VOLLEY ×' + volley + '  BONUS!' : 'VOLLEY ' + volley + ' / 3');
+    this.volleyIndicator.setColor(volley >= 3 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
-    this.prototypeMeter.fillStyle(0x100c09, 1).fillRoundedRect(492, 86, 296, 7, 2);
+    this.prototypeMeter.fillStyle(0x100c09, 1).fillRoundedRect(35, 148, 142, 7, 2);
     this.prototypeMeter.fillStyle(tier >= 3 ? 0x8dd8c2 : 0xd9a75f, 1);
-    if (combo > 0) this.prototypeMeter.fillRoundedRect(492, 86, Math.max(4, 296 * Math.min(1, combo / 25)), 7, 2);
+    if (combo > 0) this.prototypeMeter.fillRoundedRect(35, 148, Math.max(4, 142 * Math.min(1, combo / 25)), 7, 2);
   }
 
   /** Swap rules and callbacks without recreating the Phaser scene or engine. */
@@ -468,6 +496,12 @@ export class GameScene extends Phaser.Scene {
 
     ev.on('wordCompleted', ({ word, points, combo, multiplier, bonuses }) => {
       audio.capture(combo, bonuses.map((b) => b.id));
+      const volley = bonuses.find((b) => b.id === 'volley');
+      if (volley && this.volleyCallout) {
+        this.tweens.killTweensOf(this.volleyCallout);
+        this.volleyCallout.setText('VOLLEY!  ×' + volley.chain).setY(230).setScale(0.8).setAlpha(1);
+        this.tweens.add({ targets: this.volleyCallout, y: 184, scale: 1.15, alpha: 0, duration: 780, ease: 'Cubic.Out' });
+      }
       const { x, y } = this.viewPosition(word.id, word.x, word.y);
       this.removeView(word.id);
       // The burst stays on the field; the points and bonuses are read out at the
@@ -769,9 +803,15 @@ export class GameScene extends Phaser.Scene {
     }
     if (key.length === 1) {
       audio.key();
-      this.prototypeKey?.setY(559);
+      this.prototypeKey?.setY(600);
+      this.typebar?.setAngle(-22);
+      this.carriage?.setX(568 + Math.min(80, this.engine.state.input.length * 7));
+      if (this.typebar) {
+        this.tweens.killTweensOf(this.typebar);
+        this.tweens.add({ targets: this.typebar, angle: 0, duration: 95, ease: 'Cubic.Out' });
+      }
       this.tweens.killTweensOf(this.prototypeKey);
-      if (this.prototypeKey) this.tweens.add({ targets: this.prototypeKey, y: 554, duration: 85, ease: 'Cubic.Out' });
+      if (this.prototypeKey) this.tweens.add({ targets: this.prototypeKey, y: 593, duration: 85, ease: 'Cubic.Out' });
       this.engine.typeChar(key);
     }
   }
