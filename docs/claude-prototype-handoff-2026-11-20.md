@@ -1,5 +1,7 @@
 # SPELLBOUND — Claude Code prototype handoff
 
+> **CANONICAL FOUR-PILLAR REGISTER (2026-11-20):** Read **[`docs/typel-four-pillar-decision-register-2026-11-20.md`](typel-four-pillar-decision-register-2026-11-20.md)** before any further implementation. It reconciles recoverable discussions into **Gameplay / Visual Composition / Audio / Progression**, each separated into **Decided / Exploratory / Superseded**, and records code-vs-design contradictions. Rendering style is **not chosen**; pixel art is merely an early possibility, not the game's identity. This register and the creative direction document supersede conflicting assumptions in this older mechanics-first handoff.
+
 > **CRITICAL CREATIVE OVERRIDE (2026-11-20):** Before implementing or asking the owner to test a *definitive* preview, read **[`docs/definitive-creative-direction-2026-11-20.md`](definitive-creative-direction-2026-11-20.md)**. This original handoff omitted approved Arcane Renaissance art, workstation layout, tactile combat and reactive audio direction. The approved working title is **Typel**; `spellbound` is the repository name. The newer creative document supersedes older incompatible visual/audio defaults. A mechanics-only preview must be labeled as such, not presented as the integrated game.
 _2026-11-20 · Owner-requested, actionable design-to-development brief · Dev branch only_
 
