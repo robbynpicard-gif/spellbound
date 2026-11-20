@@ -7,9 +7,11 @@ describe('Wordcraft dictionary audit', () => {
     const audit = auditWordcraftDictionary(WORDS);
     expect(audit.total).toBe(WORDS.length);
     expect(audit.classified).toBe(Object.values(audit.counts).reduce((a, b) => a + b, 0));
-    expect(audit.coverage).toBeGreaterThan(0);
+    expect(audit.coverage).toBeGreaterThan(0.05); // Protect expanded curated coverage from accidental regression
     expect(audit.coverage).toBeLessThan(1);
-    expect(audit.counts.noun).toBeGreaterThan(20);
+    expect(audit.counts.noun).toBeGreaterThan(100);
+    expect(audit.counts.verb).toBeGreaterThan(50);
+    expect(audit.counts.adjective).toBeGreaterThan(50);
   });
 
   it('reports zero rates for empty and unclassified dictionaries', () => {
