@@ -1,7 +1,7 @@
 import { GameEngine } from '../core/GameEngine';
 import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { PhraseTracker } from './PhraseTracker';
-import { ExperimentalWordcraftGenerator } from './ExperimentalWordcraftGenerator';
+import { ExperimentalWordcraftGenerator, type WordcraftPolicy } from './ExperimentalWordcraftGenerator';
 
 /** Real GameEngine run with a deterministic synthetic typist.
  * No browser, Phaser, modified generator, or live gameplay changes.
@@ -31,11 +31,12 @@ export function simulateEngineWordcraft(
   maxTicks = 2400,
   ticksPerCharacter = 3,
   generator: 'baseline' | 'experimental' = 'baseline',
+  policy?: Readonly<WordcraftPolicy>,
 ): EngineWordcraftReport {
   if (!Number.isInteger(maxTicks) || maxTicks < 1) throw new RangeError('maxTicks must be positive');
   if (!Number.isInteger(ticksPerCharacter) || ticksPerCharacter < 1) throw new RangeError('ticksPerCharacter must be positive');
   const options = generator === 'experimental'
-    ? { words, config, seed, experimentalWordGenerator: (bank: readonly string[], cfg: DifficultyConfig, rng: import('../core/Random').SeededRandom, trialSeed: number) => new ExperimentalWordcraftGenerator(bank, cfg, rng, trialSeed) }
+    ? { words, config, seed, experimentalWordGenerator: (bank: readonly string[], cfg: DifficultyConfig, rng: import('../core/Random').SeededRandom, trialSeed: number) => new ExperimentalWordcraftGenerator(bank, cfg, rng, trialSeed, policy) }
     : { words, config, seed };
   const engine = new GameEngine(options);
   const tracker = new PhraseTracker();
