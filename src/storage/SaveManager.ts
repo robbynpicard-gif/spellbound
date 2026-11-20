@@ -1,3 +1,4 @@
+import { earnedRuneIds } from '../ui/screens';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import {
   applyRunResult,
@@ -74,6 +75,8 @@ export interface SaveData {
   lifetime: LifetimeStats;
   /** Spell on each number key, 1–8 (Normal quick-cast). Added within v5. */
   spellSlots: SpellId[];
+  /** Persistent Rune seal counts; additive within save version 5. */
+  runeCounts: Record<string, number>;
 }
 
 export interface AudioSettings {
@@ -116,6 +119,7 @@ export function emptySave(): SaveData {
     settings: { ...DEFAULT_AUDIO },
     lifetime: emptyLifetime(),
     spellSlots: [...DISCOVERY_ORDER],
+    runeCounts: {},
   };
 }
 
@@ -124,6 +128,18 @@ export function parseSpellSlots(raw: unknown): SpellId[] {
   if (!Array.isArray(raw) || raw.length !== SPELL_IDS.length) return [...DISCOVERY_ORDER];
   const ok = raw.every((id) => isSpellId(id)) && new Set(raw).size === SPELL_IDS.length;
   return ok ? (raw as SpellId[]) : [...DISCOVERY_ORDER];
+}
+
+const RUNE_IDS = ['volley', 'precision', 'chain', 'scribe'] as const;
+export function parseRuneCounts(raw: unknown): Record<string, number> {
+  const result: Record<string, number> = {};
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return result;
+  for (const id of RUNE_IDS) {
+    const count = (raw as Record<string, unknown>)[id];
+    if (typeof count === 'number' && Number.isSafeInteger(count) && count > 0)
+      result[id] = Math.min(count, 1_000_000);
+  }
+  return result;
 }
 
 const num = (v: unknown, fallback = 0): number =>
@@ -259,6 +275,7 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
       save.settings = parseSettings(data.settings);
       save.lifetime = parseLifetime(data.lifetime);
       save.spellSlots = parseSpellSlots(data.spellSlots);
+      save.runeCounts = parseRuneCounts(data.runeCounts);
     };
     if (data.version === SAVE_VERSION) {
       keepShared();
@@ -399,6 +416,18 @@ export class SaveManager {
   setSpellSlots(slots: readonly SpellId[]): void {
     this.save.spellSlots = parseSpellSlots([...slots]);
     this.write();
+  }
+
+  get runeCounts(): Readonly<Record<string, number>> {
+    return { ...this.save.runeCounts };
+  }
+
+  /** A completed session can earn each Rune once. Never grant on failed/abandoned Campaign levels. */
+  recordRunes(stats: GameStats): string[] {
+    const earned = earnedRuneIds(stats);
+    for (const id of earned) this.save.runeCounts[id] = Math.min(1_000_000, (this.save.runeCounts[id] ?? 0) + 1);
+    if (earned.length) this.write();
+    return earned;
   }
 
   get lifetime(): Readonly<LifetimeStats> {
