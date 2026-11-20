@@ -420,7 +420,7 @@ export class GameScene extends Phaser.Scene {
 
     const alpha = this.accumulator / SIMULATION_STEP_MS;
     for (const view of this.views.values()) view.sync(alpha);
-    this.hud.updateStats(this.engine.stats(), this.engine.state.combo);
+    this.hud.updateStats(this.engine.stats(), this.engine.state.combo, !this.duel);
     this.refreshPrototypeInstruments();
     const left = this.engine.survivalRemainingMs;
     if (left !== null) this.hud.setSurvival(this.config.survivalMs!, left);
@@ -473,6 +473,7 @@ export class GameScene extends Phaser.Scene {
     const recent = this.engine.state.recentCaptures;
     const volley = recent.filter((tick) => this.engine.state.tick - tick <= VOLLEY_TICKS).length;
     const volleyMult = this.engine.volleyMultiplier;
+    if (!this.duel) this.hud.setVolley(volleyMult, combo);
     this.volleyIndicator.setText(volleyMult > 1 ? 'VOLLEY ×' + volleyMult + ' · ARCANE FLOW' : 'VOLLEY ×1 · BUILD FLOW');
     this.volleyIndicator.setColor(volleyMult > 1 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
@@ -532,7 +533,7 @@ export class GameScene extends Phaser.Scene {
       }
       const alpha = Phaser.Math.Clamp(elapsed / SIMULATION_STEP_MS - this.engine.state.tick, 0, 1);
       for (const view of this.views.values()) view.sync(alpha);
-      this.hud.updateStats(this.engine.stats(), this.engine.state.combo);
+      this.hud.updateStats(this.engine.stats(), this.engine.state.combo, !this.duel);
       this.hud.setTitle(this.duelTitle(duel.durationMs - elapsed));
     }
     duel.onFrame(this.engine, now);
@@ -609,6 +610,7 @@ export class GameScene extends Phaser.Scene {
 
     // ── Clean Streak (D-046) ──
     ev.on('cleanStreakChanged', ({ count, previous, tier, multiplier, previousMultiplier, reason }) => {
+      if (!this.duel) return; // Preview: Clean Streak is internal compatibility tracking only.
       this.hud.setStreak(count);
       const tierBefore = streakTierOf(previous);
       if (reason === 'capture') {
@@ -845,7 +847,7 @@ export class GameScene extends Phaser.Scene {
         }
       } else if (result === 'won') audio.fanfare();
       else audio.defeat();
-      this.hud.updateStats(stats, this.engine.state.combo);
+      this.hud.updateStats(stats, this.engine.state.combo, !this.duel);
       this.input.keyboard!.disableGlobalCapture();
       if (this.duel) {
         // In a duel the server decides the result; wait for it.
