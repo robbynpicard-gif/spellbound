@@ -1,7 +1,7 @@
 import { SeededRandom } from '../core/Random';
 import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { wordComplexity, WordGenerator } from './WordGenerator';
-import { classifyWord } from './WordClasses';
+import { classifyWord, type WordClass } from './WordClasses';
 import { PHRASE_PATTERNS } from './PhraseTracker';
 
 /** OFFLINE EXPERIMENT ONLY. This module is never called by live word spawning.
@@ -55,7 +55,7 @@ export function simulateWordcraftSelection(
       const ordinary = generator.next();
       baseline.push(ordinary);
       const pool = buckets.get(ordinary.length)!;
-      const preferred = PHRASE_PATTERNS.filter((p) => p.first === previous).map((p) => p.second);
+      const preferred: WordClass[] = PHRASE_PATTERNS.filter((p) => p.first === previous).map((p) => p.second);
       // Candidate policy: at most one optional redraw with 20% probability.
       // Both choices have exactly the baseline word's length and eligibility.
       let chosen = ordinary;
