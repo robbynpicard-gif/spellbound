@@ -328,6 +328,7 @@ export class App {
         onEndless: victory ? () => this.startEndless(run.mode, run.stage) : undefined,
         spellWon: victory ? spellsOfStage(run.stage).fromBoss : null,
         extra: journey,
+        triumphUnlocks,
         onMenu: () => this.showMainMenu(),
         mode: run.mode,
       }),
