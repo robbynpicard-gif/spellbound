@@ -930,3 +930,9 @@ The between-level screen should communicate overall performance at a glance and 
 _2026-11-20 · Owner authorized prototype; implementation committed to dev; build and preview verification pending_
 
 Keep between-level results minimal (D-064), and offer a richer review at stage completion or run end. The run-over screen now displays final score and best-run status with stage-level accuracy, WPM, words captured/missed, typing errors, best precision chain, levels cleared, elapsed time and, when recorded under Arcane scoring, peak Arcane Volley multiplier. Add optional aggregate fields to CampaignRun totals and RunSummary so older saves remain readable; aggregate peak Volley from actual level stats and avoid invented metrics. No scoring mechanics, level pacing, or production gameplay changed. Future iteration may add stage score progression and more nuanced precision consistency, but requires genuine tracked data. Files: `src/modes/CampaignMode.ts`, `src/ui/screens.ts`.
+
+
+### D-066 — Foundation-first risk retirement roadmap (2026-11-20)
+_2026-11-20 · Owner-requested roadmap; proposed prioritization; implementation not started_
+
+Before expanding systems, prioritize Arcane Volley timing correctness (including monotonic clock and bounded Flow Preservation grace), scoring/Codex/Rune consistency, deterministic regression coverage, campaign continuity, save/replay correctness, and preview/production isolation. Adopt small independently testable preview slices; implement accepted, sufficiently specified fixes without additional design meetings; escalate underspecified player-facing rules to the owner before implementation. Keep production unchanged until explicitly approved. See `docs/foundation-roadmap.md` for phases, acceptance gates, and severity classifications.
