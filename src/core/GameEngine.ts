@@ -4,6 +4,11 @@ import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfi
 import { InstabilityManager } from '../gameplay/InstabilityManager';
 import {
   accuracyOf,
+  comboAfterWrongEntry,
+  streakAfterTypo,
+  scoreWord,
+  multiplierOf,
+  tierOf,
   BONUS_RATES as B,
   CLUTCH_ZONE,
   streakMultiplierOf,
@@ -76,6 +81,8 @@ export interface EngineOptions {
   initialCleanStreak?: number;
   /** Offline experiments only: inject a seeded generator; never set in production or duels. */
   experimentalWordGenerator?: (words: readonly string[], config: DifficultyConfig, rng: SeededRandom, seed: number) => WordGenerator;
+  /** Development-preview-only scoring experiment; legacy default for existing tests/replays. */
+  experimentalScoring?: boolean;
 }
 
 /** The pace a level is running at right now (boss levels speed up over time). */
@@ -137,6 +144,7 @@ export class GameEngine {
   private readonly generator: WordGenerator;
   private readonly instability: InstabilityManager;
   private readonly hardcore: boolean;
+  private readonly experimentalScoring: boolean;
   /** Separate random stream for word speeds, so the word sequence is unaffected. */
   private readonly speedRng: SeededRandom;
   /** Independent stream for layout sampling: clutter fixes must not change scroll drops. */
@@ -168,6 +176,7 @@ export class GameEngine {
       ? options.experimentalWordGenerator(options.words, options.config, this.rng, options.seed)
       : new WordGenerator(options.words, options.config, this.rng);
     this.hardcore = options.hardcore === true;
+    this.experimentalScoring = options.experimentalScoring === true;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
     this.laneRng = new SeededRandom((this.seed ^ 0x1a4e1a4e) >>> 0);
     this.instability = new InstabilityManager(options.initialInstability ?? 0);
@@ -193,7 +202,7 @@ export class GameEngine {
     this.carried = (options.initialWords ?? []).map((w) => ({ ...w, isTarget: false, typed: 0 }));
     this.s.combo = carried;
     this.s.maxCombo = carried;
-    this.s.peakMultiplier = precisionComboMultiplier(carried);
+    this.s.peakMultiplier = this.experimentalScoring ? precisionComboMultiplier(carried) : multiplierOf(carried);
     this.s.cleanStreak = Math.max(0, Math.floor(options.initialCleanStreak ?? 0));
     this.s.peakCleanStreak = this.s.cleanStreak;
     this.spellContext = this.createSpellContext();
@@ -556,11 +565,13 @@ export class GameEngine {
       s.errors++;
       // Clean Streak: a typo (even one fixed with Backspace) steps back one milestone (D-046).
       s.entryTypo = true;
-      this.setCombo(0);
-      this.setCleanStreak(0, 'typo');
-      this.shrinkPool();
-      this.flowCaptures = [];
-      this.activeVolleyMultiplier = 1;
+      if (this.experimentalScoring) {
+        this.setCombo(0);
+        this.setCleanStreak(0, 'typo');
+        this.shrinkPool();
+        this.flowCaptures = [];
+        this.activeVolleyMultiplier = 1;
+      } else this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
       if (attempted) this.penalize(attempted);
     }
     this.events.emit('typingError', { wordId: attempted?.id ?? this.s.targetId, char });
@@ -592,7 +603,7 @@ export class GameEngine {
     // A word already penalised for a typo in this same entry isn't penalised again.
     const guess = pinned ?? guessIntendedWord(s.words, input);
     // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
-    this.setCombo(0);
+    this.setCombo(this.experimentalScoring ? 0 : comboAfterWrongEntry(s.combo));
     this.flowCaptures = [];
     this.activeVolleyMultiplier = 1;
     this.setCleanStreak(0, 'wrongEntry');
@@ -809,11 +820,11 @@ export class GameEngine {
     this.removeWord(word);
     s.completed++;
     const perfect = word.errors === 0 && !s.entryTypo;
-    if (perfect) this.setCombo(s.combo + 1);
+    if (!this.experimentalScoring || perfect) this.setCombo(s.combo + 1);
     else this.setCombo(0);
     s.maxCombo = Math.max(s.maxCombo, s.combo);
     s.completionTicksTotal += s.tick - word.spawnTick;
-    const multiplier = precisionComboMultiplier(s.combo);
+    const multiplier = this.experimentalScoring ? precisionComboMultiplier(s.combo) : multiplierOf(s.combo);
     // Clean Streak: a word typed with no typo adds one. The capture that reaches
     // a milestone already scores at its multiplier (D-046).
     if (word.errors === 0 && !s.entryTypo) {
@@ -825,12 +836,14 @@ export class GameEngine {
     if (perfect) this.flowCaptures.push({ tick: s.tick, letters: word.text.length });
     else this.flowCaptures = [];
     this.activeVolleyMultiplier = sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
-    if (this.activeVolleyMultiplier > 1 && !bonuses.some((b) => b.id === 'volley')) bonuses.push({ id: 'volley', count: this.flowCaptures.length, rate: 0, points: 0 });
-    const points = proposedWordScore(word.text.length, multiplier, this.activeVolleyMultiplier);
+    if (this.experimentalScoring && this.activeVolleyMultiplier > 1 && !bonuses.some((b) => b.id === 'volley')) bonuses.push({ id: 'volley', count: this.flowCaptures.length, rate: 0, points: 0 });
+    const points = this.experimentalScoring
+      ? proposedWordScore(word.text.length, multiplier, this.activeVolleyMultiplier)
+      : scoreWord(word.text.length, multiplier, bonuses, streakMultiplierOf(s.cleanStreak));
     s.score += points;
     for (const b of bonuses) s.bonusCounts[b.id] = (s.bonusCounts[b.id] ?? 0) + 1;
 
-    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: 1 });
+    this.events.emit('wordCompleted', { word, points, combo: s.combo, multiplier, bonuses, streakMultiplier: this.experimentalScoring ? 1 : streakMultiplierOf(s.cleanStreak) });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
     this.emitProgress();
     if (word.spell) this.collect(word);
@@ -842,7 +855,7 @@ export class GameEngine {
     const s = this.s;
     const spell = word.spell!;
     const stored = addCharge(s.spells, spell, this.poolLimit);
-    const overflowPoints = stored ? 0 : OVERFLOW_POINTS * precisionComboMultiplier(s.combo);
+    const overflowPoints = stored ? 0 : OVERFLOW_POINTS * (this.experimentalScoring ? precisionComboMultiplier(s.combo) : multiplierOf(s.combo));
     if (overflowPoints > 0) {
       s.score += overflowPoints;
       s.overflows++;
@@ -911,7 +924,8 @@ export class GameEngine {
   /** A clean capture: the pool may widen a step. */
   private growPool(): void {
     const before = this.poolLimit;
-    this.s.manaStreak = this.s.combo;
+    if (this.experimentalScoring) this.s.manaStreak = this.s.combo;
+    else this.s.manaStreak++;
     if (this.poolLimit !== before) this.events.emit('manaPoolChanged', { size: this.poolLimit, lost: 0, charges: { ...this.s.spells } });
   }
 
@@ -946,11 +960,11 @@ export class GameEngine {
   /** Sets the combo, reporting a change of multiplier tier. */
   private setCombo(combo: number): void {
     const s = this.s;
-    const before = Math.floor(s.combo / 10);
+    const before = this.experimentalScoring ? Math.floor(s.combo / 10) : tierOf(s.combo);
     s.combo = combo;
-    const after = Math.floor(combo / 10);
+    const after = this.experimentalScoring ? Math.floor(combo / 10) : tierOf(combo);
     if (after !== before) {
-      const multiplier = precisionComboMultiplier(combo);
+      const multiplier = this.experimentalScoring ? precisionComboMultiplier(combo) : multiplierOf(combo);
       s.peakMultiplier = Math.max(s.peakMultiplier, multiplier);
       this.events.emit('tierChanged', { tier: after, multiplier, up: after > before });
     }
@@ -977,7 +991,7 @@ export class GameEngine {
     s.recentCaptures.push(s.tick);
     const volley = s.recentCaptures.length;
     this.peakVolley = Math.max(this.peakVolley, volley);
-    // Volley is now a separate sustained-flow multiplier, not a score bonus.
+    if (!this.experimentalScoring && volley >= 3) add('volley', Math.min(B.volleyMax, (volley - 2) * B.volleyPer), volley);
 
     // Alliteration: same first letter as the previous capture.
     const first = word.match[0]!;
@@ -1151,7 +1165,7 @@ export class GameEngine {
     const words = [...this.s.words];
     if (words.length === 0) return;
     // Half base points × the combo and Clean Streak multipliers at the moment of casting.
-    const factor = precisionComboMultiplier(this.s.combo);
+    const factor = this.experimentalScoring ? precisionComboMultiplier(this.s.combo) : multiplierOf(this.s.combo) * streakMultiplierOf(this.s.cleanStreak);
     const points = this.claimWords(words, (w) => Math.round((wordPoints(w.text.length, 1) / 2) * factor));
     this.events.emit('wordsHarvested', { words, points });
     this.afterClaim(words);
