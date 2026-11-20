@@ -403,6 +403,18 @@
 /* The selected Triumph is a visual honorific, never a gameplay modifier. */
 .featured-title-banner { margin: -4px auto 18px; font-family: var(--font-heading); font-size: 18px; letter-spacing: 0.06em; color: #edc47b; text-shadow: 0 2px 5px rgb(0 0 0 / 0.7); }
 
+/* Cosmetic Rune display and collection-based seal finishes. */
+.rune-finish-picker { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 16px; }
+.rune-finish-option { padding: 8px 12px; border: 2px solid #91683c; border-radius: 4px; background: #e5c994; color: #4c301c; font: inherit; cursor: pointer; }
+.rune-finish-option.selected { outline: 3px solid #76501f; outline-offset: 2px; }
+.rune-finish-option:disabled { opacity: 0.45; cursor: not-allowed; }
+.finish-bronze .rune-award-seal { background: radial-gradient(circle at 30% 25%, #e3aa78, #94522e); border-color: #c58b55; }
+.finish-silver .rune-award-seal { background: radial-gradient(circle at 30% 25%, #f2f3f1, #7d8f99); border-color: #b8c6c9; color: #394c59; }
+.finish-gold .rune-award-seal { background: radial-gradient(circle at 30% 25%, #fff3b3, #bf8424); border-color: #e5bf52; color: #5b3911; }
+.trophy-entry.featured { outline: 2px solid #bd8b3a; outline-offset: 2px; }
+.featured-rune-banner { display: flex; align-items: center; justify-content: center; gap: 9px; margin: 0 auto 15px; color: #f1d5a0; font-family: var(--font-heading); font-size: 16px; }
+.featured-rune-banner .rune-award-seal { flex-basis: 32px; width: 32px; height: 32px; font-size: 19px; }
+
 /* Results */
 .score {
   display: flex;
