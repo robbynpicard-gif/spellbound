@@ -430,7 +430,7 @@ export class GameScene extends Phaser.Scene {
     this.prototypeCombo.setText('CHAIN ' + combo + '  ·  ×' + (tier + 1));
     const recent = this.engine.state.recentCaptures;
     const volley = recent.filter((tick) => this.engine.state.tick - tick <= VOLLEY_TICKS).length;
-    this.volleyIndicator.setText(volley >= 3 ? 'VOLLEY ×' + volley + '  BONUS!' : 'VOLLEY ' + volley + ' / 3');
+    this.volleyIndicator.setText(volley >= 3 ? 'VOLLEY ×' + volley + '  BONUS!' : volley === 0 ? 'VOLLEY  0 / 3 · Capture 3 words in 2s' : 'VOLLEY  ' + volley + ' / 3 · Keep typing!');
     this.volleyIndicator.setColor(volley >= 3 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
     this.prototypeMeter.fillStyle(0x100c09, 1).fillRoundedRect(22, 148, 112, 7, 2);
