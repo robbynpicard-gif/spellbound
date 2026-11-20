@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import './styles/main.css';
 import './styles/menu.css';
+import './styles/prototype-brass.css';
 import { App } from './app/App';
 import { audio } from './audio/Audio';
 import { GAME_HEIGHT, GAME_WIDTH, PALETTE } from './core/GameConfig';
