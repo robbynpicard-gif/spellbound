@@ -224,14 +224,14 @@ class AudioEngine {
     const sy = this.sy, out = this.sfxBus;
     const p = this.vary(1, 0.05);
     // 1. the key goes down: a short, solid thunk with a felt-and-wood body (not a hollow boom)
-    sy.tone(out, now, 140 * p, 0.05, this.vary(0.14, 0.12), { glideTo: 95 * p, attack: 0.003, filter: { type: 'lowpass', freq: 500 } });
+    sy.tone(out, now, 128 * p, 0.075, this.vary(0.18, 0.12), { glideTo: 82 * p, attack: 0.002, filter: { type: 'lowpass', freq: 500 } });
     sy.noiseHit(out, now, 0.035, this.vary(0.2, 0.15), { type: 'bandpass', freq: 480 * p, q: 0.9 });
     // 2. the brass typebar strikes close behind: a tight metal ring and a firm click
     const strike = now + this.vary(0.012, 0.25);
-    sy.brass(out, strike, 600 * p, this.vary(0.06, 0.15), 0.15);
+    sy.brass(out, strike, 520 * p, this.vary(0.09, 0.15), 0.19);
     sy.noiseHit(out, strike, 0.012, this.vary(0.13, 0.2), { type: 'bandpass', freq: 2000 * p, q: 0.8 });
     // 3. the mechanism settles: a dense, dry knock right after
-    sy.noiseHit(out, strike + 0.01, 0.025, this.vary(0.12, 0.2), { type: 'bandpass', freq: 900 * p, q: 1.2 });
+    sy.noiseHit(out, strike + 0.01, 0.035, this.vary(0.15, 0.2), { type: 'bandpass', freq: 900 * p, q: 1.2 });
   }
 
   /** A slip of the finger: a soft, hollow wooden knock (the combo survives it). */
