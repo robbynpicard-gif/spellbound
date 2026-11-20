@@ -160,6 +160,7 @@ export class GameEngine {
   private volleyFlowTick = 0;
   private volleyFlowProtected = false;
   private activeVolleyMultiplier = 1;
+  private peakArcaneVolleyMultiplier = 1;
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
   private readonly easyGenerator: WordGenerator | null;
   private readonly log: Command[] = [];
@@ -871,6 +872,7 @@ export class GameEngine {
     this.activeVolleyMultiplier = this.experimentalScoring
       ? arcaneVolleyMultiplier(this.arcaneVolley, this.volleyFlowTick, this.hardcore)
       : sustainedVolleyMultiplier(this.flowCaptures, s.tick, this.hardcore);
+    if (this.experimentalScoring) this.peakArcaneVolleyMultiplier = Math.max(this.peakArcaneVolleyMultiplier, this.activeVolleyMultiplier);
     if (this.experimentalScoring && this.activeVolleyMultiplier > 1 && !bonuses.some((b) => b.id === 'volley')) bonuses.push({ id: 'volley', count: this.flowCaptures.length, rate: 0, points: 0 });
     const points = this.experimentalScoring
       ? proposedWordScore(word.text.length, multiplier, this.activeVolleyMultiplier)
@@ -1271,6 +1273,9 @@ export class GameEngine {
       endCleanStreak: s.cleanStreak,
       peakCleanStreak: s.peakCleanStreak,
       peakMultiplier: s.peakMultiplier,
+      scoringModel: this.experimentalScoring ? 'arcane' : 'legacy',
+      peakArcaneVolleyMultiplier: this.experimentalScoring ? this.peakArcaneVolleyMultiplier : undefined,
+      endArcaneVolleyMultiplier: this.experimentalScoring ? this.volleyMultiplier : undefined,
       bonusCounts: { ...s.bonusCounts },
       levelBonuses: [...this.awardedLevelBonuses],
       elapsedMs,
