@@ -109,7 +109,7 @@ export class GameScene extends Phaser.Scene {
   private phraseBanner: Phaser.GameObjects.Text | null = null;
 
   /** A single short-lived, noninteractive callout; replaces rather than stacks banners. */
-  private showPhraseBanner(glyph: string, title: string): void {
+  private showPhraseBanner(id: 'awakening' | 'illumination' | 'incantation', glyph: string, title: string): void {
     if (this.phraseBanner) {
       this.tweens.killTweensOf(this.phraseBanner);
       this.phraseBanner.destroy();
@@ -118,7 +118,7 @@ export class GameScene extends Phaser.Scene {
       fontFamily: 'Georgia, serif',
       fontSize: '24px',
       fontStyle: 'bold',
-      color: '#f4d69c',
+      color: { awakening: '#ffc18b', illumination: '#d9e8a9', incantation: '#c9c5ff' }[id],
       stroke: '#3b251b',
       strokeThickness: 5,
       align: 'center',
@@ -637,7 +637,7 @@ export class GameScene extends Phaser.Scene {
       const wordClass = classifyWord(word.text);
       if (wordClass) this.wordClassCounts[wordClass]++;
       const phrase = this.phraseTracker.capture(word.text);
-      if (phrase) this.showPhraseBanner(phrase.glyph, phrase.title);
+      if (phrase) this.showPhraseBanner(phrase.id, phrase.glyph, phrase.title);
       audio.capture(combo, bonuses.map((b) => b.id));
       const volley = bonuses.find((b) => b.id === 'volley');
       if (volley && this.volleyCallout) {
