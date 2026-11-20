@@ -382,6 +382,20 @@ class AudioEngine {
   }
 
   /** A spell scroll captured: parchment unrolling and a rising, rounded shimmer. */
+  /** Spatial-feeling parchment flight: an airy whoosh with a soft rack landing. */
+  scrollFlight(distance = 1): void {
+    if (!this.ready) return;
+    const sy = this.sy, out = this.sfxBus, now = this.t;
+    const travel = Math.max(0.65, Math.min(1.3, distance));
+    sy.noiseHit(out, now, 0.42, 0.16 * travel,
+      { type: 'bandpass', freq: 450, to: 2900, q: 0.85 },
+      { attack: 0.11 });
+    sy.noiseHit(out, now + 0.48, 0.07, 0.12,
+      { type: 'bandpass', freq: 720, to: 380, q: 1.2 });
+    sy.tone(out, now + 0.49, 245, 0.09, 0.065,
+      { type: 'sine', attack: 0.004 });
+  }
+
   pickup(): void {
     if (!this.ready) return;
     const sy = this.sy, out = this.sfxBus, now = this.t;
