@@ -80,6 +80,9 @@ export interface SaveData {
   runeCounts: Record<string, number>;
   /** Cosmetic-only featured Triumph, null until selected. */
   featuredTriumph: string | null;
+  /** Featured Rune and chosen unlocked seal finish, cosmetic only. */
+  featuredRune: string | null;
+  runeFinish: 'wax' | 'bronze' | 'silver' | 'gold';
 }
 
 export interface AudioSettings {
@@ -124,6 +127,8 @@ export function emptySave(): SaveData {
     spellSlots: [...DISCOVERY_ORDER],
     runeCounts: {},
     featuredTriumph: null,
+    featuredRune: null,
+    runeFinish: 'wax',
   };
 }
 
@@ -135,6 +140,11 @@ export function parseSpellSlots(raw: unknown): SpellId[] {
 }
 
 const RUNE_IDS = ['volley', 'precision', 'chain', 'scribe'] as const;
+/** Repeat Rune seals unlock cosmetic finishes at 5, 20 and 50 earned. */
+export function isRuneFinishUnlocked(count: number, finish: SaveData['runeFinish']): boolean {
+  return count >= ({ wax: 1, bronze: 5, silver: 20, gold: 50 }[finish]);
+}
+
 export function parseRuneCounts(raw: unknown): Record<string, number> {
   const result: Record<string, number> = {};
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return result;
@@ -281,6 +291,9 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
       save.spellSlots = parseSpellSlots(data.spellSlots);
       save.runeCounts = parseRuneCounts(data.runeCounts);
       save.featuredTriumph = typeof data.featuredTriumph === 'string' && ['scribe', 'journey', 'victory', 'precision', 'chain', 'volley'].includes(data.featuredTriumph) ? data.featuredTriumph : null;
+      save.featuredRune = typeof data.featuredRune === 'string' && (save.runeCounts[data.featuredRune] ?? 0) > 0 ? data.featuredRune : null;
+      save.runeFinish = ['wax', 'bronze', 'silver', 'gold'].includes(String(data.runeFinish)) ? data.runeFinish as SaveData['runeFinish'] : 'wax';
+      if (save.featuredRune && !isRuneFinishUnlocked(save.runeCounts[save.featuredRune] ?? 0, save.runeFinish)) save.runeFinish = 'wax';
     };
     if (data.version === SAVE_VERSION) {
       keepShared();
@@ -429,6 +442,22 @@ export class SaveManager {
   setFeaturedTriumph(id: string | null): void {
     if (id !== null && !triumphProgress(this.save.lifetime).some((t) => t.id === id && t.tier > 0)) return;
     this.save.featuredTriumph = id;
+    this.write();
+  }
+
+  get featuredRune(): string | null { return this.save.featuredRune; }
+  get runeFinish(): SaveData['runeFinish'] { return this.save.runeFinish; }
+
+  setFeaturedRune(id: string | null): void {
+    if (id !== null && (this.save.runeCounts[id] ?? 0) < 1) return;
+    this.save.featuredRune = id;
+    this.save.runeFinish = 'wax';
+    this.write();
+  }
+
+  setRuneFinish(finish: SaveData['runeFinish']): void {
+    if (!this.save.featuredRune || !isRuneFinishUnlocked(this.save.runeCounts[this.save.featuredRune] ?? 0, finish)) return;
+    this.save.runeFinish = finish;
     this.write();
   }
 
