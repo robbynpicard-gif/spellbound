@@ -34,6 +34,7 @@ export const HARDCORE_HEAL = 25;
 export interface RunTotals {
   /** Optional for compatibility with existing saves. */
   peakArcaneVolleyMultiplier?: number;
+  peakArcaneVolleyCaptures?: number;
   scoringModel?: 'arcane' | 'legacy';
   completed: number;
   missed: number;
@@ -69,6 +70,7 @@ export interface RunSummary {
   /** Optional stage-level scoring details (older records may omit them). */
   errors?: number;
   peakArcaneVolleyMultiplier?: number;
+  peakArcaneVolleyCaptures?: number;
   scoringModel?: 'arcane' | 'legacy';
   /** Stage played (runs recorded before D-047 have none). */
   stage?: number;
@@ -150,6 +152,8 @@ export function recordLevel(
   t.elapsedMs += stats.elapsedMs;
   t.maxCombo = Math.max(t.maxCombo, stats.maxCombo);
   if (stats.scoringModel) t.scoringModel = stats.scoringModel;
+  if (stats.peakArcaneVolleyCaptures !== undefined)
+    t.peakArcaneVolleyCaptures = Math.max(t.peakArcaneVolleyCaptures ?? 0, stats.peakArcaneVolleyCaptures);
   if (stats.peakArcaneVolleyMultiplier !== undefined)
     t.peakArcaneVolleyMultiplier = Math.max(t.peakArcaneVolleyMultiplier ?? 1, stats.peakArcaneVolleyMultiplier);
   run.score += stats.score;
@@ -184,6 +188,7 @@ export function summarizeRun(run: CampaignRun, victory: boolean): RunSummary {
     maxCombo: t.maxCombo,
     errors: t.errors,
     peakArcaneVolleyMultiplier: t.peakArcaneVolleyMultiplier,
+    peakArcaneVolleyCaptures: t.peakArcaneVolleyCaptures,
     scoringModel: t.scoringModel,
     elapsedMs: t.elapsedMs,
   };
