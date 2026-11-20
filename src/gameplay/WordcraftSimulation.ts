@@ -10,26 +10,48 @@ import { PHRASE_PATTERNS } from './PhraseTracker';
  * concurrent falling words or full game-engine timing. Candidate redraws
  * additionally avoid recent duplicate texts and first letters, but are not
  * identical to the generator's twelve-attempt fallback algorithm. */
+export interface SimulationArm {
+  classified: number;
+  phrases: number;
+  lengths: Record<number, number>;
+  averageComplexity: number;
+  recentDuplicateViolations: number;
+  recentFirstLetterCollisions: number;
+}
+
 export interface WordcraftSimulation {
-  baseline: { classified: number; phrases: number; lengths: Record<number, number> };
-  candidate: { classified: number; phrases: number; lengths: Record<number, number> };
+  baseline: SimulationArm;
+  candidate: SimulationArm;
   wordsPerTrial: number;
   trials: number;
 }
 
-function measure(words: readonly string[]) {
+function measure(words: readonly string[], window: number): SimulationArm {
   let previous: ReturnType<typeof classifyWord> = null;
   let classified = 0;
   let phrases = 0;
   const lengths: Record<number, number> = {};
+  let complexity = 0;
+  let count = 0;
+  let recentDuplicateViolations = 0;
+  let recentFirstLetterCollisions = 0;
+  const recent: string[] = [];
   for (const word of words) {
+    if (!word) { recent.length = 0; previous = null; continue; }
+    const lower = word.toLowerCase();
+    if (recent.includes(lower)) recentDuplicateViolations++;
+    if (recent.some((w) => w[0] === lower[0])) recentFirstLetterCollisions++;
+    recent.push(lower);
+    if (recent.length > window) recent.shift();
+    complexity += wordComplexity(word);
+    count++;
     lengths[word.length] = (lengths[word.length] ?? 0) + 1;
     const current = classifyWord(word);
     if (current) classified++;
     if (previous && current && PHRASE_PATTERNS.some((p) => p.first === previous && p.second === current)) phrases++;
     previous = current;
   }
-  return { classified, phrases, lengths };
+  return { classified, phrases, lengths, averageComplexity: count ? complexity / count : 0, recentDuplicateViolations, recentFirstLetterCollisions };
 }
 
 export function simulateWordcraftSelection(
@@ -76,8 +98,9 @@ export function simulateWordcraftSelection(
     baseline.push('');
     candidate.push('');
   }
-  const base = measure(baseline);
-  const proposed = measure(candidate);
+  const window = Math.max(1, (config.maxActiveWords ?? 5) - 1);
+  const base = measure(baseline, window);
+  const proposed = measure(candidate, window);
   delete base.lengths[0];
   delete proposed.lengths[0];
   return { baseline: base, candidate: proposed, wordsPerTrial, trials };
