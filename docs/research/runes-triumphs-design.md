@@ -42,6 +42,12 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - **Proposed Ice family (not yet approved):** Frostscribe (3 typed captures in one Ice effect), Frostweaver (5), Frostmaster (8). Test feasibility against Ice's spawn freeze, active duration and typical field size; don't force artificial stockpiling.
 - The first twelve proposed Runes discussed in chat are **candidates**, not confirmed triggers or balanced thresholds. Keep the catalogue open to refinement.
 
+## Round 9 — confirmed spellcraft sequence rules
+
+- **Per-cast window:** Each individual spell activation opens a fresh Rune sequence opportunity. A later cast does not extend the prior cast's Rune count, even if the gameplay effect itself stacks or extends. Sequence timing and eligibility must be deterministic and tested for overlapping casts.
+- **Subtle physical progress:** Small engraved pips/marks on or near the typewriter illuminate as an active Rune sequence progresses. Avoid a large counter, distracting animation, focus changes or obscuring falling scrolls. The analog Rune carousel remains the completed-award display.
+- Exact UI layout, pips count, interaction of multiple simultaneous spell windows and thresholds remain open.
+
 ## Still open
 
 - The first concrete Rune catalogue, measurable triggers and rarity thresholds.
