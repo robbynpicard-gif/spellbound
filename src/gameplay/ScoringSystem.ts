@@ -191,6 +191,8 @@ export interface GameStats {
   averageCompletionMs: number;
   /** Classified captured words this level; unclassified words do not count. */
   wordClassCounts?: Partial<Record<'noun' | 'verb' | 'adjective' | 'adverb', number>>;
+  /** Cosmetic grammatical phrase patterns completed this session. */
+  phraseCounts?: Partial<Record<'awakening' | 'illumination' | 'incantation', number>>;
   /** Times each spell was cast this level. */
   spellsCast?: Partial<Record<string, number>>;
 }
