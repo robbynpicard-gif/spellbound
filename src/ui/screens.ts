@@ -382,15 +382,21 @@ export function runOverScreen(
     h('h2', { class: 'screen-title', attrs: { id: 'run-title' } }, title),
     h('p', { class: 'screen-subtitle' }, subtitle),
     h('p', { class: 'score' }, h('span', { class: 'score-label' }, 'Final score'), summary.score.toLocaleString()),
+    h('h3', { class: 'rune-awards-title' }, 'STAGE PERFORMANCE'),
     h(
       'dl',
       { class: 'stat-grid' },
       stat('Accuracy', percent(summary.accuracy)),
       stat('WPM', Math.round(summary.wpm)),
-      stat('Words', summary.completed),
-      stat('Missed', summary.missed),
-      stat('Best combo', `${summary.maxCombo} words`),
-      stat('Time', formatTime(summary.elapsedMs)),
+      stat('Words captured', summary.completed),
+      stat('Words missed', summary.missed),
+      stat('Typing errors', summary.errors ?? '—'),
+      stat('Best precision chain', `${summary.maxCombo} words`),
+      ...(summary.scoringModel === 'arcane' && summary.peakArcaneVolleyMultiplier !== undefined
+        ? [stat('Peak Arcane Volley', `×${summary.peakArcaneVolleyMultiplier}`)]
+        : []),
+      stat('Levels cleared', summary.levelsCleared),
+      stat('Time played', formatTime(summary.elapsedMs)),
     ),
     h('p', { class: outcome.isNewBest && outcome.previousBest !== null ? 'reward' : 'personal-best' }, bestLine),
     spell
