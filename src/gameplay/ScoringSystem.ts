@@ -186,6 +186,7 @@ export interface GameStats {
   scoringModel?: 'arcane' | 'legacy';
   /** Peak and final Arcane Volley multipliers, measured by the engine. */
   peakArcaneVolleyMultiplier?: number;
+  peakArcaneVolleyCaptures?: number;
   endArcaneVolleyMultiplier?: number;
   /** How many times each bonus was earned. */
   bonusCounts: Partial<Record<BonusId, number>>;
