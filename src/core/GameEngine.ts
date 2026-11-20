@@ -1,3 +1,5 @@
+import { applyElementalStatus, type ElementalStatus } from '../gameplay/ElementalStatus';
+import type { Element } from '../gameplay/ElementalReactions';
 import { isSurvival, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { InstabilityManager } from '../gameplay/InstabilityManager';
 import {
@@ -147,6 +149,8 @@ export class GameEngine {
   /** Words for Alter's easy window: short and simple, never longer than the level allows. */
   private readonly easyGenerator: WordGenerator | null;
   private readonly log: Command[] = [];
+  private workshopElement: ElementalStatus | null = null;
+  private pendingElementalMultiplier = 1;
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
   private endlessStartedTick: number | null = null;
@@ -605,8 +609,23 @@ export class GameEngine {
       return;
     }
     s.spellsCast[spell]++;
+    const elementalSpells: Partial<Record<SpellId, Element>> = { fire: 'fire', ice: 'ice', shock: 'shock', wind: 'wind' };
+    const incoming = elementalSpells[spell];
+    this.pendingElementalMultiplier = 1;
+    if (incoming) {
+      const transition = applyElementalStatus(this.workshopElement, incoming, s.tick, Math.round(8000 / SIMULATION_STEP_MS));
+      this.workshopElement = transition.next;
+      this.pendingElementalMultiplier = transition.damageMultiplier;
+      if (transition.previous && transition.outcome.reaction !== 'none') {
+        this.events.emit('elementalReaction', {
+          previous: transition.previous, incoming, reaction: transition.outcome.reaction,
+          damageMultiplier: transition.damageMultiplier,
+        });
+      }
+    }
     this.events.emit('spellCast', { spell, charges: { ...s.spells } });
     SPELLS[spell].cast(this.spellContext);
+    this.pendingElementalMultiplier = 1;
   }
 
   // ───────────────────────── console matching ─────────────────────────
@@ -1060,7 +1079,7 @@ export class GameEngine {
     let points = 0;
     for (const word of burned) {
       this.removeWord(word);
-      points += wordPoints(word.text.length, 1);
+      points += Math.round(wordPoints(word.text.length, 1) * this.pendingElementalMultiplier);
     }
     s.score += points;
     this.events.emit('wordsBurned', { words: burned, points });
@@ -1100,7 +1119,7 @@ export class GameEngine {
       .sort((a, b) => dist(a) - dist(b) || a.id - b.id)
       .slice(0, arcs);
     const struck = [first, ...rest];
-    const points = this.claimWords(struck, (w) => wordPoints(w.text.length, 1));
+    const points = this.claimWords(struck, (w) => Math.round(wordPoints(w.text.length, 1) * this.pendingElementalMultiplier));
     this.events.emit('wordsShocked', { words: struck, points });
     this.afterClaim(struck);
   }
