@@ -158,6 +158,8 @@ export class GameEngine {
   private arcaneVolley: ArcaneVolleyState = emptyArcaneVolley();
   /** Volley-only clock: excludes empty-field downtime, without affecting combat. */
   private volleyFlowTick = 0;
+  /** Fixed-point remainder for Temporal Flow: 4 Volley ticks per 5 real ticks. */
+  private volleySlowRemainder = 0;
   private volleyFlowProtected = false;
   /** One re-engagement grace per successful capture, never a clock rewind. */
   private volleyGraceAvailable = false;
@@ -457,7 +459,17 @@ export class GameEngine {
         }
         if (s.freezeTicks === 0) {
           if (this.volleyGraceTicks > 0) this.volleyGraceTicks--;
-          else this.volleyFlowTick++;
+          else if (s.slowStacks.length > 0) {
+            // Slow stretches the capture opportunity by 25%. Keep the clock
+            // monotonic and integer-valued for deterministic replay.
+            this.volleySlowRemainder += 4;
+            if (this.volleySlowRemainder >= 5) {
+              this.volleyFlowTick++;
+              this.volleySlowRemainder -= 5;
+            }
+          } else {
+            this.volleyFlowTick++;
+          }
         }
       }
     }
