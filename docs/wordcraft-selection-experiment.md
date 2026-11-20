@@ -14,10 +14,19 @@ Run `npm test -- src/gameplay/WordcraftSimulation.test.ts` and inspect `WORDCRAF
 
 Metrics: classified words, recognized grammatical pairs, average word complexity, recent duplicate text violations, recent initial-letter collisions, and exact word-length histogram equality. Results are descriptive; do not declare an improvement from a single seed or a small absolute increase.
 
+## Capture-order sensitivity (offline proxy)
+The same two spawned sequences now pass through four seeded capture scenarios:
+- Single-word field, no misses, arrival-order capture
+- Four-word field, 10% miss chance, oldest-target capture
+- Four-word field, 10% miss chance, random-target capture
+- Five-word field, 25% miss chance, random-target capture
+
+The test logs `WORDCRAFT_CAPTURE_AUDIT` with captured, missed, classified and phrase counts for each stage and scenario. This models target choice and chain interruption but **not** actual movement, fall timing, user reaction speed, spell effects, or real gameplay events. The model processes one available word per spawn and flushes the remaining field at trial boundaries; it must not be presented as a measured player outcome.
+
 ## Go/no-go before a live feature
 1. Confirm all CI checks pass and review the actual per-stage logs.
 2. Expand samples and inspect early levels where 2–4 letter limits severely constrain grammatical coverage.
-3. Measure capture-order outcomes, missed words, and concurrent word spawns in engine-level simulations.
+3. Replace the capture-order proxy with real engine-level simulations that include fall timing, player response, spell effects, and capture events.
 4. Preserve seeded deterministic fairness and server verification in Wizard Duels; do not use the player's capture history to influence live spawns.
 5. Check the actual candidate generator's recent-word fairness and complexity distributions. If it causes any significant regression, reject it.
 6. Obtain approval before changing the live word-selection policy. Keep it off by default until validated.
