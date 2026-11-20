@@ -886,3 +886,15 @@ Volley should reward a chain of timely, flawless captures with **immediate visib
 The emotional sequence—**build → anticipate → erupt → sustain → rare mastery**—is accepted. The exact ignition threshold, stage boundaries, timing, qualification, decay, progression costs and soft-cap position remain intentionally tunable through playtesting. Normal should be accessible; Hardcore should demand more, without changing the reward ceiling. Preserve clear word-length-aware capture rhythm, fair target availability, typing readability, the simple score formula, and D-058's ban on manipulating word generation to accommodate rewards.
 
 **Implementation status:** documentation only. See `docs/arcane-volley-design-goal.md`. Prototype and owner review are required before activating a new Volley mechanic in preview; production stays unchanged.
+
+
+### D-060 — Volley Flow Preservation and two-word activation (2026-11-20)
+_2026-11-20 · Accepted design (project owner); dev implementation committed; deployment unverified_
+
+**Design:** Flow Preservation is part of Arcane Volley itself, not a separate power, bonus or optional reward. A first flawless capture arms Volley; a second timely flawless capture activates the initial ×1.2 multiplier. No multiplier is earned from a single capture or from waiting. When there are no actionable words, Volley's capture clock pauses without altering spawn pacing, enemy movement, difficulty, or other gameplay clocks. Once an actionable target returns, restore the preserved window with a one-time, capped 0.4-second re-engagement grace. Mistakes and misses follow existing chain-break rules. Protect the one-word buildup as well as an active Volley. This is consistent with D-058 (do not manipulate word generation) and extends D-059 (Arcane Volley progression).
+
+**Implementation:** Commit `01fce963` on `dev/apprenticeship-prototype-20261119` introduces a Volley-only virtual clock and empty-field grace in `src/core/GameEngine.ts`, using existing `src/gameplay/ArcaneVolley.ts`. Treat it as a prototype pending verification of actionable-target semantics, timing cap, transitions and regression tests; commit alone does not establish full specification compliance.
+
+**Deployment:** Main's Pages workflow builds production from `main` and preview from `dev/apprenticeship-prototype-20261119` into `/spellbound/preview/`. Workflow refresh commit `63ca72c` was pushed to `main` to trigger rebuilding. Whether that run succeeded and what exact commit is live must be confirmed from GitHub Actions and the preview build stamp; do not infer deployed status from a push.
+
+**Tracking convention:** Every future change should explicitly distinguish (1) design status (proposed/accepted/superseded), (2) implementation status (not started/in progress/committed/tested), and (3) deployment status (not deployed/preview verified/production verified), with branch and commit when known. Append superseding decisions instead of rewriting historical entries.
