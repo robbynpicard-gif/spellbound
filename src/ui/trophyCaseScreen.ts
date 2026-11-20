@@ -57,6 +57,13 @@ export function trophyCaseScreen(counts: Readonly<Record<string, number>>, lifet
         h('span', null, String(lifetime.wordClassCounts?.[part] ?? 0)),
       ),
     )),
+    h('h3', { class: 'rune-awards-title' }, 'PHRASES OF POWER'),
+    h('p', { class: 'rune-awards-note' }, 'Capture consecutive classified words in the listed order. A missed or unclassified word breaks the chain. These are cosmetic achievements, not grammatical sentences.'),
+    h('div', { class: 'wordclass-grid' },
+      ...([['awakening', 'Noun → Verb'], ['illumination', 'Adjective → Noun'], ['incantation', 'Adverb → Verb']] as const).map(([id, label]) =>
+        h('div', { class: 'wordclass-count' }, h('strong', null, label), h('span', null, String(lifetime.phraseCounts?.[id] ?? 0))),
+      ),
+    ),
     h('h3', { class: 'rune-awards-title' }, 'TRIUMPHS OF THE APPRENTICE'),
     h('p', { class: 'rune-awards-note' }, 'Cosmetic reward: choose an earned Triumph as your featured title. Titles never change scores or gameplay.'),
     h('p', { class: 'triumph-featured' }, featured
@@ -66,7 +73,7 @@ export function trophyCaseScreen(counts: Readonly<Record<string, number>>, lifet
     h('p', { class: 'rune-awards-note' }, 'Lifetime feats · each Triumph advances from Bronze to Silver to Gold.'),
     h('p', { class: 'rune-awards-note' }, 'Rare wordcraft medals reward Alliteration, Librarian, Metronome and Clean Sweep bonuses already earned in play. No new scoring modifiers.'),
     h('div', { class: 'triumph-grid' }, ...triumphProgress(lifetime).map((t) =>
-      h('div', { class: `triumph-entry${t.tier ? ` unlocked tier-${t.tier}` : ''}${['alliteration', 'librarian', 'metronome', 'sweep', 'nouns', 'verbs', 'adjectives', 'adverbs'].includes(t.id) ? ' wordcraft-triumph' : ''}` },
+      h('div', { class: `triumph-entry${t.tier ? ` unlocked tier-${t.tier}` : ''}${['alliteration', 'librarian', 'metronome', 'sweep', 'nouns', 'verbs', 'adjectives', 'adverbs', 'awakening', 'illumination', 'incantation'].includes(t.id) ? ' wordcraft-triumph' : ''}` },
         h('span', { class: 'triumph-medal', attrs: { 'aria-hidden': 'true' } }, t.tier ? t.glyph : '◇'),
         h('div', { class: 'triumph-copy' },
           h('strong', null, t.title),
