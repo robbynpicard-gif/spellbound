@@ -10,12 +10,19 @@ export const TRIUMPH_DEFINITIONS = [
   { glyph: '❖', lore: 'The flawless line is forged in focus.', id: 'precision', title: 'Unbroken Quill', metric: 'bestCleanStreak', targets: [10, 25, 50], unit: 'best clean streak' },
   { glyph: '⛓', lore: 'One word binds the next.', id: 'chain', title: 'Weaver of Words', metric: 'bestCombo', targets: [20, 50, 100], unit: 'best combo' },
   { glyph: 'ϟ', lore: 'The storm answers swift hands.', id: 'volley', title: 'Storm of Letters', metric: 'volleyBonuses', targets: [10, 100, 500], unit: 'Volley bonuses' },
+  { glyph: 'ᴀ', lore: 'Kindred initials march together.', id: 'alliteration', title: 'The Alliterative Art', metric: 'alliterationBonuses', targets: [10, 75, 300], unit: 'Alliteration bonuses' },
+  { glyph: '▤', lore: 'Every volume returns to its rightful shelf.', id: 'librarian', title: 'Keeper of the Lexicon', metric: 'librarianBonuses', targets: [10, 75, 300], unit: 'Librarian bonuses' },
+  { glyph: '♫', lore: 'Every keystroke finds its rhythm.', id: 'metronome', title: 'The Clockwork Quill', metric: 'metronomeBonuses', targets: [10, 75, 300], unit: 'Metronome bonuses' },
+  { glyph: '✺', lore: 'A clear field is its own reward.', id: 'sweep', title: 'Warden of the Empty Sky', metric: 'sweepBonuses', targets: [5, 30, 150], unit: 'Clean Sweep bonuses' },
 ] as const;
 
 export function triumphProgress(lifetime: Readonly<LifetimeStats>) {
   return TRIUMPH_DEFINITIONS.map((definition) => {
-    const value = definition.metric === 'volleyBonuses'
-      ? (lifetime.bonusCounts.volley ?? 0)
+    const value = definition.metric === 'volleyBonuses' ? (lifetime.bonusCounts.volley ?? 0)
+      : definition.metric === 'alliterationBonuses' ? (lifetime.bonusCounts.alliteration ?? 0)
+      : definition.metric === 'librarianBonuses' ? (lifetime.bonusCounts.librarian ?? 0)
+      : definition.metric === 'metronomeBonuses' ? (lifetime.bonusCounts.metronome ?? 0)
+      : definition.metric === 'sweepBonuses' ? (lifetime.bonusCounts.sweep ?? 0)
       : lifetime[definition.metric];
     const tier = definition.targets.filter((target) => value >= target).length;
     const next = tier < definition.targets.length ? definition.targets[tier] : null;
