@@ -4,6 +4,7 @@
 # Development branch changes are validated separately and included on the next main deployment.
 # Refresh isolated preview with integrated Volley Flow Preservation (2026-11-20).
 # Production remains sourced exclusively from main; preview from the dev branch.
+# Preview refresh requested after D-060 design-bible update (2026-11-20).
 name: Deploy to GitHub Pages
 
 on:
