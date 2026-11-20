@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyWord, emptyWordClassCounts, WORD_CLASS_EXAMPLES, WORD_CLASSES } from './WordClasses';
+import { classifyWord, emptyWordClassCounts, WORD_CLASS_EXAMPLES, WORD_CLASSES, AMBIGUOUS_WORDS } from './WordClasses';
 import { WORDS } from '../data/wordList';
 
 describe('curated word-class recognition', () => {
@@ -22,6 +22,14 @@ describe('curated word-class recognition', () => {
     const classified = WORD_CLASSES.flatMap((part) => WORD_CLASS_EXAMPLES[part]);
     expect(new Set(classified).size).toBe(classified.length);
     for (const word of classified) expect(playable.has(word), `Unplayable Wordcraft word: ${word}`).toBe(true);
+  });
+
+  it('keeps explicitly ambiguous words unclassified and separate from curated categories', () => {
+    const classified = new Set(WORD_CLASSES.flatMap((part) => WORD_CLASS_EXAMPLES[part]));
+    for (const word of AMBIGUOUS_WORDS) {
+      expect(classified.has(word), `Ambiguous overlap: ${word}`).toBe(false);
+      expect(classifyWord(word)).toBeNull();
+    }
   });
 
   it('starts a fresh session counter without sharing mutable state', () => {
