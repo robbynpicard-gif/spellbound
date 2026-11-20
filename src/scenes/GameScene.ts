@@ -169,6 +169,7 @@ export class GameScene extends Phaser.Scene {
   private prototypeKey!: Phaser.GameObjects.Rectangle;
   private volleyIndicator!: Phaser.GameObjects.Text;
   private typebar!: Phaser.GameObjects.Rectangle;
+  private typePreview!: Phaser.GameObjects.Text;
   private carriage!: Phaser.GameObjects.Rectangle;
   private volleyCallout!: Phaser.GameObjects.Text;
   private lastTierUpAt = -1000;
@@ -303,6 +304,15 @@ export class GameScene extends Phaser.Scene {
     desk.lineStyle(2, 0xd0a05b, 0.7).strokeRoundedRect(366, 520, 590, 112, 10);
     desk.fillStyle(0x1b120d, 0.9).fillRoundedRect(386, 575, 360, 43, 8);
     desk.lineStyle(2, 0x947047).strokeRoundedRect(386, 575, 360, 43, 8);
+    // Always-visible text in the physical typewriter: the decorative desk
+    // previously covered the original HUD console at higher display depth.
+    this.add.rectangle(566, 556, 350, 39, 0x160f0b, 0.98)
+      .setStrokeStyle(2, 0xc39a60).setDepth(97);
+    this.typePreview = this.add.text(566, 556, 'TYPE HERE  ▏', {
+      fontFamily: 'monospace', fontSize: '21px', color: '#f5dfb8',
+      align: 'center',
+    }).setOrigin(0.5).setDepth(98);
+
     // Brass typebar teeth: a visual rhythm behind the existing parchment input.
     for (let i = 0; i < 14; i++) {
       this.add.rectangle(407 + i * 23, 598, 15, 19, i % 2 ? 0x8b6943 : 0xb58b52)
@@ -897,6 +907,11 @@ export class GameScene extends Phaser.Scene {
   private refreshConsole(): void {
     const s = this.engine.state;
     this.hud.console.update(s.input, this.engine.validPrefixLength, s.spells, this.engine.inputIsCompleteWord);
+    if (this.typePreview) {
+      const shown = s.input.length > 24 ? '…' + s.input.slice(-23) : s.input;
+      this.typePreview.setText(shown ? shown.toUpperCase() + '  ▏' : 'TYPE HERE  ▏');
+      this.typePreview.setColor(!shown ? '#aa9271' : this.engine.validPrefixLength < s.input.length ? '#f18d81' : '#f5dfb8');
+    }
   }
 
   private viewPosition(id: number, fieldX: number, fieldY: number): { x: number; y: number } {
