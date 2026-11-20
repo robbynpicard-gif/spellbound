@@ -75,6 +75,7 @@ export class App {
         this.progressLine(),
         this.save.persistent,
         this.save.featuredTriumph ? (triumphProgress(this.save.lifetime).find((t) => t.id === this.save.featuredTriumph && t.tier > 0)?.title ?? null) : null,
+        this.save.featuredRune ? ({ volley: { glyph: '✦', name: 'Volley Rune' }, precision: { glyph: '❖', name: 'Precision Rune' }, chain: { glyph: '✧', name: 'Chain Rune' }, scribe: { glyph: '✳', name: 'Scribe Rune' } } as Record<string, { glyph: string; name: string }>)[this.save.featuredRune] ? { ...({ volley: { glyph: '✦', name: 'Volley Rune' }, precision: { glyph: '❖', name: 'Precision Rune' }, chain: { glyph: '✧', name: 'Chain Rune' }, scribe: { glyph: '✳', name: 'Scribe Rune' } } as Record<string, { glyph: string; name: string }>)[this.save.featuredRune], finish: this.save.runeFinish } : null : null,
       ),
     );
   }
