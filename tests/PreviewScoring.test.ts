@@ -19,17 +19,18 @@ function capture(e: GameEngine): void {
   e.submit();
 }
 describe('solo preview scoring integration', () => {
-  it('awards immediate ×1.2 Volley on the first clean four-letter capture', () => {
+  it('keeps Volley at ×1 until a second timely clean capture', () => {
     const e = engine();
     capture(e);
-    expect(e.state.score).toBe(48);
+    expect(e.state.score).toBe(40);
+    expect(e.volleyMultiplier).toBe(1);
     expect(e.state.combo).toBe(1);
   });
   it('uses the new multiplier on the tenth perfect capture', () => {
     const e = engine(9);
     capture(e);
     expect(e.state.combo).toBe(10);
-    expect(e.state.score).toBe(96);
+    expect(e.state.score).toBe(80);
   });
   it('resets Combo immediately on an incorrect key even if corrected', () => {
     const e = engine(19);
