@@ -173,6 +173,8 @@ export interface GameStats {
   /** Words per minute, using the standard 5 characters = 1 word. */
   wpm: number;
   maxCombo: number;
+  /** Most captures inside any rolling two-second Volley window. */
+  peakVolley?: number;
   /** Combo at the end of the level (carried into the next level of a Campaign run). */
   endCombo: number;
   /** Clean Streak at the end of the level, and its peak (D-046). */
