@@ -52,6 +52,11 @@ jobs:
         run: |
           mkdir -p production/dist/preview
           cp -R development/dist/. production/dist/preview/
+      - name: Stamp preview with actual development commit
+        run: |
+          DEV_SHA=$(git -C development rev-parse --short HEAD)
+          sed -i "s/TYPAL · DEV PREVIEW · BUILD [^<]*/TYPAL · DEV PREVIEW · BUILD ${DEV_SHA}/" production/dist/preview/index.html
+          grep -q "TYPAL · DEV PREVIEW · BUILD ${DEV_SHA}" production/dist/preview/index.html
       - name: Verify preview is Typal and contains built assets
         run: |
           test -f production/dist/preview/index.html
