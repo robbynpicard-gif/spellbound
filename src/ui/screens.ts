@@ -33,6 +33,15 @@ const stat = (label: string, value: string | number) =>
 
 /** Session-only Rune seals: deterministic awards from verified engine statistics.
  * No permanent collection is claimed until the Trophy Case is implemented. */
+export function earnedRuneIds(stats: GameStats): string[] {
+  return [
+    ...((stats.peakVolley ?? 0) >= 3 ? ['volley'] : []),
+    ...((stats.peakCleanStreak ?? 0) >= 10 ? ['precision'] : []),
+    ...(stats.maxCombo >= 20 ? ['chain'] : []),
+    ...(stats.completed >= 10 && stats.accuracy >= 0.98 ? ['scribe'] : []),
+  ];
+}
+
 export function sessionRuneAwards(stats: GameStats): HTMLElement {
   const awards: Array<{ glyph: string; name: string; detail: string }> = [];
   if ((stats.peakVolley ?? 0) >= 3)
@@ -55,7 +64,7 @@ export function sessionRuneAwards(stats: GameStats): HTMLElement {
             ),
           )))
       : h('p', { class: 'rune-awards-empty' }, 'No Runes earned yet. Build a Volley, a clean streak, or a long chain.'),
-    h('p', { class: 'rune-awards-note' }, 'Session awards · permanent Rune collection coming later'),
+    h('p', { class: 'rune-awards-note' }, 'Earned Rune seals are also recorded in your Trophy Case.'),
   );
 }
 
@@ -69,6 +78,7 @@ export interface MainMenuActions {
   onStats(): void;
   onSpellbook(): void;
   onCodex(): void;
+  onTrophyCase(): void;
 }
 
 /** Menu entries that exist in the GDD but are built in later milestones. */
@@ -91,6 +101,7 @@ export function mainMenuScreen(actions: MainMenuActions, progress: string | null
       h('button', { class: 'menu-button', onClick: actions.onPractice }, 'Endless Practice'),
       h('button', { class: 'menu-button', onClick: actions.onSpellbook }, 'Spellbook'),
       h('button', { class: 'menu-button', onClick: actions.onCodex }, 'Codex'),
+      h('button', { class: 'menu-button', onClick: actions.onTrophyCase }, 'Trophy Case'),
       ...UPCOMING.map(([label, milestone]) =>
         h(
           'button',
