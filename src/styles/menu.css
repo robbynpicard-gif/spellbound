@@ -394,6 +394,12 @@
 .triumph-entry.tier-3 .triumph-medal, .triumph-unlock.tier-3 .triumph-unlock-medal { color: #a97812; text-shadow: 0 1px 0 #fff1ae, 0 0 10px rgb(250 195 58 / 0.45); }
 .triumph-lore { font-style: italic; }
 
+/* Earned Triumph titles are cosmetic, opt-in and keyboard accessible. */
+.triumph-featured { margin: 12px 0; font-family: var(--font-heading); font-size: 19px; color: #74491e; }
+.triumph-feature-button { margin-top: 8px; padding: 6px 10px; border: 1px solid #98703c; border-radius: 3px; background: #f2e0b6; color: #573817; font: inherit; font-size: 12px; cursor: pointer; }
+.triumph-feature-button.selected { background: #805b2e; color: #fff0ca; }
+.triumph-feature-button:focus-visible { outline: 3px solid #b17a24; outline-offset: 2px; }
+
 /* Results */
 .score {
   display: flex;
