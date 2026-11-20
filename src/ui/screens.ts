@@ -87,7 +87,7 @@ const UPCOMING: [label: string, milestone: string][] = [
 ];
 
 /** `progress`: a line about campaign progress (best scores are per stage, on the stage screen). */
-export function mainMenuScreen(actions: MainMenuActions, progress: string | null, persistent: boolean, featuredTitle?: string | null): Screen {
+export function mainMenuScreen(actions: MainMenuActions, progress: string | null, persistent: boolean, featuredTitle?: string | null, featuredRune?: { glyph: string; name: string; finish: string } | null): Screen {
   const campaign = h('button', { class: 'menu-button primary', onClick: actions.onCampaign }, 'Campaign');
 
   const element = h(
@@ -95,6 +95,7 @@ export function mainMenuScreen(actions: MainMenuActions, progress: string | null
     { class: 'screen main-menu', attrs: { 'aria-labelledby': 'title' } },
     h('h1', { class: 'game-title', attrs: { id: 'title' } }, GAME_TITLE),
     featuredTitle ? h('p', { class: 'featured-title-banner' }, `✦ ${featuredTitle} ✦`) : null,
+    featuredRune ? h('p', { class: `featured-rune-banner finish-${featuredRune.finish}` }, h('span', { class: 'rune-award-seal', attrs: { 'aria-hidden': 'true' } }, featuredRune.glyph), ` ${featuredRune.name}`) : null,
     h(
       'nav',
       { class: 'menu-list', attrs: { 'aria-label': 'Main menu' } },
