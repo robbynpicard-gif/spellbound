@@ -351,7 +351,8 @@ export class GameScene extends Phaser.Scene {
     const combo = this.engine.state.combo;
     const tier = tierOf(combo);
     this.prototypeCombo.setText('CHAIN ' + combo + '  ·  ×' + (tier + 1));
-    const volley = this.engine.state.recentCaptures.length;
+    const recent = this.engine.state.recentCaptures;
+    const volley = recent.filter((tick) => this.engine.state.tick - tick <= 120).length;
     this.volleyIndicator.setText(volley >= 3 ? 'VOLLEY ×' + volley + '  BONUS!' : 'VOLLEY ' + volley + ' / 3');
     this.volleyIndicator.setColor(volley >= 3 ? '#f6d287' : '#bda580');
     this.prototypeMeter.clear();
