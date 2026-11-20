@@ -7,7 +7,9 @@ import { PHRASE_PATTERNS } from './PhraseTracker';
 /** OFFLINE EXPERIMENT ONLY. This module is never called by live word spawning.
  * Both arms use seeded draws, the same length, complexity and playable bank.
  * This estimates potential; it does not simulate human capture order, misses,
- * concurrent falling words or full game-engine timing. */
+ * concurrent falling words or full game-engine timing. Candidate redraws
+ * additionally avoid recent duplicate texts and first letters, but are not
+ * identical to the generator's twelve-attempt fallback algorithm. */
 export interface WordcraftSimulation {
   baseline: { classified: number; phrases: number; lengths: Record<number, number> };
   candidate: { classified: number; phrases: number; lengths: Record<number, number> };
@@ -51,6 +53,8 @@ export function simulateWordcraftSelection(
     const generator = new WordGenerator(words, config, new SeededRandom(seed * 7919));
     const alternate = new SeededRandom(seed * 104729);
     let previous: ReturnType<typeof classifyWord> = null;
+    const recent: string[] = [];
+    const window = Math.max(1, (config.maxActiveWords ?? 5) - 1);
     for (let i = 0; i < wordsPerTrial; i++) {
       const ordinary = generator.next();
       baseline.push(ordinary);
@@ -60,10 +64,12 @@ export function simulateWordcraftSelection(
       // Both choices have exactly the baseline word's length and eligibility.
       let chosen = ordinary;
       if (preferred.length && alternate.chance(0.2)) {
-        const matches = pool.filter((w) => preferred.includes(classifyWord(w)!));
+        const matches = pool.filter((w) => preferred.includes(classifyWord(w)!) && !recent.includes(w.toLowerCase()) && !recent.some((r) => r[0] === w[0]?.toLowerCase()));
         if (matches.length) chosen = alternate.pick(matches);
       }
       candidate.push(chosen);
+      recent.push(chosen.toLowerCase());
+      if (recent.length > window) recent.shift();
       previous = classifyWord(chosen);
     }
     // Prevent phrase pairs crossing simulated trial boundaries.
