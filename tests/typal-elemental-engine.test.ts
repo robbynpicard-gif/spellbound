@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GameEngine } from '../src/core/GameEngine';
+import { FIELD } from '../src/core/GameConfig';
 import type { DifficultyConfig } from '../src/difficulty/DifficultyConfig';
 import { wordPoints } from '../src/gameplay/ScoringSystem';
 
@@ -22,7 +23,7 @@ describe('elemental spells in the real simulation', () => {
   it('emits a melting reaction and boosts fire spell points', () => {
     const game = engine({ initialFallSpeed: 500, spawnInterval: 50 });
     for (let i = 0; i < 45; i++) game.step();
-    const eligible = game.state.words.filter(w => w.y >= 0.2 * 720);
+    const eligible = game.state.words.filter(w => w.y >= 0.2 * FIELD.height);
     const reaction = vi.fn();
     const burned = vi.fn();
     game.events.on('elementalReaction', reaction);
