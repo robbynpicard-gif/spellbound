@@ -1,3 +1,4 @@
+import type { Element, Reaction } from '../gameplay/ElementalReactions';
 import type { Bonus } from '../gameplay/ScoringSystem';
 import type { WordState } from '../gameplay/Word';
 import type { InstabilityStage } from '../gameplay/InstabilityManager';
@@ -70,6 +71,8 @@ export interface GameEvents {
   /** A boss timer ran out: clear the remaining words to finish (D-057). */
   windDown: Record<string, never>;
   spellCast: { spell: SpellId; charges: SpellCharges };
+  /** Deterministic workshop elemental interaction, including scoring modifier. */
+  elementalReaction: { previous: Element; incoming: Element; reaction: Reaction; damageMultiplier: number };
   /** Tried to cast with no charges left. */
   spellFizzled: { spell: SpellId };
   /** A timed spell (Frostbinding, or the last Temporal Distortion stack) wore off. */
