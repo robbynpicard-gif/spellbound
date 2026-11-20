@@ -66,6 +66,18 @@ Last updated 2026-11-19. **Design decisions confirmed by project owner; not yet 
 - Preserve Round 10's practical option to prioritize important spoken Rune awards when frequency is high. Every earned Rune still receives visual carousel recognition.
 - Exact cooldowns, spoken queue, family progression timing, mixing, voice lines and implementation remain open.
 
+## Proposed overarching narrative direction — Grand Wizard and Apprentice (2026-11-19)
+
+**Concept under consideration, not yet a final approved narrative implementation.**
+
+- The entire game may be framed as a powerful, eccentric **Grand Wizard teaching the player's apprentice wizard**.
+- Typing remains a real mechanical fight against **the darkness**, but the darkness is not necessarily a creepy, horror-like or inherently evil threat. It serves as the Grand Wizard's training challenge for the apprentice to acquire knowledge and magical power.
+- Campaign progression could represent successive lessons and increasingly difficult magical trials. A possible eventual **final boss is the Grand Wizard himself**, as a culminating examination after overcoming the darkness, not a villainous betrayal.
+- **The Grand Wizard is the previously specified mischievous Rune announcer.** His occasional playful/sarcastic comments address the apprentice; Rune names and family escalation remain central.
+- **Strict audio restraint:** Spoken Grand Wizard commentary remains reserved for Rune achievements, not routine casts, bosses, victories or general gameplay narration. Callouts should be rare enough to remain iconic; prioritize major feats if needed. Adjustable audio and non-disruptive delivery are important.
+- **Gameplay-first:** This is an identity/story layer on top of the typing-first loop, not permission to add interruptions, mandatory exposition, forced dialogue or mechanics changes. The game should remain compelling with the voice muted.
+- Story framing, mentor characterization, exact darkness lore, stage mapping, final boss mechanics and whether/how to show the wizard outside Rune callouts remain **open for discussion**.
+
 ## Still open
 
 - The first concrete Rune catalogue, measurable triggers and rarity thresholds.
