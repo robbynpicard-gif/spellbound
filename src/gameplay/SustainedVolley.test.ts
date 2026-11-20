@@ -17,7 +17,7 @@ describe('fixed-tick sustained Volley for Normal and Hardcore', () => {
     expect(sustainedVolleyMultiplier(captures,450,false)).toBe(1);
   });
   it('does not depend on frame rate or mutate captures', () => {
-    const captures = Object.freeze([{tick:0,letters:5},{tick:60,letters:6},{tick:120,letters:6}].map(Object.freeze));
+    const captures = Object.freeze([{tick:0,letters:5},{tick:60,letters:6},{tick:120,letters:6}].map((capture) => Object.freeze(capture)));
     expect(sustainedVolleyMultiplier(captures,120,false)).toBe(sustainedVolleyMultiplier(captures,120,false));
   });
 });
