@@ -101,3 +101,6 @@ html, body { margin: 0; height: 100%; background: #0d0805; overflow: hidden; fon
 .t-rune { position: relative; padding-left: 70px; min-height: 64px; }
 .t-medal { position: absolute; left: 4px; top: 6px; width: 60px; height: 60px; filter: grayscale(0.85) brightness(0.8); }
 .t-rune.got .t-medal { filter: none; }
+.t-perfection { display: flex; gap: 16px; align-items: center; margin: 10px 0; padding: 10px 16px; background: rgb(90 14 22 / .12); border: 2px solid #c9962e; border-radius: 8px; }
+.t-perfection h3 { margin: 0; font-family: var(--display); color: #5a0e16; font-size: 26px; }
+.t-medal-big { width: 96px; height: 96px; }

@@ -20,6 +20,8 @@ import { prefs } from '../prefs';
 import { FIELD_RECT, FLOOR, INK, paintScroll, RACK_X, RUBRIC, SPELL_GLYPH, SPELL_HUE, WARD_Y, KEY_ROWS, MACHINE, TW, TRAY_SLOTS, TRAY_SLOT_Y } from './paint';
 import { buildRoom, ensureTextures, FONT_ARCADE, FONT_TITLE, FONT_WORD, FONT_BODY, hexNum } from './study';
 import { Hands } from './Hands';
+import { voice } from '../voice';
+import { MOCKERY, PRAISE, RUNE_CALLOUTS, SPECIAL, type VoiceLine } from '../voiceLines';
 import { paintMedal } from './medal';
 import type { RuneDef } from '../../gameplay/runes/RuneCatalogue';
 
@@ -1062,13 +1064,26 @@ export class TypelPlayScene extends Phaser.Scene {
     });
   }
 
-  /** The Grand Wizard comments on Rune awards only (text placeholder until a recorded voice exists). */
+  /**
+   * The Grand Wizard announces Runes, and only Runes (D-090). Returns the
+   * remark shown on the tray ribbon; the spoken callout is the Rune's name.
+   */
   private quip(rune: RuneDef): string {
-    const pick = (xs: string[]) => xs[Math.floor(Math.random() * xs.length)]!;
-    if (rune.id === 'fumble-50') return Math.random() < 0.4 ? 'The Grand Wizard: “HA! FAIL!”' : 'The Grand Wizard: “A legacy, of sorts.”';
-    if (rune.category === 'participation') return Math.random() < 0.5 ? `The Grand Wizard: “${pick(['Majestic.', 'I will pretend I did not see that.', 'The scrolls are laughing at you.'])}”` : '';
-    if (rune.tier >= 2 && Math.random() < 0.3) return `The Grand Wizard: “${pick(['Hm. Not bad.', 'Do not let it go to your hat.', 'Adequate. Barely.', 'Oh, now you are showing off.', 'I have seen worse. From myself, once.'])}”`;
-    return '';
+    const pick = <T,>(xs: readonly T[]) => xs[Math.floor(Math.random() * xs.length)]!;
+    // he warms up over the apprentice's career: early praise teases, later praise admires
+    const career = Object.keys(prefs.data.runes).length;
+    const praise = PRAISE.slice(0, career < 8 ? 5 : career < 16 ? 9 : PRAISE.length);
+    let remark: VoiceLine | null = null;
+    if (rune.id === 'fumble-50') remark = Math.random() < 0.4 ? SPECIAL.haFail : SPECIAL.legacy;
+    else if (rune.category === 'participation') remark = Math.random() < 0.5 ? pick(MOCKERY) : null;
+    else if (rune.id === 'flawless') remark = SPECIAL.flawless;
+    else if (rune.tier >= 2 && Math.random() < 0.3) remark = pick(praise);
+    const callout = RUNE_CALLOUTS[rune.id];
+    const voiced = rune.tier >= 2 || rune.category === 'participation' || Math.random() < 0.5;
+    const priority = rune.id === 'fumble-50' || rune.id === 'flawless' ? 4 : rune.tier;
+    const lines = [voiced ? callout : null, remark].filter((x): x is VoiceLine => !!x);
+    if (lines.length) voice.say(lines, priority, 1 + (rune.tier - 1) * 0.35);
+    return remark ? `The Grand Wizard: “${remark.text}”` : '';
   }
 
   /** Claimed spell swishes to the rack and knocks into its shelf. */

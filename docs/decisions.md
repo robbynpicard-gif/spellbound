@@ -1162,3 +1162,28 @@ _2026-11-21 · Owner decisions (chat); implemented on dev as a prototype pass_
 - awarding Flawless Perfection in the apprenticeship;
 - anti-farming details;
 - the final medal art.
+
+
+### D-090 — Flawless Perfection awarded; Grand Wizard placeholder voice; recording script (2026-11-21)
+_2026-11-21 · Owner decisions (chat); implemented on dev_
+
+**Owner decisions:**
+- Award **Flawless Perfection** for a whole apprenticeship played flawlessly.
+- Flesh out the Grand Wizard announcer: implement a **simple Grand Wizard voice for now**.
+- **Generate a list of phrases the owner can record**, to add his own personality.
+
+**Prototype choices (reversible):**
+- **Flawless Perfection rule:** the apprenticeship must start at level 1 (not from the testing level picker), never fall (no lost level and retry), and every level must be Flawless, boss included. It's shown on the apprenticeship's victory panel with its medal, recorded in the Rune collection and announced. 0 points, as catalogued.
+- **The voice is a synthesized "babble", not text-to-speech.** D-052 rejected robotic browser speech, so the placeholder is a gravelly old voice muttering vowel-formant syllables that follow the line's rhythm and punctuation (statements fall, questions rise, exclamations bark). The real words show on the Rune tray ribbon. It plays on the Announcer channel, now labelled "Grand Wizard voice".
+- **Queue rules:**
+  - he speaks only when a Rune is awarded;
+  - one utterance at a time (a callout plus an optional remark), with a 2.5 s cooldown;
+  - priority runs tier 1 to 3, and Generational Fumble and Flawless are 4;
+  - a waiting line is replaced by a more important one, and less important lines are dropped (the tray still shows every Rune).
+- **What he says:**
+  - callouts for every tier-2/3 Rune and every fumble, and about half the tier-1 Runes;
+  - praise after tier-2/3 Runes about 30% of the time, with more admiring lines unlocking as the player's Rune collection grows ("teasing at first, gradually impressed");
+  - mockery after fumbles about 50% of the time;
+  - "HA! FAIL!" on 40% of Generational Fumbles.
+- **Recordings plug in later:** list a line's ID in `src/data/voice-manifest.json` and put the file at `public/assets/voice/<id>.mp3`, and that line plays the recording instead of the babble.
+- **Script:** `docs/grand-wizard-voice-script.md` is generated from `src/typel/voiceLines.ts`. It has 65 placeholder lines with IDs and direction: callouts, praise, mockery, specials, and optional menu lines (the menu lines aren't voiced in play, per the Rune-only rule).

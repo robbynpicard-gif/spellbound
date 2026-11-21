@@ -126,3 +126,14 @@ This supersedes §3's zone details for the red, orange, blue and green areas and
 - occasional text remarks from the Grand Wizard ("HA! FAIL!").
 
 This supersedes §9's wizard and §10's parchment-slip Rune notice. Details in D-089.
+
+## 12. Update — D-090 (2026-11-21): Flawless Perfection, Grand Wizard voice
+**Owner decisions:**
+- Flawless Perfection is awarded.
+- A simple Grand Wizard voice for now.
+- A script of phrases for the owner to record.
+
+**Prototype choices:**
+- **Flawless Perfection:** start at level 1, never fall, and every level Flawless.
+- **The voice:** a synthesized babble, not text-to-speech (D-052), with the words shown on the Rune tray. He speaks only for Runes, one line at a time, with priority rules. His praise grows warmer as the player's Rune collection grows.
+- **The script:** `docs/grand-wizard-voice-script.md` (65 lines with IDs). Recordings plug in by ID through `src/data/voice-manifest.json`.

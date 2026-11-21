@@ -20,6 +20,8 @@ import { TypelPlayScene, type Carry, type PlaySetup } from './render/PlayScene';
 import { SPELL_GLYPH, SPELL_HUE } from './render/paint';
 import { TypelMenuScene } from './render/study';
 import { medalDataUrl } from './render/medal';
+import { voice } from './voice';
+import { RUNE_CALLOUTS, SPECIAL } from './voiceLines';
 import { TIER_NAMES, tierOf, TRIUMPHS } from './triumphs';
 import { trialText, typingStats } from './typingTrial';
 
@@ -52,6 +54,10 @@ interface Run {
   peakVolley: number;
   runes: Record<string, number>;
   endless: boolean;
+  /** Flawless Perfection (D-090): started at level 1, never fell, every level Flawless. */
+  startLevel: number;
+  flawlessLevels: number;
+  fell: boolean;
 }
 
 const HARDCORE_RECOVERY: Record<number, number> = { 4: 25, 8: 25 };
@@ -165,6 +171,7 @@ export class TypelApp {
     this.run = {
       mode: this.mode, trial: index, level: startLevel, score: 0, levelScores: [], combo: 0,
       spells: startingCharges(trial), instability: 0, words: [], peakVolley: 1, runes: {}, endless: false,
+      startLevel, flawlessLevels: 0, fell: false,
     };
     if (startLevel === 1) {
       this.backdrop();
@@ -243,6 +250,8 @@ export class TypelApp {
     const trial = TRIALS[run.trial - 1]!;
     this.record(stats);
     for (const [id, n] of Object.entries(stats.runeCounts ?? {})) run.runes[id] = (run.runes[id] ?? 0) + n;
+    if (!run.endless && result === 'won' && stats.runeCounts?.['flawless']) run.flawlessLevels++;
+    if (!run.endless && result !== 'won') run.fell = true;
     run.peakVolley = Math.max(run.peakVolley, stats.peakArcaneVolleyMultiplier ?? 1);
     if (run.endless) return this.endlessOver(stats);
     if (result !== 'won') return this.levelLost(stats);
@@ -306,10 +315,25 @@ export class TypelApp {
     if (isBest) prefs.data.bestTrialScore[key] = run.score;
     prefs.save();
     sound.victory();
+    // Flawless Perfection: the whole apprenticeship, from level 1, every level Flawless and never fallen
+    const perfection = run.startLevel === 1 && !run.fell && run.levelScores.length > 0 && run.flawlessLevels === run.levelScores.length;
+    const perfectRune = RUNE_BY_ID.get('flawless-perfection')!;
+    if (perfection) {
+      prefs.noteRune(perfectRune.id);
+      run.runes[perfectRune.id] = (run.runes[perfectRune.id] ?? 0) + 1;
+      window.setTimeout(() => {
+        sound.rune(3);
+        voice.say([RUNE_CALLOUTS[perfectRune.id]!, SPECIAL.flawlessPerfection], 4, 2);
+      }, 900);
+    }
     const runes = Object.entries(run.runes).map(([id, n]) => `${RUNE_BY_ID.get(id)?.name ?? id}${n > 1 ? ` ×${n}` : ''}`);
     const nextTrial = TRIALS[run.trial];
     this.show(this.panel(`${trial.title} — complete`,
       this.mentor(trial.victory),
+      perfection
+        ? el('div', { class: 't-perfection' }, el('img', { class: 't-medal-big', src: medalDataUrl(perfectRune, 128), alt: '' }),
+            el('div', null, el('h3', null, 'Flawless Perfection'), el('p', null, `The Grand Wizard: “${SPECIAL.flawlessPerfection.text}”`)))
+        : null,
       el('div', { class: 't-bigscore' }, run.score.toLocaleString(), isBest ? el('span', { class: 't-best' }, ' new best') : null),
       el('div', { class: 't-stats' }, stat('Boss score', stats.score.toLocaleString()), stat('Peak Rush', `×${run.peakVolley.toFixed(1)}`), stat('Levels', String(run.levelScores.length))),
       runes.length ? el('p', { class: 't-runes' }, `Runes this apprenticeship: ${runes.join(' · ')}`) : null,
@@ -548,7 +572,7 @@ export class TypelApp {
       slider.addEventListener('input', () => sound.apply({ ...sound.settings, [ch]: { ...sound.settings[ch], volume: Number(slider.value) / 100 } }));
       return el('label', { class: 't-audio' }, box, el('span', null, label), slider);
     };
-    return el('div', { class: 't-audiobox' }, row('Music', 'music'), row('Sound effects', 'sfx'), row('Announcer (text only for now)', 'voice'));
+    return el('div', { class: 't-audiobox' }, row('Music', 'music'), row('Sound effects', 'sfx'), row('Grand Wizard voice (placeholder babble)', 'voice'));
   }
 
   showOptions(): void {
@@ -563,7 +587,7 @@ export class TypelApp {
         btn('Reset prototype progress', () => {
           if (window.confirm('Reset all Typel prototype progress, records and Runes?')) (prefs.reset(), this.showOptions());
         })),
-      el('p', { class: 't-small' }, 'The recorded Grand Wizard announcer does not exist yet; announcements appear as text.'),
+      el('p', { class: 't-small' }, 'The Grand Wizard speaks only when you earn a Rune. His voice is a placeholder babble until real recorded lines replace it; his words always appear as text on the Rune tray.'),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
   }
 }

@@ -134,4 +134,42 @@ describe('D-086 engine changes', () => {
     e.step();
     expect(e.state.freezeTicks).toBeLessThanOrEqual(ICE_MELT_TICKS);
   });
+
+  const RUNE_CFG: DifficultyConfig = {
+    speedVariance: 0, speedRamp: 0, level: 0, name: 'T', requiredWords: null, initialFallSpeed: 10, spawnInterval: 150,
+    maxActiveWords: 12, minWordLength: 3, maxWordLength: 6, modifierProbabilities: {}, instabilityPerMiss: 10,
+    errorAcceleration: 0, availableSpells: [], spellDropChance: 0,
+  };
+  const RUNE_WORDS = ['ember', 'frost', 'wand', 'rune', 'owl', 'gale', 'quill', 'mist', 'yew', 'orb', 'elk', 'bell', 'lamp', 'ink'];
+  const play = (cfg: Partial<DifficultyConfig>) => new GameEngine({ config: { ...RUNE_CFG, ...cfg }, seed: 9, words: RUNE_WORDS, experimentalScoring: true });
+  const captureLowest = (e: GameEngine) => {
+    for (let i = 0; i < 5000 && e.state.words.length === 0; i++) e.step();
+    const w = [...e.state.words].sort((a, b) => b.y - a.y)[0]!;
+    for (const c of w.match) e.typeChar(c);
+    e.submit();
+  };
+
+  it('awards Flawless for a level with no slips, and not after a typo', () => {
+    const clean = play({ requiredWords: 3 });
+    for (let i = 0; i < 3; i++) captureLowest(clean);
+    expect(clean.status).toBe('won');
+    expect(clean.stats().runeCounts?.['flawless']).toBe(1);
+    const slipped = play({ requiredWords: 3 });
+    captureLowest(slipped);
+    slipped.typeChar('z');
+    slipped.clearInput();
+    for (let i = 0; i < 2; i++) captureLowest(slipped);
+    expect(slipped.status).toBe('won');
+    expect(slipped.stats().runeCounts?.['flawless']).toBeUndefined();
+  });
+
+  it('awards a zero-point Participation Rune for ruining a 10+ streak', () => {
+    const e = play({});
+    for (let i = 0; i < 10; i++) captureLowest(e);
+    const before = e.state.score;
+    e.typeChar('z');
+    expect(e.stats().runeCounts?.['fumble-10']).toBe(1);
+    expect(e.state.score).toBe(before); // fumbles never pay
+  });
 });
+
