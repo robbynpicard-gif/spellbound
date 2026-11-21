@@ -19,7 +19,8 @@ import type { SpellId } from '../../gameplay/SpellManager';
 
 export const W = 1920;
 export const H = 1080;
-export const FIELD_RECT = { x: 402, y: 0, w: 1240, h: 936 } as const;
+/** D-088: the field ends where the typewriter's paper begins; the machine itself is the Ward. */
+export const FIELD_RECT = { x: 402, y: 0, w: 1240, h: 790 } as const;
 export const WARD_Y = FIELD_RECT.y + FIELD_RECT.h;
 export const FLOOR = { x: 402, y: WARD_Y, w: 1240, h: H - WARD_Y } as const;
 export const RACK_X = 1648;
@@ -125,21 +126,28 @@ export function paintRoom(ctx: Ctx): void {
   shelves(ctx, 0, 0, 400, 1080, 11);
   ctx.fillStyle = 'rgba(10,6,4,0.45)';
   ctx.fillRect(0, 0, 400, 1080);
-  // an oil lamp's warm pool over the wizard's desk
-  ctx.fillStyle = radial(ctx, 230, 820, 360, [[0, 'rgba(255,180,90,0.42)'], [0.55, 'rgba(220,120,50,0.12)'], [1, 'rgba(220,120,50,0)']]);
-  ctx.fillRect(0, 520, 400, 560);
-  // desk top under the typewriter
-  ctx.fillStyle = walnut(ctx, 900, 1080);
-  ctx.fillRect(0, 900, 400, 180);
+  // the wizard's great desk under the window; the typewriter stands on it
+  const dx = FIELD_RECT.x;
+  const dw = FIELD_RECT.w;
+  const dy = FIELD_RECT.y + FIELD_RECT.h;
+  ctx.fillStyle = walnut(ctx, dy, H);
+  ctx.fillRect(dx, dy, dw, H - dy);
   ctx.strokeStyle = 'rgba(0,0,0,0.25)';
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 16; i++) {
     ctx.beginPath();
-    ctx.moveTo(0, 910 + i * 17);
-    ctx.bezierCurveTo(120, 905 + i * 17, 260, 918 + i * 17, 400, 910 + i * 17);
+    ctx.moveTo(dx, dy + 10 + i * 18);
+    ctx.bezierCurveTo(dx + dw * 0.3, dy + 4 + i * 18, dx + dw * 0.7, dy + 18 + i * 18, dx + dw, dy + 10 + i * 18);
     ctx.stroke();
   }
-  ctx.fillStyle = 'rgba(230,180,110,0.25)';
-  ctx.fillRect(0, 900, 400, 2);
+  ctx.fillStyle = radial(ctx, dx + dw / 2, dy + 60, 700, [[0, 'rgba(255,180,90,0.22)'], [1, 'rgba(255,180,90,0)']]);
+  ctx.fillRect(dx, dy, dw, H - dy);
+  // a candle and an inkwell in the right corner of the desk
+  ctx.fillStyle = '#0e0c10';
+  ctx.beginPath();
+  ctx.ellipse(1600, 1050, 26, 9, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = grad(ctx, 1576, 0, 1624, 0, [[0, '#0e0c10'], [0.4, '#2a2630'], [1, '#0e0c10']]);
+  ctx.fillRect(1576, 1018, 48, 32);
   // the rack's oak backing
   ctx.fillStyle = grad(ctx, RACK_X, 0, W, 0, [[0, '#2a180c'], [0.5, '#3a2212'], [1, '#22130a']]);
   ctx.fillRect(RACK_X - 6, 0, W - RACK_X + 6, H);
@@ -257,73 +265,129 @@ export function paintFrame(ctx: Ctx): void {
   }
 }
 
-/** Typewriter seen from behind the wizard (3/4 rear): paper stands toward us, keys slope toward him. */
-export const TW = { cx: 262 } as const;
+/**
+ * D-088: the great arcane typewriter, centred under the battlefield. Its
+ * paper (drawn live) stands along the Ward line; the platen, typebar basket
+ * and keys sit below, seen from behind the wizard.
+ */
+export const TW = { cx: 1022, paperX: 682, paperW: 680, paperTop: 792, paperBottom: 904 } as const;
 /** Key rows recede from the wizard toward the platen (perspective). */
 export const KEY_ROWS = [
-  { row: 'qwertyuiop', y: 834, gap: 21, scale: 0.74 },
-  { row: 'asdfghjkl', y: 862, gap: 23, scale: 0.82 },
-  { row: 'zxcvbnm', y: 892, gap: 25, scale: 0.9 },
+  { row: 'qwertyuiop', y: 970, gap: 44, scale: 1.25 },
+  { row: 'asdfghjkl', y: 1010, gap: 48, scale: 1.37 },
+  { row: 'zxcvbnm', y: 1052, gap: 52, scale: 1.5 },
 ] as const;
+
 export function paintTypewriter(ctx: Ctx): void {
   const cx = TW.cx;
-  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  // body: blackened iron with gilt pinstripes and riveted brass rails, wider toward the typist
   ctx.beginPath();
-  ctx.ellipse(cx, 948, 160, 14, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // body: black enamel with gilt pinstripes, wider toward the typist
-  ctx.beginPath();
-  ctx.moveTo(cx - 112, 808);
-  ctx.lineTo(cx + 112, 808);
-  ctx.lineTo(cx + 136, 944);
-  ctx.lineTo(cx - 136, 944);
+  ctx.moveTo(cx - 330, 930);
+  ctx.lineTo(cx + 330, 930);
+  ctx.lineTo(cx + 410, 1080);
+  ctx.lineTo(cx - 410, 1080);
   ctx.closePath();
-  ctx.fillStyle = grad(ctx, 0, 808, 0, 944, [[0, '#2a2622'], [0.5, '#151210'], [1, '#0a0807']]);
+  ctx.fillStyle = grad(ctx, 0, 930, 0, 1080, [[0, '#2c2824'], [0.5, '#171411'], [1, '#0b0908']]);
   ctx.fill();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(200,160,80,0.8)';
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = gold(ctx, cx - 410, 820);
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(200,160,80,0.35)';
+  ctx.strokeStyle = 'rgba(200,160,80,0.4)';
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(cx - 104, 818);
-  ctx.lineTo(cx + 104, 818);
+  ctx.moveTo(cx - 316, 942);
+  ctx.lineTo(cx + 316, 942);
   ctx.stroke();
-  // typebar basket fan
-  ctx.save();
-  ctx.translate(cx, 806);
-  for (let i = -13; i <= 13; i++) {
-    const a = (i / 13) * 1.1 - Math.PI / 2;
-    ctx.strokeStyle = i % 2 ? '#a8885a' : '#6a5436';
-    ctx.lineWidth = 2;
+  ctx.fillStyle = '#c8a050';
+  for (let i = 0; i <= 16; i++) {
     ctx.beginPath();
-    ctx.moveTo(Math.cos(a) * 12, Math.sin(a) * 6);
-    ctx.lineTo(Math.cos(a) * 66, Math.sin(a) * 22);
+    ctx.arc(cx - 320 + i * 40, 936, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // typebar basket: a fan of steel arms behind the keys, converging on the strike point
+  ctx.save();
+  ctx.translate(cx, 934);
+  for (let i = -30; i <= 30; i++) {
+    const a = (i / 30) * 1.25 - Math.PI / 2;
+    ctx.strokeStyle = i % 2 ? '#a8885a' : '#6a5436';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(Math.cos(a) * 18, Math.sin(a) * 6);
+    ctx.lineTo(Math.cos(a) * 300, Math.sin(a) * 26 + 16);
     ctx.stroke();
   }
   ctx.restore();
-  // platen roller and nickel knobs
-  ctx.fillStyle = grad(ctx, 0, 764, 0, 792, [[0, '#0c0a0a'], [0.45, '#3a3634'], [1, '#0a0808']]);
-  ctx.fillRect(cx - 104, 764, 208, 28);
-  for (const kx of [cx - 120, cx + 104]) {
-    ctx.fillStyle = grad(ctx, kx, 0, kx + 16, 0, [[0, '#5a5a5e'], [0.5, '#e4e2dc'], [1, '#4a4a4e']]);
-    roundRect(ctx, kx, 758, 16, 40, 5);
+  // platen roller with nickel knobs, and the carriage rail
+  ctx.fillStyle = grad(ctx, 0, 900, 0, 934, [[0, '#0c0a0a'], [0.45, '#403a36'], [1, '#0a0808']]);
+  ctx.fillRect(cx - 360, 900, 720, 34);
+  for (const kx of [cx - 392, cx + 360]) {
+    ctx.fillStyle = grad(ctx, kx, 0, kx + 32, 0, [[0, '#5a5a5e'], [0.5, '#e8e6e0'], [1, '#4a4a4e']]);
+    roundRect(ctx, kx, 890, 32, 54, 8);
     ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    for (let y = 894; y < 942; y += 4) {
+      ctx.beginPath();
+      ctx.moveTo(kx, y);
+      ctx.lineTo(kx + 32, y);
+      ctx.stroke();
+    }
   }
-  // carriage return lever
-  ctx.strokeStyle = '#c8c4bc';
-  ctx.lineWidth = 4;
+  ctx.fillStyle = gold(ctx, cx - 380, 760);
+  ctx.fillRect(cx - 380, 884, 760, 6);
+  // carriage return lever, sweeping out to the left
+  ctx.strokeStyle = '#d8d4cc';
+  ctx.lineWidth = 7;
+  ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(cx - 120, 764);
-  ctx.quadraticCurveTo(cx - 150, 742, cx - 160, 716);
+  ctx.moveTo(cx - 392, 900);
+  ctx.quadraticCurveTo(cx - 450, 868, cx - 470, 830);
   ctx.stroke();
-  // nameplate
-  ctx.fillStyle = gold(ctx, cx - 40, 80);
-  roundRect(ctx, cx - 40, 928, 80, 10, 3);
-  ctx.fill();
+  ctx.lineCap = 'butt';
 }
 
-/** Score counter housing and two glass-and-brass meter columns (fills drawn live). */
+/** A brass gear (rotated live). */
+export function paintGear(ctx: Ctx, size: number, teeth: number): void {
+  const c = size / 2;
+  ctx.fillStyle = gold(ctx, 0, size);
+  ctx.beginPath();
+  for (let i = 0; i < teeth * 2; i++) {
+    const a = (i / (teeth * 2)) * Math.PI * 2;
+    const r = i % 2 ? c * 0.82 : c;
+    ctx.lineTo(c + Math.cos(a) * r, c + Math.sin(a) * r);
+  }
+  ctx.fill();
+  ctx.fillStyle = '#2a1c10';
+  ctx.beginPath();
+  ctx.arc(c, c, c * 0.22, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(40,24,10,0.6)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(c, c, c * 0.55, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+/**
+ * D-088: the typewriter's engine, filling the left column. Score drum on top,
+ * stamped multiplier plates, the Combo and Arcane Rush glass tubes, a level
+ * plate, and a gear housing piped into the typewriter. Fills drawn live.
+ */
+export const MACHINE = { tubeTop: 236, tubeBottom: 740, plateY: 800 } as const;
 export function paintMeters(ctx: Ctx): void {
+  // iron cabinet with brass edging and rivets
+  ctx.fillStyle = grad(ctx, 0, 0, 400, 0, [[0, '#14110e'], [0.5, '#221d18'], [1, '#14110e']]);
+  ctx.fillRect(0, 0, 400, 1080);
+  ctx.fillStyle = gold(ctx, 392, 10);
+  ctx.fillRect(392, 0, 10, 1080);
+  ctx.fillStyle = '#b89048';
+  for (let y = 20; y < 1080; y += 60) {
+    for (const x of [8, 384]) {
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // score drum window
   ctx.fillStyle = gold(ctx, 8, 384);
   roundRect(ctx, 8, 8, 384, 176, 14);
   ctx.fill();
@@ -337,19 +401,20 @@ export function paintMeters(ctx: Ctx): void {
     ctx.lineTo(20 + i * 60, 100);
     ctx.stroke();
   }
+  // tubes
   for (const [x, label, c] of [[18, 'COMBO', SPELL_HUE.barrier], [218, 'ARCANE RUSH', SPELL_HUE.wind]] as const) {
     const w = 164;
     ctx.fillStyle = gold(ctx, x, w);
     roundRect(ctx, x, 196, w, 40, 8);
     ctx.fill();
-    roundRect(ctx, x, 548, w, 40, 8);
+    roundRect(ctx, x, MACHINE.tubeBottom, w, 40, 8);
     ctx.fill();
     ctx.fillStyle = 'rgba(200,220,230,0.06)';
-    roundRect(ctx, x + 24, 232, w - 48, 320, 36);
+    roundRect(ctx, x + 24, MACHINE.tubeTop - 4, w - 48, MACHINE.tubeBottom - MACHINE.tubeTop + 8, 36);
     ctx.fill();
     ctx.strokeStyle = 'rgba(220,230,235,0.35)';
     ctx.lineWidth = 3;
-    roundRect(ctx, x + 24, 232, w - 48, 320, 36);
+    roundRect(ctx, x + 24, MACHINE.tubeTop - 4, w - 48, MACHINE.tubeBottom - MACHINE.tubeTop + 8, 36);
     ctx.stroke();
     ctx.fillStyle = '#1e1208';
     ctx.font = '700 15px Cinzel, Georgia, serif';
@@ -357,8 +422,26 @@ export function paintMeters(ctx: Ctx): void {
     ctx.fillText(label, x + w / 2, 222);
     ctx.fillStyle = c;
     ctx.beginPath();
-    ctx.arc(x + w / 2, 568, 8, 0, Math.PI * 2);
+    ctx.arc(x + w / 2, MACHINE.tubeBottom + 20, 8, 0, Math.PI * 2);
     ctx.fill();
+  }
+  // level plate
+  ctx.fillStyle = gold(ctx, 18, 364);
+  roundRect(ctx, 18, MACHINE.plateY - 6, 364, 70, 8);
+  ctx.fill();
+  ctx.fillStyle = '#1a140e';
+  roundRect(ctx, 26, MACHINE.plateY + 2, 348, 54, 5);
+  ctx.fill();
+  // gear housing and the pipes that drive the typewriter
+  ctx.fillStyle = grad(ctx, 0, 880, 0, 1080, [[0, '#1c1813'], [1, '#0c0a08']]);
+  ctx.fillRect(10, 880, 384, 200);
+  for (const [y, h] of [[972, 16], [1010, 12]] as const) {
+    ctx.fillStyle = grad(ctx, 0, y, 0, y + h, [[0, '#6e4f1f'], [0.5, '#e8cf8e'], [1, '#5a3c14']]);
+    ctx.fillRect(330, y, 380, h);
+    for (const jx of [400, 520, 640]) {
+      ctx.fillStyle = gold(ctx, jx - 6, 12);
+      ctx.fillRect(jx - 6, y - 4, 12, h + 8);
+    }
   }
 }
 

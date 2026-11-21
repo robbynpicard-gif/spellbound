@@ -17,7 +17,7 @@ import { WORDS } from '../../data/wordList';
 import { SPELL_ORDER, type Line } from '../apprenticeship';
 import { sound } from '../audio';
 import { prefs } from '../prefs';
-import { FIELD_RECT, FLOOR, INK, paintScroll, RACK_X, RUBRIC, SPELL_GLYPH, SPELL_HUE, WARD_Y, KEY_ROWS } from './paint';
+import { FIELD_RECT, FLOOR, INK, paintScroll, RACK_X, RUBRIC, SPELL_GLYPH, SPELL_HUE, WARD_Y, KEY_ROWS, MACHINE, TW } from './paint';
 import { buildRoom, ensureTextures, FONT_ARCADE, FONT_TITLE, FONT_WORD, FONT_BODY, hexNum } from './study';
 import { Wizard } from './Wizard';
 
@@ -45,6 +45,8 @@ export interface PlaySetup {
   subtitle: string;
   lines?: Line[];
   boss?: boolean;
+  /** Practice views only: show the exact points each capture or cash-out earned (D-088). */
+  showSequenceScore?: boolean;
   onEnd(result: GameResult, stats: GameStats, carry: Carry): void;
   onPause(): void;
 }
@@ -56,9 +58,11 @@ const toY = (y: number) => FIELD_RECT.y + y * SY;
 const WORD_STYLE = { fontFamily: FONT_WORD, fontSize: '32px', fontStyle: '700', color: INK };
 const PLUNGE_COLOR = [0, 0xffd60a, 0xff8a1a, 0xff2a3a];
 const COUNTER = { x: 200, y: 62 };
-const COMBO_TUBE = { x: 42, w: 116, top: 236, bottom: 548 };
-const RUSH_TUBE = { x: 242, w: 116, top: 236, bottom: 548 };
-const PAPER = { x: 262, y: 716 };
+const COMBO_TUBE = { x: 42, w: 116, top: MACHINE.tubeTop, bottom: MACHINE.tubeBottom };
+const RUSH_TUBE = { x: 242, w: 116, top: MACHINE.tubeTop, bottom: MACHINE.tubeBottom };
+/** D-088: the strike point, where each letter is stamped; the carriage slides left past it. */
+const PAPER = { x: TW.cx + 40, y: 850 };
+const PAPER_FONT = 66;
 
 
 class ScrollView extends Phaser.GameObjects.Container {
@@ -164,6 +168,10 @@ export class TypelPlayScene extends Phaser.Scene {
   private floor!: Phaser.GameObjects.Graphics;
   private floorLeft!: Phaser.GameObjects.Text;
   private floorRight!: Phaser.GameObjects.Text;
+  private wardLine!: Phaser.GameObjects.Graphics;
+  private strikeBar!: Phaser.GameObjects.Graphics;
+  private gears: Phaser.GameObjects.Image[] = [];
+  private lastInput = '';
   private subtitle!: Phaser.GameObjects.Text;
   private overlay!: Phaser.GameObjects.Rectangle;
   private allInVeil!: Phaser.GameObjects.Rectangle;
@@ -211,9 +219,10 @@ export class TypelPlayScene extends Phaser.Scene {
     ensureTextures(this);
     buildRoom(this, true);
     // D-087: seen from behind, over the left shoulder, hands on the keys.
-    this.wizard = new Wizard(this, 108, 846, this.reduced);
-    this.wizard.hands[0].setPosition(222, 884).setData('y', 884);
-    this.wizard.hands[1].setPosition(322, 870).setData('y', 870);
+    // D-088: over his shoulder, at the lower left of the great typewriter
+    this.wizard = new Wizard(this, 590, 1010, this.reduced).setScale(0.85);
+    this.wizard.hands[0].setPosition(900, 1018).setData('y', 1018);
+    this.wizard.hands[1].setPosition(1070, 1004).setData('y', 1004);
     this.buildHud();
     this.bindEvents();
     this.bindInput();
@@ -240,16 +249,16 @@ export class TypelPlayScene extends Phaser.Scene {
     this.comboFill = this.add.graphics().setDepth(21);
     this.rushFill = this.add.graphics().setDepth(21);
     this.comboMult = this.text(100, 300, '×1', 46, '#ffffff', { fontFamily: FONT_ARCADE, stroke: '#0b2a7a', strokeThickness: 7 }).setOrigin(0.5);
-    this.comboCount = this.text(100, 522, '0', 22, '#cfe2ff', { fontFamily: FONT_ARCADE, stroke: '#0b2a7a', strokeThickness: 5 }).setOrigin(0.5);
+    this.comboCount = this.text(100, MACHINE.tubeBottom - 26, '0', 22, '#cfe2ff', { fontFamily: FONT_ARCADE, stroke: '#0b2a7a', strokeThickness: 5 }).setOrigin(0.5);
     this.rushMult = this.text(300, 300, '×1', 46, '#ffffff', { fontFamily: FONT_ARCADE, stroke: '#0b5a2a', strokeThickness: 7 }).setOrigin(0.5);
-    this.rushState = this.text(300, 522, '', 18, '#d6ffe6', { fontFamily: FONT_ARCADE, stroke: '#0b5a2a', strokeThickness: 5 }).setOrigin(0.5);
+    this.rushState = this.text(300, MACHINE.tubeBottom - 26, '', 18, '#d6ffe6', { fontFamily: FONT_ARCADE, stroke: '#0b5a2a', strokeThickness: 5 }).setOrigin(0.5);
     this.rushBubbles = this.add.particles(0, 0, 'typel-spark', {
       x: { min: RUSH_TUBE.x + 14, max: RUSH_TUBE.x + RUSH_TUBE.w - 14 }, y: RUSH_TUBE.bottom - 8, lifespan: 1400, speedY: { min: -160, max: -60 },
       scale: { start: 0.35, end: 0 }, alpha: { start: 0.9, end: 0 }, tint: [0x7dffb5, 0xffffff, 0xffe08a], blendMode: 'ADD', frequency: 90, emitting: false,
     }).setDepth(22);
-    this.rushEruption = this.add.particles(300, 200, 'typel-star', {
-      lifespan: 1100, speedY: { min: -320, max: -120 }, speedX: { min: -120, max: 120 }, gravityY: 260, scale: { start: 0.6, end: 0 },
-      tint: [0x3ddc84, 0xffd35a, 0xffffff, 0xff5fa8], blendMode: 'ADD', frequency: 60, emitting: false,
+    this.rushEruption = this.add.particles(300, 200, 'typel-spark', {
+      lifespan: 1100, speedY: { min: -320, max: -120 }, speedX: { min: -120, max: 120 }, gravityY: 260, scale: { start: 0.5, end: 0 },
+      tint: [0x4fbf78, 0xffc46a, 0xfff0c8], blendMode: 'ADD', frequency: 60, emitting: false,
     }).setDepth(31);
     for (const side of [0, 1]) {
       const e = this.add.image(side ? FIELD_RECT.x + FIELD_RECT.w : FIELD_RECT.x, FIELD_RECT.h / 2, 'typel-edge')
@@ -258,20 +267,33 @@ export class TypelPlayScene extends Phaser.Scene {
       this.edges.push(e);
     }
 
+    // D-088: the great sheet stands out of the platen along the Ward line
     const sheet = this.add.graphics().setDepth(23);
-    // the sheet stands up out of the platen, facing us and the wizard
-    sheet.fillStyle(0x000000, 0.35).fillRect(176, 670, 184, 98);
-    sheet.fillStyle(0xf3e8cc, 1).fillRect(172, 664, 180, 102).fillStyle(0xd9c497, 1).fillRect(172, 748, 180, 18);
-    sheet.lineStyle(1, 0xb08a58, 0.35);
-    for (let y = 690; y < 748; y += 22) sheet.lineBetween(182, y, 342, y);
-    this.paper = this.text(PAPER.x, PAPER.y, '', 34, INK, { fontFamily: FONT_WORD, fontStyle: '700' }).setOrigin(0.5).setDepth(24);
-    this.caret = this.add.rectangle(PAPER.x, PAPER.y, 3, 32, hexNum(RUBRIC)).setDepth(24);
+    const px = TW.paperX;
+    const pw = TW.paperW;
+    sheet.fillStyle(0x000000, 0.4).fillRect(px + 6, TW.paperTop + 8, pw, TW.paperBottom - TW.paperTop);
+    sheet.fillStyle(0xf3e8cc, 1).fillRect(px, TW.paperTop, pw, TW.paperBottom - TW.paperTop);
+    sheet.fillStyle(0xd9c497, 1).fillRect(px, TW.paperBottom - 18, pw, 18);
+    sheet.lineStyle(1, 0xb08a58, 0.3);
+    for (let y = TW.paperTop + 30; y < TW.paperBottom - 18; y += 26) sheet.lineBetween(px + 14, y, px + pw - 14, y);
+    // the strike guide: a small brass pointer where letters land
+    sheet.fillStyle(0xc8a050, 1).fillTriangle(PAPER.x - 8, TW.paperBottom, PAPER.x + 8, TW.paperBottom, PAPER.x, TW.paperBottom - 12);
+    this.paper = this.text(PAPER.x, PAPER.y, '', PAPER_FONT, INK, { fontFamily: FONT_WORD, fontStyle: '700' }).setOrigin(1, 0.5).setDepth(24);
+    const clip = this.make.graphics({}, false).fillRect(px + 8, TW.paperTop, pw - 16, TW.paperBottom - TW.paperTop);
+    this.paper.setMask(clip.createGeometryMask());
+    this.caret = this.add.rectangle(PAPER.x + 6, PAPER.y, 4, PAPER_FONT * 0.8, hexNum(RUBRIC)).setDepth(24);
+    this.strikeBar = this.add.graphics().setDepth(23.5);
     this.tweens.add({ targets: this.caret, alpha: 0.15, duration: 520, yoyo: true, repeat: -1 });
 
     this.floor = this.add.graphics().setDepth(8);
-    this.floorLeft = this.text(FLOOR.x + 24, FLOOR.y + 18, '', 20, '#ffe9b0', { fontFamily: FONT_ARCADE }).setDepth(9);
-    this.floorRight = this.text(FLOOR.x + FLOOR.w - 24, FLOOR.y + 18, '', 22, '#ffffff', { fontFamily: FONT_ARCADE, align: 'right' }).setOrigin(1, 0).setDepth(9);
-    this.subtitle = this.text(FLOOR.x + FLOOR.w / 2, FLOOR.y + 78, '', 22, '#fff4d8', { align: 'center', wordWrap: { width: 720 }, stroke: '#1a0630', strokeThickness: 4 }).setOrigin(0.5).setDepth(9);
+    this.wardLine = this.add.graphics().setDepth(26);
+    // level and progress live on the machine's brass plate; the Ward reading sits on the desk's right
+    this.floorLeft = this.text(200, MACHINE.plateY + 29, '', 17, '#e8d4a0', { fontFamily: FONT_ARCADE, align: 'center' }).setOrigin(0.5).setDepth(30);
+    this.floorRight = this.text(FLOOR.x + FLOOR.w - 20, FLOOR.y + 14, '', 22, '#efe2c2', { fontFamily: FONT_ARCADE, align: 'right' }).setOrigin(1, 0).setDepth(30);
+    // the Master's words arrive as a note on the desk's right corner
+    this.subtitle = this.text(1512, FLOOR.y + 88, '', 17, '#efe2c2', { align: 'left', wordWrap: { width: 222 }, stroke: '#140c06', strokeThickness: 3, lineSpacing: 2 }).setOrigin(0.5, 0).setDepth(30);
+    this.gears = [[110, 965, 150, 1], [250, 1020, 100, -1.5], [330, 930, 70, 2.1]].map(([x, y, sz, dir]) =>
+      this.add.image(x!, y!, 'typel-gear').setDisplaySize(sz!, sz!).setDepth(21).setData('dir', dir));
 
     this.overlay = this.add.rectangle(FIELD_RECT.x + FIELD_RECT.w / 2, FIELD_RECT.h / 2, FIELD_RECT.w, FIELD_RECT.h, 0x000000, 0).setDepth(7);
     this.allInVeil = this.add.rectangle(FIELD_RECT.x + FIELD_RECT.w / 2, FIELD_RECT.h / 2, FIELD_RECT.w, FIELD_RECT.h, 0xffb020, 0).setDepth(7).setBlendMode(Phaser.BlendModes.ADD);
@@ -308,7 +330,7 @@ export class TypelPlayScene extends Phaser.Scene {
   private buildKeys(): void {
     // rows recede from the wizard toward the platen (perspective)
     KEY_ROWS.forEach(({ row, y, gap, scale }, r) => {
-      const x0 = 262 - ((row.length - 1) * gap) / 2 + r * 4;
+      const x0 = TW.cx - ((row.length - 1) * gap) / 2 + r * 4;
       [...row].forEach((ch, i) => {
         const c = this.add.container(x0 + i * gap, y).setDepth(24).setScale(scale);
         c.add([this.add.image(0, 0, 'typel-key'), this.add.text(0, 1, ch.toUpperCase(), { fontFamily: FONT_TITLE, fontSize: '13px', fontStyle: '700', color: '#eadfc4' }).setOrigin(0.5)]);
@@ -372,7 +394,7 @@ export class TypelPlayScene extends Phaser.Scene {
       this.captureBurst(at.x, at.y, word.text, combo);
       const base = (word.originalLength ?? word.text.length) * 10;
       this.tally(base, 1 + Math.floor(combo / 10), volley ?? 1, this.engine.wardInfo.allInMultiplier, points);
-      this.floatPoints(at.x, at.y, points);
+      if (this.setup.showSequenceScore) this.floatPoints(at.x, at.y, points);
       this.wizard.captured(points >= 300);
       if (word.plunge) this.callout(at.x, at.y - 60, word.plunge === 3 ? 'DARING RESCUE!' : 'SAVED!', '#ffffff', 30, '#d0002a');
     });
@@ -490,7 +512,7 @@ export class TypelPlayScene extends Phaser.Scene {
     });
     ev.on('wordsHarvested', ({ words, points, volley, allIn }) => {
       words.forEach((w, i) => this.time.delayedCall(i * 45, () => (this.stopTrail(w.id), this.collectView(w.id, true))));
-      const parts = [`HARVEST +${points}`, allIn && allIn > 1 ? `ALL-IN ×${allIn}` : '', volley && volley > 1 ? `RUSH ×${volley.toFixed(1)} SPENT` : ''].filter(Boolean);
+      const parts = [this.setup.showSequenceScore ? `HARVEST +${points}` : 'HARVEST', allIn && allIn > 1 ? `ALL-IN ×${allIn}` : '', volley && volley > 1 ? `RUSH ×${volley.toFixed(1)} SPENT` : ''].filter(Boolean);
       this.callout(cx, 400, parts.join('  ·  '), '#ffd35a', 44, '#4a2a00');
       this.confetti(60);
       if (!this.reduced) this.cameras.main.flash(180, 255, 200, 80, false);
@@ -532,7 +554,7 @@ export class TypelPlayScene extends Phaser.Scene {
       const tier = RUNE_BY_ID.get(id)?.tier ?? 1;
       sound.rune(tier);
       prefs.noteRune(id);
-      this.runeToast(name, points, tier);
+      this.runeToast(name, points, tier, RUNE_BY_ID.get(id)?.how ?? '');
     });
     ev.on('gameOver', ({ result }) => {
       this.ended = true;
@@ -601,7 +623,7 @@ export class TypelPlayScene extends Phaser.Scene {
     if (!this.engine.backspace()) return;
     sound.erase(before.length);
     this.wizard.typed();
-    this.inkDrop(PAPER.x + this.paper.width / 2, PAPER.y, before.at(-1) ?? '', '#2b1606');
+    this.inkDrop(PAPER.x - 18, PAPER.y, before.at(-1) ?? '', '#2b1606');
     for (const v of this.views.values()) {
       const off = v.setTyped(v.word.typed);
       if (off) this.inkDrop(off.x, v.y, off.ch, RUBRIC);
@@ -722,6 +744,8 @@ export class TypelPlayScene extends Phaser.Scene {
       this.rushEruption.frequency = Math.max(18, 90 - (v - 2) * 20);
     }
     this.wizard.setWonder(hot, v);
+    // the engine's gears turn faster as arcane power builds
+    for (const g of this.gears) g.rotation += (delta / 1000) * (g.getData('dir') as number) * (0.4 + (v - 1) * 0.9 + (s.combo % 10) * 0.03);
     const ward = e.wardInfo;
     this.wizard.setNervous(1 - ward.stability / 100);
     this.drawFloor();
@@ -742,11 +766,12 @@ export class TypelPlayScene extends Phaser.Scene {
     const allIn = w.allInTicks > 0;
     const color = allIn ? 0xe0a030 : stab > 60 ? 0x3a8f86 : stab > 30 ? 0xc88a2a : 0xc0302a;
     const g = this.floor.clear();
-    g.fillStyle(0x15111a, 1).fillRect(FLOOR.x, FLOOR.y, FLOOR.w, FLOOR.h);
     const healthy = (FLOOR.w * stab) / 100;
     const capX = FLOOR.x + (FLOOR.w * w.cap) / 100;
-    g.fillStyle(color, 0.3).fillRect(FLOOR.x, FLOOR.y, healthy, FLOOR.h);
-    g.fillStyle(color, 0.95).fillRect(FLOOR.x, FLOOR.y, healthy, 6);
+    g.fillStyle(color, 0.12 + (stab < 30 ? 0.08 * Math.sin(this.time0 / 120) : 0)).fillRect(FLOOR.x, FLOOR.y, FLOOR.w, FLOOR.h);
+    const wl = this.wardLine.clear();
+    wl.fillStyle(color, 0.25).fillRect(FLOOR.x, WARD_Y - 10, healthy, 12);
+    wl.fillStyle(color, 0.95).fillRect(FLOOR.x, WARD_Y - 3, healthy, 5);
     const speed = 0.06 + (this.engine.volleyMultiplier - 1) * 0.06;
     for (let i = 0; i < 44; i++) {
       const x = FLOOR.x + ((i * 61 + this.time0 * speed) % FLOOR.w);
@@ -754,16 +779,17 @@ export class TypelPlayScene extends Phaser.Scene {
       g.fillStyle(0xd8b870, 0.35).fillCircle(x, FLOOR.y + 20 + ((i * 37) % 100), i % 3 === 0 ? 3 : 2);
     }
     if (w.cap < 100) {
-      g.fillStyle(0x3a0010, 0.95).fillRect(capX, FLOOR.y, FLOOR.x + FLOOR.w - capX, FLOOR.h);
-      g.lineStyle(3, 0xff3a4a, 1).lineBetween(capX, FLOOR.y, capX, FLOOR.y + FLOOR.h);
-      g.lineStyle(2, 0x8a1020, 1);
-      for (let x = capX + 14; x < FLOOR.x + FLOOR.w - 10; x += 34) g.lineBetween(x, FLOOR.y + 8, x + 18, FLOOR.y + FLOOR.h - 8);
+      // the scar: cracked, dead section of the Ward that healing cannot reach
+      wl.fillStyle(0x3a0010, 0.95).fillRect(capX, WARD_Y - 6, FLOOR.x + FLOOR.w - capX, 8);
+      wl.lineStyle(3, 0xc0302a, 1).lineBetween(capX, WARD_Y - 14, capX, WARD_Y + 6);
+      wl.lineStyle(2, 0x8a1020, 1);
+      for (let x = capX + 10; x < FLOOR.x + FLOOR.w - 10; x += 26) wl.lineBetween(x, WARD_Y - 6, x + 12, WARD_Y + 2);
     }
     for (let i = 0; i < this.engine.state.barrier; i++) {
-      g.fillStyle(0x8fb8ff, 0.4).fillCircle(FLOOR.x + 40 + i * 44, FLOOR.y - 18, 15);
-      g.lineStyle(5, 0xcfe2ff, 0.95).strokeCircle(FLOOR.x + 40 + i * 44, FLOOR.y - 18, 15);
+      wl.fillStyle(0x8fb8ff, 0.4).fillCircle(FLOOR.x + 40 + i * 44, WARD_Y - 24, 15);
+      wl.lineStyle(5, 0xcfe2ff, 0.95).strokeCircle(FLOOR.x + 40 + i * 44, WARD_Y - 24, 15);
     }
-    g.lineStyle(4, color, 0.6 + 0.4 * Math.sin(this.time0 / (stab < 30 ? 90 : 300))).lineBetween(FLOOR.x, WARD_Y, FLOOR.x + FLOOR.w, WARD_Y);
+    wl.lineStyle(2, color, 0.5 + 0.4 * Math.sin(this.time0 / (stab < 30 ? 90 : 300))).lineBetween(FLOOR.x, WARD_Y - 12, FLOOR.x + FLOOR.w, WARD_Y - 12);
   }
 
   private refreshFloorText(): void {
@@ -773,6 +799,7 @@ export class TypelPlayScene extends Phaser.Scene {
       ? rem > 0 ? `Survive ${Math.ceil(rem / 1000)}s` : 'Clear the field!'
       : e.config.requiredWords ? `${e.state.completed} / ${e.config.requiredWords} scrolls` : `${e.state.completed} scrolls`;
     this.floorLeft.setText(`${this.setup.title}\n${progress}`);
+    this.fitPlate();
     const w = e.wardInfo;
     const allIn = w.allInTicks > 0 ? `\nALL-IN ×${w.allInMultiplier} · ${Math.ceil((w.allInTicks * SIMULATION_STEP_MS) / 1000)}s` : '';
     this.floorRight.setText(`WARD ${Math.round(w.stability)}%${w.cap < 100 ? ` / ${w.cap}%` : ''}${allIn}`);
@@ -790,12 +817,35 @@ export class TypelPlayScene extends Phaser.Scene {
     this.poolText.setText(`charges ${held} / ${this.engine.poolLimit}`);
   }
 
+  /**
+   * D-088: the typed word is the star. Each letter is stamped at the strike
+   * point and the carriage slides left, so the newest letter is always big
+   * and central. Wrong letters stamp in red.
+   */
   private setPaper(input: string, valid: boolean): void {
-    this.paper.setText(input).setColor(valid ? INK : '#c4141e');
-    this.paper.setScale(1);
-    const max = 168;
-    if (this.paper.width > max) this.paper.setScale(max / this.paper.width);
-    this.caret.setX(PAPER.x + (this.paper.width * this.paper.scaleX) / 2 + 4);
+    const grew = input.length > this.lastInput.length && input.startsWith(this.lastInput);
+    this.lastInput = input;
+    this.paper.setText(input).setColor(valid ? INK : '#b3261e');
+    if (!grew || input.length === 0) return;
+    const ch = input.at(-1)!;
+    const stamp = this.text(PAPER.x, PAPER.y, ch, PAPER_FONT, valid ? INK : '#b3261e', { fontFamily: FONT_WORD, fontStyle: '700' }).setOrigin(1, 0.5).setDepth(24.5);
+    if (!this.reduced) {
+      stamp.setScale(1.5).setAlpha(0.5);
+      this.tweens.add({ targets: stamp, scale: 1, alpha: 0, duration: 140, ease: 'Quad.easeIn', onComplete: () => stamp.destroy() });
+      this.tweens.add({ targets: this.paper, y: PAPER.y + 3, duration: 40, yoyo: true });
+    } else stamp.destroy();
+    // the typebar swings up and strikes
+    const g = this.strikeBar.clear().lineStyle(5, 0xd8c08a, 0.95).lineBetween(TW.cx, 934, PAPER.x - 18, PAPER.y + 26);
+    g.fillStyle(0x1a1410, 1).fillRect(PAPER.x - 30, PAPER.y + 16, 24, 14);
+    this.time.delayedCall(70, () => this.strikeBar.clear());
+    if (!this.reduced) this.burst(PAPER.x - 18, PAPER.y + 20, valid ? 0x3a2a1a : 0xb3261e, 4);
+  }
+
+  /** Shrink the level plate's text to fit its brass window. */
+  private fitPlate(): void {
+    let size = 17;
+    this.floorLeft.setFontSize(size);
+    while (this.floorLeft.width > 336 && size > 11) this.floorLeft.setFontSize(--size);
   }
 
   // ───────────────────────── views and effects ─────────────────────────
@@ -846,9 +896,9 @@ export class TypelPlayScene extends Phaser.Scene {
 
   /** Capture: a burst of stars; the word's letters fly into the arcade counter. */
   private captureBurst(x: number, y: number, text: string, combo: number): void {
-    const tints = combo >= 30 ? [0xff5fa8, 0xffd35a, 0x26d9e8, 0x3ddc84] : combo >= 10 ? [0xffd35a, 0x26d9e8] : [0xffd35a];
-    const em = this.add.particles(x, y, 'typel-star', {
-      lifespan: 650, speed: { min: 120, max: 360 }, scale: { start: 0.55, end: 0 }, rotate: { min: 0, max: 360 }, tint: tints, blendMode: 'ADD', emitting: false,
+    const tints = combo >= 30 ? [0xfff0c8, 0xffc46a, 0x8fd0c8] : combo >= 10 ? [0xffc46a, 0xfff0c8] : [0xffc46a];
+    const em = this.add.particles(x, y, 'typel-spark', {
+      lifespan: 650, speed: { min: 120, max: 340 }, scale: { start: 0.5, end: 0 }, tint: tints, blendMode: 'ADD', emitting: false,
     }).setDepth(36);
     em.explode(this.reduced ? 6 : 14 + Math.min(16, combo));
     this.time.delayedCall(800, () => em.destroy());
@@ -868,14 +918,14 @@ export class TypelPlayScene extends Phaser.Scene {
   /** Balatro-style tally: BASE × COMBO × RUSH (× ALL-IN) = points, chip by chip. */
   private tally(base: number, combo: number, rush: number, allIn: number, points: number): void {
     this.equation.removeAll(true);
-    const chips: [string, string, number][] = [[`${base}`, 'BASE', 0x7a2a00], [`×${combo}`, 'COMBO', 0x0b3aa0], [`×${rush.toFixed(1)}`, 'RUSH', 0x0b7a3a]];
-    if (allIn > 1) chips.push([`×${allIn}`, 'ALL-IN', 0x8a0018]);
-    chips.push([`${points}`, 'POINTS', 0x5a0090]);
+    const chips: [string, string, number][] = [[`${base}`, 'BASE', 0x2a2016], [`×${combo}`, 'COMBO', 0x1c2438], [`×${rush.toFixed(1)}`, 'RUSH', 0x16301e]];
+    if (allIn > 1) chips.push([`×${allIn}`, 'ALL-IN', 0x3a1410]);
+    if (this.setup.showSequenceScore) chips.push([`${points}`, 'POINTS', 0x3a2a14]);
     const gap = 360 / chips.length;
     chips.forEach(([val, label, c], i) => {
       const x = -180 + gap * (i + 0.5);
-      const box = this.add.rectangle(x, 0, gap - 8, 46, c, 1).setStrokeStyle(2, 0xffd35a);
-      const t = this.add.text(x, -5, val, { fontFamily: FONT_ARCADE, fontSize: val.length > 5 ? '17px' : '22px', color: '#ffffff' }).setOrigin(0.5);
+      const box = this.add.rectangle(x, 0, gap - 8, 46, c, 1).setStrokeStyle(2, 0xc8a050);
+      const t = this.add.text(x, -5, val, { fontFamily: FONT_ARCADE, fontStyle: '700', fontSize: val.length > 5 ? '17px' : '22px', color: '#f0dca8' }).setOrigin(0.5);
       const l = this.add.text(x, 15, label, { fontFamily: FONT_BODY, fontSize: '11px', color: '#ffe9b0' }).setOrigin(0.5);
       const chip = this.add.container(0, 0, [box, t, l]).setScale(0);
       this.equation.add(chip);
@@ -890,7 +940,7 @@ export class TypelPlayScene extends Phaser.Scene {
     this.tweens.add({ targets: t, y: y - 80, alpha: 0, duration: 650, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
   }
 
-  private callout(x: number, y: number, s: string, color: string, size: number, stroke = '#1a0630'): void {
+  private callout(x: number, y: number, s: string, color: string, size: number, stroke = '#140c06'): void {
     const t = this.text(x, y, s, size, color, { fontFamily: FONT_ARCADE, stroke, strokeThickness: Math.max(6, size / 6) }).setOrigin(0.5).setDepth(55).setScale(0.4);
     this.tweens.add({ targets: t, scale: 1, duration: 200, ease: 'Back.easeOut' });
     this.tweens.add({ targets: t, alpha: 0, y: y - 40, delay: 850, duration: 600, onComplete: () => t.destroy() });
@@ -919,24 +969,26 @@ export class TypelPlayScene extends Phaser.Scene {
 
   private confetti(n: number): void {
     if (this.reduced) n = Math.ceil(n / 4);
-    const em = this.add.particles(0, 0, 'typel-star', {
-      x: { min: FIELD_RECT.x, max: FIELD_RECT.x + FIELD_RECT.w }, y: -20, lifespan: 1800, speedY: { min: 160, max: 380 }, speedX: { min: -80, max: 80 },
-      rotate: { min: 0, max: 360 }, scale: { start: 0.45, end: 0.2 }, tint: [0xff5fa8, 0xffd35a, 0x26d9e8, 0x3ddc84, 0xa259ff], emitting: false,
+    // rising embers and gold sparks, not confetti (D-088: a world, not an arcade)
+    const em = this.add.particles(0, 0, 'typel-spark', {
+      x: { min: FIELD_RECT.x, max: FIELD_RECT.x + FIELD_RECT.w }, y: WARD_Y, lifespan: 1800, speedY: { min: -380, max: -140 }, speedX: { min: -60, max: 60 },
+      scale: { start: 0.5, end: 0 }, alpha: { start: 1, end: 0 }, tint: [0xffc46a, 0xff8a3a, 0xfff0c8], blendMode: 'ADD', emitting: false,
     }).setDepth(54);
     em.explode(n);
     this.time.delayedCall(2000, () => em.destroy());
   }
 
-  private runeToast(name: string, points: number, tier: number): void {
-    const color = tier >= 3 ? '#ff9ad0' : tier === 2 ? '#d8e6ff' : '#ffe08a';
+  private runeToast(name: string, points: number, tier: number, how = ''): void {
+    const seal = tier >= 3 ? 0x8a1a1a : tier === 2 ? 0x3a4a7a : 0x7a5a1a;
     const c = this.add.container(FIELD_RECT.x + FIELD_RECT.w / 2, -60).setDepth(58);
-    const bg = this.add.rectangle(0, 0, 460, 74, 0x2a0040, 0.92).setStrokeStyle(4, hexNum(color));
-    const t1 = this.add.text(0, -14, `RUNE · ${name}`, { fontFamily: FONT_ARCADE, fontSize: '28px', color }).setOrigin(0.5);
-    const t2 = this.add.text(0, 20, `+${points}`, { fontFamily: FONT_ARCADE, fontSize: '20px', color: '#ffffff' }).setOrigin(0.5);
-    c.add([bg, t1, t2]);
+    const bg = this.add.rectangle(0, 0, 520, 78, 0xe9dcb8, 0.97).setStrokeStyle(3, 0x8a6a34);
+    const wax = this.add.circle(-238, 0, 20, seal, 1).setStrokeStyle(3, 0x2a0a08, 0.6);
+    const t1 = this.add.text(10, -14, `Rune · ${name}`, { fontFamily: FONT_TITLE, fontSize: '26px', fontStyle: '700', color: '#3a1a0a' }).setOrigin(0.5);
+    const t2 = this.add.text(0, 20, this.setup.showSequenceScore ? `+${points}` : how, { fontFamily: FONT_BODY, fontSize: '17px', fontStyle: 'italic', color: '#3a2410' }).setOrigin(0.5);
+    c.add([bg, wax, t1, t2]);
     this.tweens.add({ targets: c, y: 70, duration: 280, ease: 'Back.easeOut' });
     this.tweens.add({ targets: c, y: -60, delay: 1700, duration: 300, onComplete: () => c.destroy() });
-    if (tier >= 2) this.confetti(25 * tier);
+    if (tier >= 2) this.confetti(20 * tier);
   }
 
   /** Claimed spell swishes to the rack and knocks into its shelf. */

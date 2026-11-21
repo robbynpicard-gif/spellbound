@@ -1094,3 +1094,25 @@ _2026-11-21 · Owner decision (chat); implemented on dev as a prototype pass; vi
 **Supersedes:** D-086's bright cartoon palette, the front-facing cartoon wizard (starry hat, big eyes) and the chunky arcade font. Keeps: D-086 layout zones, Arcane Rush, the catch loop, all effects and audio, and "Peggle/Bejeweled/Balatro" energy *in the moment-to-moment feedback*.
 
 **Prototype choices (reversible):** dusk sky with a real moon, layered mountains, a spired city and a faint aurora; leather-bound library; carved walnut field frame with brass; aged, stained parchment scrolls with rough wax seals; deeper jewel-tone spell colours; Cinzel for numbers, buttons and callouts; menus in parchment and walnut. The wizard is an old scholar in a battered felt hat with a grey mane, beard edge and pipe, seen over his left shoulder; he reacts by body language and pipe smoke, and occasionally grumbles (*tsk, blast, #@%!*) as a first hint of the satirical tone. Typewriter: black enamel with brass, black glass keys in perspective, the paper facing the player. Character art, humour writing and final rendering remain open.
+
+
+### D-088 — The typewriter is the centre and the Ward; hidden sequence score (2026-11-21)
+_2026-11-21 · Owner decision (chat, with annotated screenshot); implemented on dev as a prototype pass_
+
+**Owner decisions:**
+- **Typed-word confirmation** was the biggest thing missing: the word being typed must be **enlarged and central**. The typewriter returns to the centre, as in the earlier look.
+- **Layout (annotated screenshot):** the **centre of the typewriter** sits at the bottom middle under the battlefield. Letters are **stamped into the paper** in a band along the bottom of the field. The **left column becomes a continuation of the typewriter**: gauges and meters showing arcane power building up, still showing score information.
+- **Cohesion:** everything should feel like one **big metal arcane analog clacking typewriter**, and the scene like a **world we're in**, not an arcade screen. The player is a wizard in a magical world, harnessing a magical typewriter to ward off the darkness while training under the Masters. The prototype art style is acceptable.
+- **Sequence score is hidden in the definitive modes:** keep showing each capture's **base, Combo multiplier and Rush multiplier**, but never the exact points a capture or chain earned. A practice mode may show them for players who want to understand the maths.
+
+**Prototype choices:**
+- **The machine is the Ward.** The field now ends at the top edge of the paper (y 790): scrolls breach by reaching the typewriter, and the Ward's health, scar and Barrier layers glow along that edge.
+- **Stamping:** letters land at a fixed strike point marked by a brass pointer. The carriage slides left as you type, so the newest letter is always large (66 px) and central. Each keystroke swings a typebar, punches the letter in and sends ink specks; wrong letters stamp red.
+- **The left column is the engine:** score drum, brass BASE / ×COMBO / ×RUSH plates (no POINTS), taller Combo and Rush tubes, a level plate, and a gear housing whose gears turn faster as Rush and Combo build, piped into the typewriter.
+- **The wizard** sits over his shoulder at the typewriter's lower left.
+- **The desk:** the area under the field is his walnut desk. Its corner carries the Ward reading and the Master's notes.
+- **Less arcade:**
+  - confetti becomes embers and sparks;
+  - Rune notices become sealed parchment slips that show the Rune's rule instead of its points;
+  - Harvest callouts drop the points.
+- **The Sandbox counts as the practice view** and shows exact points. The Codex explains the rule.

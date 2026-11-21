@@ -93,3 +93,21 @@ In the headless software-rendered test browser, both the D-085 and D-086 builds 
 **Owner decision:** the gameplay and feel above are kept, but the look was too childish. Typel is mature, satirical and may use adult humour, so the art shifts to grounded fantasy. The wizard and typewriter are seen **from behind, over the wizard's shoulder (3/4 rear view)**, looking into the Ward with the player.
 
 **This supersedes §5 (cartoon wizard design) and §6 (bright palette and fonts).** Reactions now play out through body language: head turning, leaning in, flinching, jumping on a breach, a raised fist, pipe smoke and the occasional grumble. Details in D-087.
+
+## 10. Update — D-088 (2026-11-21): the typewriter is the centre and the Ward
+**Owner decisions:**
+- The typed word must be big and central.
+- The typewriter's centre sits at the bottom middle, and letters are stamped into paper along the bottom of the field.
+- The left column is a continuation of the typewriter: power gauges, plus score information.
+- The whole scene should feel like one big metal arcane clacking typewriter, in a world rather than an arcade screen.
+- **The exact points of each capture or chain are hidden in the definitive modes.** Base, ×Combo and ×Rush stay visible; a practice mode may show the points.
+
+**Prototype choices:**
+- The field ends at the paper, so the machine is the Ward.
+- Letters stamp at a fixed strike point while the carriage slides left.
+- The left column is the machine's engine: score drum, brass plates, tubes, level plate and turning gears.
+- The wizard sits at the lower left, over his shoulder.
+- The Master's notes and the Ward reading sit on the desk's right corner.
+- Embers replace confetti, Rune notices are parchment slips, and the Sandbox shows exact points.
+
+This supersedes §3's zone details for the red, orange, blue and green areas and §4's "chip-by-chip tally … POINTS". Details in D-088.

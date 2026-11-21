@@ -1,7 +1,7 @@
 /** Shared Typel textures and the room (prototype, D-085/D-086). */
 import Phaser from 'phaser';
 import { Wizard } from './Wizard';
-import { FIELD_RECT, H, KEY_ROWS, paintFlame, paintFrame, paintGlow, paintKey, paintMeters, paintRoom, paintSky, paintStar, paintTypewriter, W } from './paint';
+import { FIELD_RECT, H, KEY_ROWS, paintGear, paintFlame, paintFrame, paintGlow, paintKey, paintMeters, paintRoom, paintSky, paintStar, paintTypewriter, W } from './paint';
 
 /** Scroll lettering (D-086): clear, bold, slightly hand-lettered. */
 export const FONT_WORD = '"Kalam", "Patrick Hand", "Comic Neue", "Trebuchet MS", sans-serif';
@@ -30,6 +30,7 @@ export function ensureTextures(scene: Phaser.Scene): void {
   canvas(scene, 'typel-star', 32, 32, (c) => paintStar(c, 32));
   canvas(scene, 'typel-glow-gold', 128, 128, (c) => paintGlow(c, 128, 'rgba(255,220,120,0.95)'));
   canvas(scene, 'typel-flame', 32, 48, paintFlame);
+  canvas(scene, 'typel-gear', 160, 160, (c) => paintGear(c, 160, 14));
   canvas(scene, 'typel-edge', 64, 256, (c) => {
     const g = c.createLinearGradient(0, 0, 64, 0);
     g.addColorStop(0, 'rgba(255,255,255,0.9)');
@@ -67,14 +68,14 @@ export class TypelMenuScene extends Phaser.Scene {
   }
   create(): void {
     ensureTextures(this);
-    buildRoom(this, false);
+    buildRoom(this, true);
     KEY_ROWS.forEach(({ row, y, gap, scale }, r) => {
-      const x0 = 262 - ((row.length - 1) * gap) / 2 + r * 4;
+      const x0 = 1022 - ((row.length - 1) * gap) / 2 + r * 4;
       [...row].forEach((_, i) => this.add.image(x0 + i * gap, y, 'typel-key').setDepth(24).setScale(scale));
     });
-    const wiz = new Wizard(this, 108, 846, true);
-    wiz.hands[0].setPosition(222, 884);
-    wiz.hands[1].setPosition(322, 870);
+    const wiz = new Wizard(this, 590, 1010, true).setScale(0.85);
+    wiz.hands[0].setPosition(900, 1018);
+    wiz.hands[1].setPosition(1070, 1004);
     wiz.lookAt(1100, 300);
     wiz.tickFrame(0);
     this.add.rectangle(W / 2, H / 2, W, H, 0x0a0705, 0.3).setDepth(30);

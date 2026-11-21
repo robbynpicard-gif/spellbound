@@ -383,6 +383,7 @@ export class TypelApp {
       poolLimitOverride: 60,
       spells: SPELL_ORDER,
       title: 'Sandbox',
+      showSequenceScore: true,
       subtitle: `${sb.mode === 'hardcore' ? 'Hardcore' : 'Normal'} rules · pace ${sb.tier} · not recorded`,
       lines: [{ who: 'The Grand Wizard', text: 'Here nothing is at stake. Experiment. Combine. Break things.' }],
       onPause: () => this.pauseMenu(() => this.startSandbox()),
@@ -493,7 +494,8 @@ export class TypelApp {
     let body: HTMLElement;
     if (tab === 'rules') {
       body = el('div', { class: 't-codex' },
-        h3('Score'), p('Each captured word pays letters × 10 × Combo × Arcane Rush × All-In, rounded once. Runes pay small fixed points on top. Nothing else multiplies your score. The counter shows every capture’s tally.'),
+        h3('Score'), p('Each captured word pays letters × 10 × Combo × Arcane Rush × All-In, rounded once. Runes pay small fixed points on top. Nothing else multiplies your score.'),
+        p('In the Apprenticeship the machine shows your total and each word’s base, Combo and Rush, but never the exact points a single capture earned: that stays a mystery. The Sandbox shows them for practice.'),
         h3('Precision Combo'), p('Every perfectly typed capture adds 1 (Ice Focus adds more). Every 10 Combo raises the multiplier by ×1. A typo, a wrong Enter or a missed word breaks it. A Barrier layer can save it from one slip you correct.'),
         h3('Arcane Rush'), p('Your flow state (called Arcane Volley in older notes). Your first perfect capture opens a timing window (the gold bar on the Rush column); a second inside it starts the Rush at ×1.2. Keep capturing in time and it climbs +0.2 per capture to ×5 (Mastery), then +0.1 per ever-harder step. Longer words get longer windows. An empty field pauses the window. Slow gives it 25% more time. Harvest spends it.'),
         h3('Catch it!'), p('A mistype sends the word you were aiming at into a plunge: brisk, urgent or desperate. Catch it before it reaches the Ward to earn Saving Grace (Daring Rescue for the fastest). Another mistype on a plunging word makes it fall faster still.'),

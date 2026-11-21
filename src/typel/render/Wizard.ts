@@ -163,10 +163,11 @@ export class Wizard extends Phaser.GameObjects.Container {
     this.x = this.baseX + jitter;
     // arms from the shoulders to wherever the hands are
     const g = this.arms.clear();
-    const shoulders: [number, number][] = [[this.x + 70, this.y + 92], [this.x + 160, this.y + 96]];
+    const k = this.scaleX;
+    const shoulders: [number, number][] = [[this.x + 70 * k, this.y + 92 * k], [this.x + 160 * k, this.y + 96 * k]];
     this.hands.forEach((h, i) => {
       const [sx, sy] = shoulders[i]!;
-      g.lineStyle(i ? 38 : 30, ROBE, 1).beginPath();
+      g.lineStyle((i ? 38 : 30) * k, ROBE, 1).beginPath();
       g.moveTo(sx, sy);
       g.lineTo((sx + h.x) / 2 + 10, (sy + h.y) / 2 + 8);
       g.lineTo(h.x - 6, h.y + 8);
