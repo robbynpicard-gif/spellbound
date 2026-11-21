@@ -100,6 +100,17 @@ export interface EngineOptions {
 /** Ice Frostbound Focus (D-077): Combo gained per successive perfect capture during one freeze. EXPERIMENTAL. */
 export const ICE_FOCUS_STEPS: readonly number[] = [2, 4, 8];
 
+/**
+ * Catch loop (D-086, PROVISIONAL): a mistype sends the aimed word into a
+ * plunge at one of three urgency tiers (speed ×). A word already plunging
+ * escalates one tier. Catch it to recover.
+ */
+export const PLUNGE_SPEED: readonly number[] = [1, 2.2, 3.2, 4.5];
+/** Seeded tier odds for a fresh plunge: brisk, urgent, desperate. */
+export const PLUNGE_ODDS: readonly number[] = [0.5, 0.35, 0.15];
+/** Ice melt (D-086): once the field is cleared during a freeze, it ends after this many ticks (2 s). */
+export const ICE_MELT_TICKS = 120;
+
 /** The pace a level is running at right now (boss levels speed up over time). */
 export interface Pace {
   fallSpeed: number;
@@ -546,6 +557,11 @@ export class GameEngine {
     // Frostbinding: nothing moves and nothing spawns (slow stacks wait too).
     if (s.freezeTicks > 0) {
       for (const word of s.words) word.prevY = word.y;
+      // Ice melt: a cleared board thaws in a short rest instead of wasting the freeze.
+      if (this.experimentalScoring && s.words.length === 0 && s.freezeTicks > ICE_MELT_TICKS) {
+        s.freezeTicks = ICE_MELT_TICKS;
+        this.events.emit('iceMelting', { ticks: ICE_MELT_TICKS });
+      }
       if (--s.freezeTicks === 0) {
         this.iceFocus = 0;
         this.events.emit('spellEnded', { spell: 'ice' });
@@ -874,8 +890,23 @@ export class GameEngine {
   /** Error consequence for a word (GDD §7): it falls faster. */
   private penalize(word: WordState): void {
     word.errors++;
-    word.speed += this.config.errorAcceleration;
     this.s.penalizedId = word.id;
+    if (!this.experimentalScoring) {
+      word.speed += this.config.errorAcceleration;
+      return;
+    }
+    // Catch loop: plunge (or escalate a plunge) instead of a small speed bump.
+    const current = word.plunge ?? 0;
+    let tier = current + 1;
+    if (current === 0) {
+      const roll = new SeededRandom((this.seed ^ Math.imul(this.s.tick + word.id * 31 + 3, 0x27d4eb2f)) >>> 0).next();
+      tier = roll < PLUNGE_ODDS[0]! ? 1 : roll < PLUNGE_ODDS[0]! + PLUNGE_ODDS[1]! ? 2 : 3;
+    }
+    tier = Math.min(3, tier);
+    if (tier === current) return;
+    word.speed = (word.speed / PLUNGE_SPEED[current]!) * PLUNGE_SPEED[tier]!;
+    word.plunge = tier as 1 | 2 | 3;
+    this.events.emit('wordPlunged', { word, tier });
   }
 
   private resetInput(unpin: boolean): void {
@@ -1373,7 +1404,9 @@ export class GameEngine {
     if (this.experimentalScoring) {
       // D-080 direction, provisional odds: guaranteed first strike, seeded spatial chain.
       const rng = new SeededRandom((this.seed ^ Math.imul(this.s.tick + 7, 0x85ebca6b)) >>> 0);
-      const chain = shockChain(this.s.words, first, rng);
+      // D-086: the 3 words closest to the Ward are always struck; the chain grows from them.
+      const firsts = [...this.s.words].sort((a, b) => b.y - a.y || a.id - b.id).slice(0, 3);
+      const chain = shockChain(this.s.words, firsts, rng);
       return this.shockPayout(chain.struck, chain.links);
     }
     const struck = [first, ...rest];
@@ -1465,7 +1498,8 @@ export class GameEngine {
    */
   private transmute(minLength: number): void {
     const s = this.s;
-    const long = s.words.filter((w) => w.text.length >= minLength);
+    // Typel (D-086): every word longer than 3 letters is rewritten; legacy keeps its length gate.
+    const long = s.words.filter((w) => w.text.length >= (this.experimentalScoring ? 4 : minLength));
     if (long.length === 0 || this.shortWords.length === 0) return;
     const rng = new SeededRandom((this.seed ^ Math.imul(s.tick + 1, 0x9e3779b1)) >>> 0);
     const onField = new Set(s.words.map((w) => w.match));

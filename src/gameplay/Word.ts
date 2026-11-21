@@ -38,6 +38,8 @@ export interface WordState {
   errors: number;
   /** Alter (Arcane preview): letters of the word before it was shortened; it keeps that base value. */
   originalLength?: number;
+  /** Catch loop (Typel): plunge tier after a mistype, 1 brisk · 2 urgent · 3 desperate. */
+  plunge?: 1 | 2 | 3;
 }
 
 export function lengthClassOf(length: number): LengthClass {

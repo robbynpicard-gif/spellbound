@@ -29,20 +29,39 @@ export function loadAudioSettings(): AudioSettings {
   }
 }
 
-// D dorian (gameplay) and F lydian (menu), as MIDI note numbers.
+// Scales (semitones) and helpers. D-086: orchestral, whimsical, a little satirical.
 const midi = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
+const MAJOR = [0, 2, 4, 5, 7, 9, 11];
+const HARMONIC_MINOR = [0, 2, 3, 5, 7, 8, 11];
 const DORIAN = [0, 2, 3, 5, 7, 9, 10];
-const LYDIAN = [0, 2, 4, 6, 7, 9, 11];
 const degree = (root: number, scale: number[], d: number) => root + scale[((d % 7) + 7) % 7]! + 12 * Math.floor(d / 7);
 
 type Mood = 'silent' | 'menu' | 'play' | 'boss';
+type Note = [step: number, degree: number, length: number];
+
+/** Gameplay scherzo: 8 bars of a bouncy, slightly cheeky staccato tune. */
+const SCHERZO: Note[][] = [
+  [[0, 0, 2], [2, 2, 2], [4, 4, 2], [6, 2, 2], [8, 7, 3], [12, 4, 3]],
+  [[0, 6, 2], [2, 5, 2], [4, 4, 2], [6, 3, 2], [8, 4, 3], [12, 1, 3]],
+  [[0, 5, 2], [2, 4, 2], [4, 5, 2], [6, 7, 2], [8, 9, 3], [12, 7, 3]],
+  [[0, 8, 2], [2, 7, 2], [4, 6, 2], [6, 5, 2], [8, 3, 6]],
+  [[0, 4, 2], [2, 4, 1], [3, 5, 1], [4, 6, 2], [6, 7, 2], [8, 11, 3], [12, 9, 3]],
+  [[0, 8, 2], [2, 7, 2], [4, 6, 2], [6, 4, 2], [8, 6, 2], [10, 5, 2], [12, 4, 4]],
+  [[0, 2, 2], [2, 4, 2], [4, 7, 4], [8, 9, 2], [10, 7, 2], [12, 4, 4]],
+  [[0, 6, 2], [2, 5, 2], [4, 4, 2], [6, 3, 2], [8, 1, 2], [10, -1, 2], [12, 0, 4]],
+];
+const SCHERZO_CHORDS = [0, 4, 1, 3, 0, 4, 0, 4];
+const GALOP_CHORDS = [0, 4, 0, 4, 5, 3, 4, 0];
+/** Menu waltz in G (3/4): three beats per bar, null = rest. */
+const WALTZ: (number | null)[][] = [[4, 7, 9], [11, 9, 7], [8, 7, 5], [6, null, 4], [4, 7, 11], [14, 12, 11], [10, 9, 8], [7, null, null]];
+const WALTZ_CHORDS = [0, 5, 3, 4, 0, 5, 1, 0];
 
 class Music {
   private timer: number | null = null;
   private step = 0;
   private nextTime = 0;
-  private bpm = 72;
-  private mood: Mood = 'silent';
+  private bpm = 96;
+  mood: Mood = 'silent';
   intensity = 0;
   danger = 0;
   surge = 0;
@@ -62,10 +81,15 @@ class Music {
   }
 
   setMood(mood: Mood): void {
-    if (mood === this.mood) return;
+    if (mood === this.mood && this.timer !== null) return;
     this.mood = mood;
+    this.ensure();
+  }
+
+  /** Start (or restart after the audio unlocks) the scheduler. */
+  ensure(): void {
     if (!this.a.ctx) return;
-    if (mood === 'silent') return this.stop();
+    if (this.mood === 'silent') return this.stop();
     this.step = 0;
     this.nextTime = this.a.ctx.currentTime + 0.1;
     if (this.timer === null) this.timer = window.setInterval(() => this.schedule(), 25);
@@ -80,18 +104,18 @@ class Music {
 
   private targets(): Record<string, number> {
     const i = this.intensity;
-    if (this.mood === 'menu') return { pad: 0.5, harp: 0.55, bass: 0.25, bell: 0.35, lead: 0.3, drum: 0, tick: 0, drone: 0, horn: 0 };
     const boss = this.mood === 'boss';
+    if (this.mood === 'menu') return { bass: 0.5, melody: 0.55, strings: 0.4, glock: 0.4, drums: 0, brass: 0, flute: 0.25, tremolo: 0 };
+    const s = this.surge;
     return {
-      pad: 0.45,
-      harp: 0.25 + 0.35 * Math.min(1, i * 2),
-      bass: i > 0.2 || boss ? 0.5 : 0.15,
-      drum: i > 0.38 || boss ? 0.55 + (boss ? 0.15 : 0) : 0,
-      tick: i > 0.62 || boss ? 0.35 : 0,
-      bell: 0.25 + this.surge * 0.3,
-      lead: this.surge > 0 ? 0.45 : 0,
-      drone: Math.max(0, this.danger - 0.3) * 0.9,
-      horn: boss ? 0.4 : 0,
+      bass: 0.6,
+      melody: i > 0.12 || boss ? 0.55 : 0.3,
+      strings: i > 0.32 || boss || s > 0 ? 0.42 : 0.15,
+      glock: 0.22 + s * 0.35,
+      drums: i > 0.5 || boss || s > 0 ? 0.5 : 0,
+      brass: s > 0 || boss ? 0.45 + s * 0.2 : 0,
+      flute: s > 0 ? 0.5 : 0,
+      tremolo: Math.max(0, this.danger - 0.35) * 1.1,
     };
   }
 
@@ -99,65 +123,69 @@ class Music {
     const ctx = this.a.ctx;
     if (!ctx || this.mood === 'silent') return;
     const targets = this.targets();
-    for (const [k, v] of Object.entries(targets)) this.layer(k).gain.setTargetAtTime(v, ctx.currentTime, 0.6);
-    const goal = this.mood === 'menu' ? 72 : this.mood === 'boss' ? 118 + this.intensity * 14 : 92 + this.intensity * 30;
+    for (const [k, v] of Object.entries(targets)) this.layer(k).gain.setTargetAtTime(v, ctx.currentTime, 0.5);
+    const goal = this.mood === 'menu' ? 104 : this.mood === 'boss' ? 148 + this.intensity * 12 : 108 + this.intensity * 26 + this.surge * 10;
+    const perBar = this.mood === 'menu' ? 12 : 16;
     while (this.nextTime < ctx.currentTime + 0.15) {
-      if (this.step % 16 === 0) this.bpm += (goal - this.bpm) * 0.35;
-      this.play16th(this.step, this.nextTime, targets);
+      if (this.step % perBar === 0) this.bpm += (goal - this.bpm) * 0.4;
+      if (this.mood === 'menu') this.waltz(this.step, this.nextTime);
+      else this.scherzo(this.step, this.nextTime, targets);
       this.nextTime += 60 / this.bpm / 4;
       this.step++;
     }
   }
 
-  private play16th(n: number, t: number, on: Record<string, number>): void {
+  private waltz(n: number, t: number): void {
+    const a = this.a;
+    const s16 = 60 / this.bpm / 4;
+    const bar = Math.floor(n / 12) % 8;
+    const pos = n % 12;
+    const root = 55; // G
+    const r = WALTZ_CHORDS[bar]!;
+    const chord = [r, r + 2, r + 4].map((d) => midi(degree(root, MAJOR, d)));
+    if (pos === 0) {
+      a.pizz(midi(degree(43, MAJOR, r)), t, 0.22, this.layer('bass'));
+      a.strings(chord, t, s16 * 12, 0.035, this.layer('strings'));
+    }
+    if (pos === 4 || pos === 8) for (const f of chord) a.pizz(f, t, 0.07, this.layer('bass'));
+    if (pos % 4 === 0) {
+      const d = WALTZ[bar]![pos / 4];
+      if (d !== null && d !== undefined) a.glock(midi(degree(79, MAJOR, d)), t, 0.07, this.layer('melody'));
+    }
+    if (pos === 6 && bar % 2 === 1) a.clarinet(midi(degree(67, MAJOR, r + 4)), t, s16 * 5, 0.05, this.layer('flute'));
+  }
+
+  private scherzo(n: number, t: number, on: Record<string, number>): void {
     const a = this.a;
     const s16 = 60 / this.bpm / 4;
     const bar = Math.floor(n / 16) % 8;
     const pos = n % 16;
-    if (this.mood === 'menu') {
-      // F lydian: Fmaj9 · G/F · Am7 · Em7 (twice), harp arpeggios and a flute motif.
-      const roots = [0, 2, 4, -1, 0, 2, 4, 2];
-      const r = roots[bar]!;
-      const chord = [r, r + 2, r + 4, r + 6].map((d) => degree(53, LYDIAN, d));
-      if (pos === 0) a.pad(chord.map(midi), t, s16 * 16, 0.05, this.layer('pad'));
-      if (pos % 2 === 0) {
-        const idx = [0, 1, 2, 3, 4, 3, 2, 1][(pos / 2) % 8]!;
-        a.pluck(midi(degree(65, LYDIAN, r + idx * 2 - (idx > 3 ? 7 : 0))), t, 0.09, this.layer('harp'));
-      }
-      if (pos === 0) a.pluck(midi(degree(41, LYDIAN, r)), t, 0.14, this.layer('bass'), 2.4);
-      const motif: Record<number, number[]> = { 0: [9, 8, 7], 2: [11, 9], 4: [7, 6, 4], 6: [6, 7, 9, 8] };
-      const m = motif[bar];
-      if (m && pos % 4 === 0 && pos / 4 < m.length) a.flute(midi(degree(65, LYDIAN, m[pos / 4]!)), t, s16 * 3.6, 0.06, this.layer('lead'));
-      if (pos === 10 && bar % 2 === 1) a.bell(midi(degree(77, LYDIAN, r + 4)), t, 0.03, this.layer('bell'));
-      return;
-    }
-    // Gameplay / boss: D dorian. Boss borrows a darker progression.
     const boss = this.mood === 'boss';
-    const roots = boss ? [0, 5, 3, 4, 0, 5, 3, 4] : [0, 0, 2, 6, 0, 5, 4, 6];
-    const r = roots[bar]!;
-    const chord = [r, r + 2, r + 4, r + 6].map((d) => degree(50, DORIAN, d));
-    if (pos === 0) a.pad(chord.map(midi), t, s16 * 16, 0.045, this.layer('pad'));
-    if (on.harp! > 0.01 && pos % 2 === 0) {
-      const pattern = [0, 2, 4, 7, 4, 2, 4, 6];
-      a.pluck(midi(degree(62, DORIAN, r + pattern[(pos / 2) % 8]!)), t, 0.07, this.layer('harp'));
+    const root = boss ? 62 : 65; // D minor galop or F major scherzo
+    const scale = boss ? HARMONIC_MINOR : this.danger > 0.65 ? DORIAN : MAJOR;
+    const r = (boss ? GALOP_CHORDS : SCHERZO_CHORDS)[bar]!;
+    const chord = [r, r + 2, r + 4].map((d) => degree(root - 12, scale, d));
+    // oom-pah: tuba on the beat, pizzicato chord on the off-beat
+    if (pos === 0 || pos === 8) a.tuba(midi(degree(root - 24, scale, pos === 0 ? r : r + 4)), t, s16 * 2.4, 0.2, this.layer('bass'));
+    if (pos === 4 || pos === 12) for (const m of chord) a.pizz(midi(m), t, 0.06, this.layer('bass'));
+    // the tune: bassoon, doubled by clarinet as things heat up
+    for (const [step, d, len] of SCHERZO[bar]!) {
+      if (step !== pos) continue;
+      const m = degree(boss ? root - 12 : root - 12, scale, d);
+      a.bassoon(midi(m), t, s16 * len * 0.8, 0.07, this.layer('melody'));
+      if (on.strings! > 0.3 || boss) a.clarinet(midi(m + 12), t, s16 * len * 0.75, 0.045, this.layer('melody'));
+      if (on.flute! > 0.01) a.flute(midi(m + 24), t, s16 * len * 0.7, 0.04, this.layer('flute'));
     }
-    if (on.bass! > 0.01 && (pos === 0 || pos === 6 || pos === 8 || pos === 14)) {
-      const d = pos === 6 || pos === 14 ? r + 4 : r;
-      a.pluck(midi(degree(38, DORIAN, d)), t, 0.16, this.layer('bass'), 1.2);
+    if (pos === 0 && on.strings! > 0.01) a.strings(chord.map((m) => midi(m + 12)), t, s16 * 16, 0.03, this.layer('strings'));
+    if ((pos === 0 || pos === 6 || pos === 10) && on.glock! > 0.01) a.glock(midi(degree(root + 12, scale, r + (pos === 0 ? 4 : pos === 6 ? 2 : 7))), t, 0.05, this.layer('glock'));
+    if (on.drums! > 0.01) {
+      if (pos === 4 || pos === 12) a.snare(t, 0.12, this.layer('drums'));
+      if (pos % 4 === 2) a.triangle(t, 0.03, this.layer('drums'));
+      if ((bar === 0 || bar === 4) && pos === 0) a.timpani(midi(degree(root - 24, scale, 0)), t, 0.35, this.layer('drums'));
     }
-    if (on.drum! > 0.01) {
-      if (pos === 0 || pos === 8 || (pos === 11 && boss)) a.frameDrum(t, 0.4, this.layer('drum'));
-      if (pos === 4 || pos === 12) a.frameDrum(t, 0.22, this.layer('drum'), 1.6);
-      if (pos % 2 === 1) a.shaker(t, 0.05 + (pos % 4 === 3 ? 0.03 : 0), this.layer('drum'));
-    }
-    if (on.tick! > 0.01) a.tick(t, pos % 4 === 0 ? 0.09 : 0.045, this.layer('tick'));
-    if (on.lead! > 0.01 && pos % 4 === 0) {
-      const line = [7, 9, 10, 9, 7, 11, 9, 7, 6, 7, 9, 11, 12, 11, 9, 8];
-      a.flute(midi(degree(74, DORIAN, line[(bar * 4 + pos / 4) % 16]!)), t, s16 * 3.4, 0.06, this.layer('lead'));
-    }
-    if (on.bell! > 0.01 && pos === 14 && bar % 2 === 0) a.bell(midi(degree(86, DORIAN, r + 4)), t, 0.025, this.layer('bell'));
-    if (on.drone! > 0.01 && pos === 0 && bar % 2 === 0) a.drone(midi(26), t, s16 * 32, this.layer('drone'));
-    if (on.horn! > 0.01 && pos === 0 && bar % 4 === 0) a.horn([midi(degree(50, DORIAN, r)), midi(degree(50, DORIAN, r + 4))], t, s16 * 8, this.layer('horn'));
+    if (on.brass! > 0.01 && (pos === 0 || (boss && pos === 8))) a.horn(chord.map((m) => midi(m)), t, s16 * 3, this.layer('brass'));
+    if (on.flute! > 0.01 && pos % 2 === 1 && bar % 2 === 1) a.glock(midi(degree(root + 24, scale, (pos + bar) % 8)), t, 0.03, this.layer('flute'));
+    if (on.tremolo! > 0.01 && pos % 2 === 0) a.strings([midi(degree(root - 24, scale, r))], t, s16 * 1.6, 0.05, this.layer('tremolo'));
   }
 }
 
@@ -207,6 +235,7 @@ export class TypelAudio {
         this.buses[c] = g;
       }
       this.apply();
+      this.music.ensure();
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
   }
@@ -344,9 +373,109 @@ export class TypelAudio {
     this.noiseHit(t, 0.05, 'highpass', 6000, 0.6, peak, dest, undefined, 0.01);
   }
 
-  tick(t: number, peak: number, dest: AudioNode): void {
+  clockTick(t: number, peak: number, dest: AudioNode): void {
     this.noiseHit(t, 0.015, 'bandpass', 3200, 6, peak, dest);
     this.osc('sine', 2400, t, 0.02, peak * 0.4, dest);
+  }
+
+  // ── orchestral voices (synthesized stand-ins for a real orchestra) ──
+
+  pizz(f: number, t: number, peak: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(f * 5, t);
+    lp.frequency.exponentialRampToValueAtTime(f * 1.5, t + 0.15);
+    lp.connect(dest);
+    this.osc('sawtooth', f, t, 0.2, peak, lp, undefined, 0.002);
+    this.osc('triangle', f, t, 0.25, peak * 0.8, lp, undefined, 0.002);
+  }
+
+  tuba(f: number, t: number, dur: number, peak: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.setValueAtTime(260, t);
+    lp.frequency.linearRampToValueAtTime(520, t + 0.05);
+    lp.frequency.linearRampToValueAtTime(300, t + dur);
+    lp.connect(dest);
+    this.osc('sawtooth', f, t, dur, peak, lp, undefined, 0.025);
+  }
+
+  private reed(type: OscillatorType, f: number, t: number, dur: number, peak: number, dest: AudioNode, band: number): void {
+    const ctx = this.ctx!;
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = f;
+    const vib = ctx.createOscillator();
+    vib.frequency.value = 5.5;
+    const vg = ctx.createGain();
+    vg.gain.value = f * 0.004;
+    vib.connect(vg).connect(o.frequency);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'lowpass';
+    bp.frequency.value = band;
+    bp.Q.value = 1.4;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(peak, t + 0.03);
+    g.gain.setValueAtTime(peak * 0.8, t + Math.max(0.04, dur - 0.04));
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    o.connect(bp).connect(g).connect(dest);
+    o.start(t);
+    vib.start(t);
+    o.stop(t + dur + 0.05);
+    vib.stop(t + dur + 0.05);
+  }
+
+  bassoon(f: number, t: number, dur: number, peak: number, dest: AudioNode): void {
+    this.reed('sawtooth', f, t, dur, peak, dest, 900);
+  }
+
+  clarinet(f: number, t: number, dur: number, peak: number, dest: AudioNode): void {
+    this.reed('square', f, t, dur, peak, dest, 2200);
+  }
+
+  strings(freqs: number[], t: number, dur: number, peak: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 2200;
+    lp.connect(dest);
+    for (const f of freqs)
+      for (const det of [-9, 0, 9]) {
+        const o = ctx.createOscillator();
+        o.type = 'sawtooth';
+        o.frequency.value = f;
+        o.detune.value = det;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(peak / freqs.length, t + Math.min(0.18, dur * 0.3));
+        g.gain.setValueAtTime(peak / freqs.length, t + dur * 0.8);
+        g.gain.linearRampToValueAtTime(0.0001, t + dur);
+        o.connect(g).connect(lp);
+        o.start(t);
+        o.stop(t + dur + 0.05);
+      }
+  }
+
+  glock(f: number, t: number, peak: number, dest: AudioNode): void {
+    [1, 2.76, 5.4].forEach((r, i) => this.osc('sine', f * r, t, 0.9 / (i + 1), peak / (i + 1.5), dest, undefined, 0.001));
+  }
+
+  snare(t: number, peak: number, dest: AudioNode): void {
+    this.noiseHit(t, 0.1, 'bandpass', 1900, 0.9, peak, dest);
+    this.osc('triangle', 210, t, 0.05, peak * 0.6, dest, 160);
+  }
+
+  triangle(t: number, peak: number, dest: AudioNode): void {
+    this.osc('sine', 4200, t, 0.5, peak, dest, undefined, 0.001);
+    this.osc('sine', 6100, t, 0.3, peak * 0.5, dest, undefined, 0.001);
+  }
+
+  timpani(f: number, t: number, peak: number, dest: AudioNode): void {
+    this.osc('sine', f * 1.05, t, 0.9, peak, dest, f, 0.003);
+    this.noiseHit(t, 0.12, 'lowpass', 400, 0.7, peak * 0.4, dest);
   }
 
   drone(f: number, t: number, dur: number, dest: AudioNode): void {
@@ -439,11 +568,12 @@ export class TypelAudio {
     this.osc('sine', 120, t, 0.09, 0.5, out, 55);
     this.noiseHit(t, 0.05, 'bandpass', 900, 1.1, 0.3, out);
     for (let i = 0; i < 3; i++) this.noiseHit(t + 0.03 + i * 0.016, 0.01, 'highpass', 3000, 1, 0.08, out);
-    const note = degree(74, DORIAN, step % 14);
-    this.bell(midi(note), t + 0.02, perfect ? 0.07 : 0.04, out);
+    const note = degree(74, MAJOR, step % 14);
+    this.osc('sine', 700, t, 0.05, 0.12, out, 1500);
+    this.glock(midi(note), t + 0.02, perfect ? 0.12 : 0.07, out);
     if (volley > 1) {
       const sparks = Math.min(5, Math.round((volley - 1) * 3));
-      for (let i = 0; i < sparks; i++) this.osc('sine', midi(note + 12 + DORIAN[i % 7]!), t + 0.05 + i * 0.035, 0.18, 0.025, out);
+      for (let i = 0; i < sparks; i++) this.osc('sine', midi(note + 12 + MAJOR[i % 7]!), t + 0.05 + i * 0.035, 0.18, 0.03, out);
     }
   }
 
@@ -496,7 +626,7 @@ export class TypelAudio {
       case 'slow': {
         // Time thickening: a chord slides down and the ticking slows.
         for (const n of [62, 65, 69]) this.osc('sawtooth', midi(n), t, 1.2, 0.04, out, midi(n - 12));
-        for (let i = 0; i < 6; i++) this.tick(t + 0.1 + i * (0.12 + i * 0.06), 0.12, out);
+        for (let i = 0; i < 6; i++) this.clockTick(t + 0.1 + i * (0.12 + i * 0.06), 0.12, out);
         break;
       }
       case 'ice': {
@@ -536,7 +666,7 @@ export class TypelAudio {
       }
       case 'harvest': {
         this.noiseHit(t, 0.5, 'bandpass', 500, 1.2, 0.2, out, 4000, 0.05);
-        [0, 2, 4, 7, 9, 11, 14].forEach((d, i) => this.bell(midi(degree(74, DORIAN, d)), t + 0.08 + i * 0.05, 0.05, out));
+        [0, 2, 4, 7, 9, 11, 14].forEach((d, i) => this.glock(midi(degree(74, MAJOR, d)), t + 0.08 + i * 0.05, 0.08, out));
         this.osc('sine', 73, t, 0.6, 0.3, out);
         break;
       }
@@ -648,6 +778,88 @@ export class TypelAudio {
     const t = this.now;
     this.noiseHit(t, 0.03, 'bandpass', 900, 1.5, 0.18, this.bus('sfx'));
     this.osc('sine', 700, t, 0.04, 0.03, this.bus('sfx'));
+  }
+
+  /** Backspace (D-086): a crisp reverse "schwip" and the carriage ratcheting back. */
+  erase(length: number): void {
+    if (!this.ok) return;
+    const t = this.now;
+    const out = this.bus('sfx');
+    const lift = 1 + Math.min(10, length) * 0.03;
+    this.noiseHit(t, 0.07, 'bandpass', 3600 * lift, 2.5, 0.22, out, 900, 0.004);
+    this.osc('sine', 520 * lift, t, 0.06, 0.08, out, 260);
+    for (let i = 0; i < 2; i++) this.noiseHit(t + 0.03 + i * 0.025, 0.008, 'highpass', 4200, 1, 0.07, out);
+  }
+
+  /** Catch loop: a cartoon slide whistle, falling faster at higher urgency. */
+  plunge(tier: number): void {
+    if (!this.ok) return;
+    const t = this.now;
+    const out = this.bus('sfx');
+    const dur = 0.7 - tier * 0.14;
+    const ctx = this.ctx!;
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(1500 + tier * 300, t);
+    o.frequency.exponentialRampToValueAtTime(260, t + dur);
+    const vib = ctx.createOscillator();
+    vib.frequency.value = 9;
+    const vg = ctx.createGain();
+    vg.gain.value = 30;
+    vib.connect(vg).connect(o.frequency);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.13, t + 0.03);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    o.connect(g).connect(out);
+    o.start(t);
+    vib.start(t);
+    o.stop(t + dur + 0.05);
+    vib.stop(t + dur + 0.05);
+  }
+
+  /** Ice melting early on a cleared board: drips and a soft chime. */
+  thaw(): void {
+    if (!this.ok) return;
+    const t = this.now;
+    const out = this.bus('sfx');
+    for (let i = 0; i < 6; i++) this.osc('sine', 900 + Math.random() * 900, t + i * 0.13 + Math.random() * 0.05, 0.12, 0.06, out, 1600);
+    this.bell(midi(84), t + 0.2, 0.04, out);
+  }
+
+  /** Combo multiplier up: a short, proud brass fanfare. */
+  comboUp(mult: number): void {
+    if (!this.ok) return;
+    const t = this.now;
+    const out = this.bus('sfx');
+    const base = 65 + Math.min(7, mult - 2) * 2;
+    [0, 4, 7, 12].forEach((s, i) => this.horn([midi(base + s)], t + i * 0.07, 0.22 + (i === 3 ? 0.4 : 0), out));
+    this.noiseHit(t + 0.21, 0.5, 'highpass', 6000, 0.5, 0.08, out);
+    this.glock(midi(base + 24), t + 0.21, 0.08, out);
+  }
+
+  /** A claimed spell scroll swishing across to the rack. */
+  swish(): void {
+    if (!this.ok) return;
+    const t = this.now;
+    this.noiseHit(t, 0.4, 'bandpass', 700, 1.4, 0.18, this.bus('sfx'), 3200, 0.12);
+  }
+
+  /** ...and knocking into its wooden shelf. */
+  thunk(): void {
+    if (!this.ok) return;
+    const t = this.now;
+    const out = this.bus('sfx');
+    this.osc('sine', 180, t, 0.12, 0.5, out, 80);
+    this.noiseHit(t, 0.06, 'bandpass', 500, 1.6, 0.35, out);
+    this.glock(midi(88), t + 0.04, 0.05, out);
+  }
+
+  /** Score tally chips landing one by one. */
+  tick(i: number): void {
+    if (!this.ok) return;
+    const t = this.now;
+    this.osc('square', 880 * Math.pow(1.122, i), t, 0.04, 0.035, this.bus('sfx'));
   }
 
   // ───────────── music control ─────────────

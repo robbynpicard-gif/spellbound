@@ -109,6 +109,7 @@ export class TypelApp {
     const menu = el(
       'section', { class: 't-titlecard' },
       el('h1', { class: 't-logo' }, el('span', { class: 't-initial' }, 'T'), 'YPEL'),
+      el('p', { class: 't-phonetic' }, '/ˈtaɪ.pəl/  ·  “tie-pull”'),
       el('p', { class: 't-tagline' }, 'An arcane typing apprenticeship'),
       el('nav', { class: 't-menu' },
         btn('Apprenticeship', () => this.showApprenticeship(), 'primary'),
@@ -266,7 +267,7 @@ export class TypelApp {
       el('div', { class: 't-bigscore' }, run.score.toLocaleString()),
       el('div', { class: 't-stats' },
         stat('Level', stats.score.toLocaleString()), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`),
-        stat('WPM', String(Math.round(stats.wpm))), stat('Peak Volley', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`)),
+        stat('WPM', String(Math.round(stats.wpm))), stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`)),
       runes.length ? el('p', { class: 't-runes' }, `Runes: ${runes.join(' · ')}`) : null,
       recovery ? el('p', { class: 't-small' }, recovery) : null,
       el('div', { class: 't-row' }, btn(run.level + 1 >= BOSS_LEVEL ? 'Onward to the boss' : 'Next level', next, 'primary')),
@@ -309,7 +310,7 @@ export class TypelApp {
     this.show(this.panel(`${trial.title} — complete`,
       this.mentor(trial.victory),
       el('div', { class: 't-bigscore' }, run.score.toLocaleString(), isBest ? el('span', { class: 't-best' }, ' new best') : null),
-      el('div', { class: 't-stats' }, stat('Boss score', stats.score.toLocaleString()), stat('Peak Volley', `×${run.peakVolley.toFixed(1)}`), stat('Levels', String(run.levelScores.length))),
+      el('div', { class: 't-stats' }, stat('Boss score', stats.score.toLocaleString()), stat('Peak Rush', `×${run.peakVolley.toFixed(1)}`), stat('Levels', String(run.levelScores.length))),
       runes.length ? el('p', { class: 't-runes' }, `Runes this apprenticeship: ${runes.join(' · ')}`) : null,
       el('div', { class: 't-row' },
         btn('Enter Endless', () => this.enterEndless(), 'primary'),
@@ -335,7 +336,7 @@ export class TypelApp {
     prefs.save();
     this.show(this.panel('Endless — the Ward falls at last',
       el('div', { class: 't-bigscore' }, total.toLocaleString(), total > best ? el('span', { class: 't-best' }, ' new best') : null),
-      el('div', { class: 't-stats' }, stat('Scrolls', String(stats.completed)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`), stat('Peak Volley', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Wagers', String(stats.allInWagers ?? 0))),
+      el('div', { class: 't-stats' }, stat('Scrolls', String(stats.completed)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`), stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Wagers', String(stats.allInWagers ?? 0))),
       el('div', { class: 't-row' }, btn('Apprenticeship', () => this.showApprenticeship(), 'primary'), btn('Title', () => this.showTitle())),
     ), { overlay: true });
   }
@@ -368,7 +369,7 @@ export class TypelApp {
         btn('Hardcore rules', () => ((sb.mode = 'hardcore'), this.showSandboxSetup()), sb.mode === 'hardcore' ? 'primary small' : 'small')),
       el('div', { class: 't-row' }, ...[1, 2, 3, 4, 5].map((n) => btn(`Pace ${n}`, () => ((sb.tier = n), this.showSandboxSetup()), sb.tier === n ? 'primary small' : 'small'))),
       el('div', { class: 't-row' }, btn('Start', () => this.startSandbox(), 'primary'), btn('Back', () => this.showTitle())),
-      el('p', { class: 't-small' }, 'Try: Wind at full Ward then Harvest · Ice and type perfectly · Shock into a crowd · Fire on a cluster · Barrier then slip and correct.'),
+      el('p', { class: 't-small' }, 'Try: Wind at full Ward then Harvest · Ice and type perfectly · Shock into a crowd · Fire on a cluster · Barrier then slip and correct · mistype on purpose and catch the plunge.'),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
   }
 
@@ -388,7 +389,7 @@ export class TypelApp {
       onEnd: (_r, stats) => this.show(this.panel('Sandbox results',
         el('div', { class: 't-bigscore' }, stats.score.toLocaleString()),
         el('div', { class: 't-stats' },
-          stat('Peak Volley', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Wagers', String(stats.allInWagers ?? 0)),
+          stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Wagers', String(stats.allInWagers ?? 0)),
           stat('All-In points', String(stats.allInPoints ?? 0)), stat('Harvests in All-In', String(stats.allInHarvests ?? 0)),
           stat('Runes', String(Object.values(stats.runeCounts ?? {}).reduce((a, b) => a + b, 0))), stat('Ward max', `${stats.wardCap ?? 100}%`)),
         el('div', { class: 't-row' }, btn('Again', () => this.startSandbox(), 'primary'), btn('Sandbox', () => this.showSandboxSetup()), btn('Title', () => this.showTitle())),
@@ -492,9 +493,11 @@ export class TypelApp {
     let body: HTMLElement;
     if (tab === 'rules') {
       body = el('div', { class: 't-codex' },
-        h3('Score'), p('Each captured word pays letters × 10 × Combo × Volley × All-In, rounded once. Runes pay small fixed points on top. Nothing else multiplies your score.'),
+        h3('Score'), p('Each captured word pays letters × 10 × Combo × Arcane Rush × All-In, rounded once. Runes pay small fixed points on top. Nothing else multiplies your score. The counter shows every capture’s tally.'),
         h3('Precision Combo'), p('Every perfectly typed capture adds 1 (Ice Focus adds more). Every 10 Combo raises the multiplier by ×1. A typo, a wrong Enter or a missed word breaks it. A Barrier layer can save it from one slip you correct.'),
-        h3('Arcane Volley'), p('Your first perfect capture opens a timing window; a second inside it ignites ×1.2. Keep capturing in time and it climbs +0.2 per capture to ×5, then +0.1 per ever-harder step. Longer words get longer windows. An empty field pauses the window. Slow gives it 25% more time. Harvest spends it.'),
+        h3('Arcane Rush'), p('Your flow state (called Arcane Volley in older notes). Your first perfect capture opens a timing window (the gold bar on the Rush column); a second inside it starts the Rush at ×1.2. Keep capturing in time and it climbs +0.2 per capture to ×5 (Mastery), then +0.1 per ever-harder step. Longer words get longer windows. An empty field pauses the window. Slow gives it 25% more time. Harvest spends it.'),
+        h3('Catch it!'), p('A mistype sends the word you were aiming at into a plunge: brisk, urgent or desperate. Catch it before it reaches the Ward to earn Saving Grace (Daring Rescue for the fastest). Another mistype on a plunging word makes it fall faster still.'),
+        h3('Backspace'), p('Backspace un-inks letters from the paper and the scroll. Fixing a slip is always allowed; the slip itself still broke your Combo unless a Barrier layer caught it.'),
         h3('The Ward'), p(`Words that reach the bottom crack the Ward. At 0% you fall. Wind at your Ward’s current maximum goes All-In: the Ward drops to ${WARD_TUNING.wagerStability}%, its maximum is scarred (−${WARD_TUNING.firstScar}, then ${WARD_TUNING.scarGrowth} more each time), and for ${WARD_TUNING.allInTicks / 60} seconds your score is ×${WARD_TUNING.allInMultiplier}. Healing never rises above the scar. A breach ends All-In; in Hardcore any slip does.`),
         h3('Normal and Hardcore'), p('Normal: number keys 1–8 cast; the Ward is fresh every level. Hardcore: spells are typed (a clean typed spell earns Combo and points); the Ward and its scars carry through the apprenticeship, with small recoveries after levels 4 and 8.'),
         h3('Rune sequences'), p('Some Runes belong to spells. Casting opens that spell’s opportunity window; only what you type inside it counts. Casting alone never earns a Rune.'),

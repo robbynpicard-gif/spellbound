@@ -1,6 +1,8 @@
 # Typel integrated prototype — status, four-pillar map and playtest script
 _2026-11-20 · Claude · branch `dev/apprenticeship-prototype-20261119` · decision D-085_
 
+> **Updated by D-086 (2026-11-21):** new layout, bright art, Arcane Rush, catch loop, Shock/Alter/Ice changes, orchestral music. See `docs/typel-direction-2026-11-21.md`; where they differ, that file wins.
+
 Status words: **Decided** (owner) · **Prototype choice** (Claude, reversible) · **Built** · **Tested** (automated) · **Smoke-checked** (headless browser) · **Deployed** · **Owner-playtested**. Nothing below is owner-playtested yet.
 
 ## What the preview now is

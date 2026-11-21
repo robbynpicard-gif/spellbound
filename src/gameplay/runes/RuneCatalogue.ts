@@ -36,6 +36,8 @@ export const RUNES: readonly RuneDef[] = [
   r({ id: 'by-a-thread', name: 'By a Thread', family: 'Timing', category: 'typing', points: 100, tier: 2, how: 'Perfectly capture a word in the last twentieth before the Ward.' }),
   r({ id: 'tome-reader', name: 'Tome Reader', family: 'Timing', category: 'typing', points: 75, tier: 1, how: 'Perfectly capture a word of 10 or more letters.' }),
   r({ id: 'clean-desk', name: 'Clean Desk', family: 'Timing', category: 'typing', points: 150, tier: 2, how: 'Empty the whole field by typing, after 5 captures within 5 seconds.' }),
+  r({ id: 'saving-grace', name: 'Saving Grace', family: 'Catch', category: 'typing', points: 75, tier: 1, how: 'Catch a word that is plunging after a mistype.' }),
+  r({ id: 'daring-rescue', name: 'Daring Rescue', family: 'Catch', category: 'typing', points: 200, tier: 2, how: 'Catch a word in a desperate (fastest) plunge.' }),
   // ── Wordplay (observed from real captures; spawning is never biased) ──
   r({ id: 'noun-2', name: 'Double Noun', family: 'Nouns', category: 'wordplay', points: 25, tier: 1, how: 'Capture 2 nouns in a row.' }),
   r({ id: 'noun-3', name: 'Triple Noun', family: 'Nouns', category: 'wordplay', points: 75, tier: 2, how: 'Capture 3 nouns in a row.' }),

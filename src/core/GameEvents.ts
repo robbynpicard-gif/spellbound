@@ -36,6 +36,10 @@ export interface GameEvents {
   /** Words destroyed by Chain Lightning, in strike order (first = the most urgent). */
   wordsShocked: { words: WordState[]; points: number; links?: { from: number; to: number; depth: number }[] };
   /** A Typel Rune (prototype) was earned. */
+  /** Catch loop: a mistype sent this word plunging. */
+  wordPlunged: { word: WordState; tier: number };
+  /** Ice melt: the cleared field thaws early. */
+  iceMelting: { ticks: number };
   runeAwarded: { id: string; name: string; points: number; category: string };
   /** Words claimed by Harvest. */
   wordsHarvested: { words: WordState[]; points: number; volley?: number; allIn?: number };

@@ -1,7 +1,7 @@
 /**
- * Typel play scene (prototype, D-085): the Arcane Renaissance workstation.
- * Rendering only reacts to engine events; it never feeds back into the
- * deterministic simulation (cosmetic effects never move hitboxes).
+ * Typel play scene (prototype, D-085/D-086). Rendering only reacts to engine
+ * events; cosmetic motion never changes positions, speeds or hit tests.
+ * Layout follows the owner's zones (see paint.ts header).
  */
 import Phaser from 'phaser';
 import { GameEngine } from '../../core/GameEngine';
@@ -17,8 +17,9 @@ import { WORDS } from '../../data/wordList';
 import { SPELL_ORDER, type Line } from '../apprenticeship';
 import { sound } from '../audio';
 import { prefs } from '../prefs';
-import { FIELD_RECT, GOLD, INK, paintScroll, RUBRIC, SPELL_GLYPH, SPELL_HUE, WARD_Y } from './paint';
-import { ensureTextures, FONT_TITLE, FONT_WORD, buildStudy, hexNum } from './study';
+import { FIELD_RECT, FLOOR, INK, paintScroll, RACK_X, RUBRIC, SPELL_GLYPH, SPELL_HUE, WARD_Y } from './paint';
+import { buildRoom, ensureTextures, FONT_ARCADE, FONT_TITLE, FONT_WORD, FONT_BODY, hexNum } from './study';
+import { Wizard } from './Wizard';
 
 export interface Carry {
   spells: SpellCharges;
@@ -39,7 +40,6 @@ export interface PlaySetup {
   initialWords?: readonly WordState[];
   scoreOffset?: number;
   poolLimitOverride?: number;
-  /** Spells shown on the shelf (learned so far). */
   spells: readonly SpellId[];
   title: string;
   subtitle: string;
@@ -53,38 +53,44 @@ const SX = FIELD_RECT.w / FIELD.width;
 const SY = FIELD_RECT.h / FIELD.height;
 const toX = (x: number) => FIELD_RECT.x + x * SX;
 const toY = (y: number) => FIELD_RECT.y + y * SY;
-const WORD_STYLE = { fontFamily: FONT_WORD, fontSize: '30px', fontStyle: '700', color: INK };
+const WORD_STYLE = { fontFamily: FONT_WORD, fontSize: '32px', fontStyle: '700', color: INK };
+const PLUNGE_COLOR = [0, 0xffd60a, 0xff8a1a, 0xff2a3a];
+const COUNTER = { x: 200, y: 62 };
+const COMBO_TUBE = { x: 42, w: 116, top: 236, bottom: 548 };
+const RUSH_TUBE = { x: 242, w: 116, top: 236, bottom: 548 };
+const PAPER = { x: 214, y: 868 };
 
 class ScrollView extends Phaser.GameObjects.Container {
   private readonly img: Phaser.GameObjects.Image;
   private readonly glow: Phaser.GameObjects.Image;
   private readonly done: Phaser.GameObjects.Text;
   private readonly rest: Phaser.GameObjects.Text;
+  private readonly ring: Phaser.GameObjects.Graphics;
+  private readonly tag: Phaser.GameObjects.Text;
   private typedCount = -1;
-  frozen = false;
+  plunge = 0;
+  readonly scrollWidth: number;
 
   constructor(scene: Phaser.Scene, readonly word: WordState) {
     super(scene, toX(word.x), toY(word.y));
     this.rest = scene.add.text(0, 0, word.text, WORD_STYLE).setOrigin(0, 0.5);
-    this.done = scene.add.text(0, 0, '', { ...WORD_STYLE, color: RUBRIC }).setOrigin(0, 0.5);
-    const w = Math.ceil((this.rest.width + 68 + (word.spell ? 30 : 0)) / 16) * 16;
-    this.glow = scene.add.image(0, 0, 'typel-glow-gold').setDisplaySize(w + 60, 110).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
-    this.img = scene.add.image(0, 0, scrollKey(scene, w, word.spell));
-    this.add([this.glow, this.img, this.done, this.rest]);
+    this.done = scene.add.text(0, 0, '', { ...WORD_STYLE, color: RUBRIC, stroke: '#ffe08a', strokeThickness: 2 }).setOrigin(0, 0.5);
+    this.scrollWidth = Math.ceil((this.rest.width + 70 + (word.spell ? 30 : 0)) / 16) * 16;
+    this.glow = scene.add.image(0, 0, 'typel-glow-gold').setDisplaySize(this.scrollWidth + 90, 130).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+    this.ring = scene.add.graphics();
+    this.img = scene.add.image(0, 0, scrollKey(scene, this.scrollWidth, word.spell));
+    this.tag = scene.add.text(0, -44, 'CATCH!', { fontFamily: FONT_ARCADE, fontSize: '22px', color: '#ffffff', stroke: '#b00018', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
+    this.add([this.glow, this.ring, this.img, this.done, this.rest, this.tag]);
     this.img.setInteractive({ useHandCursor: true }).setData('wordId', word.id);
-    this.setText(word.text);
+    this.setTyped(word.typed);
     scene.add.existing(this);
     this.setDepth(10);
   }
 
-  setText(text: string): void {
-    this.rest.setText(text);
-    this.typedCount = -1;
-    this.setTyped(this.word.typed);
-  }
-
-  setTyped(n: number): void {
-    if (n === this.typedCount) return;
+  /** Returns where a letter was un-inked if the typed count went down. */
+  setTyped(n: number): { x: number; ch: string } | null {
+    if (n === this.typedCount) return null;
+    const prev = this.typedCount;
     this.typedCount = n;
     const full = this.word.text;
     const shift = this.word.spell ? -15 : 0;
@@ -93,26 +99,35 @@ class ScrollView extends Phaser.GameObjects.Container {
     const total = this.done.width + this.rest.width;
     this.done.setX(-total / 2 + shift);
     this.rest.setX(-total / 2 + this.done.width + shift);
+    if (prev > n && prev > 0) return { x: this.x + this.rest.x + 9, ch: full[n] ?? '' };
+    return null;
   }
 
   setTarget(on: boolean): void {
-    this.glow.setAlpha(on ? 0.55 : 0);
-    this.setScale(on ? 1.06 : 1);
-    this.setDepth(on ? 12 : 10);
+    this.glow.setAlpha(on ? 0.75 : 0);
+    this.setScale(on ? 1.08 : 1);
+    this.setDepth(on ? 12 : this.plunge ? 11 : 10);
   }
 
   setFrozen(on: boolean): void {
-    this.frozen = on;
-    if (on) this.img.setTint(0xbfe6e2);
+    if (on) this.img.setTint(0xbff6ff);
     else this.img.clearTint();
+  }
+
+  setPlunge(tier: number): void {
+    this.plunge = tier;
+    const c = PLUNGE_COLOR[tier] ?? 0xffffff;
+    this.ring.clear().lineStyle(6, c, 0.95).strokeRoundedRect(-this.scrollWidth / 2 - 6, -32, this.scrollWidth + 12, 64, 18);
+    this.tag.setAlpha(1).setText(tier === 3 ? 'CATCH IT!!' : tier === 2 ? 'CATCH IT!' : 'CATCH!');
+    this.tag.setStroke(Phaser.Display.Color.IntegerToColor(c).rgba, 6);
   }
 }
 
 function scrollKey(scene: Phaser.Scene, w: number, spell: SpellId | null): string {
-  const key = `typel-scroll-${w}-${spell ?? 'plain'}`;
+  const key = `typel-scroll2-${w}-${spell ?? 'plain'}`;
   if (!scene.textures.exists(key)) {
-    const tex = scene.textures.createCanvas(key, w, 52)!;
-    paintScroll(tex.getContext(), w, 52, spell);
+    const tex = scene.textures.createCanvas(key, w, 54)!;
+    paintScroll(tex.getContext(), w, 54, spell);
     tex.refresh();
   }
   return key;
@@ -127,37 +142,36 @@ export class TypelPlayScene extends Phaser.Scene {
   private paused = false;
   private ended = false;
   private reduced = false;
+  private wizard!: Wizard;
 
-  // HUD
   private paper!: Phaser.GameObjects.Text;
   private caret!: Phaser.GameObjects.Rectangle;
   private scoreText!: Phaser.GameObjects.Text;
   private shownScore = 0;
-  private comboNeedle!: Phaser.GameObjects.Graphics;
+  private equation!: Phaser.GameObjects.Container;
+  private comboFill!: Phaser.GameObjects.Graphics;
   private comboMult!: Phaser.GameObjects.Text;
   private comboCount!: Phaser.GameObjects.Text;
-  private volleyFill!: Phaser.GameObjects.Graphics;
-  private volleyText!: Phaser.GameObjects.Text;
-  private volleySparks!: Phaser.GameObjects.Particles.ParticleEmitter;
-  private lastVolley = 1;
-  private wardLiquid!: Phaser.GameObjects.Graphics;
-  private wardText!: Phaser.GameObjects.Text;
-  private rail!: Phaser.GameObjects.Graphics;
-  private plaqueTitle!: Phaser.GameObjects.Text;
-  private plaqueSub!: Phaser.GameObjects.Text;
-  private plaqueProgress!: Phaser.GameObjects.Text;
-  private mentorName!: Phaser.GameObjects.Text;
-  private mentorText!: Phaser.GameObjects.Text;
-  private mentorBox!: Phaser.GameObjects.Container;
-  private runeText!: Phaser.GameObjects.Text;
+  private rushFill!: Phaser.GameObjects.Graphics;
+  private rushMult!: Phaser.GameObjects.Text;
+  private rushState!: Phaser.GameObjects.Text;
+  private rushBubbles!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private rushEruption!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private edges: Phaser.GameObjects.Image[] = [];
+  private lastRush = 1;
+  private lastMult = 1;
+  private floor!: Phaser.GameObjects.Graphics;
+  private floorLeft!: Phaser.GameObjects.Text;
+  private floorRight!: Phaser.GameObjects.Text;
+  private subtitle!: Phaser.GameObjects.Text;
   private overlay!: Phaser.GameObjects.Rectangle;
-  private allInVeil!: Phaser.GameObjects.Image;
-  private rack = new Map<SpellId, { count: Phaser.GameObjects.Text; vial: Phaser.GameObjects.Container; dim: boolean }>();
+  private allInVeil!: Phaser.GameObjects.Rectangle;
+  private rack = new Map<SpellId, { count: Phaser.GameObjects.Text; slot: Phaser.GameObjects.Container; learned: boolean; y: number }>();
   private poolText!: Phaser.GameObjects.Text;
   private keys = new Map<string, Phaser.GameObjects.Container>();
-  private candles: Phaser.GameObjects.Image[] = [];
+  private trails = new Map<number, Phaser.GameObjects.Particles.ParticleEmitter>();
   private pressureTimer = 0;
-  private wardDirty = true;
+  private time0 = 0;
 
   constructor() {
     super(TypelPlayScene.KEY);
@@ -168,11 +182,12 @@ export class TypelPlayScene extends Phaser.Scene {
     this.views = new Map();
     this.rack = new Map();
     this.keys = new Map();
-    this.candles = [];
+    this.trails = new Map();
+    this.edges = [];
     this.acc = 0;
     this.paused = false;
     this.ended = false;
-    this.lastVolley = 1;
+    this.lastRush = 1;
     this.reduced = prefs.reducedMotion();
     this.engine = new GameEngine({
       config: setup.config,
@@ -188,18 +203,24 @@ export class TypelPlayScene extends Phaser.Scene {
       poolLimitOverride: setup.poolLimitOverride,
     });
     this.shownScore = setup.scoreOffset ?? 0;
+    this.lastMult = 1 + Math.floor((setup.initialCombo ?? 0) / 10);
   }
 
   create(): void {
     ensureTextures(this);
-    this.candles = buildStudy(this, true);
+    buildRoom(this, true);
+    this.wizard = new Wizard(this, 214, 806, this.reduced).setScale(0.86);
+    this.wizard.hands[0].setPosition(150, 984).setData('y', 984);
+    this.wizard.hands[1].setPosition(278, 984).setData('y', 984);
     this.buildHud();
     this.bindEvents();
     this.bindInput();
     for (const w of this.engine.state.words) this.addView(w);
-    this.refreshAll();
+    this.refreshRack();
+    this.setPaper('', true);
     sound.setMood(this.setup.boss ? 'boss' : 'play');
     if (this.setup.boss) sound.bossStart();
+    this.banner(this.setup.title, this.setup.subtitle);
     if (this.setup.lines?.length) this.showLines(this.setup.lines);
     (window as unknown as { typelEngine?: GameEngine }).typelEngine = this.engine;
   }
@@ -207,69 +228,47 @@ export class TypelPlayScene extends Phaser.Scene {
   // ───────────────────────── HUD ─────────────────────────
 
   private text(x: number, y: number, s: string, size: number, color: string, opts: Partial<Phaser.Types.GameObjects.Text.TextStyle> = {}): Phaser.GameObjects.Text {
-    return this.add.text(x, y, s, { fontFamily: FONT_WORD, fontSize: `${size}px`, color, ...opts }).setDepth(30);
+    return this.add.text(x, y, s, { fontFamily: FONT_BODY, fontSize: `${size}px`, color, ...opts }).setDepth(30);
   }
 
   private buildHud(): void {
-    const s = this.setup;
-    // Top-left plaque
-    const plaque = this.add.graphics().setDepth(29);
-    plaque.fillStyle(0x1b120c, 0.85).fillRoundedRect(18, 18, 296, 120, 10).lineStyle(2, hexNum(GOLD), 0.6).strokeRoundedRect(18, 18, 296, 120, 10);
-    this.plaqueTitle = this.text(34, 26, s.title, 19, '#f1d9a6', { fontFamily: FONT_TITLE, fontStyle: '700', fixedWidth: 266 });
-    this.fitTitle();
-    this.plaqueSub = this.text(34, 58, s.subtitle, 16, '#c9b48a', { wordWrap: { width: 264 } });
-    this.plaqueProgress = this.text(34, 100, '', 22, '#f6e7c4', { fontStyle: '700' });
+    this.scoreText = this.text(COUNTER.x, COUNTER.y, this.shownScore.toLocaleString('en-US'), 58, '#ffd35a', { fontFamily: FONT_ARCADE, stroke: '#5a1a00', strokeThickness: 6 }).setOrigin(0.5);
+    this.equation = this.add.container(200, 138).setDepth(30);
 
-    // Mentor letter (left column), never over the battlefield
-    this.mentorBox = this.add.container(18, 150).setDepth(29).setAlpha(0);
-    const mb = this.add.graphics();
-    mb.fillStyle(0xe9d8b0, 0.96).fillRoundedRect(0, 0, 296, 300, 8).lineStyle(3, 0x8a6a34, 1).strokeRoundedRect(0, 0, 296, 300, 8);
-    const seal = this.add.graphics();
-    seal.fillStyle(0x8e1d1a, 1).fillCircle(36, 38, 22).fillStyle(0xb8322a, 1).fillCircle(32, 34, 9);
-    this.mentorName = this.add.text(68, 22, '', { fontFamily: FONT_TITLE, fontSize: '20px', fontStyle: '700', color: '#5a2a14' });
-    this.mentorText = this.add.text(18, 72, '', { fontFamily: FONT_WORD, fontSize: '19px', color: '#2a1a10', wordWrap: { width: 262 }, lineSpacing: 4 });
-    this.mentorBox.add([mb, seal, this.mentorName, this.mentorText]);
+    this.comboFill = this.add.graphics().setDepth(21);
+    this.rushFill = this.add.graphics().setDepth(21);
+    this.comboMult = this.text(100, 300, '×1', 46, '#ffffff', { fontFamily: FONT_ARCADE, stroke: '#0b2a7a', strokeThickness: 7 }).setOrigin(0.5);
+    this.comboCount = this.text(100, 522, '0', 22, '#cfe2ff', { fontFamily: FONT_ARCADE, stroke: '#0b2a7a', strokeThickness: 5 }).setOrigin(0.5);
+    this.rushMult = this.text(300, 300, '×1', 46, '#ffffff', { fontFamily: FONT_ARCADE, stroke: '#0b5a2a', strokeThickness: 7 }).setOrigin(0.5);
+    this.rushState = this.text(300, 522, '', 18, '#d6ffe6', { fontFamily: FONT_ARCADE, stroke: '#0b5a2a', strokeThickness: 5 }).setOrigin(0.5);
+    this.rushBubbles = this.add.particles(0, 0, 'typel-spark', {
+      x: { min: RUSH_TUBE.x + 14, max: RUSH_TUBE.x + RUSH_TUBE.w - 14 }, y: RUSH_TUBE.bottom - 8, lifespan: 1400, speedY: { min: -160, max: -60 },
+      scale: { start: 0.35, end: 0 }, alpha: { start: 0.9, end: 0 }, tint: [0x7dffb5, 0xffffff, 0xffe08a], blendMode: 'ADD', frequency: 90, emitting: false,
+    }).setDepth(22);
+    this.rushEruption = this.add.particles(300, 200, 'typel-star', {
+      lifespan: 1100, speedY: { min: -320, max: -120 }, speedX: { min: -120, max: 120 }, gravityY: 260, scale: { start: 0.6, end: 0 },
+      tint: [0x3ddc84, 0xffd35a, 0xffffff, 0xff5fa8], blendMode: 'ADD', frequency: 60, emitting: false,
+    }).setDepth(31);
+    for (const side of [0, 1]) {
+      const e = this.add.image(side ? FIELD_RECT.x + FIELD_RECT.w : FIELD_RECT.x, FIELD_RECT.h / 2, 'typel-edge')
+        .setOrigin(side ? 1 : 0, 0.5).setDisplaySize(140, FIELD_RECT.h).setTint(0x3ddc84).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setDepth(9);
+      if (side) e.setFlipX(true);
+      this.edges.push(e);
+    }
 
-    // Paper on the platen: live transcription with caret (D-068)
-    const sheet = this.add.graphics().setDepth(27);
-    sheet.fillStyle(0xf3e7c8, 1).fillRect(780, 706, 360, 108).fillStyle(0x000000, 0.12).fillRect(780, 800, 360, 14);
-    sheet.lineStyle(1, 0xb48c58, 0.5);
-    for (let y = 734; y < 800; y += 22) sheet.lineBetween(796, y, 1124, y);
-    this.paper = this.text(960, 762, '', 34, INK, { fontStyle: '700' }).setOrigin(0.5).setDepth(31);
-    this.caret = this.add.rectangle(960, 762, 3, 34, hexNum(RUBRIC)).setDepth(31);
+    const sheet = this.add.graphics().setDepth(23);
+    sheet.fillStyle(0xfffaf0, 1).fillRoundedRect(72, 834, 284, 70, 6).fillStyle(0xe8d3a6, 1).fillRect(72, 892, 284, 12);
+    this.paper = this.text(PAPER.x, PAPER.y, '', 34, INK, { fontFamily: FONT_WORD, fontStyle: '700' }).setOrigin(0.5).setDepth(24);
+    this.caret = this.add.rectangle(PAPER.x, PAPER.y, 3, 32, hexNum(RUBRIC)).setDepth(24);
     this.tweens.add({ targets: this.caret, alpha: 0.15, duration: 520, yoyo: true, repeat: -1 });
 
-    // Score counter wheels
-    this.scoreText = this.text(530, 769, '0', 38, '#f6d58a', { fontStyle: '700', fontFamily: '"Courier Prime", "Courier New", monospace' }).setOrigin(0.5);
-    this.text(530, 820, 'SCORE', 13, '#c9a45a', { fontStyle: '700', letterSpacing: 3 }).setOrigin(0.5);
+    this.floor = this.add.graphics().setDepth(8);
+    this.floorLeft = this.text(FLOOR.x + 24, FLOOR.y + 18, '', 20, '#ffe9b0', { fontFamily: FONT_ARCADE }).setDepth(9);
+    this.floorRight = this.text(FLOOR.x + FLOOR.w - 24, FLOOR.y + 18, '', 22, '#ffffff', { fontFamily: FONT_ARCADE, align: 'right' }).setOrigin(1, 0).setDepth(9);
+    this.subtitle = this.text(FLOOR.x + FLOOR.w / 2, FLOOR.y + 78, '', 22, '#fff4d8', { align: 'center', wordWrap: { width: 720 }, stroke: '#1a0630', strokeThickness: 4 }).setOrigin(0.5).setDepth(9);
 
-    // Combo dial
-    this.comboNeedle = this.add.graphics().setDepth(30);
-    this.comboMult = this.text(530, 892, '×1', 30, '#5a1a12', { fontFamily: FONT_TITLE, fontStyle: '700' }).setOrigin(0.5).setDepth(31);
-    this.comboCount = this.text(530, 972, 'COMBO 0', 14, '#5a3a1a', { fontStyle: '700' }).setOrigin(0.5).setDepth(31);
-
-    // Volley tube
-    this.volleyFill = this.add.graphics().setDepth(28);
-    this.volleyText = this.text(1371, 1048, 'VOLLEY', 15, '#e8c77a', { fontStyle: '700' }).setOrigin(0.5);
-    this.volleySparks = this.add.particles(1371, 760, 'typel-spark', {
-      lifespan: 900, speedY: { min: -180, max: -60 }, speedX: { min: -50, max: 50 }, scale: { start: 0.5, end: 0 },
-      alpha: { start: 1, end: 0 }, tint: [0xffd27a, 0xffffff, 0xf2a03a], blendMode: 'ADD', frequency: 120, emitting: false,
-    }).setDepth(32);
-
-    // Ward vessel and rail
-    this.wardLiquid = this.add.graphics().setDepth(26);
-    this.wardText = this.text(1509, 1050, '', 15, '#f1c6c6', { fontStyle: '700' }).setOrigin(0.5);
-    this.rail = this.add.graphics().setDepth(9);
-
-    // Rune carousel (brass drum beside the paper)
-    const drum = this.add.graphics().setDepth(27);
-    drum.fillStyle(0x6e4f1f, 1).fillRoundedRect(1160, 712, 150, 92, 10).fillStyle(0x140d08, 1).fillRoundedRect(1170, 726, 130, 64, 6);
-    this.text(1235, 718, 'RUNES', 11, '#e2bd6a', { fontStyle: '700', letterSpacing: 3 }).setOrigin(0.5, 0);
-    this.runeText = this.text(1235, 760, '—', 16, '#e8d5a8', { fontFamily: FONT_TITLE, fontStyle: '700', align: 'center', wordWrap: { width: 122 } }).setOrigin(0.5);
-
-    // Overlays (spell moods)
-    this.overlay = this.add.rectangle(FIELD_RECT.x + FIELD_RECT.w / 2, FIELD_RECT.y + FIELD_RECT.h / 2, FIELD_RECT.w, FIELD_RECT.h, 0x000000, 0).setDepth(8);
-    this.allInVeil = this.add.image(960, 400, 'typel-veil').setDisplaySize(2400, 1500).setDepth(8).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+    this.overlay = this.add.rectangle(FIELD_RECT.x + FIELD_RECT.w / 2, FIELD_RECT.h / 2, FIELD_RECT.w, FIELD_RECT.h, 0x000000, 0).setDepth(7);
+    this.allInVeil = this.add.rectangle(FIELD_RECT.x + FIELD_RECT.w / 2, FIELD_RECT.h / 2, FIELD_RECT.w, FIELD_RECT.h, 0xffb020, 0).setDepth(7).setBlendMode(Phaser.BlendModes.ADD);
 
     this.buildRack();
     this.buildKeys();
@@ -277,36 +276,36 @@ export class TypelPlayScene extends Phaser.Scene {
 
   private buildRack(): void {
     const g = this.add.graphics().setDepth(26);
-    g.fillStyle(0x24170e, 0.92).fillRoundedRect(1630, 30, 274, 990, 12).lineStyle(3, 0x8a6a34, 0.8).strokeRoundedRect(1630, 30, 274, 990, 12);
-    this.text(1767, 44, 'SPELL SHELF', 15, '#e2bd6a', { fontStyle: '700', letterSpacing: 3 }).setOrigin(0.5, 0);
-    this.poolText = this.text(1767, 68, '', 14, '#c9b48a').setOrigin(0.5, 0);
+    g.fillStyle(0x2a0f08, 0.55).fillRoundedRect(RACK_X + 4, 12, 260, 1056, 14).lineStyle(4, 0xffc94a, 0.9).strokeRoundedRect(RACK_X + 4, 12, 260, 1056, 14);
+    this.text(RACK_X + 134, 26, 'SPELL RACK', 22, '#ffd35a', { fontFamily: FONT_ARCADE, stroke: '#3a1000', strokeThickness: 5 }).setOrigin(0.5, 0);
+    this.poolText = this.text(RACK_X + 134, 56, '', 16, '#ffe9c0').setOrigin(0.5, 0);
     SPELL_ORDER.forEach((id, i) => {
-      const y = 140 + i * 110;
+      const y = 142 + i * 118;
       const learned = this.setup.spells.includes(id);
-      const c = this.add.container(1650, y).setDepth(30).setAlpha(learned ? 1 : 0.28);
+      const c = this.add.container(RACK_X + 16, y).setDepth(30).setAlpha(learned ? 1 : 0.25);
       const hue = hexNum(SPELL_HUE[id]);
       const board = this.add.graphics();
-      board.fillStyle(0x3a2516, 1).fillRect(0, 38, 234, 8);
+      board.fillStyle(0x8a4a22, 1).fillRoundedRect(-6, 40, 248, 14, 4).fillStyle(0xc27a3e, 1).fillRect(-6, 40, 248, 4);
       const vial = this.add.graphics();
-      vial.fillStyle(hue, 0.35).fillCircle(34, 10, 30).fillStyle(hue, 0.95).fillCircle(34, 16, 22).lineStyle(2, 0xe8f2f4, 0.55).strokeCircle(34, 10, 30);
-      vial.fillStyle(0xd9b060, 1).fillRect(28, -26, 12, 10);
-      const glyph = this.add.text(34, 12, SPELL_GLYPH[id], { fontFamily: 'serif', fontSize: '24px', color: '#fff8e8' }).setOrigin(0.5);
-      const name = this.add.text(76, -18, id.toUpperCase(), { fontFamily: FONT_TITLE, fontSize: '22px', fontStyle: '700', color: '#f1e2c0' });
-      const key = this.add.text(76, 10, this.setup.hardcore ? 'type the name' : `key ${i + 1}`, { fontFamily: FONT_WORD, fontSize: '14px', color: '#b8a27a' });
-      const count = this.add.text(222, -4, '0', { fontFamily: FONT_TITLE, fontSize: '30px', fontStyle: '700', color: '#ffe7b0' }).setOrigin(1, 0.5);
+      vial.fillStyle(hue, 0.35).fillCircle(36, 6, 34).fillStyle(hue, 1).fillCircle(36, 12, 26).lineStyle(3, 0xffffff, 0.7).strokeCircle(36, 6, 34);
+      vial.fillStyle(0xffd977, 1).fillRoundedRect(28, -34, 16, 12, 3);
+      vial.fillStyle(0xffffff, 0.5).fillEllipse(24, -4, 10, 18);
+      const glyph = this.add.text(36, 10, SPELL_GLYPH[id], { fontFamily: 'serif', fontSize: '28px', color: '#ffffff' }).setOrigin(0.5);
+      const name = this.add.text(80, -20, id.toUpperCase(), { fontFamily: FONT_ARCADE, fontSize: '24px', color: '#ffffff', stroke: '#3a1000', strokeThickness: 5 });
+      const key = this.add.text(80, 10, this.setup.hardcore ? 'type the name' : `press ${i + 1}`, { fontFamily: FONT_BODY, fontSize: '16px', color: '#ffe0b0' });
+      const count = this.add.text(230, 2, '0', { fontFamily: FONT_ARCADE, fontSize: '36px', color: '#ffe08a', stroke: '#3a1000', strokeThickness: 6 }).setOrigin(1, 0.5);
       c.add([board, vial, glyph, name, key, count]);
-      this.rack.set(id, { count, vial: c, dim: !learned });
+      this.rack.set(id, { count, slot: c, learned, y });
     });
   }
 
   private buildKeys(): void {
-    const rows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
-    rows.forEach((row, r) => {
-      const y = 912 + r * 48;
-      const x0 = 960 - ((row.length - 1) * 48) / 2 + r * 10;
+    ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].forEach((row, r) => {
+      const x0 = 214 - ((row.length - 1) * 30) / 2 + r * 8;
       [...row].forEach((ch, i) => {
-        const c = this.add.container(x0 + i * 48, y).setDepth(27);
-        c.add([this.add.image(0, 0, 'typel-key'), this.add.text(0, 0, ch.toUpperCase(), { fontFamily: FONT_TITLE, fontSize: '17px', fontStyle: '700', color: '#3a2410' }).setOrigin(0.5)]);
+        const c = this.add.container(x0 + i * 30, 966 + r * 30).setDepth(24);
+        c.add([this.add.image(0, 0, 'typel-key'), this.add.text(0, 0, ch.toUpperCase(), { fontFamily: FONT_ARCADE, fontSize: '13px', color: '#5a2a0a' }).setOrigin(0.5)]);
+        c.setData('y', c.y);
         this.keys.set(ch, c);
       });
     });
@@ -315,46 +314,42 @@ export class TypelPlayScene extends Phaser.Scene {
   private pressKey(ch: string): void {
     const k = this.keys.get(ch);
     if (!k) return;
+    const base = k.getData('y') as number;
     this.tweens.killTweensOf(k);
-    k.y = Math.round(k.y);
-    const base = k.getData('y') ?? k.y;
-    k.setData('y', base);
     k.y = base + 4;
     this.tweens.add({ targets: k, y: base, duration: 90, ease: 'Quad.easeOut' });
   }
 
-  /** Shrink long titles to one line on the plaque. */
-  private fitTitle(): void {
-    let size = 19;
-    this.plaqueTitle.setFixedSize(0, 0).setFontSize(size);
-    while (this.plaqueTitle.width > 266 && size > 13) this.plaqueTitle.setFontSize(--size);
+  /** Level title card that sweeps in over the field and away. */
+  private banner(title: string, sub: string): void {
+    const cx = FIELD_RECT.x + FIELD_RECT.w / 2;
+    const t = this.text(cx, 380, title, 60, '#ffe9a8', { fontFamily: FONT_TITLE, fontStyle: '700', stroke: '#2a0040', strokeThickness: 10 }).setOrigin(0.5).setDepth(60);
+    const s = this.text(cx, 450, sub, 28, '#ffffff', { fontFamily: FONT_ARCADE, stroke: '#2a0040', strokeThickness: 6 }).setOrigin(0.5).setDepth(60);
+    for (const o of [t, s]) {
+      o.setScale(0.6).setAlpha(0);
+      this.tweens.add({ targets: o, scale: 1, alpha: 1, duration: 300, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: o, alpha: 0, y: o.y - 40, delay: 1500, duration: 500, onComplete: () => o.destroy() });
+    }
   }
 
-  // ───────────────────────── mentor lines ─────────────────────────
-
+  /** Master lines, shown as subtitles on the Ward floor. */
   showLines(lines: readonly Line[]): void {
     let i = 0;
     const next = () => {
       const line = lines[i++];
-      if (!line) {
-        this.tweens.add({ targets: this.mentorBox, alpha: 0, duration: 600 });
-        return;
-      }
-      this.mentorName.setText(line.who);
-      this.mentorText.setText(line.text);
-      const bg = this.mentorBox.list[0] as Phaser.GameObjects.Graphics;
-      const h = Math.max(120, this.mentorText.height + 92);
-      bg.clear().fillStyle(0xe9d8b0, 0.96).fillRoundedRect(0, 0, 296, h, 8).lineStyle(3, 0x8a6a34, 1).strokeRoundedRect(0, 0, 296, h, 8);
-      this.tweens.add({ targets: this.mentorBox, alpha: 1, duration: 300 });
-      this.time.delayedCall(Math.max(5200, line.text.length * 65), next);
+      if (!line) return void this.tweens.add({ targets: this.subtitle, alpha: 0, duration: 500 });
+      this.subtitle.setText(`${line.who}:  ${line.text}`).setAlpha(0);
+      this.tweens.add({ targets: this.subtitle, alpha: 1, duration: 250 });
+      this.time.delayedCall(Math.max(4800, line.text.length * 60), next);
     };
-    next();
+    this.time.delayedCall(1600, next);
   }
 
   // ───────────────────────── engine events ─────────────────────────
 
   private bindEvents(): void {
     const ev = this.engine.events;
+    const cx = FIELD_RECT.x + FIELD_RECT.w / 2;
     ev.on('wordSpawned', ({ word }) => this.addView(word));
     ev.on('wordProgress', ({ word }) => this.views.get(word.id)?.setTyped(word.typed));
     ev.on('targetChanged', ({ previousId, currentId }) => {
@@ -363,72 +358,79 @@ export class TypelPlayScene extends Phaser.Scene {
     });
     ev.on('inputChanged', ({ input, valid }) => this.setPaper(input, valid));
     ev.on('wordCompleted', ({ word, points, combo, perfect, volley }) => {
+      const at = this.posOf(word);
+      this.stopTrail(word.id);
       this.collectView(word.id, false);
       sound.capture(combo, volley ?? 1, perfect === true);
-      this.floatPoints(points);
-      this.burst(toX(word.x), toY(word.y), 0xe8c06a, 12);
+      this.captureBurst(at.x, at.y, word.text, combo);
+      const base = (word.originalLength ?? word.text.length) * 10;
+      this.tally(base, 1 + Math.floor(combo / 10), volley ?? 1, this.engine.wardInfo.allInMultiplier, points);
+      this.floatPoints(at.x, at.y, points);
+      this.wizard.captured(points >= 300);
+      if (word.plunge) this.callout(at.x, at.y - 60, word.plunge === 3 ? 'DARING RESCUE!' : 'SAVED!', '#ffffff', 30, '#d0002a');
     });
     ev.on('typingError', ({ wordId }) => {
       sound.typo();
+      this.wizard.mistyped();
       const v = wordId !== null ? this.views.get(wordId) : null;
-      if (v && !this.reduced) this.tweens.add({ targets: v, x: v.x + 6, duration: 40, yoyo: true, repeat: 2 });
-      this.cameras.main.flash(60, 120, 20, 10, false);
+      if (v && !this.reduced) this.tweens.add({ targets: v, angle: { from: -5, to: 0 }, duration: 220, ease: 'Elastic.easeOut' });
+    });
+    ev.on('wordPlunged', ({ word, tier }) => {
+      const v = this.views.get(word.id);
+      if (!v) return;
+      v.setPlunge(tier);
+      sound.plunge(tier);
+      this.wizard.plunging();
+      this.startTrail(v, tier);
     });
     ev.on('submitMissed', () => {
       sound.wrongEntry();
-      if (!this.reduced) this.tweens.add({ targets: this.paper, x: 966, duration: 40, yoyo: true, repeat: 3, onComplete: () => this.paper.setX(960) });
+      this.wizard.mistyped();
+      if (!this.reduced) this.tweens.add({ targets: this.paper, x: PAPER.x + 6, duration: 40, yoyo: true, repeat: 3, onComplete: () => this.paper.setX(PAPER.x) });
     });
     ev.on('wordMissed', ({ word }) => {
       const v = this.views.get(word.id);
-      if (v) this.burst(v.x, WARD_Y, 0xd04040, 22);
+      this.stopTrail(word.id);
+      if (v) this.burst(v.x, WARD_Y - 6, 0xff3a4a, 26);
       this.removeView(word.id);
       sound.breach();
-      if (!this.reduced) this.cameras.main.shake(180, 0.004);
-      this.flashRail(0xd04040);
-      this.wardDirty = true;
+      this.wizard.breached();
+      if (!this.reduced) this.cameras.main.shake(200, 0.006);
+      this.floorFlash(0xff3a4a);
     });
     ev.on('wordBlocked', ({ word }) => {
       const v = this.views.get(word.id);
-      if (v) this.burst(v.x, WARD_Y, 0xbfd2e6, 18);
+      this.stopTrail(word.id);
+      if (v) this.burst(v.x, WARD_Y - 6, 0x8fb8ff, 20);
       this.removeView(word.id);
       sound.spell('barrier');
-      this.flashRail(0xbfd2e6);
+      this.floorFlash(0x8fb8ff);
     });
-    ev.on('instabilityChanged', () => (this.wardDirty = true));
-    ev.on('barrierChanged', () => (this.wardDirty = true));
-    ev.on('progressChanged', () => this.refreshPlaque());
-    ev.on('scoreChanged', () => undefined);
-    ev.on('spellCollected', ({ spell, stored, x, y }) => {
-      const sx = toX(x);
-      const sy = toY(y);
-      const slot = this.rack.get(spell);
-      if (stored && slot) {
-        const orb = this.add.image(sx, sy, 'typel-glow-gold').setTint(hexNum(SPELL_HUE[spell])).setScale(0.5).setDepth(40).setBlendMode(Phaser.BlendModes.ADD);
-        this.tweens.add({ targets: orb, x: 1684, y: slot.vial.y + 14, duration: 520, ease: 'Cubic.easeIn', onComplete: () => orb.destroy() });
-        sound.collect();
-      } else {
-        sound.overflow();
-        this.callout(1767, 96, 'Shelf full', '#e8a0a0', 16);
-      }
-      this.refreshRack();
-    });
+    ev.on('spellCollected', ({ spell, stored, x, y }) => this.claimSpell(spell, stored, toX(x), toY(y)));
     ev.on('manaPoolChanged', () => this.refreshRack());
     ev.on('spellCast', ({ spell }) => {
       if (spell !== 'wind') sound.spell(spell);
       this.refreshRack();
+      const tip = this.wizard.cast();
+      this.burst(tip.x, tip.y, hexNum(SPELL_HUE[spell]), 18);
       const slot = this.rack.get(spell);
-      if (slot) this.tweens.add({ targets: slot.vial, scale: 1.12, duration: 110, yoyo: true });
+      if (slot) this.tweens.add({ targets: slot.slot, scale: 1.12, duration: 110, yoyo: true });
+      this.callout(cx, 120, spell.toUpperCase(), SPELL_HUE[spell], 44, '#1a0630');
     });
     ev.on('spellFizzled', ({ spell }) => {
       sound.fizzle();
       const slot = this.rack.get(spell);
-      if (slot && !this.reduced) this.tweens.add({ targets: slot.vial, x: slot.vial.x + 6, duration: 40, yoyo: true, repeat: 2 });
+      if (slot && !this.reduced) this.tweens.add({ targets: slot.slot, x: slot.slot.x + 6, duration: 40, yoyo: true, repeat: 2 });
     });
     ev.on('slowChanged', ({ stacks }) => this.mood(stacks > 0 ? 'slow' : null));
     ev.on('freezeChanged', ({ ticks }) => {
       this.mood(ticks > 0 ? 'ice' : null);
       for (const v of this.views.values()) v.setFrozen(ticks > 0);
-      if (ticks > 0) for (const v of this.views.values()) this.burst(v.x, v.y, 0xcfeeea, 6);
+      if (ticks > 0) for (const v of this.views.values()) this.burst(v.x, v.y, 0xbff6ff, 8);
+    });
+    ev.on('iceMelting', () => {
+      sound.thaw();
+      this.callout(cx, 360, 'Board clear! The ice melts…', '#bff6ff', 34, '#0a3a5a');
     });
     ev.on('spellEnded', ({ spell }) => {
       if (spell === 'ice') for (const v of this.views.values()) v.setFrozen(false);
@@ -436,54 +438,62 @@ export class TypelPlayScene extends Phaser.Scene {
     });
     ev.on('iceFocus', ({ gain }) => {
       sound.focus(gain);
-      this.callout(530, 860, `FOCUS +${gain}`, '#a8e6df', 22);
+      this.callout(100, 380, `FOCUS +${gain}`, '#bff6ff', 30, '#0a3a5a');
     });
     ev.on('scoreInsured', () => {
       sound.spell('barrier');
-      this.callout(530, 860, 'COMBO SAVED', '#cfe0f0', 22);
-      this.flashRail(0xbfd2e6);
+      this.callout(100, 380, 'COMBO SAVED', '#cfe2ff', 26, '#0b2a7a');
+      this.floorFlash(0x8fb8ff);
     });
     ev.on('wordsBurned', ({ words, depths, links }) => {
-      const pos = new Map(words.map((w) => [w.id, { x: this.views.get(w.id)?.x ?? toX(w.x), y: this.views.get(w.id)?.y ?? toY(w.y) }]));
+      const pos = new Map(words.map((w) => [w.id, this.posOf(w)]));
       words.forEach((w, i) => {
-        const delay = (depths?.[i] ?? 0) * 130;
         const p = pos.get(w.id)!;
         const v = this.views.get(w.id);
         this.views.delete(w.id);
-        this.time.delayedCall(delay, () => {
-          this.fire(p.x, p.y);
-          v?.destroy();
-        });
+        this.stopTrail(w.id);
+        this.time.delayedCall((depths?.[i] ?? 0) * 140, () => (this.fire(p.x, p.y), v?.destroy()));
       });
       for (const l of links ?? []) {
         const a = pos.get(l.from);
         const b = pos.get(l.to);
-        if (a && b) this.time.delayedCall(l.depth * 130 - 60, () => this.bolt(a, b, 0xf08a3a, false));
+        if (a && b) this.time.delayedCall(Math.max(0, l.depth * 140 - 70), () => this.bolt(a, b, 0xff8a2a, false));
       }
+      if (words.length >= 5) this.callout(cx, 420, `INFERNO ×${words.length}`, '#ffb070', 46, '#5a1000');
     });
     ev.on('wordsShocked', ({ words, links }) => {
-      const pos = new Map(words.map((w) => [w.id, { x: this.views.get(w.id)?.x ?? toX(w.x), y: this.views.get(w.id)?.y ?? toY(w.y) }]));
-      const first = pos.get(words[0]!.id)!;
-      this.bolt({ x: first.x + 40, y: FIELD_RECT.y }, first, 0xfff2a0, true);
+      const pos = new Map(words.map((w) => [w.id, this.posOf(w)]));
+      // D-086: lightning rises from the Ward floor into the three nearest words.
+      for (const w of words.slice(0, 3)) {
+        const p = pos.get(w.id)!;
+        this.bolt({ x: p.x + (Math.random() - 0.5) * 80, y: WARD_Y + 30 }, p, 0xfff27a, true);
+      }
       for (const l of links ?? []) {
         const a = pos.get(l.from);
         const b = pos.get(l.to);
-        if (a && b) this.time.delayedCall(l.depth * 80, () => (this.bolt(a, b, 0xfff2a0, true), sound.shockArc(l.depth)));
+        if (a && b) this.time.delayedCall(l.depth * 90, () => (this.bolt(a, b, 0xfff27a, true), sound.shockArc(l.depth)));
       }
-      for (const w of words) this.collectView(w.id, true);
-      if (words.length >= 5) this.callout(960, 300, `CHAIN ×${words.length}`, '#fff0a0', 34);
+      for (const w of words) {
+        this.stopTrail(w.id);
+        this.collectView(w.id, true);
+      }
+      if (!this.reduced) this.cameras.main.flash(90, 255, 250, 180, false);
+      this.floorFlash(0xfff27a);
+      this.callout(cx, 420, words.length > 3 ? `CHAIN ×${words.length}!` : 'ZAP!', '#fff27a', 52, '#3a3000');
     });
-    ev.on('wordsHarvested', ({ words, volley, allIn }) => {
-      words.forEach((w, i) => this.time.delayedCall(i * 40, () => this.collectView(w.id, true)));
-      const notes = [allIn && allIn > 1 ? `ALL-IN ×${allIn}` : '', volley && volley > 1 ? `VOLLEY ×${volley} SPENT` : ''].filter(Boolean);
-      this.callout(960, 300, ['HARVEST', ...notes].join('  ·  '), '#f2d27a', 30);
-      if (!this.reduced) this.cameras.main.flash(160, 90, 70, 20, false);
+    ev.on('wordsHarvested', ({ words, points, volley, allIn }) => {
+      words.forEach((w, i) => this.time.delayedCall(i * 45, () => (this.stopTrail(w.id), this.collectView(w.id, true))));
+      const parts = [`HARVEST +${points}`, allIn && allIn > 1 ? `ALL-IN ×${allIn}` : '', volley && volley > 1 ? `RUSH ×${volley.toFixed(1)} SPENT` : ''].filter(Boolean);
+      this.callout(cx, 400, parts.join('  ·  '), '#ffd35a', 44, '#4a2a00');
+      this.confetti(60);
+      if (!this.reduced) this.cameras.main.flash(180, 255, 200, 80, false);
     });
     ev.on('wordsTransmuted', ({ words }) => {
       for (const w of words) {
         const v = this.views.get(w.id);
         if (!v) continue;
-        this.burst(v.x, v.y, 0xc4708a, 10);
+        this.burst(v.x, v.y, 0xff5fa8, 12);
+        this.stopTrail(w.id);
         v.destroy();
         this.views.delete(w.id);
         this.addView(w);
@@ -493,44 +503,44 @@ export class TypelPlayScene extends Phaser.Scene {
       this.gust(outcome === 'wager' ? 1 : 0.6);
       if (outcome === 'wager') {
         sound.wager();
-        this.callout(960, 280, `ALL IN  ·  ×${this.engine.wardInfo.allInMultiplier}`, '#ffd27a', 46);
-        this.callout(960, 334, `Ward scarred −${scar}  ·  max ${cap}%`, '#e89a9a', 22);
+        this.callout(cx, 360, `ALL IN!  ×${this.engine.wardInfo.allInMultiplier}`, '#ffd35a', 72, '#6a0010');
+        this.callout(cx, 440, `The Ward is scarred −${scar}  ·  max ${cap}%`, '#ffb0b0', 26, '#3a0010');
+        this.wizard.cheer();
       } else if (outcome === 'heal') {
         sound.gust(0.7);
         sound.heal();
-        this.callout(960, 300, cap < 100 ? `WARD MENDED  ·  to ${cap}%` : 'WARD MENDED', '#b8e0a0', 30);
-        if (endedAllIn) this.callout(960, 340, 'All-In released', '#d8d0c0', 20);
+        this.callout(cx, 400, cap < 100 ? `WARD MENDED · ${cap}%` : 'WARD MENDED', '#7dffb5', 44, '#0a3a1a');
+        if (endedAllIn) this.callout(cx, 456, 'All-In released', '#ffffff', 24, '#1a0630');
       } else {
         sound.gust(0.6);
-        this.callout(960, 300, 'Calm gust  ·  too scarred to wager', '#d8d0c0', 24);
+        this.callout(cx, 400, 'A calm breeze · too scarred to wager', '#e0ffe8', 30, '#1a0630');
       }
-      this.wardDirty = true;
     });
     ev.on('allInChanged', ({ active, reason }) => {
-      this.tweens.add({ targets: this.allInVeil, alpha: active ? 0.55 : 0, duration: 400 });
-      if (!active && (reason === 'breach' || reason === 'mistake')) this.callout(960, 300, 'ALL-IN BROKEN', '#f08080', 30);
-      if (!active && reason === 'expired') this.callout(960, 300, 'All-In fades', '#d8d0c0', 22);
-      this.wardDirty = true;
+      this.tweens.add({ targets: this.allInVeil, fillAlpha: active ? 0.14 : 0, duration: 400 });
+      if (!active && (reason === 'breach' || reason === 'mistake')) this.callout(cx, 400, 'ALL-IN BROKEN', '#ff8080', 46, '#3a0010');
+      if (!active && reason === 'expired') this.callout(cx, 400, 'All-In fades', '#ffffff', 30, '#1a0630');
     });
     ev.on('runeAwarded', ({ id, name, points }) => {
       const tier = RUNE_BY_ID.get(id)?.tier ?? 1;
       sound.rune(tier);
       prefs.noteRune(id);
-      this.tweens.add({
-        targets: this.runeText, y: 730, alpha: 0, duration: 140,
-        onComplete: () => {
-          this.runeText.setText(`${name}\n+${points}`).setY(790).setAlpha(1);
-          this.tweens.add({ targets: this.runeText, y: 760, duration: 220, ease: 'Back.easeOut' });
-        },
-      });
+      this.runeToast(name, points, tier);
     });
-    ev.on('windDown', () => this.plaqueProgress.setText('Clear the field!'));
     ev.on('gameOver', ({ result }) => {
       this.ended = true;
-      if (result === 'won') sound.levelClear();
-      else sound.defeat();
-      this.time.delayedCall(result === 'won' ? 700 : 1200, () => this.finish(result));
+      if (result === 'won') {
+        sound.levelClear();
+        this.wizard.cheer();
+        this.confetti(90);
+      } else sound.defeat();
+      this.time.delayedCall(result === 'won' ? 900 : 1300, () => this.finish(result));
     });
+  }
+
+  private posOf(w: WordState): { x: number; y: number } {
+    const v = this.views.get(w.id);
+    return { x: v?.x ?? toX(w.x), y: v?.y ?? toY(w.y) };
   }
 
   private finish(result: GameResult): void {
@@ -556,10 +566,7 @@ export class TypelPlayScene extends Phaser.Scene {
         return;
       }
       if (this.paused || this.ended || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key === 'Backspace') {
-        if (this.engine.backspace()) sound.backspace();
-        return;
-      }
+      if (e.key === 'Backspace') return this.erase();
       if (e.key === 'Enter') return this.engine.submit();
       if (/^[1-8]$/.test(e.key) && !this.setup.hardcore) {
         const spell = SPELL_ORDER[Number(e.key) - 1]!;
@@ -569,12 +576,36 @@ export class TypelPlayScene extends Phaser.Scene {
       if (/^[a-zA-Z]$/.test(e.key) && this.engine.typeChar(e.key)) {
         sound.key(e.key);
         this.pressKey(e.key.toLowerCase());
+        this.wizard.typed();
       }
     });
     this.input.on('gameobjectdown', (_p: unknown, obj: Phaser.GameObjects.GameObject) => {
       const id = obj.getData('wordId') as number | undefined;
       if (typeof id === 'number' && !this.paused && !this.ended) this.engine.selectTarget(id);
     });
+  }
+
+  /**
+   * Backspace (D-086): as satisfying as typing. The letter un-inks from the
+   * scroll and the paper and drips away; the carriage clicks back.
+   */
+  private erase(): void {
+    const before = this.engine.state.input;
+    if (!this.engine.backspace()) return;
+    sound.erase(before.length);
+    this.wizard.typed();
+    this.inkDrop(PAPER.x + this.paper.width / 2, PAPER.y, before.at(-1) ?? '', '#2b1606');
+    for (const v of this.views.values()) {
+      const off = v.setTyped(v.word.typed);
+      if (off) this.inkDrop(off.x, v.y, off.ch, RUBRIC);
+    }
+  }
+
+  private inkDrop(x: number, y: number, ch: string, color: string): void {
+    const t = this.text(x, y, ch, 32, color, { fontFamily: FONT_WORD, fontStyle: '700' }).setOrigin(0.5).setDepth(40);
+    this.tweens.add({ targets: t, y: y + 44, scaleX: 0.4, scaleY: 1.6, alpha: 0, duration: 380, ease: 'Quad.easeIn', onComplete: () => t.destroy() });
+    const drop = this.add.circle(x, y + 12, 5, hexNum(color), 0.85).setDepth(40);
+    this.tweens.add({ targets: drop, y: y + 72, alpha: 0, duration: 520, ease: 'Quad.easeIn', onComplete: () => drop.destroy() });
   }
 
   pause(): void {
@@ -593,9 +624,7 @@ export class TypelPlayScene extends Phaser.Scene {
     this.ended = false;
     this.paused = false;
     this.setup = { ...this.setup, boss: false, title, subtitle: 'Endless · the pace keeps rising' };
-    this.plaqueTitle.setText(title);
-    this.fitTitle();
-    this.plaqueSub.setText(this.setup.subtitle);
+    this.banner(title, this.setup.subtitle);
     sound.setMood('boss');
   }
 
@@ -605,7 +634,8 @@ export class TypelPlayScene extends Phaser.Scene {
 
   // ───────────────────────── frame ─────────────────────────
 
-  override update(_time: number, delta: number): void {
+  override update(time: number, delta: number): void {
+    this.time0 = time;
     if (!this.paused && !this.ended) {
       this.acc += Math.min(delta, 250);
       while (this.acc >= SIMULATION_STEP_MS && this.engine.status === 'playing') {
@@ -614,76 +644,131 @@ export class TypelPlayScene extends Phaser.Scene {
       }
     }
     const alpha = this.acc / SIMULATION_STEP_MS;
+    let target: ScrollView | null = null;
+    let lowest: ScrollView | null = null;
     for (const v of this.views.values()) {
       const w = v.word;
       v.setPosition(toX(w.x), toY(w.prevY + (w.y - w.prevY) * Math.min(1, alpha)));
+      v.setTyped(w.typed);
+      if (w.isTarget) target = v;
+      if (!lowest || v.y > lowest.y) lowest = v;
+      this.trails.get(w.id)?.setPosition(v.x, v.y - 20);
     }
+    const look = target ?? lowest;
+    if (look) this.wizard.lookAt(look.x, look.y);
+    this.wizard.tickFrame(delta);
     this.refreshHud(delta);
-  }
-
-  private refreshAll(): void {
-    this.refreshPlaque();
-    this.refreshRack();
-    this.wardDirty = true;
-    this.setPaper('', true);
   }
 
   private refreshHud(delta: number): void {
     const e = this.engine;
     const s = e.state;
-    // score roll-up
-    const target = (this.setup.scoreOffset ?? 0) + s.score;
-    if (this.shownScore !== target) {
-      this.shownScore += Math.max(1, Math.ceil((target - this.shownScore) * Math.min(1, delta / 120)));
-      if (this.shownScore > target) this.shownScore = target;
+    const goal = (this.setup.scoreOffset ?? 0) + s.score;
+    if (this.shownScore !== goal) {
+      this.shownScore += Math.max(1, Math.ceil((goal - this.shownScore) * Math.min(1, delta / 140)));
+      if (this.shownScore > goal) this.shownScore = goal;
       this.scoreText.setText(this.shownScore.toLocaleString('en-US'));
     }
-    // combo dial
+    // Combo column: progress to the next multiplier
     const mult = 1 + Math.floor(s.combo / 10);
-    const a = Math.PI * 0.75 + ((s.combo % 10) / 10) * Math.PI * 1.5;
-    this.comboNeedle.clear().lineStyle(4, 0x6a1812, 1).lineBetween(530, 930, 530 + Math.cos(a) * 60, 930 + Math.sin(a) * 60).fillStyle(0x3a2410, 1).fillCircle(530, 930, 6);
+    const span = COMBO_TUBE.bottom - COMBO_TUBE.top - 16;
+    const ch = span * ((s.combo % 10) / 10);
+    const cf = this.comboFill.clear();
+    if (ch > 0) cf.fillStyle(0x2f8cff, 0.9).fillRoundedRect(COMBO_TUBE.x + 8, COMBO_TUBE.bottom - 8 - ch, COMBO_TUBE.w - 16, ch, Math.min(30, ch / 2));
+    for (let i = 1; i < 10; i++) {
+      const y = COMBO_TUBE.bottom - 8 - (span * i) / 10;
+      cf.lineStyle(2, 0xffffff, i <= s.combo % 10 ? 0.9 : 0.3).lineBetween(COMBO_TUBE.x + 74, y, COMBO_TUBE.x + COMBO_TUBE.w - 10, y);
+    }
     this.comboMult.setText(`×${mult}`);
-    this.comboCount.setText(`COMBO ${s.combo}`);
-    // volley tube
+    this.comboCount.setText(`${s.combo}`);
+    if (mult > this.lastMult) this.comboUp(mult);
+    this.lastMult = mult;
+    // Arcane Rush column (internally the Arcane Volley multiplier)
     const v = e.volleyMultiplier;
     const armed = e.volleyArmedProgress;
-    const level = v > 1 ? Math.min(1, Math.log(v) / Math.log(5)) : armed * 0.06;
+    const level = v > 1 ? Math.min(1, Math.log(v) / Math.log(6)) : armed * 0.05;
+    const rh = (RUSH_TUBE.bottom - RUSH_TUBE.top - 16) * level;
     const hot = v >= 2;
-    const top = 1008 - level * 258;
-    this.volleyFill.clear().fillStyle(hot ? 0xffd27a : 0xe09a3a, hot ? 0.95 : 0.8).fillRoundedRect(1350, top, 42, 1008 - top, Math.min(18, (1008 - top) / 2));
-    if (hot) this.volleyFill.fillStyle(0xffffff, 0.35).fillRect(1358, top + 4, 6, Math.max(0, 1000 - top - 8));
-    this.volleyText.setText(v > 1 ? `VOLLEY ×${v.toFixed(1)}` : armed > 0 ? 'LINK NEXT!' : 'VOLLEY');
-    if (v > this.lastVolley + 0.05) {
+    const rf = this.rushFill.clear();
+    if (rh > 0) rf.fillStyle(hot ? 0x7dffb5 : 0x3ddc84, hot ? 0.75 + 0.25 * Math.sin(this.time0 / 90) : 0.85).fillRoundedRect(RUSH_TUBE.x + 8, RUSH_TUBE.bottom - 8 - rh, RUSH_TUBE.w - 16, rh, Math.min(30, rh / 2));
+    if (armed > 0) rf.fillStyle(0xffd35a, 1).fillRoundedRect(RUSH_TUBE.x + 10, RUSH_TUBE.top + 2, (RUSH_TUBE.w - 20) * armed, 10, 5);
+    this.rushMult.setText(v > 1 ? `×${v.toFixed(1)}` : '×1');
+    this.rushMult.setScale(hot && !this.reduced ? 1 + 0.06 * Math.sin(this.time0 / 70) : 1);
+    this.rushState.setText(v >= 5 ? 'MASTERY!' : hot ? 'RUSHING!' : v > 1 ? 'BUILDING' : armed > 0 ? 'LINK NEXT!' : '');
+    if (v > this.lastRush + 0.05) {
       sound.volleyStep(v);
-      if (v >= 2 && this.lastVolley < 2) this.ignite();
-    } else if (v === 1 && this.lastVolley >= 1.2) sound.volleyBreak();
-    this.lastVolley = v;
-    if (hot && !this.reduced) {
-      if (!this.volleySparks.emitting) this.volleySparks.start();
-      this.volleySparks.frequency = Math.max(25, 140 - (v - 2) * 35);
-    } else if (this.volleySparks.emitting) this.volleySparks.stop();
-    // survival timer
-    if (isSurvival(e.config)) this.refreshPlaque();
-    if (this.wardDirty) this.drawWard();
-    if (e.wardInfo.allInTicks > 0) this.wardText.setText(`ALL-IN ×${e.wardInfo.allInMultiplier} · ${Math.ceil((e.wardInfo.allInTicks * SIMULATION_STEP_MS) / 1000)}s`);
-    // candles breathe
-    for (const c of this.candles) if (Math.random() < 0.1) c.setAlpha(0.75 + Math.random() * 0.25);
-    // music pressure
+      if (v >= 2 && this.lastRush < 2) this.ignite('ARCANE RUSH!');
+      if (v >= 5 && this.lastRush < 5) this.ignite('RUSH MASTERY!');
+    } else if (v === 1 && this.lastRush >= 1.2) {
+      sound.volleyBreak();
+      if (this.lastRush >= 2) this.callout(300, 380, 'RUSH LOST', '#ffb0b0', 28, '#3a0010');
+    }
+    this.lastRush = v;
+    const edge = hot ? Math.min(0.75, 0.25 + (v - 2) * 0.15) : v > 1 ? 0.1 : 0;
+    for (const img of this.edges) img.setAlpha(edge * (0.85 + 0.15 * Math.sin(this.time0 / 110))).setTint(v >= 5 ? 0xffd35a : 0x3ddc84);
+    if (!this.reduced) {
+      if (v > 1 && !this.rushBubbles.emitting) this.rushBubbles.start();
+      if (v <= 1 && this.rushBubbles.emitting) this.rushBubbles.stop();
+      this.rushBubbles.frequency = Math.max(20, 120 - v * 18);
+      if (hot && !this.rushEruption.emitting) this.rushEruption.start();
+      if (!hot && this.rushEruption.emitting) this.rushEruption.stop();
+      this.rushEruption.frequency = Math.max(18, 90 - (v - 2) * 20);
+    }
+    this.wizard.setWonder(hot, v);
+    const ward = e.wardInfo;
+    this.wizard.setNervous(1 - ward.stability / 100);
+    this.drawFloor();
+    this.refreshFloorText();
     this.pressureTimer -= delta;
     if (this.pressureTimer <= 0) {
       this.pressureTimer = 400;
       const crowd = s.words.length / Math.max(4, e.config.maxActiveWords);
       const prog = e.config.requiredWords ? s.completed / e.config.requiredWords : 0.6;
-      sound.setPressure(crowd * 0.65 + prog * 0.35, 1 - e.wardInfo.stability / 100, v >= 2 ? 1 : 0);
+      sound.setPressure(crowd * 0.65 + prog * 0.35, 1 - ward.stability / 100, hot ? Math.min(1, (v - 1) / 4) : 0);
     }
   }
 
-  private refreshPlaque(): void {
+  /** The Ward floor: living energy showing health, scars, shields and All-In. */
+  private drawFloor(): void {
+    const w = this.engine.wardInfo;
+    const stab = Math.max(0, w.stability);
+    const allIn = w.allInTicks > 0;
+    const color = allIn ? 0xffb020 : stab > 60 ? 0x26d9e8 : stab > 30 ? 0xffb627 : 0xff3a4a;
+    const g = this.floor.clear();
+    g.fillStyle(0x140626, 1).fillRect(FLOOR.x, FLOOR.y, FLOOR.w, FLOOR.h);
+    const healthy = (FLOOR.w * stab) / 100;
+    const capX = FLOOR.x + (FLOOR.w * w.cap) / 100;
+    g.fillStyle(color, 0.3).fillRect(FLOOR.x, FLOOR.y, healthy, FLOOR.h);
+    g.fillStyle(color, 0.95).fillRect(FLOOR.x, FLOOR.y, healthy, 6);
+    const speed = 0.06 + (this.engine.volleyMultiplier - 1) * 0.06;
+    for (let i = 0; i < 44; i++) {
+      const x = FLOOR.x + ((i * 61 + this.time0 * speed) % FLOOR.w);
+      if (x > FLOOR.x + healthy) continue;
+      g.fillStyle(0xffffff, 0.55).fillCircle(x, FLOOR.y + 20 + ((i * 37) % 100), i % 3 === 0 ? 3 : 2);
+    }
+    if (w.cap < 100) {
+      g.fillStyle(0x3a0010, 0.95).fillRect(capX, FLOOR.y, FLOOR.x + FLOOR.w - capX, FLOOR.h);
+      g.lineStyle(3, 0xff3a4a, 1).lineBetween(capX, FLOOR.y, capX, FLOOR.y + FLOOR.h);
+      g.lineStyle(2, 0x8a1020, 1);
+      for (let x = capX + 14; x < FLOOR.x + FLOOR.w - 10; x += 34) g.lineBetween(x, FLOOR.y + 8, x + 18, FLOOR.y + FLOOR.h - 8);
+    }
+    for (let i = 0; i < this.engine.state.barrier; i++) {
+      g.fillStyle(0x8fb8ff, 0.4).fillCircle(FLOOR.x + 40 + i * 44, FLOOR.y - 18, 15);
+      g.lineStyle(5, 0xcfe2ff, 0.95).strokeCircle(FLOOR.x + 40 + i * 44, FLOOR.y - 18, 15);
+    }
+    g.lineStyle(4, color, 0.6 + 0.4 * Math.sin(this.time0 / (stab < 30 ? 90 : 300))).lineBetween(FLOOR.x, WARD_Y, FLOOR.x + FLOOR.w, WARD_Y);
+  }
+
+  private refreshFloorText(): void {
     const e = this.engine;
     const rem = e.survivalRemainingMs;
-    if (rem !== null && isSurvival(e.config)) this.plaqueProgress.setText(rem > 0 ? `Survive ${Math.ceil(rem / 1000)}s` : 'Clear the field!');
-    else if (e.config.requiredWords) this.plaqueProgress.setText(`${e.state.completed} / ${e.config.requiredWords} scrolls`);
-    else this.plaqueProgress.setText(`${e.state.completed} scrolls`);
+    const progress = rem !== null && isSurvival(e.config)
+      ? rem > 0 ? `Survive ${Math.ceil(rem / 1000)}s` : 'Clear the field!'
+      : e.config.requiredWords ? `${e.state.completed} / ${e.config.requiredWords} scrolls` : `${e.state.completed} scrolls`;
+    this.floorLeft.setText(`${this.setup.title}\n${progress}`);
+    const w = e.wardInfo;
+    const allIn = w.allInTicks > 0 ? `\nALL-IN ×${w.allInMultiplier} · ${Math.ceil((w.allInTicks * SIMULATION_STEP_MS) / 1000)}s` : '';
+    this.floorRight.setText(`WARD ${Math.round(w.stability)}%${w.cap < 100 ? ` / ${w.cap}%` : ''}${allIn}`);
   }
 
   private refreshRack(): void {
@@ -693,49 +778,17 @@ export class TypelPlayScene extends Phaser.Scene {
       const n = s.spells[id] ?? 0;
       held += n;
       slot.count.setText(String(n));
-      if (!slot.dim) slot.vial.setAlpha(n > 0 ? 1 : 0.55);
+      if (slot.learned) slot.slot.setAlpha(n > 0 ? 1 : 0.55);
     }
     this.poolText.setText(`charges ${held} / ${this.engine.poolLimit}`);
   }
 
-  private drawWard(): void {
-    this.wardDirty = false;
-    const w = this.engine.wardInfo;
-    const stab = Math.max(0, w.stability);
-    const g = this.wardLiquid.clear();
-    // flask interior: map 0–100 to y 1026 → 772
-    const yOf = (p: number) => 1026 - (p / 100) * 254;
-    const allIn = w.allInTicks > 0;
-    const color = allIn ? 0xf2c24a : stab > 50 ? 0xc0407a : stab > 25 ? 0xd06a3a : 0xd03030;
-    const fillTo = yOf(stab);
-    for (let y = 1026; y > fillTo; y -= 3) {
-      const half = y > 868 ? Math.sqrt(Math.max(0, 80 * 80 - (y - 945) * (y - 945))) : 16;
-      g.fillStyle(color, 0.85).fillRect(1509 - half, y - 3, half * 2, 3);
-    }
-    if (w.cap < 100) {
-      // scarred capacity: cracked dark glass that healing cannot reach
-      for (let y = yOf(w.cap); y > yOf(100); y -= 3) {
-        const half = y > 868 ? Math.sqrt(Math.max(0, 80 * 80 - (y - 945) * (y - 945))) : 16;
-        g.fillStyle(0x2a0a0e, 0.85).fillRect(1509 - half, y - 3, half * 2, 3);
-      }
-      g.lineStyle(2, 0xe05a5a, 0.9).lineBetween(1490, yOf(w.cap), 1528, yOf(w.cap));
-      g.lineStyle(1, 0x8a2a2a, 0.9);
-      for (let i = 0; i < 4; i++) g.lineBetween(1495 + i * 9, yOf(w.cap) - 4, 1500 + i * 9 - 6, yOf(100) + 8);
-    }
-    if (!allIn) this.wardText.setText(w.cap < 100 ? `WARD ${Math.round(stab)}% / ${w.cap}%` : `WARD ${Math.round(stab)}%`);
-    // rail across the battlefield
-    const rail = this.rail.clear();
-    const railColor = allIn ? 0xf2c24a : stab > 50 ? 0xc0407a : stab > 25 ? 0xd06a3a : 0xe03a3a;
-    rail.fillStyle(railColor, 0.22).fillRect(FIELD_RECT.x, WARD_Y - 10, FIELD_RECT.w, 20);
-    rail.lineStyle(3, railColor, 0.55 + 0.45 * (stab / 100)).lineBetween(FIELD_RECT.x, WARD_Y, FIELD_RECT.x + FIELD_RECT.w, WARD_Y);
-    for (let i = 0; i < this.engine.state.barrier; i++) {
-      rail.lineStyle(3, 0xd6e4f2, 0.9).strokeCircle(FIELD_RECT.x + 40 + i * 34, WARD_Y - 22, 11);
-    }
-  }
-
   private setPaper(input: string, valid: boolean): void {
-    this.paper.setText(input).setColor(valid ? INK : '#a3261c');
-    this.caret.setX(960 + this.paper.width / 2 + 4);
+    this.paper.setText(input).setColor(valid ? INK : '#c4141e');
+    this.paper.setScale(1);
+    const max = 268;
+    if (this.paper.width > max) this.paper.setScale(max / this.paper.width);
+    this.caret.setX(PAPER.x + (this.paper.width * this.paper.scaleX) / 2 + 4);
   }
 
   // ───────────────────────── views and effects ─────────────────────────
@@ -744,10 +797,11 @@ export class TypelPlayScene extends Phaser.Scene {
     if (this.views.has(word.id)) return;
     const v = new ScrollView(this, word);
     if (this.engine.state.freezeTicks > 0) v.setFrozen(true);
+    if (word.plunge) v.setPlunge(word.plunge);
     this.views.set(word.id, v);
     if (!this.reduced) {
-      v.setAlpha(0);
-      this.tweens.add({ targets: v, alpha: 1, duration: 160 });
+      v.setScale(0.3).setAlpha(0);
+      this.tweens.add({ targets: v, scale: 1, alpha: 1, duration: 220, ease: 'Back.easeOut' });
     }
   }
 
@@ -756,33 +810,173 @@ export class TypelPlayScene extends Phaser.Scene {
     this.views.delete(id);
   }
 
+  private startTrail(v: ScrollView, tier: number): void {
+    this.stopTrail(v.word.id);
+    if (this.reduced) return;
+    const em = this.add.particles(v.x, v.y - 20, 'typel-spark', {
+      lifespan: 380, speedY: { min: -90, max: -30 }, speedX: { min: -30, max: 30 }, scale: { start: 0.5 + tier * 0.15, end: 0 },
+      alpha: { start: 0.9, end: 0 }, tint: PLUNGE_COLOR[tier], blendMode: 'ADD', frequency: 40 - tier * 8,
+    }).setDepth(9);
+    this.trails.set(v.word.id, em);
+  }
+
+  private stopTrail(id: number): void {
+    const em = this.trails.get(id);
+    if (!em) return;
+    em.stop();
+    this.time.delayedCall(500, () => em.destroy());
+    this.trails.delete(id);
+  }
+
   /** A captured scroll is swept into the typewriter. */
   private collectView(id: number, spellish: boolean): void {
     const v = this.views.get(id);
     if (!v) return;
     this.views.delete(id);
     v.setDepth(35);
-    this.tweens.add({
-      targets: v, x: 960, y: 760, scale: 0.2, alpha: 0.2, duration: spellish ? 380 : 220, ease: 'Cubic.easeIn',
-      onComplete: () => v.destroy(),
+    this.tweens.add({ targets: v, x: PAPER.x, y: PAPER.y - 20, scale: 0.15, alpha: 0.3, angle: spellish ? 180 : 0, duration: spellish ? 420 : 260, ease: 'Cubic.easeIn', onComplete: () => v.destroy() });
+  }
+
+  /** Capture: a burst of stars; the word's letters fly into the arcade counter. */
+  private captureBurst(x: number, y: number, text: string, combo: number): void {
+    const tints = combo >= 30 ? [0xff5fa8, 0xffd35a, 0x26d9e8, 0x3ddc84] : combo >= 10 ? [0xffd35a, 0x26d9e8] : [0xffd35a];
+    const em = this.add.particles(x, y, 'typel-star', {
+      lifespan: 650, speed: { min: 120, max: 360 }, scale: { start: 0.55, end: 0 }, rotate: { min: 0, max: 360 }, tint: tints, blendMode: 'ADD', emitting: false,
+    }).setDepth(36);
+    em.explode(this.reduced ? 6 : 14 + Math.min(16, combo));
+    this.time.delayedCall(800, () => em.destroy());
+    if (this.reduced) return;
+    [...text.slice(0, 10)].forEach((ch, i) => {
+      const t = this.text(x - text.length * 9 + i * 18, y, ch.toUpperCase(), 26, '#ffe08a', { fontFamily: FONT_ARCADE, stroke: '#5a1a00', strokeThickness: 4 }).setOrigin(0.5).setDepth(50);
+      this.tweens.add({
+        targets: t, x: { value: COUNTER.x, ease: 'Sine.easeIn' }, y: { value: COUNTER.y, ease: 'Back.easeIn' }, scale: 0.5, delay: 120 + i * 35, duration: 520,
+        onComplete: () => {
+          t.destroy();
+          this.tweens.add({ targets: this.scoreText, scale: 1.08, duration: 50, yoyo: true });
+        },
+      });
     });
   }
 
-  private floatPoints(points: number): void {
-    const t = this.text(960, 704, `+${points}`, 26, '#f6d58a', { fontStyle: '700' }).setOrigin(0.5).setDepth(40);
-    this.tweens.add({ targets: t, y: 660, alpha: 0, duration: 750, ease: 'Sine.easeOut', onComplete: () => t.destroy() });
+  /** Balatro-style tally: BASE × COMBO × RUSH (× ALL-IN) = points, chip by chip. */
+  private tally(base: number, combo: number, rush: number, allIn: number, points: number): void {
+    this.equation.removeAll(true);
+    const chips: [string, string, number][] = [[`${base}`, 'BASE', 0x7a2a00], [`×${combo}`, 'COMBO', 0x0b3aa0], [`×${rush.toFixed(1)}`, 'RUSH', 0x0b7a3a]];
+    if (allIn > 1) chips.push([`×${allIn}`, 'ALL-IN', 0x8a0018]);
+    chips.push([`${points}`, 'POINTS', 0x5a0090]);
+    const gap = 360 / chips.length;
+    chips.forEach(([val, label, c], i) => {
+      const x = -180 + gap * (i + 0.5);
+      const box = this.add.rectangle(x, 0, gap - 8, 46, c, 1).setStrokeStyle(2, 0xffd35a);
+      const t = this.add.text(x, -5, val, { fontFamily: FONT_ARCADE, fontSize: val.length > 5 ? '17px' : '22px', color: '#ffffff' }).setOrigin(0.5);
+      const l = this.add.text(x, 15, label, { fontFamily: FONT_BODY, fontSize: '11px', color: '#ffe9b0' }).setOrigin(0.5);
+      const chip = this.add.container(0, 0, [box, t, l]).setScale(0);
+      this.equation.add(chip);
+      this.tweens.add({ targets: chip, scale: 1, delay: i * 70, duration: 160, ease: 'Back.easeOut', onStart: () => (i > 0 ? sound.tick(i) : undefined) });
+    });
   }
 
-  private callout(x: number, y: number, s: string, color: string, size: number): void {
-    const t = this.text(x, y, s, size, color, { fontFamily: FONT_TITLE, fontStyle: '700', stroke: '#1a0f08', strokeThickness: 6 }).setOrigin(0.5).setDepth(45).setScale(0.7);
-    this.tweens.add({ targets: t, scale: 1, duration: 160, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: t, alpha: 0, y: y - 30, delay: 900, duration: 700, onComplete: () => t.destroy() });
+  private floatPoints(x: number, y: number, points: number): void {
+    const size = points >= 1000 ? 48 : points >= 300 ? 38 : 30;
+    const color = points >= 1000 ? '#ff5fa8' : points >= 300 ? '#ffd35a' : '#ffffff';
+    const t = this.text(x, y - 10, `+${points}`, size, color, { fontFamily: FONT_ARCADE, stroke: '#2a0040', strokeThickness: 6 }).setOrigin(0.5).setDepth(45);
+    this.tweens.add({ targets: t, y: y - 80, alpha: 0, duration: 650, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
+  }
+
+  private callout(x: number, y: number, s: string, color: string, size: number, stroke = '#1a0630'): void {
+    const t = this.text(x, y, s, size, color, { fontFamily: FONT_ARCADE, stroke, strokeThickness: Math.max(6, size / 6) }).setOrigin(0.5).setDepth(55).setScale(0.4);
+    this.tweens.add({ targets: t, scale: 1, duration: 200, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: t, alpha: 0, y: y - 40, delay: 850, duration: 600, onComplete: () => t.destroy() });
+  }
+
+  private comboUp(mult: number): void {
+    sound.comboUp(mult);
+    this.callout(FIELD_RECT.x + FIELD_RECT.w / 2, 300, `COMBO ×${mult}!`, '#8fd0ff', 64, '#0b2a7a');
+    this.tweens.add({ targets: this.comboMult, scale: 1.5, duration: 140, yoyo: true });
+    this.burst(100, 300, 0x8fd0ff, 30);
+    if (mult >= 3) this.confetti(30 + mult * 6);
+    this.wizard.cheer();
+  }
+
+  private ignite(label: string): void {
+    sound.ignite();
+    this.callout(FIELD_RECT.x + FIELD_RECT.w / 2, 240, label, '#7dffb5', 76, '#0b4a1a');
+    this.burst(300, 260, 0x7dffb5, 40);
+    if (!this.reduced) {
+      this.cameras.main.flash(160, 120, 255, 170, false);
+      const ring = this.add.circle(FIELD_RECT.x + FIELD_RECT.w / 2, FIELD_RECT.h / 2, 40, 0x7dffb5, 0).setStrokeStyle(10, 0x7dffb5, 0.9).setDepth(50);
+      this.tweens.add({ targets: ring, radius: 900, alpha: 0, duration: 700, ease: 'Cubic.easeOut', onComplete: () => ring.destroy() });
+    }
+    this.confetti(70);
+  }
+
+  private confetti(n: number): void {
+    if (this.reduced) n = Math.ceil(n / 4);
+    const em = this.add.particles(0, 0, 'typel-star', {
+      x: { min: FIELD_RECT.x, max: FIELD_RECT.x + FIELD_RECT.w }, y: -20, lifespan: 1800, speedY: { min: 160, max: 380 }, speedX: { min: -80, max: 80 },
+      rotate: { min: 0, max: 360 }, scale: { start: 0.45, end: 0.2 }, tint: [0xff5fa8, 0xffd35a, 0x26d9e8, 0x3ddc84, 0xa259ff], emitting: false,
+    }).setDepth(54);
+    em.explode(n);
+    this.time.delayedCall(2000, () => em.destroy());
+  }
+
+  private runeToast(name: string, points: number, tier: number): void {
+    const color = tier >= 3 ? '#ff9ad0' : tier === 2 ? '#d8e6ff' : '#ffe08a';
+    const c = this.add.container(FIELD_RECT.x + FIELD_RECT.w / 2, -60).setDepth(58);
+    const bg = this.add.rectangle(0, 0, 460, 74, 0x2a0040, 0.92).setStrokeStyle(4, hexNum(color));
+    const t1 = this.add.text(0, -14, `RUNE · ${name}`, { fontFamily: FONT_ARCADE, fontSize: '28px', color }).setOrigin(0.5);
+    const t2 = this.add.text(0, 20, `+${points}`, { fontFamily: FONT_ARCADE, fontSize: '20px', color: '#ffffff' }).setOrigin(0.5);
+    c.add([bg, t1, t2]);
+    this.tweens.add({ targets: c, y: 70, duration: 280, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: c, y: -60, delay: 1700, duration: 300, onComplete: () => c.destroy() });
+    if (tier >= 2) this.confetti(25 * tier);
+  }
+
+  /** Claimed spell swishes to the rack and knocks into its shelf. */
+  private claimSpell(spell: SpellId, stored: boolean, x: number, y: number): void {
+    const slot = this.rack.get(spell);
+    const tx = RACK_X + 52;
+    const ty = (slot?.y ?? 500) + 6;
+    const orb = this.add.container(x, y).setDepth(56);
+    orb.add([
+      this.add.image(0, 0, 'typel-glow-gold').setTint(hexNum(SPELL_HUE[spell])).setScale(0.7).setBlendMode(Phaser.BlendModes.ADD),
+      this.add.text(0, 0, SPELL_GLYPH[spell], { fontSize: '30px', color: '#ffffff' }).setOrigin(0.5),
+    ]);
+    sound.swish();
+    const curve = new Phaser.Curves.QuadraticBezier(
+      new Phaser.Math.Vector2(x, y),
+      new Phaser.Math.Vector2((x + tx) / 2, Math.min(y, ty) - 220),
+      new Phaser.Math.Vector2(tx, ty),
+    );
+    const path = { t: 0 };
+    this.tweens.add({
+      targets: path, t: 1, duration: 520, ease: 'Sine.easeIn',
+      onUpdate: () => {
+        const p = curve.getPoint(path.t);
+        orb.setPosition(p.x, p.y).setAngle(path.t * 540);
+      },
+      onComplete: () => {
+        orb.destroy();
+        if (!slot) return;
+        if (stored) {
+          sound.thunk();
+          this.burst(tx, ty + 30, 0xc27a3e, 12);
+          const baseX = RACK_X + 16;
+          this.tweens.add({ targets: slot.slot, angle: { from: -7, to: 0 }, x: { from: baseX + 10, to: baseX }, duration: 420, ease: 'Elastic.easeOut' });
+          this.tweens.add({ targets: slot.count, scale: 1.6, duration: 120, yoyo: true });
+        } else {
+          sound.overflow();
+          this.callout(RACK_X + 134, ty, 'RACK FULL', '#ffb0b0', 24, '#3a0010');
+        }
+        this.refreshRack();
+      },
+    });
   }
 
   private burst(x: number, y: number, tint: number, n: number): void {
     if (this.reduced) n = Math.ceil(n / 3);
     const em = this.add.particles(x, y, 'typel-spark', {
-      lifespan: 520, speed: { min: 60, max: 240 }, scale: { start: 0.45, end: 0 }, alpha: { start: 1, end: 0 }, tint, blendMode: 'ADD', emitting: false,
+      lifespan: 560, speed: { min: 80, max: 280 }, scale: { start: 0.5, end: 0 }, alpha: { start: 1, end: 0 }, tint, blendMode: 'ADD', emitting: false,
     }).setDepth(36);
     em.explode(n);
     this.time.delayedCall(700, () => em.destroy());
@@ -790,50 +984,41 @@ export class TypelPlayScene extends Phaser.Scene {
 
   private fire(x: number, y: number): void {
     const em = this.add.particles(x, y, 'typel-flame', {
-      lifespan: 700, speedY: { min: -160, max: -40 }, speedX: { min: -60, max: 60 }, scale: { start: 1.1, end: 0.2 },
-      alpha: { start: 1, end: 0 }, blendMode: 'ADD', emitting: false,
+      lifespan: 760, speedY: { min: -200, max: -50 }, speedX: { min: -70, max: 70 }, scale: { start: 1.4, end: 0.2 }, alpha: { start: 1, end: 0 }, blendMode: 'ADD', emitting: false,
     }).setDepth(36);
-    em.explode(this.reduced ? 6 : 16);
-    this.burst(x, y, 0xf09040, 10);
-    this.time.delayedCall(900, () => em.destroy());
+    em.explode(this.reduced ? 6 : 20);
+    this.burst(x, y, 0xffa040, 12);
+    this.time.delayedCall(950, () => em.destroy());
   }
 
   private bolt(a: { x: number; y: number }, b: { x: number; y: number }, color: number, jagged: boolean): void {
     const g = this.add.graphics().setDepth(37).setBlendMode(Phaser.BlendModes.ADD);
     const pts: { x: number; y: number }[] = [a];
-    const n = jagged ? 7 : 4;
+    const n = jagged ? 8 : 4;
     for (let i = 1; i < n; i++) {
       const t = i / n;
-      const off = jagged ? (Math.random() - 0.5) * 36 : Math.sin(t * Math.PI) * 18;
-      pts.push({ x: a.x + (b.x - a.x) * t + off, y: a.y + (b.y - a.y) * t + off * 0.5 });
+      const off = jagged ? (Math.random() - 0.5) * 50 : Math.sin(t * Math.PI) * 22;
+      pts.push({ x: a.x + (b.x - a.x) * t + off, y: a.y + (b.y - a.y) * t + off * 0.4 });
     }
     pts.push(b);
-    for (const [w, al] of [[10, 0.25], [4, 0.9]] as const) {
-      g.lineStyle(w, w > 5 ? color : 0xffffff, al).beginPath();
+    for (const [w, al, c] of [[16, 0.3, color], [5, 1, 0xffffff]] as const) {
+      g.lineStyle(w, c, al).beginPath();
       g.moveTo(pts[0]!.x, pts[0]!.y);
       for (const p of pts.slice(1)) g.lineTo(p.x, p.y);
       g.strokePath();
     }
-    this.tweens.add({ targets: g, alpha: 0, duration: 320, onComplete: () => g.destroy() });
+    this.tweens.add({ targets: g, alpha: 0, duration: 340, onComplete: () => g.destroy() });
   }
 
-  private flashRail(color: number): void {
-    const r = this.add.rectangle(FIELD_RECT.x + FIELD_RECT.w / 2, WARD_Y, FIELD_RECT.w, 26, color, 0.6).setDepth(9).setBlendMode(Phaser.BlendModes.ADD);
-    this.tweens.add({ targets: r, alpha: 0, duration: 420, onComplete: () => r.destroy() });
+  private floorFlash(color: number): void {
+    const r = this.add.rectangle(FLOOR.x + FLOOR.w / 2, FLOOR.y + FLOOR.h / 2, FLOOR.w, FLOOR.h, color, 0.6).setDepth(9).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: r, alpha: 0, duration: 460, onComplete: () => r.destroy() });
   }
 
-  private ignite(): void {
-    sound.ignite();
-    this.callout(1371, 700, 'SURGE!', '#ffe08a', 34);
-    this.burst(1371, 760, 0xffd27a, 40);
-    if (!this.reduced) this.cameras.main.flash(120, 120, 90, 30, false);
-  }
-
-  /** Field mood for Slow (amber time) and Ice (teal stillness). */
   private mood(kind: 'slow' | 'ice' | null): void {
-    const color = kind === 'ice' ? 0x3aa4a0 : kind === 'slow' ? 0x9b6fb0 : 0x000000;
+    const color = kind === 'ice' ? 0x26d9e8 : kind === 'slow' ? 0xa259ff : 0x000000;
     this.overlay.setFillStyle(color, 1);
-    this.tweens.add({ targets: this.overlay, alpha: kind ? 0.14 : 0, duration: 300 });
+    this.tweens.add({ targets: this.overlay, alpha: kind ? 0.16 : 0, duration: 300 });
   }
 
   /** Wind gust: cosmetic tilt and streaks only (D-081). */
@@ -841,18 +1026,17 @@ export class TypelPlayScene extends Phaser.Scene {
     if (this.reduced) return;
     let i = 0;
     for (const v of this.views.values()) {
-      const lean = (i++ % 2 ? 0.7 : 1) * 7 * strength;
+      const lean = (i++ % 2 ? 0.7 : 1) * 8 * strength;
       this.tweens.chain({ targets: v, tweens: [
         { angle: lean, duration: 220, ease: 'Sine.easeOut' },
         { angle: -lean * 0.4, duration: 360, ease: 'Sine.easeInOut' },
         { angle: 0, duration: 420, ease: 'Sine.easeOut' },
       ] });
     }
-    for (let k = 0; k < 14; k++) {
-      const y = FIELD_RECT.y + 40 + Math.random() * (FIELD_RECT.h - 80);
-      const streak = this.add.rectangle(FIELD_RECT.x - 100, y, 140 + Math.random() * 160, 2, 0xdfeedd, 0.35).setDepth(36);
+    for (let k = 0; k < 18; k++) {
+      const y = 40 + Math.random() * (FIELD_RECT.h - 80);
+      const streak = this.add.rectangle(FIELD_RECT.x - 100, y, 160 + Math.random() * 200, 3, 0xbfffd8, 0.55).setDepth(36);
       this.tweens.add({ targets: streak, x: FIELD_RECT.x + FIELD_RECT.w + 150, duration: 600 + Math.random() * 400, delay: Math.random() * 300, onComplete: () => streak.destroy() });
     }
-    for (const c of this.candles) this.tweens.add({ targets: c, angle: 18 * strength, duration: 200, yoyo: true, hold: 300 });
   }
 }

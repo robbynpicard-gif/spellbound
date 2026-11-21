@@ -3,14 +3,16 @@
   --ink: #2a1a10; --rubric: #9e1b16; --gold: #d9a441; --parch: #efe0bd; --parch2: #e2cd9f;
   --walnut: #2a1a10; --brass1: #6e4f1f; --brass2: #e6bd66;
   --serif: "Crimson Pro", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --display: "Cormorant Garamond", "Palatino Linotype", Georgia, serif;
+  --arcade: "Lilita One", "Arial Black", Impact, sans-serif;
+  --hand: "Kalam", "Patrick Hand", "Trebuchet MS", sans-serif;
+  --display: "Cinzel Decorative", "Cinzel", "Palatino Linotype", Georgia, serif;
 }
-html, body { margin: 0; height: 100%; background: #0c0806; overflow: hidden; font-family: var(--serif); }
+html, body { margin: 0; height: 100%; background: #160822; overflow: hidden; font-family: var(--serif); }
 #app, #game-container { position: fixed; inset: 0; }
 #game-container canvas { display: block; }
 #ui-root { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; pointer-events: none; z-index: 10; }
 #ui-root.is-menu, #ui-root.is-overlay { display: flex; }
-#ui-root.is-overlay { background: rgb(12 8 6 / 0.28); }
+#ui-root.is-overlay { background: rgb(22 8 34 / 0.25); }
 #ui-root > * { pointer-events: auto; }
 
 .t-titlecard { text-align: center; color: #f3e3bf; text-shadow: 0 3px 12px #000; }
@@ -18,23 +20,24 @@ html, body { margin: 0; height: 100%; background: #0c0806; overflow: hidden; fon
   background: linear-gradient(180deg, #fff1c8 0%, #e8b956 45%, #8a5a1c 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 4px 10px rgb(0 0 0 / .8)); }
 .t-initial { font-size: 1.25em; color: transparent; background: linear-gradient(180deg, #ff9d84, #9e1b16 60%, #4a0a08); -webkit-background-clip: text; background-clip: text; }
-.t-tagline { font-family: var(--display); font-style: italic; font-size: clamp(18px, 2vw, 28px); margin: 0 0 28px; color: #e6cf9c; }
+.t-phonetic { font-family: var(--arcade); font-size: clamp(18px, 1.8vw, 26px); color: #ffd35a; margin: -6px 0 6px; letter-spacing: .06em; text-shadow: 0 2px 0 #5a1a00; }
+.t-tagline { font-family: var(--display); font-style: italic; font-size: clamp(18px, 2vw, 28px); margin: 0 0 28px; color: #ffe9c0; }
 .t-menu { display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .t-foot { margin-top: 28px; font-size: 14px; color: #bfa77a; opacity: .8; }
 
-.t-btn { font-family: var(--display); font-weight: 700; font-size: 22px; letter-spacing: .04em; color: #2b1808; min-width: 260px;
+.t-btn { font-family: var(--arcade); font-weight: 400; font-size: 24px; letter-spacing: .03em; color: #3a1400; min-width: 260px;
   padding: 9px 26px; border: 2px solid #4a3010; border-radius: 6px; cursor: pointer;
-  background: linear-gradient(180deg, #f6e9c6 0%, #e2cb94 100%); box-shadow: inset 0 1px 0 #fff8, 0 3px 0 #4a3010, 0 6px 14px rgb(0 0 0 / .45);
+  background: linear-gradient(180deg, #fff6dc 0%, #ffd98a 100%); box-shadow: inset 0 2px 0 #fff, 0 4px 0 #8a3a00, 0 8px 18px rgb(40 0 60 / .5);
   transition: transform .08s, filter .12s; }
 .t-btn:hover, .t-btn:focus-visible { filter: brightness(1.08); outline: none; transform: translateY(-1px); }
 .t-btn:active { transform: translateY(2px); box-shadow: inset 0 1px 0 #fff8, 0 1px 0 #4a3010; }
-.t-btn.primary { background: linear-gradient(180deg, #ffe7a4 0%, #d9a441 100%); }
+.t-btn.primary { background: linear-gradient(180deg, #ffe58a 0%, #ff9f1a 100%); color: #3a0a00; }
 .t-btn.small { min-width: 0; font-size: 17px; padding: 6px 16px; }
 
 .t-panel { width: min(1100px, 92vw); max-height: 90vh; overflow: auto; padding: 26px 34px; color: var(--ink);
-  background: linear-gradient(180deg, #f4e7c6, #e6d2a4); border: 3px solid #6a4a1e; border-radius: 10px;
-  box-shadow: 0 0 0 6px #2a1a10, 0 0 0 8px #b08a46, 0 22px 60px rgb(0 0 0 / .7); }
-.t-title { font-family: var(--display); font-size: 40px; margin: 0 0 12px; color: #5a1a10; }
+  background: linear-gradient(180deg, #fff8e6, #ffe7b8); border: 4px solid #ffc94a; border-radius: 16px;
+  box-shadow: 0 0 0 6px #5a1a8a, 0 0 0 9px #ffc94a, 0 22px 60px rgb(20 0 40 / .7); }
+.t-title { font-family: var(--display); font-size: 38px; margin: 0 0 12px; color: #7a1aa0; }
 .t-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0; }
 .t-row.spread { justify-content: space-between; }
 .t-small { font-size: 15px; color: #6a5030; margin: 4px 0; }
@@ -59,17 +62,17 @@ html, body { margin: 0; height: 100%; background: #0c0806; overflow: hidden; fon
 .t-spellcard p { margin: 4px 0; font-size: 17px; }
 .t-spellglyph { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; font-size: 30px; color: #fff; background: var(--hue); }
 
-.t-snapshot { text-align: center; padding: 20px 40px; color: #f3e3bf; background: rgb(24 15 9 / .82); border: 2px solid #b08a46; border-radius: 10px; }
+.t-snapshot { text-align: center; padding: 20px 40px; color: #fff3d6; background: rgb(46 10 80 / .88); border: 4px solid #ffc94a; border-radius: 16px; box-shadow: 0 0 40px rgb(255 200 80 / .35); }
 .t-snapshot .t-title { color: #f2d48a; }
 .t-snapshot .t-small { color: #c9b48a; }
 .t-snapshot .t-stat { background: rgb(255 240 210 / .08); color: #f3e3bf; }
-.t-bigscore { font-family: var(--display); font-size: 58px; font-weight: 700; color: #b8862a; text-shadow: 0 2px 0 #4a3010; }
+.t-bigscore { font-family: var(--arcade); font-size: 64px; color: #ff9f1a; text-shadow: 0 3px 0 #5a1a00; }
 .t-snapshot .t-bigscore { color: #ffd98a; }
 .t-best { font-size: 22px; color: var(--rubric); }
 .t-stats { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 10px 0; }
 .t-stat { display: flex; flex-direction: column; min-width: 120px; padding: 8px 14px; background: rgb(255 250 235 / .55); border-radius: 6px; }
 .t-stat span { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; opacity: .75; }
-.t-stat strong { font-family: var(--display); font-size: 28px; }
+.t-stat strong { font-family: var(--arcade); font-size: 28px; font-weight: 400; }
 .t-runes { font-family: var(--display); font-size: 20px; color: #f2c56a; }
 .t-panel .t-runes { color: #7a4a10; }
 

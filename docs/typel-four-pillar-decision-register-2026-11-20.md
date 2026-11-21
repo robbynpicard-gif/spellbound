@@ -205,3 +205,6 @@ For **each design conversation** that changes or meaningfully clarifies the game
 
 # IMPLEMENTATION STATUS ADDENDUM — D-085 (2026-11-20, Claude)
 The dev preview now runs an integrated Typel prototype (new procedural workstation visuals, synthesized audio and adaptive music, nine apprenticeships, Sandbox, Typing Trials, Codex with Runes and Triumphs, provisional Shock and Fire chains). Owner decisions from the 2026-11-20 chat are recorded in D-085; everything else there is a prototype choice. Status, tuning, limitations and the playtest script: `docs/typel-prototype-2026-11-20.md`. Not yet owner-playtested; production unchanged.
+
+# DIRECTION ADDENDUM — D-086 (2026-11-21)
+Owner playtest of the D-085 prototype retired the dark/gritty look in favour of a bright, saturated "Peggle × Bejeweled Blitz × Balatro" identity, renamed Arcane Volley to **Arcane Rush**, fixed the screen layout zones, and added the catch loop, Shock/Alter/Ice changes and orchestral whimsical music. Where Pillar 2 text above implies a darker Renaissance palette, D-086 takes precedence. Full record: `docs/typel-direction-2026-11-21.md`.

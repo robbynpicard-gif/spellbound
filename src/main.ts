@@ -33,4 +33,4 @@ Promise.race([document.fonts?.ready ?? Promise.resolve(), new Promise((r) => set
   else game.events.once('ready', start);
 });
 
-Object.assign(window, { typelGame: game, typelApp: app });
+Object.assign(window, { typelGame: game, typelApp: app, typelAudio: sound });

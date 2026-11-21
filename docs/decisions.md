@@ -1056,3 +1056,31 @@ _2026-11-20 · Owner-directed (structure decided in chat); implementation built 
 **Owner decisions recorded (2026-11-20 chat):** the apprenticeship replaces the 5 × 20 campaign as the main mode. Nine apprenticeships: one per spell in a fixed order (Slow, Fire, Ice, Barrier, Shock, Alter, Wind, Harvest), spells cumulative, then a ninth against the Grand Wizard using every spell. Each apprenticeship extracts the old stage difficulty scaling (not 20 literal levels), ends in a spell boss, and only then offers Endless. Difficulty rises across apprenticeships along the old stage 1→5 curve. Normal teaches; Hardcore is the same content expecting mastery and will eventually unlock after Normal (unlocked now for testing). The Sandbox replaces Endless Practice in the menu. Add Typing Trials (raw-speed passages), a Codex with Runes and Triumphs, and the foundation for spell "rune sequences". Prototype Shock's seeded chain and Fire's Combustion Chain. Rebuild audio from scratch with the same character (warm wood/brass keys, sense of wonder). Do not reuse old visual or sound assets. Working title **Typel**. End state is a definitive typing game (possibly Steam), not a browser mini-game.
 
 **Prototype choices (reversible, not owner-approved):** procedural Canvas-2D painting at 1920×1080 (not pixel art); workstation layout (window battlefield, centre typewriter, left score/Combo, right Volley tube and Ward flask, right spell shelf, left mentor letter); 12 levels + boss per apprenticeship; Shock and Fire tuning; 25-Rune catalogue and point values; 8 Triumphs; Hardcore recovery after levels 4 and 8; placeholder Masters and lines; legacy end-of-level bonuses disabled under Arcane scoring. Details: `docs/typel-prototype-2026-11-20.md`. Production `main` unchanged.
+
+
+### D-086 — Typel direction after the first prototype playtest: Peggle-bright identity, owner layout, Arcane Rush, catch loop, spell fixes (2026-11-21)
+_2026-11-21 · Owner decisions from playtest feedback; implementation on dev; values marked provisional_
+
+**Owner decisions:**
+- **Identity:** Typel is "Peggle for typing, with Bejeweled Blitz excitement and Balatro score chasing": loud, saturated, timeless, magical. The dark and gritty direction is retired. Animations are encouraged wherever they help the feel and clarity, grounded by sound.
+- **Steam:** the end state is likely a Steam game, so final sound design must be full-scale.
+- **Title:** the title shows the pronunciation "Tie-pull".
+- **Rename:** the flow state "Arcane Volley" becomes **Arcane Rush**. It should feel like the most powerful part of the game, offensively and as a defensive layer.
+- **Layout zones:** field; Ward floor beneath it; spell rack on the right; wizard and reactive typewriter bottom-left; Combo and Rush meters with an arcade points counter top-left. Claimed spells knock into the rack.
+- **Scroll font:** blockier and slightly handwritten, clear and bold.
+- **Backspace:** fix the stale highlight and make deleting uniquely satisfying.
+- **Catch loop:** a mistype makes the aimed word plunge at varying urgencies, as a recovery opportunity.
+- **Shock:** starts from the bottom, always takes the 3 words nearest the Ward, then chains normally.
+- **Alter:** turns all words into 2–3 letters.
+- **Ice:** melts shortly after the board is cleared.
+- **Music:** orchestral, whimsical, quirky and satirical.
+- **Documentation:** every decision is documented.
+
+**Prototype choices (reversible):**
+- **Fonts:** Kalam Bold (scrolls), Lilita One (arcade), Cinzel Decorative (titles).
+- **Plunge:** tiers ×2.2 / ×3.2 / ×4.5 at 50/35/15% odds, escalating on repeat; Runes Saving Grace (+75) and Daring Rescue (+200).
+- **Ice melt:** 2 s.
+- **Music:** a synthesized orchestra (menu waltz, F-major scherzo, D-minor galop).
+- **Visuals:** wizard character design, palette and every effect.
+
+Full record, open items O-1–O-5 and the playtest table: `docs/typel-direction-2026-11-21.md`. Production `main` unchanged.

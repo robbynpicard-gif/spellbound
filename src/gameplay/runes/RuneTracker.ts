@@ -49,7 +49,10 @@ export class RuneTracker {
     private readonly award: (rune: RuneDef) => void,
     private readonly fieldWords: () => readonly { id: number }[],
   ) {
-    events.on('wordCompleted', (e) => this.onCapture(e.word.id, e.word.text, e.word.y, e.perfect === true, e.points, e.word.originalLength !== undefined));
+    events.on('wordCompleted', (e) => {
+      this.onCapture(e.word.id, e.word.text, e.word.y, e.perfect === true, e.points, e.word.originalLength !== undefined);
+      if (e.word.plunge) this.give(e.word.plunge === 3 ? 'daring-rescue' : 'saving-grace');
+    });
     events.on('typingError', () => this.onSlip());
     events.on('submitMissed', () => this.onSlip());
     events.on('wordMissed', () => this.onSlip());

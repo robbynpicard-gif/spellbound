@@ -45,20 +45,20 @@ export const FIRE_TUNING = {
 const dist = (a: ChainWord, b: ChainWord) => Math.hypot(a.x - b.x, a.y - b.y);
 
 /**
- * Shock: the first strike is guaranteed (the most urgent word); from every
+ * Shock: the guaranteed strikes (D-086: the 3 words nearest the Ward) come first; from every
  * struck word, each nearby unstruck word gets one seeded roll, likelier when
  * close and in early generations. Dense fields chain further.
  */
 export function shockChain<W extends ChainWord>(
   words: readonly W[],
-  first: W,
+  firsts: readonly W[],
   rng: SeededRandom,
   t: { -readonly [K in keyof typeof SHOCK_TUNING]: number } = SHOCK_TUNING,
 ): { struck: W[]; links: ChainLink[] } {
-  const struck: W[] = [first];
+  const struck: W[] = [...firsts];
   const links: ChainLink[] = [];
-  const hit = new Set<number>([first.id]);
-  const depthOf = new Map<number, number>([[first.id, 0]]);
+  const hit = new Set<number>(firsts.map((w) => w.id));
+  const depthOf = new Map<number, number>(firsts.map((w) => [w.id, 0]));
   for (let i = 0; i < struck.length && struck.length < t.maxWords; i++) {
     const src = struck[i]!;
     const depth = depthOf.get(src.id)!;
