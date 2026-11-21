@@ -88,3 +88,8 @@ _2026-11-21 · recorded by Claude · decision D-086 · branch `dev/apprenticeshi
 
 ## 8. Performance note
 In the headless software-rendered test browser, both the D-085 and D-086 builds run at about 10 fps. That is the test machine; real GPUs are unaffected. Worth profiling on target hardware before release.
+
+## 9. Update — D-087 (2026-11-21): grounded, mature look
+**Owner decision:** the gameplay and feel above are kept, but the look was too childish. Typel is mature, satirical and may use adult humour, so the art shifts to grounded fantasy. The wizard and typewriter are seen **from behind, over the wizard's shoulder (3/4 rear view)**, looking into the Ward with the player.
+
+**This supersedes §5 (cartoon wizard design) and §6 (bright palette and fonts).** Reactions now play out through body language: head turning, leaning in, flinching, jumping on a breach, a raised fist, pipe smoke and the occasional grumble. Details in D-087.

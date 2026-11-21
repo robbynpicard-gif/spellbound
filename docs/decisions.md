@@ -1084,3 +1084,13 @@ _2026-11-21 · Owner decisions from playtest feedback; implementation on dev; va
 - **Visuals:** wizard character design, palette and every effect.
 
 Full record, open items O-1–O-5 and the playtest table: `docs/typel-direction-2026-11-21.md`. Production `main` unchanged.
+
+
+### D-087 — Grounded, mature visual direction; over-the-shoulder wizard (2026-11-21)
+_2026-11-21 · Owner decision (chat); implemented on dev as a prototype pass; visuals only_
+
+**Owner decisions:** the D-086 gameplay and feel are "exactly what I have been envisioning" and are kept. Only the visual design changes: the D-086 look is **too childish**. Typel is a **mature** game that will be **satirical and may involve adult humour**; the vibe shifts to **grounded fantasy**, not a "childish funland". The wizard sits **looking down into the Ward with the player**: the player sees the **wizard's back from a 3/4 view**, and the **typewriter likewise from behind him**, like a person photographed over the shoulder at a desk (owner reference image, 2026-11-21).
+
+**Supersedes:** D-086's bright cartoon palette, the front-facing cartoon wizard (starry hat, big eyes) and the chunky arcade font. Keeps: D-086 layout zones, Arcane Rush, the catch loop, all effects and audio, and "Peggle/Bejeweled/Balatro" energy *in the moment-to-moment feedback*.
+
+**Prototype choices (reversible):** dusk sky with a real moon, layered mountains, a spired city and a faint aurora; leather-bound library; carved walnut field frame with brass; aged, stained parchment scrolls with rough wax seals; deeper jewel-tone spell colours; Cinzel for numbers, buttons and callouts; menus in parchment and walnut. The wizard is an old scholar in a battered felt hat with a grey mane, beard edge and pipe, seen over his left shoulder; he reacts by body language and pipe smoke, and occasionally grumbles (*tsk, blast, #@%!*) as a first hint of the satirical tone. Typewriter: black enamel with brass, black glass keys in perspective, the paper facing the player. Character art, humour writing and final rendering remain open.

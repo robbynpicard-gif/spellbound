@@ -1,11 +1,12 @@
 /** Shared Typel textures and the room (prototype, D-085/D-086). */
 import Phaser from 'phaser';
-import { FIELD_RECT, H, paintFlame, paintFrame, paintGlow, paintKey, paintMeters, paintRoom, paintSky, paintStar, paintTypewriter, W } from './paint';
+import { Wizard } from './Wizard';
+import { FIELD_RECT, H, KEY_ROWS, paintFlame, paintFrame, paintGlow, paintKey, paintMeters, paintRoom, paintSky, paintStar, paintTypewriter, W } from './paint';
 
 /** Scroll lettering (D-086): clear, bold, slightly hand-lettered. */
 export const FONT_WORD = '"Kalam", "Patrick Hand", "Comic Neue", "Trebuchet MS", sans-serif';
-/** Arcade numbers and callouts: chunky and friendly. */
-export const FONT_ARCADE = '"Lilita One", "Arial Black", Impact, sans-serif';
+/** Numbers and callouts: engraved, weighty, grown-up (D-087 replaces the chunky cartoon face). */
+export const FONT_ARCADE = '"Cinzel", "Trajan Pro", "Palatino Linotype", Georgia, serif';
 /** Titles: timeless and magical. */
 export const FONT_TITLE = '"Cinzel Decorative", "Cinzel", "Palatino Linotype", Georgia, serif';
 export const FONT_BODY = '"Crimson Pro", "Palatino Linotype", Georgia, serif';
@@ -43,15 +44,15 @@ export function buildRoom(scene: Phaser.Scene, withMeters: boolean): void {
   scene.add.image(0, 0, 'typel-room').setOrigin(0).setDepth(-30);
   scene.add.image(FIELD_RECT.x, FIELD_RECT.y, 'typel-sky').setOrigin(0).setDepth(-25);
   // twinkling stars and drifting magic motes in the sky
-  scene.add.particles(0, 0, 'typel-star', {
+  scene.add.particles(0, 0, 'typel-spark', {
     x: { min: FIELD_RECT.x + 20, max: FIELD_RECT.x + FIELD_RECT.w - 20 }, y: { min: 10, max: FIELD_RECT.h * 0.75 },
-    lifespan: 2400, scale: { start: 0, end: 0.35, ease: 'Sine.easeInOut', yoyo: true } as never, alpha: { start: 1, end: 0 },
-    frequency: 140, blendMode: 'ADD',
+    lifespan: 2400, scale: { start: 0, end: 0.14, ease: 'Sine.easeInOut', yoyo: true } as never, alpha: { start: 0.8, end: 0 },
+    frequency: 320, blendMode: 'ADD',
   }).setDepth(-24);
   scene.add.particles(0, 0, 'typel-spark', {
     x: { min: FIELD_RECT.x, max: FIELD_RECT.x + FIELD_RECT.w }, y: FIELD_RECT.h, lifespan: 9000, speedY: { min: -60, max: -20 },
     speedX: { min: -12, max: 12 }, scale: { start: 0.18, end: 0.05 }, alpha: { start: 0.7, end: 0 },
-    tint: [0xff5fa8, 0x26d9e8, 0xffd977, 0xa259ff], frequency: 220, blendMode: 'ADD',
+    tint: [0xd8b870, 0x8fd0c8, 0xe8c890], frequency: 260, blendMode: 'ADD',
   }).setDepth(-24);
   scene.add.image(0, 0, 'typel-frame').setOrigin(0).setDepth(16);
   scene.add.image(0, 0, 'typel-typewriter').setOrigin(0).setDepth(22);
@@ -67,10 +68,15 @@ export class TypelMenuScene extends Phaser.Scene {
   create(): void {
     ensureTextures(this);
     buildRoom(this, false);
-    ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].forEach((row, r) => {
-      const x0 = 214 - ((row.length - 1) * 30) / 2 + r * 8;
-      [...row].forEach((_, i) => this.add.image(x0 + i * 30, 966 + r * 30, 'typel-key').setDepth(24));
+    KEY_ROWS.forEach(({ row, y, gap, scale }, r) => {
+      const x0 = 262 - ((row.length - 1) * gap) / 2 + r * 4;
+      [...row].forEach((_, i) => this.add.image(x0 + i * gap, y, 'typel-key').setDepth(24).setScale(scale));
     });
-    this.add.rectangle(W / 2, H / 2, W, H, 0x12051e, 0.3).setDepth(30);
+    const wiz = new Wizard(this, 108, 846, true);
+    wiz.hands[0].setPosition(222, 884);
+    wiz.hands[1].setPosition(322, 870);
+    wiz.lookAt(1100, 300);
+    wiz.tickFrame(0);
+    this.add.rectangle(W / 2, H / 2, W, H, 0x0a0705, 0.3).setDepth(30);
   }
 }

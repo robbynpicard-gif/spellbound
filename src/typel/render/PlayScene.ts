@@ -17,7 +17,7 @@ import { WORDS } from '../../data/wordList';
 import { SPELL_ORDER, type Line } from '../apprenticeship';
 import { sound } from '../audio';
 import { prefs } from '../prefs';
-import { FIELD_RECT, FLOOR, INK, paintScroll, RACK_X, RUBRIC, SPELL_GLYPH, SPELL_HUE, WARD_Y } from './paint';
+import { FIELD_RECT, FLOOR, INK, paintScroll, RACK_X, RUBRIC, SPELL_GLYPH, SPELL_HUE, WARD_Y, KEY_ROWS } from './paint';
 import { buildRoom, ensureTextures, FONT_ARCADE, FONT_TITLE, FONT_WORD, FONT_BODY, hexNum } from './study';
 import { Wizard } from './Wizard';
 
@@ -58,7 +58,8 @@ const PLUNGE_COLOR = [0, 0xffd60a, 0xff8a1a, 0xff2a3a];
 const COUNTER = { x: 200, y: 62 };
 const COMBO_TUBE = { x: 42, w: 116, top: 236, bottom: 548 };
 const RUSH_TUBE = { x: 242, w: 116, top: 236, bottom: 548 };
-const PAPER = { x: 214, y: 868 };
+const PAPER = { x: 262, y: 716 };
+
 
 class ScrollView extends Phaser.GameObjects.Container {
   private readonly img: Phaser.GameObjects.Image;
@@ -209,9 +210,10 @@ export class TypelPlayScene extends Phaser.Scene {
   create(): void {
     ensureTextures(this);
     buildRoom(this, true);
-    this.wizard = new Wizard(this, 214, 806, this.reduced).setScale(0.86);
-    this.wizard.hands[0].setPosition(150, 984).setData('y', 984);
-    this.wizard.hands[1].setPosition(278, 984).setData('y', 984);
+    // D-087: seen from behind, over the left shoulder, hands on the keys.
+    this.wizard = new Wizard(this, 108, 846, this.reduced);
+    this.wizard.hands[0].setPosition(222, 884).setData('y', 884);
+    this.wizard.hands[1].setPosition(322, 870).setData('y', 870);
     this.buildHud();
     this.bindEvents();
     this.bindInput();
@@ -257,7 +259,11 @@ export class TypelPlayScene extends Phaser.Scene {
     }
 
     const sheet = this.add.graphics().setDepth(23);
-    sheet.fillStyle(0xfffaf0, 1).fillRoundedRect(72, 834, 284, 70, 6).fillStyle(0xe8d3a6, 1).fillRect(72, 892, 284, 12);
+    // the sheet stands up out of the platen, facing us and the wizard
+    sheet.fillStyle(0x000000, 0.35).fillRect(176, 670, 184, 98);
+    sheet.fillStyle(0xf3e8cc, 1).fillRect(172, 664, 180, 102).fillStyle(0xd9c497, 1).fillRect(172, 748, 180, 18);
+    sheet.lineStyle(1, 0xb08a58, 0.35);
+    for (let y = 690; y < 748; y += 22) sheet.lineBetween(182, y, 342, y);
     this.paper = this.text(PAPER.x, PAPER.y, '', 34, INK, { fontFamily: FONT_WORD, fontStyle: '700' }).setOrigin(0.5).setDepth(24);
     this.caret = this.add.rectangle(PAPER.x, PAPER.y, 3, 32, hexNum(RUBRIC)).setDepth(24);
     this.tweens.add({ targets: this.caret, alpha: 0.15, duration: 520, yoyo: true, repeat: -1 });
@@ -300,11 +306,12 @@ export class TypelPlayScene extends Phaser.Scene {
   }
 
   private buildKeys(): void {
-    ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'].forEach((row, r) => {
-      const x0 = 214 - ((row.length - 1) * 30) / 2 + r * 8;
+    // rows recede from the wizard toward the platen (perspective)
+    KEY_ROWS.forEach(({ row, y, gap, scale }, r) => {
+      const x0 = 262 - ((row.length - 1) * gap) / 2 + r * 4;
       [...row].forEach((ch, i) => {
-        const c = this.add.container(x0 + i * 30, 966 + r * 30).setDepth(24);
-        c.add([this.add.image(0, 0, 'typel-key'), this.add.text(0, 0, ch.toUpperCase(), { fontFamily: FONT_ARCADE, fontSize: '13px', color: '#5a2a0a' }).setOrigin(0.5)]);
+        const c = this.add.container(x0 + i * gap, y).setDepth(24).setScale(scale);
+        c.add([this.add.image(0, 0, 'typel-key'), this.add.text(0, 1, ch.toUpperCase(), { fontFamily: FONT_TITLE, fontSize: '13px', fontStyle: '700', color: '#eadfc4' }).setOrigin(0.5)]);
         c.setData('y', c.y);
         this.keys.set(ch, c);
       });
@@ -733,9 +740,9 @@ export class TypelPlayScene extends Phaser.Scene {
     const w = this.engine.wardInfo;
     const stab = Math.max(0, w.stability);
     const allIn = w.allInTicks > 0;
-    const color = allIn ? 0xffb020 : stab > 60 ? 0x26d9e8 : stab > 30 ? 0xffb627 : 0xff3a4a;
+    const color = allIn ? 0xe0a030 : stab > 60 ? 0x3a8f86 : stab > 30 ? 0xc88a2a : 0xc0302a;
     const g = this.floor.clear();
-    g.fillStyle(0x140626, 1).fillRect(FLOOR.x, FLOOR.y, FLOOR.w, FLOOR.h);
+    g.fillStyle(0x15111a, 1).fillRect(FLOOR.x, FLOOR.y, FLOOR.w, FLOOR.h);
     const healthy = (FLOOR.w * stab) / 100;
     const capX = FLOOR.x + (FLOOR.w * w.cap) / 100;
     g.fillStyle(color, 0.3).fillRect(FLOOR.x, FLOOR.y, healthy, FLOOR.h);
@@ -744,7 +751,7 @@ export class TypelPlayScene extends Phaser.Scene {
     for (let i = 0; i < 44; i++) {
       const x = FLOOR.x + ((i * 61 + this.time0 * speed) % FLOOR.w);
       if (x > FLOOR.x + healthy) continue;
-      g.fillStyle(0xffffff, 0.55).fillCircle(x, FLOOR.y + 20 + ((i * 37) % 100), i % 3 === 0 ? 3 : 2);
+      g.fillStyle(0xd8b870, 0.35).fillCircle(x, FLOOR.y + 20 + ((i * 37) % 100), i % 3 === 0 ? 3 : 2);
     }
     if (w.cap < 100) {
       g.fillStyle(0x3a0010, 0.95).fillRect(capX, FLOOR.y, FLOOR.x + FLOOR.w - capX, FLOOR.h);
@@ -786,7 +793,7 @@ export class TypelPlayScene extends Phaser.Scene {
   private setPaper(input: string, valid: boolean): void {
     this.paper.setText(input).setColor(valid ? INK : '#c4141e');
     this.paper.setScale(1);
-    const max = 268;
+    const max = 168;
     if (this.paper.width > max) this.paper.setScale(max / this.paper.width);
     this.caret.setX(PAPER.x + (this.paper.width * this.paper.scaleX) / 2 + 4);
   }
