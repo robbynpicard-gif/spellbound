@@ -36,6 +36,8 @@ const TIMED: Partial<Record<SpellId, number>> = { slow: TICKS(8), alter: TICKS(8
 
 export class RuneTracker {
   private perfectRun = 0;
+  /** Flawless: no typo, no wrong Enter, no scroll reaching the Ward this level. */
+  private clean = true;
   private nouns = 0;
   private letterRun: string[] = [];
   private alphaRun: string[] = [];
@@ -56,6 +58,7 @@ export class RuneTracker {
     events.on('typingError', () => this.onSlip());
     events.on('submitMissed', () => this.onSlip());
     events.on('wordMissed', () => this.onSlip());
+    events.on('wordBlocked', () => (this.clean = false));
     events.on('spellCast', ({ spell }) => this.open(spell));
     events.on('spellEnded', ({ spell }) => this.close(spell));
     events.on('wordsShocked', ({ words }) => {
@@ -129,6 +132,11 @@ export class RuneTracker {
   }
 
   private onSlip(): void {
+    this.clean = false;
+    // Participation Runes: zero points, tiered by the streak just ruined.
+    if (this.perfectRun >= 50) this.give('fumble-50');
+    else if (this.perfectRun >= 25) this.give('fumble-25');
+    else if (this.perfectRun >= 10) this.give('fumble-10');
     this.perfectRun = 0;
   }
 
@@ -186,5 +194,10 @@ export class RuneTracker {
         if (w.survivorCaptures === 4 && !w.done.has('adaptation')) (w.done.add('adaptation'), this.give('adaptation'));
       }
     }
+  }
+
+  /** Called by the engine when a level is won, before its stats are taken. */
+  levelWon(): void {
+    if (this.clean) this.give('flawless');
   }
 }

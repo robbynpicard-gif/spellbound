@@ -17,9 +17,11 @@ import { WORDS } from '../../data/wordList';
 import { SPELL_ORDER, type Line } from '../apprenticeship';
 import { sound } from '../audio';
 import { prefs } from '../prefs';
-import { FIELD_RECT, FLOOR, INK, paintScroll, RACK_X, RUBRIC, SPELL_GLYPH, SPELL_HUE, WARD_Y, KEY_ROWS, MACHINE, TW } from './paint';
+import { FIELD_RECT, FLOOR, INK, paintScroll, RACK_X, RUBRIC, SPELL_GLYPH, SPELL_HUE, WARD_Y, KEY_ROWS, MACHINE, TW, TRAY_SLOTS, TRAY_SLOT_Y } from './paint';
 import { buildRoom, ensureTextures, FONT_ARCADE, FONT_TITLE, FONT_WORD, FONT_BODY, hexNum } from './study';
-import { Wizard } from './Wizard';
+import { Hands } from './Hands';
+import { paintMedal } from './medal';
+import type { RuneDef } from '../../gameplay/runes/RuneCatalogue';
 
 export interface Carry {
   spells: SpellCharges;
@@ -55,7 +57,8 @@ const SX = FIELD_RECT.w / FIELD.width;
 const SY = FIELD_RECT.h / FIELD.height;
 const toX = (x: number) => FIELD_RECT.x + x * SX;
 const toY = (y: number) => FIELD_RECT.y + y * SY;
-const WORD_STYLE = { fontFamily: FONT_WORD, fontSize: '32px', fontStyle: '700', color: INK };
+/** D-089: handwritten BLOCK capitals, slightly spaced, for legibility at speed. */
+const WORD_STYLE = { fontFamily: FONT_WORD, fontSize: '30px', fontStyle: '700', color: INK, letterSpacing: 1.5 };
 const PLUNGE_COLOR = [0, 0xffd60a, 0xff8a1a, 0xff2a3a];
 const COUNTER = { x: 200, y: 62 };
 const COMBO_TUBE = { x: 42, w: 116, top: MACHINE.tubeTop, bottom: MACHINE.tubeBottom };
@@ -78,7 +81,7 @@ class ScrollView extends Phaser.GameObjects.Container {
 
   constructor(scene: Phaser.Scene, readonly word: WordState) {
     super(scene, toX(word.x), toY(word.y));
-    this.rest = scene.add.text(0, 0, word.text, WORD_STYLE).setOrigin(0, 0.5);
+    this.rest = scene.add.text(0, 0, word.text.toUpperCase(), WORD_STYLE).setOrigin(0, 0.5);
     this.done = scene.add.text(0, 0, '', { ...WORD_STYLE, color: RUBRIC, stroke: '#ffe08a', strokeThickness: 2 }).setOrigin(0, 0.5);
     this.scrollWidth = Math.ceil((this.rest.width + 70 + (word.spell ? 30 : 0)) / 16) * 16;
     this.glow = scene.add.image(0, 0, 'typel-glow-gold').setDisplaySize(this.scrollWidth + 90, 130).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
@@ -87,9 +90,30 @@ class ScrollView extends Phaser.GameObjects.Container {
     this.tag = scene.add.text(0, -44, 'CATCH!', { fontFamily: FONT_ARCADE, fontSize: '22px', color: '#ffffff', stroke: '#b00018', strokeThickness: 6 }).setOrigin(0.5).setAlpha(0);
     this.add([this.glow, this.ring, this.img, this.done, this.rest, this.tag]);
     this.img.setInteractive({ useHandCursor: true }).setData('wordId', word.id);
+    if (word.spell) this.shimmer(scene, word.spell);
     this.setTyped(word.typed);
     scene.add.existing(this);
     this.setDepth(10);
+  }
+
+  /**
+   * D-089: spell scrolls shimmer in their spell's colour: a breathing aura, a
+   * sheen that sweeps across the parchment, and a few twinkling motes.
+   */
+  private shimmer(scene: Phaser.Scene, spell: SpellId): void {
+    const hue = hexNum(SPELL_HUE[spell]);
+    const w = this.scrollWidth;
+    const aura = scene.add.image(0, 0, 'typel-glow-gold').setDisplaySize(w + 70, 104).setTint(hue).setAlpha(0.3).setBlendMode(Phaser.BlendModes.ADD);
+    this.addAt(aura, 0);
+    scene.tweens.add({ targets: aura, alpha: 0.6, duration: 700 + Math.random() * 300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const sheen = scene.add.image(-w / 2, 0, 'typel-sheen').setDisplaySize(34, 50).setTint(hue).setAlpha(0.85).setBlendMode(Phaser.BlendModes.ADD).setAngle(14);
+    this.add(sheen);
+    scene.tweens.add({ targets: sheen, x: w / 2 - 20, duration: 900, repeat: -1, repeatDelay: 900 + Math.random() * 700, ease: 'Sine.easeInOut' });
+    for (let i = 0; i < 3; i++) {
+      const m = scene.add.image((Math.random() - 0.5) * (w - 30), (Math.random() - 0.5) * 34, 'typel-spark').setScale(0.25).setTint(hue).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+      this.add(m);
+      scene.tweens.add({ targets: m, alpha: 1, scale: 0.45, duration: 380, yoyo: true, repeat: -1, delay: i * 420, repeatDelay: 600 + Math.random() * 600 });
+    }
   }
 
   /** Returns where a letter was un-inked if the typed count went down. */
@@ -97,7 +121,7 @@ class ScrollView extends Phaser.GameObjects.Container {
     if (n === this.typedCount) return null;
     const prev = this.typedCount;
     this.typedCount = n;
-    const full = this.word.text;
+    const full = this.word.text.toUpperCase();
     const shift = this.word.spell ? -15 : 0;
     this.done.setText(full.slice(0, n));
     this.rest.setText(full.slice(n));
@@ -147,7 +171,13 @@ export class TypelPlayScene extends Phaser.Scene {
   private paused = false;
   private ended = false;
   private reduced = false;
-  private wizard!: Wizard;
+  /** D-089: the wizard character is removed for now; his hands remain at the keys. */
+  private wizard!: Hands;
+  private trayMedals: Phaser.GameObjects.Container[] = [];
+  private trayQueue: RuneDef[] = [];
+  private trayBusy = false;
+  private trayName!: Phaser.GameObjects.Text;
+  private trayQuip!: Phaser.GameObjects.Text;
 
   private paper!: Phaser.GameObjects.Text;
   private caret!: Phaser.GameObjects.Rectangle;
@@ -220,9 +250,10 @@ export class TypelPlayScene extends Phaser.Scene {
     buildRoom(this, true);
     // D-087: seen from behind, over the left shoulder, hands on the keys.
     // D-088: over his shoulder, at the lower left of the great typewriter
-    this.wizard = new Wizard(this, 590, 1010, this.reduced).setScale(0.85);
-    this.wizard.hands[0].setPosition(900, 1018).setData('y', 1018);
-    this.wizard.hands[1].setPosition(1070, 1004).setData('y', 1004);
+    this.wizard = new Hands(this, { x: 918, y: 1092 }, { x: 1126, y: 1092 }, this.reduced);
+    this.trayMedals = [];
+    this.trayQueue = [];
+    this.trayBusy = false;
     this.buildHud();
     this.bindEvents();
     this.bindInput();
@@ -292,7 +323,9 @@ export class TypelPlayScene extends Phaser.Scene {
     this.floorRight = this.text(FLOOR.x + FLOOR.w - 20, FLOOR.y + 14, '', 22, '#efe2c2', { fontFamily: FONT_ARCADE, align: 'right' }).setOrigin(1, 0).setDepth(30);
     // the Master's words arrive as a note on the desk's right corner
     this.subtitle = this.text(1512, FLOOR.y + 88, '', 17, '#efe2c2', { align: 'left', wordWrap: { width: 222 }, stroke: '#140c06', strokeThickness: 3, lineSpacing: 2 }).setOrigin(0.5, 0).setDepth(30);
-    this.gears = [[110, 965, 150, 1], [250, 1020, 100, -1.5], [330, 930, 70, 2.1]].map(([x, y, sz, dir]) =>
+    this.trayName = this.text(200, MACHINE.trayTop + 182, 'No Runes yet', 22, '#3a1a0a', { fontFamily: FONT_TITLE, fontStyle: '700', align: 'center' }).setOrigin(0.5);
+    this.trayQuip = this.text(200, MACHINE.trayTop + 214, '', 15, '#5a3a1a', { fontFamily: FONT_BODY, fontStyle: 'italic', align: 'center', wordWrap: { width: 320 } }).setOrigin(0.5);
+    this.gears = [[100, 1012, 120, 1], [230, 1034, 90, -1.5], [330, 996, 64, 2.1]].map(([x, y, sz, dir]) =>
       this.add.image(x!, y!, 'typel-gear').setDisplaySize(sz!, sz!).setDepth(21).setData('dir', dir));
 
     this.overlay = this.add.rectangle(FIELD_RECT.x + FIELD_RECT.w / 2, FIELD_RECT.h / 2, FIELD_RECT.w, FIELD_RECT.h, 0x000000, 0).setDepth(7);
@@ -554,7 +587,11 @@ export class TypelPlayScene extends Phaser.Scene {
       const tier = RUNE_BY_ID.get(id)?.tier ?? 1;
       sound.rune(tier);
       prefs.noteRune(id);
-      this.runeToast(name, points, tier, RUNE_BY_ID.get(id)?.how ?? '');
+      const def = RUNE_BY_ID.get(id);
+      if (def) this.trayQueue.push(def);
+      void name;
+      void points;
+      this.runTray();
     });
     ev.on('gameOver', ({ result }) => {
       this.ended = true;
@@ -623,7 +660,7 @@ export class TypelPlayScene extends Phaser.Scene {
     if (!this.engine.backspace()) return;
     sound.erase(before.length);
     this.wizard.typed();
-    this.inkDrop(PAPER.x - 18, PAPER.y, before.at(-1) ?? '', '#2b1606');
+    this.inkDrop(PAPER.x - 18, PAPER.y, (before.at(-1) ?? '').toUpperCase(), '#2b1606');
     for (const v of this.views.values()) {
       const off = v.setTyped(v.word.typed);
       if (off) this.inkDrop(off.x, v.y, off.ch, RUBRIC);
@@ -825,9 +862,9 @@ export class TypelPlayScene extends Phaser.Scene {
   private setPaper(input: string, valid: boolean): void {
     const grew = input.length > this.lastInput.length && input.startsWith(this.lastInput);
     this.lastInput = input;
-    this.paper.setText(input).setColor(valid ? INK : '#b3261e');
+    this.paper.setText(input.toUpperCase()).setColor(valid ? INK : '#b3261e');
     if (!grew || input.length === 0) return;
-    const ch = input.at(-1)!;
+    const ch = input.at(-1)!.toUpperCase();
     const stamp = this.text(PAPER.x, PAPER.y, ch, PAPER_FONT, valid ? INK : '#b3261e', { fontFamily: FONT_WORD, fontStyle: '700' }).setOrigin(1, 0.5).setDepth(24.5);
     if (!this.reduced) {
       stamp.setScale(1.5).setAlpha(0.5);
@@ -978,17 +1015,60 @@ export class TypelPlayScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => em.destroy());
   }
 
-  private runeToast(name: string, points: number, tier: number, how = ''): void {
-    const seal = tier >= 3 ? 0x8a1a1a : tier === 2 ? 0x3a4a7a : 0x7a5a1a;
-    const c = this.add.container(FIELD_RECT.x + FIELD_RECT.w / 2, -60).setDepth(58);
-    const bg = this.add.rectangle(0, 0, 520, 78, 0xe9dcb8, 0.97).setStrokeStyle(3, 0x8a6a34);
-    const wax = this.add.circle(-238, 0, 20, seal, 1).setStrokeStyle(3, 0x2a0a08, 0.6);
-    const t1 = this.add.text(10, -14, `Rune · ${name}`, { fontFamily: FONT_TITLE, fontSize: '26px', fontStyle: '700', color: '#3a1a0a' }).setOrigin(0.5);
-    const t2 = this.add.text(0, 20, this.setup.showSequenceScore ? `+${points}` : how, { fontFamily: FONT_BODY, fontSize: '17px', fontStyle: 'italic', color: '#3a2410' }).setOrigin(0.5);
-    c.add([bg, wax, t1, t2]);
-    this.tweens.add({ targets: c, y: 70, duration: 280, ease: 'Back.easeOut' });
-    this.tweens.add({ targets: c, y: -60, delay: 1700, duration: 300, onComplete: () => c.destroy() });
-    if (tier >= 2) this.confetti(20 * tier);
+  /**
+   * D-089 Rune tray: an analog rolling carousel built into the machine. Each
+   * award clacks in from the right; older medals roll left and drop away.
+   * Awards queue so several at once never pile up; nothing blocks the field.
+   */
+  private runTray(): void {
+    if (this.trayBusy) return;
+    const rune = this.trayQueue.shift();
+    if (!rune) return;
+    this.trayBusy = true;
+    const key = `rune-medal-${rune.id}`;
+    if (!this.textures.exists(key)) {
+      const tex = this.textures.createCanvas(key, 128, 128)!;
+      paintMedal(tex.getContext(), 128, rune);
+      tex.refresh();
+    }
+    // roll the existing medals one slot left; the leftmost drops out of the tray
+    const shift = this.reduced ? 0 : 180;
+    for (const m of this.trayMedals) {
+      const slot = (m.getData('slot') as number) - 1;
+      m.setData('slot', slot);
+      if (slot < 0) {
+        this.tweens.add({ targets: m, x: TRAY_SLOTS[0] - 70, y: TRAY_SLOT_Y + 60, alpha: 0, duration: shift, ease: 'Quad.easeIn', onComplete: () => m.destroy() });
+      } else this.tweens.add({ targets: m, x: TRAY_SLOTS[slot], duration: shift, ease: 'Back.easeOut' });
+    }
+    this.trayMedals = this.trayMedals.filter((m) => (m.getData('slot') as number) >= 0);
+    const glow = this.add.image(0, 0, 'typel-glow-gold').setDisplaySize(150, 150).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+    const medal = this.add.image(0, 0, key).setDisplaySize(96, 96);
+    const c = this.add.container(TRAY_SLOTS[2], TRAY_SLOT_Y, [glow, medal]).setDepth(31).setData('slot', 2);
+    this.trayMedals.push(c);
+    if (!this.reduced) {
+      c.setScale(0.1, 1.2).setY(TRAY_SLOT_Y + 40).setAlpha(0);
+      this.tweens.add({ targets: c, scaleX: 1, scaleY: 1, y: TRAY_SLOT_Y, alpha: 1, delay: 120, duration: 280, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: glow, alpha: { from: 0.9, to: 0 }, delay: 260, duration: 700 });
+    }
+    // name ribbon, with the family's escalation and the occasional dry remark
+    const family = rune.tier > 1 ? ` · ${'I'.repeat(rune.tier)}` : '';
+    this.trayName.setText(`${rune.name}`).setColor(rune.category === 'participation' ? '#6a3a1a' : '#3a1a0a');
+    this.trayQuip.setText(this.quip(rune) || (rune.family !== rune.name ? `${rune.family}${family}` : ''));
+    if (!this.reduced) this.tweens.add({ targets: this.trayName, scale: { from: 1.25, to: 1 }, duration: 220, ease: 'Back.easeOut' });
+    if (rune.tier >= 3 && rune.category !== 'participation') this.confetti(40);
+    this.time.delayedCall(this.reduced ? 300 : 520, () => {
+      this.trayBusy = false;
+      this.runTray();
+    });
+  }
+
+  /** The Grand Wizard comments on Rune awards only (text placeholder until a recorded voice exists). */
+  private quip(rune: RuneDef): string {
+    const pick = (xs: string[]) => xs[Math.floor(Math.random() * xs.length)]!;
+    if (rune.id === 'fumble-50') return Math.random() < 0.4 ? 'The Grand Wizard: “HA! FAIL!”' : 'The Grand Wizard: “A legacy, of sorts.”';
+    if (rune.category === 'participation') return Math.random() < 0.5 ? `The Grand Wizard: “${pick(['Majestic.', 'I will pretend I did not see that.', 'The scrolls are laughing at you.'])}”` : '';
+    if (rune.tier >= 2 && Math.random() < 0.3) return `The Grand Wizard: “${pick(['Hm. Not bad.', 'Do not let it go to your hat.', 'Adequate. Barely.', 'Oh, now you are showing off.', 'I have seen worse. From myself, once.'])}”`;
+    return '';
   }
 
   /** Claimed spell swishes to the rack and knocks into its shelf. */

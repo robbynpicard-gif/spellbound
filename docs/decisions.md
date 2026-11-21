@@ -1116,3 +1116,49 @@ _2026-11-21 · Owner decision (chat, with annotated screenshot); implemented on 
   - Rune notices become sealed parchment slips that show the Rune's rule instead of its points;
   - Harvest callouts drop the points.
 - **The Sandbox counts as the practice view** and shows exact points. The Codex explains the rule.
+
+
+### D-089 — Rune tray, medal identities, Flawless and Participation Runes; hands replace the wizard; block-letter scrolls; spell shimmer (2026-11-21)
+_2026-11-21 · Owner decisions (chat); implemented on dev as a prototype pass_
+
+**Owner decisions (this chat):**
+- Add a **Rune tray on the left of the screen** where Runes/medals are awarded, giving the score feats happening during play **unique visual identities**.
+- **Remove the wizard character for now**; show a **pair of wizard hands at the keyboard** instead.
+- Scroll words must be **easier to read**: force **BLOCK capitals** that keep a **handwritten** look.
+- **Spell scrolls shimmer** to show their magic and spell type.
+- **Bug (owner report):** the old wizard's hand rose a little further into the field with every spell cast. Cause: each raise animation returned to wherever the hand was mid-animation. Fixed in the new hands, where every move ends at a fixed home position (verified: back at home after repeated casts).
+
+**Built on earlier confirmed Rune decisions** (`docs/research/runes-triumphs-design.md`, 2026-11-19, branch `docs/cleanup-current-gameplay-20261119`):
+- a fixed, analog **rolling carousel** built into the typewriter (Halo-style medal feed, mechanical slot shifts, no gambling);
+- awards **never pause play, steal focus or obscure words**, and multiple awards **queue**;
+- **Flawless** (level) and **Flawless Perfection** (stage), meaning zero typing mistakes, zero missed scrolls and zero damage;
+- **Participation Runes**: comedic fumbles, **zero points**, tiered by the streak ruined, topped by **Generational Fumble**;
+- the **Grand Wizard as a Rune-only announcer** who occasionally says "HA! FAIL!" on a major fumble.
+
+**Prototype choices (reversible):**
+- **Tray:** a brass housing in the machine column between the meter tubes and the level plate.
+  - Three medal slots; each new medal flips into the right slot while older ones roll left and drop out.
+  - A parchment ribbon shows the Rune's name and family.
+  - Awards queue about half a second apart.
+- **Medal identity:**
+  - shape by category: typing = milled coin, wordplay = lozenge, spellcraft = heater shield, participation = cracked wooden token;
+  - metal by tier: bronze, silver, gold, with ribbon tails at tier 3;
+  - enamel by family (spell colour for spellcraft), a unique emblem per Rune, and tier pips.
+  - The Codex shows the same medals, greyed out until earned.
+- **Flawless:** a level with no typo, no wrong Enter and no scroll reaching the Ward (a Barrier-blocked scroll counts as reaching it). 300 points.
+- **Flawless Perfection:** catalogued, but not yet awarded by the apprenticeship flow.
+- **Participation tiers:** Butterfingers (10+ streak ruined), Spectacular Fumble (25+), Generational Fumble (50+). All 0 points.
+- **Grand Wizard remarks** are text-only placeholders on Rune awards (no voice exists yet):
+  - "HA! FAIL!" 40% of the time on Generational Fumble;
+  - occasional dry lines on tier-2/3 Runes and fumbles.
+- **The in-field Rune notice is removed:** the tray is the only display.
+- **Hands:** weathered, ringed hands in burgundy sleeves rest on the keys. They tap, flinch, grip, jump, fist-pump, raise to cast, glow during Rush and tremble at low Ward.
+- **Scroll lettering:** words render in capitals with the bold handwritten font, slightly letter-spaced; the paper stamps capitals too. Matching stays case-insensitive.
+- **Spell shimmer:** spell scrolls get a breathing aura in their spell colour, a sweeping sheen and twinkling motes.
+
+**Still open:**
+- Rune announcer voice and its queue rules;
+- spell-window progress pips;
+- awarding Flawless Perfection in the apprenticeship;
+- anti-farming details;
+- the final medal art.

@@ -210,6 +210,7 @@ export class GameEngine {
   /** Typel Runes earned this level (id → count). Arcane preview only. */
   private readonly runeCounts: Record<string, number> = {};
   private runePoints = 0;
+  private runeTracker: RuneTracker | null = null;
   private readonly s: GameState;
   private readonly spellContext: SpellContext;
   private endlessStartedTick: number | null = null;
@@ -260,7 +261,7 @@ export class GameEngine {
     this.s.peakCleanStreak = this.s.cleanStreak;
     this.spellContext = this.createSpellContext();
     if (this.experimentalScoring) {
-      new RuneTracker(
+      this.runeTracker = new RuneTracker(
         this.events,
         {
           tick: () => this.s.tick,
@@ -1256,6 +1257,7 @@ export class GameEngine {
   }
 
   private end(result: GameResult): void {
+    if (result === 'won') this.runeTracker?.levelWon();
     // Legacy end-of-level bonuses are superseded in Arcane/Typel scoring (four-pillar register).
     if (result === 'won' && !this.experimentalScoring) {
       const bonuses = this.levelBonuses();

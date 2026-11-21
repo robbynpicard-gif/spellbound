@@ -111,3 +111,18 @@ In the headless software-rendered test browser, both the D-085 and D-086 builds 
 - Embers replace confetti, Rune notices are parchment slips, and the Sandbox shows exact points.
 
 This supersedes §3's zone details for the red, orange, blue and green areas and §4's "chip-by-chip tally … POINTS". Details in D-088.
+
+## 11. Update — D-089 (2026-11-21): Rune tray, hands, block letters, shimmer
+**Owner decisions:**
+- Add a Rune tray on the left where Runes are awarded, giving each score feat a unique visual identity.
+- Replace the wizard character with a pair of wizard hands at the keys (for now).
+- Scroll words become block capitals with a handwritten look.
+- Spell scrolls shimmer in their spell's colour.
+- Bug fixed: hands drifting upward after repeated spell casts.
+
+**Prototype choices:** the tray sits in the machine column with three medal slots that roll mechanically, plus a name ribbon. Medals take their shape from the category, their metal from the tier, their enamel from the family, and each has its own emblem. New Runes, from the earlier confirmed design:
+- **Flawless**;
+- **Participation** fumbles at 0 points (Butterfingers, Spectacular Fumble, Generational Fumble);
+- occasional text remarks from the Grand Wizard ("HA! FAIL!").
+
+This supersedes §9's wizard and §10's parchment-slip Rune notice. Details in D-089.

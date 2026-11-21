@@ -361,7 +361,7 @@ export class TypelAudio {
   }
 
   bell(f: number, t: number, peak: number, dest: AudioNode): void {
-    [1, 2.76, 5.4, 8.93].forEach((r, i) => this.osc('sine', f * r, t, 1.6 / (i + 1), peak / (i + 1), dest));
+    [1, 2.76, 5.4, 8.93].forEach((r, i) => f * r < 18000 && this.osc('sine', f * r, t, 1.6 / (i + 1), peak / (i + 1), dest));
   }
 
   frameDrum(t: number, peak: number, dest: AudioNode, pitch = 1): void {

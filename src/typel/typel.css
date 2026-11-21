@@ -97,3 +97,7 @@ html, body { margin: 0; height: 100%; background: #0d0805; overflow: hidden; fon
 .t-ch.caret { box-shadow: inset 2px 0 0 #9e1b16; animation: t-blink 1s steps(2) infinite; }
 @keyframes t-blink { 50% { box-shadow: inset 2px 0 0 transparent; } }
 @media (max-width: 900px) { .t-trials { grid-template-columns: 1fr; } }
+
+.t-rune { position: relative; padding-left: 70px; min-height: 64px; }
+.t-medal { position: absolute; left: 4px; top: 6px; width: 60px; height: 60px; filter: grayscale(0.85) brightness(0.8); }
+.t-rune.got .t-medal { filter: none; }

@@ -372,7 +372,10 @@ export function paintGear(ctx: Ctx, size: number, teeth: number): void {
  * stamped multiplier plates, the Combo and Arcane Rush glass tubes, a level
  * plate, and a gear housing piped into the typewriter. Fills drawn live.
  */
-export const MACHINE = { tubeTop: 236, tubeBottom: 740, plateY: 800 } as const;
+export const MACHINE = { tubeTop: 236, tubeBottom: 556, trayTop: 604, trayBottom: 856, plateY: 872 } as const;
+/** D-089: the Rune tray's three medal slots. */
+export const TRAY_SLOTS = [82, 200, 318] as const;
+export const TRAY_SLOT_Y = MACHINE.trayTop + 92;
 export function paintMeters(ctx: Ctx): void {
   // iron cabinet with brass edging and rivets
   ctx.fillStyle = grad(ctx, 0, 0, 400, 0, [[0, '#14110e'], [0.5, '#221d18'], [1, '#14110e']]);
@@ -425,6 +428,28 @@ export function paintMeters(ctx: Ctx): void {
     ctx.arc(x + w / 2, MACHINE.tubeBottom + 20, 8, 0, Math.PI * 2);
     ctx.fill();
   }
+  // the Rune tray: a brass housing with three medal recesses and a name ribbon
+  ctx.fillStyle = gold(ctx, 12, 376);
+  roundRect(ctx, 12, MACHINE.trayTop, 376, MACHINE.trayBottom - MACHINE.trayTop, 12);
+  ctx.fill();
+  ctx.fillStyle = grad(ctx, 0, MACHINE.trayTop + 34, 0, MACHINE.trayBottom - 10, [[0, '#0c0a08'], [1, '#1c1812']]);
+  roundRect(ctx, 24, MACHINE.trayTop + 34, 352, MACHINE.trayBottom - MACHINE.trayTop - 44, 8);
+  ctx.fill();
+  ctx.fillStyle = '#1e1208';
+  ctx.font = '700 15px Cinzel, Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('RUNE TRAY', 200, MACHINE.trayTop + 23);
+  for (const x of TRAY_SLOTS) {
+    ctx.fillStyle = radial(ctx, x, TRAY_SLOT_Y, 54, [[0, '#050403'], [0.85, '#1a1510'], [1, '#3a2c18']]);
+    ctx.beginPath();
+    ctx.arc(x, TRAY_SLOT_Y, 52, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#e9dcb8';
+  roundRect(ctx, 34, MACHINE.trayTop + 156, 332, 82, 6);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(120,80,40,0.25)';
+  ctx.fillRect(34, MACHINE.trayTop + 156, 332, 3);
   // level plate
   ctx.fillStyle = gold(ctx, 18, 364);
   roundRect(ctx, 18, MACHINE.plateY - 6, 364, 70, 8);
@@ -433,8 +458,8 @@ export function paintMeters(ctx: Ctx): void {
   roundRect(ctx, 26, MACHINE.plateY + 2, 348, 54, 5);
   ctx.fill();
   // gear housing and the pipes that drive the typewriter
-  ctx.fillStyle = grad(ctx, 0, 880, 0, 1080, [[0, '#1c1813'], [1, '#0c0a08']]);
-  ctx.fillRect(10, 880, 384, 200);
+  ctx.fillStyle = grad(ctx, 0, 944, 0, 1080, [[0, '#1c1813'], [1, '#0c0a08']]);
+  ctx.fillRect(10, 944, 384, 136);
   for (const [y, h] of [[972, 16], [1010, 12]] as const) {
     ctx.fillStyle = grad(ctx, 0, y, 0, y + h, [[0, '#6e4f1f'], [0.5, '#e8cf8e'], [1, '#5a3c14']]);
     ctx.fillRect(330, y, 380, h);
@@ -511,6 +536,64 @@ export function paintFlame(ctx: Ctx): void {
   ctx.quadraticCurveTo(16, 48, 8, 40);
   ctx.quadraticCurveTo(2, 26, 16, 0);
   ctx.fill();
+}
+
+/** A weathered wizard's right hand seen from behind, fingers reaching to the keys; wrist at bottom centre. */
+export function paintHand(ctx: Ctx): void {
+  const skin = grad(ctx, 30, 0, 110, 0, [[0, '#9a6e52'], [0.5, '#c89c7a'], [1, '#8a6046']]);
+  ctx.fillStyle = skin;
+  ctx.strokeStyle = '#5a3a26';
+  ctx.lineWidth = 2;
+  // palm / back of hand
+  ctx.beginPath();
+  ctx.ellipse(70, 118, 34, 40, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  // four fingers curling forward onto the keys
+  for (const [x, len, rot] of [[46, 50, -0.18], [62, 60, -0.05], [78, 58, 0.06], [94, 46, 0.18]] as const) {
+    ctx.save();
+    ctx.translate(x, 92);
+    ctx.rotate(rot);
+    ctx.fillStyle = skin;
+    roundRect(ctx, -8, -len, 16, len + 6, 8);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(70,40,24,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(-5, -len * 0.45);
+    ctx.lineTo(5, -len * 0.45);
+    ctx.stroke();
+    ctx.strokeStyle = '#5a3a26';
+    ctx.restore();
+  }
+  // thumb tucked toward the space bar
+  ctx.save();
+  ctx.translate(36, 120);
+  ctx.rotate(-0.9);
+  ctx.fillStyle = skin;
+  roundRect(ctx, -9, -44, 18, 50, 9);
+  ctx.fill();
+  ctx.stroke();
+  ctx.restore();
+  // a signet ring on the ring finger
+  ctx.save();
+  ctx.translate(78, 92);
+  ctx.rotate(0.06);
+  ctx.fillStyle = '#d8b060';
+  ctx.fillRect(-9, -26, 18, 6);
+  ctx.fillStyle = radial(ctx, 0, -23, 6, [[0, '#ffe8f0'], [0.5, '#b0204a'], [1, '#400818']]);
+  ctx.beginPath();
+  ctx.arc(0, -23, 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+  // knuckle and vein shading
+  ctx.strokeStyle = 'rgba(70,40,24,0.35)';
+  for (const x of [52, 66, 80]) {
+    ctx.beginPath();
+    ctx.moveTo(x, 104);
+    ctx.lineTo(x + 3, 140);
+    ctx.stroke();
+  }
 }
 
 export function paintKey(ctx: Ctx): void {

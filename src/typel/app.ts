@@ -19,6 +19,7 @@ import { prefs } from './prefs';
 import { TypelPlayScene, type Carry, type PlaySetup } from './render/PlayScene';
 import { SPELL_GLYPH, SPELL_HUE } from './render/paint';
 import { TypelMenuScene } from './render/study';
+import { medalDataUrl } from './render/medal';
 import { TIER_NAMES, tierOf, TRIUMPHS } from './triumphs';
 import { trialText, typingStats } from './typingTrial';
 
@@ -511,11 +512,13 @@ export class TypelApp {
         el('div', null, el('h3', null, `${SPELLS[id].book.toUpperCase()} · type “${id}”`), el('p', null, SPELLS[id].description)))));
     } else if (tab === 'runes') {
       const have = prefs.data.runes;
-      const groups = ['typing', 'wordplay', 'spellcraft'] as const;
+      const groups = ['typing', 'wordplay', 'spellcraft', 'participation'] as const;
+      const title = { typing: 'Typing mastery', wordplay: 'Wordplay', spellcraft: 'Spellcraft (rune sequences)', participation: 'Participation (comedic mishaps · always 0 points)' } as const;
       body = el('div', { class: 't-codex' }, ...groups.flatMap((g) => [
-        h3(g === 'typing' ? 'Typing mastery' : g === 'wordplay' ? 'Wordplay' : 'Spellcraft (rune sequences)'),
+        h3(title[g]),
         el('div', { class: 't-runegrid' }, ...RUNES.filter((r) => r.category === g).map((r) => el('div', { class: `t-rune tier${r.tier}${have[r.id] ? ' got' : ''}` },
-          el('strong', null, have[r.id] ? r.name : `${r.name}`), el('span', { class: 't-small' }, `${r.how} · +${r.points}`),
+          el('img', { class: 't-medal', src: medalDataUrl(r), alt: '' }),
+          el('strong', null, r.name), el('span', { class: 't-small' }, `${r.how}${r.points ? ` · +${r.points}` : ''}`),
           el('span', { class: 't-small' }, have[r.id] ? `Earned ×${have[r.id]}` : 'Not yet earned')))),
       ]), p('Runes observe real play; word generation is never bent to make them happen. Names, thresholds and points are provisional.'));
     } else {
