@@ -130,18 +130,15 @@ describe('Director in the engine', () => {
       }
       live.step();
     }
-    const commands: readonly Command[] = live.commands;
-    const replayed: string[] = [];
-    const ref = { e: null as GameEngine | null };
-    const probe = new GameEngine(options);
-    ref.e = probe;
-    probe.events.on('wordSpawned', ({ word }) => replayed.push(`${probe.state.tick}:${word.text}:${word.speed.toFixed(6)}`));
-    let i = 0;
-    while (probe.state.tick < live.state.tick && probe.status === 'playing') {
-      while (i < commands.length && commands[i]!.tick === probe.state.tick) probe.apply(commands[i++]!);
-      probe.step();
-    }
-    expect(replayed).toEqual(seen.slice(0, replayed.length));
+    const replayedEngine = GameEngine.replay(options, live.commands as readonly Command[], live.state.tick);
+    const snapshot = (e: GameEngine) => ({
+      tick: e.state.tick,
+      spawned: e.state.nextWordId,
+      score: e.state.score,
+      words: e.state.words.map((w) => `${w.text}:${w.y.toFixed(6)}:${w.speed.toFixed(6)}`),
+    });
+    expect(snapshot(replayedEngine)).toEqual(snapshot(live));
+    const replayed = seen;
     expect(replayed.length).toBeGreaterThan(20);
   });
 });
