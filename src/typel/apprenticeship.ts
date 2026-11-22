@@ -7,9 +7,7 @@
  * climb into 12 levels plus a spell boss, and its starting point rises along
  * the old stage 1 → 5 curve. Masters, names and every line are PLACEHOLDERS.
  */
-import { FIELD } from '../core/GameConfig';
 import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
-import { DifficultyDirector, journeyPosition, type Encounter } from '../difficulty/DifficultyDirector';
 import { endlessConfig, stageLevel, type StageMode } from '../difficulty/Stages';
 import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
 
@@ -189,46 +187,7 @@ function blend(a: DifficultyConfig, b: DifficultyConfig, t: number): DifficultyC
   return out as unknown as DifficultyConfig;
 }
 
-/**
- * D-097 dev flag. 'classic' = the compressed old stage curve (below);
- * 'director' = the shared Difficulty Director: joint length × fall-speed
- * sampling, a slowly rising floor across the journey and a convex pressure arc
- * inside each encounter. Everything else about a level (quota, boss timer,
- * Ward rules, spells, opening words) is kept.
- */
-export type DifficultySystem = 'classic' | 'director';
-
-function withDirector(base: DifficultyConfig, mode: Mode, position: number, encounter: Encounter, levelInTrial: number): DifficultyConfig {
-  const settings = { mode, position, encounter };
-  const d = new DifficultyDirector(settings, FIELD.height);
-  const opening = d.pace(0);
-  return {
-    ...base,
-    director: settings,
-    minWordLength: 2,
-    maxWordLength: d.maxLength,
-    wordLengthWeights: undefined,
-    maxComplexity: d.maxComplexity,
-    // reference values only: the director sets each word's speed and the live pace
-    initialFallSpeed: Math.round(FIELD.height / d.bandSeconds('medium', 0)),
-    spawnInterval: opening.spawnInterval,
-    maxActiveWords: opening.maxActiveWords,
-    speedRamp: 0,
-    spawnRamp: 0,
-    speedRampExtra: 0,
-    ramp: null,
-    escalation: null,
-    surges: d.surges(levelInTrial, encounter === 'boss'),
-  };
-}
-
-export function trialLevel(mode: Mode, trialIndex: number, level: number, system: DifficultySystem = 'classic'): DifficultyConfig {
-  const classic = classicTrialLevel(mode, trialIndex, level);
-  if (system !== 'director') return classic;
-  return withDirector(classic, mode, journeyPosition(trialIndex, level), level >= BOSS_LEVEL ? 'boss' : 'level', level);
-}
-
-function classicTrialLevel(mode: Mode, trialIndex: number, level: number): DifficultyConfig {
+export function trialLevel(mode: Mode, trialIndex: number, level: number): DifficultyConfig {
   const trial = TRIALS[trialIndex - 1]!;
   const pos = stagePosition(trialIndex);
   const lo = Math.floor(pos);
@@ -246,18 +205,11 @@ function classicTrialLevel(mode: Mode, trialIndex: number, level: number): Diffi
   };
 }
 
-/** Director Endless: arcs of this many captures, each peaking a little higher (saturating). */
-const DIRECTOR_LAP_WORDS = 30;
-
-export function trialEndless(mode: Mode, trialIndex: number, system: DifficultySystem = 'classic'): DifficultyConfig {
+export function trialEndless(mode: Mode, trialIndex: number): DifficultyConfig {
   const base = endlessConfig(mode, Math.round(stagePosition(trialIndex)));
-  const classic = { ...base, name: `Endless · ${TRIALS[trialIndex - 1]!.title}`, availableSpells: learnedSpells(trialIndex), introducesSpell: null };
-  if (system !== 'director') return classic;
-  return { ...withDirector(classic, mode, journeyPosition(trialIndex, BOSS_LEVEL), 'endless', BOSS_LEVEL), rampWords: DIRECTOR_LAP_WORDS };
+  return { ...base, name: `Endless · ${TRIALS[trialIndex - 1]!.title}`, availableSpells: learnedSpells(trialIndex), introducesSpell: null };
 }
 
-export function sandboxConfig(mode: Mode, tier: number, system: DifficultySystem = 'classic'): DifficultyConfig {
-  const classic = { ...endlessConfig(mode, tier), name: `Sandbox · Tier ${tier}`, availableSpells: [...SPELL_ORDER], introducesSpell: null };
-  if (system !== 'director') return classic;
-  return { ...withDirector(classic, mode, (tier - 1) / 4, 'endless', BOSS_LEVEL), rampWords: DIRECTOR_LAP_WORDS };
+export function sandboxConfig(mode: Mode, tier: number): DifficultyConfig {
+  return { ...endlessConfig(mode, tier), name: `Sandbox · Tier ${tier}`, availableSpells: [...SPELL_ORDER], introducesSpell: null };
 }

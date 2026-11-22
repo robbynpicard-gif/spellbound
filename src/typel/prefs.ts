@@ -13,8 +13,6 @@ export interface TypeLProgress {
   lifetime: { words: number; perfect: number; peakVolley: number; wagers: number; levels: number; bosses: number };
   typing: { bestWpm: Record<string, number>; runs: number };
   reducedMotion: boolean | null;
-  /** D-097 dev flag: which difficulty system the apprenticeship, Endless and Sandbox use. */
-  difficulty: 'director' | 'classic';
 }
 
 const fresh = (): TypeLProgress => ({
@@ -25,7 +23,6 @@ const fresh = (): TypeLProgress => ({
   lifetime: { words: 0, perfect: 0, peakVolley: 1, wagers: 0, levels: 0, bosses: 0 },
   typing: { bestWpm: {}, runs: 0 },
   reducedMotion: null,
-  difficulty: 'director',
 });
 
 function load(): TypeLProgress {

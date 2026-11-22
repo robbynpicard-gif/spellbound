@@ -67,31 +67,6 @@ export class WordGenerator {
     this.window = Math.max(1, (config.maxActiveWords ?? 5) - 1);
   }
 
-  /**
-   * D-097: a word of exactly `length` letters (the nearest stocked length if
-   * none), with the same no-repeat and first-letter fairness rules as next().
-   */
-  nextOfLength(length: number): string {
-    let bucket = this.byLength.get(length);
-    for (let d = 1; !bucket && d < 12; d++) bucket = this.byLength.get(length - d) ?? this.byLength.get(length + d);
-    const pool = bucket ?? [...this.byLength.values()][0]!;
-    const usedText = new Set(this.recent);
-    const usedFirst = new Set(this.recent.map((w) => w[0]));
-    let chosen: string | null = null;
-    let fallback: string | null = null;
-    for (let attempt = 0; attempt < MAX_ATTEMPTS && !chosen; attempt++) {
-      const word = this.rng.pick(pool);
-      const lower = word.toLowerCase();
-      if (usedText.has(lower)) continue;
-      if (!usedFirst.has(lower[0])) chosen = word;
-      else fallback ??= word;
-    }
-    const word = chosen ?? fallback ?? this.rng.pick(pool);
-    this.recent.push(word.toLowerCase());
-    if (this.recent.length > this.window) this.recent.shift();
-    return word;
-  }
-
   next(): string {
     // All comparisons ignore case ("Merlin" and "merlin" are the same word).
     const usedText = new Set(this.recent);
