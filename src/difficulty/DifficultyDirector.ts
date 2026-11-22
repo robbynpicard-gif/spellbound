@@ -16,8 +16,13 @@ import { SeededRandom } from '../core/Random';
  *   Layer 3  a JOINT length × fall-speed distribution: a 3 × 3 grid of
  *            (short | medium | long) × (slow | medium | fast) cells whose
  *            weights move from an opening mix to a peak mix as pressure rises.
- *            All four corner quadrants are possible from the first lesson;
- *            short/slow relief never disappears;
+ *            All four corner quadrants are possible from the first lesson,
+ *            but not equally likely; short/slow relief never disappears;
+ *   D-098    lengths live in a DOMINANT, SOFTLY BOUNDED window per
+ *            apprenticeship (Slow ≈ 3–6 letters → Harvest ≈ 6+), with rare
+ *            outliers above and below it. "Short / medium / long" mean the
+ *            lower, middle and upper part of that window. No hard gates: a
+ *            separate tail draw can always produce a word outside it;
  *   Layer 4  supporting levers (spawn interval, density) scaled from the
  *            classic level so letter arrival stays comparable.
  *
@@ -78,6 +83,19 @@ export interface SpawnPlan {
   pressure: number;
   /** Why the sampled cell was changed, if it was. */
   adjusted: null | 'spike-spacing' | 'relief' | 'opening';
+  /** D-098: a rare word outside the apprenticeship's dominant length window. */
+  outlier: null | 'below' | 'above';
+}
+
+/** D-098: the apprenticeship's dominant, softly bounded word-length window (fractional bounds). */
+export interface LengthWindow {
+  lo: number;
+  hi: number;
+  /** The window as whole letters, for display and tests. */
+  dominant: Range;
+  /** Chance a word falls above / below the window right now. */
+  above: number;
+  below: number;
 }
 
 export interface Envelope {
@@ -85,7 +103,7 @@ export interface Envelope {
   floor: number;
   ceiling: number;
   mix: Mix;
-  lengthBands: Record<LengthBand, Range>;
+  lengthWindow: LengthWindow;
   /** Fall seconds per band, [slowest, fastest]. */
   speedBands: Record<SpeedBand, Range>;
   expectedLength: number;
@@ -122,9 +140,26 @@ export interface DirectorTuning {
   reliefEvery: number;
   /** Minimum spawns between two long/fast spikes: first apprenticeship → last. */
   spikeGap: Range;
-  /** Length band ranges; long's top grows with a. */
-  lengths: { short: Range; medium: Range; long: Range; longTopAtEnd: number };
-  /** Within a band, pressure tilts toward the longer end by this much. */
+  /**
+   * D-098 dominant length windows (fractional [lo, hi]) at the first
+   * apprenticeship (Slow), at Harvest, and at the last (the Grand Wizard).
+   * In between they move smoothly. `levelDrift`: share of one apprenticeship
+   * step the window drifts from level 1 to the boss. `edge`: letters over
+   * which a window edge fades. `bandSpread`: how much the short / medium /
+   * long parts of the window overlap.
+   */
+  lengths: {
+    start: Range; harvest: Range; end: Range; harvestAt: number; levelDrift: number; edge: number; bandSpread: number;
+    /** Chance of a word above the window: [at pressure 0, at pressure 1], at Slow and at Harvest+. */
+    above: { start: Range; harvest: Range };
+    /** Chance of a shorter relief word below the window, at Slow and at Harvest+. */
+    below: Range;
+    /** Each further letter outside the window is this much less likely. */
+    tailDecay: number;
+    /** Dictionary lengths the director may use at all. */
+    library: Range;
+  };
+  /** Within the window, pressure tilts toward the longer end by this much. */
   lengthTilt: number;
   /** Fall seconds per speed band at a = 0 and a = 1 (Normal). Each band is [slowest, fastest]. */
   speeds: { start: Record<SpeedBand, Range>; end: Record<SpeedBand, Range> };
@@ -166,7 +201,13 @@ export const DIRECTOR_TUNING: DirectorTuning = {
   reliefReserve: 0.1,
   reliefEvery: 8,
   spikeGap: [6, 2],
-  lengths: { short: [2, 4], medium: [5, 6], long: [7, 8], longTopAtEnd: 10 },
+  lengths: {
+    start: [3, 6], harvest: [6, 9], end: [6, 10], harvestAt: 7 / 8, levelDrift: 0.5, edge: 1.5, bandSpread: 0.35,
+    above: { start: [0.003, 0.02], harvest: [0.03, 0.06] },
+    below: [0.01, 0.07],
+    tailDecay: 0.3,
+    library: [2, 12],
+  },
   lengthTilt: 1,
   speeds: {
     start: { slow: [19, 16], medium: [15, 12], fast: [11, 8.5] },
@@ -269,9 +310,79 @@ export function mixAt(pressure: number, t: DirectorTuning = DIRECTOR_TUNING): Mi
   return mix as unknown as Mix;
 }
 
-export function lengthBandsAt(a: number, t: DirectorTuning = DIRECTOR_TUNING): Record<LengthBand, Range> {
-  const [lo, hi] = t.lengths.long;
-  return { short: t.lengths.short, medium: t.lengths.medium, long: [lo, Math.round(lerp(hi, t.lengths.longTopAtEnd, smoothstep(a)))] };
+/** Where the window sits on the Slow → Harvest → Grand Wizard path (0 = Slow, 1 = Harvest, 2 = last). */
+function windowProgress(a: number, arcPosition: number, t: DirectorTuning): number {
+  const L = t.lengths;
+  const step = 1 / 8; // one apprenticeship of nine
+  const x = clamp01(a + clamp01(arcPosition) * step * L.levelDrift);
+  if (x <= L.harvestAt) return x / L.harvestAt;
+  return 1 + (x - L.harvestAt) / Math.max(1e-9, 1 - L.harvestAt);
+}
+
+/** D-098: the dominant length window for an encounter at a pressure. */
+export function lengthWindowAt(spec: Pick<DirectorSpec, 'apprenticeship' | 'arcPosition'>, pressure = 0, t: DirectorTuning = DIRECTOR_TUNING): LengthWindow {
+  const L = t.lengths;
+  const w = windowProgress(spec.apprenticeship, spec.arcPosition, t);
+  const s = smoothstep(Math.min(1, w));
+  const [lo, hi] = w <= 1
+    ? [lerp(L.start[0], L.harvest[0], s), lerp(L.start[1], L.harvest[1], s)]
+    : [lerp(L.harvest[0], L.end[0], w - 1), lerp(L.harvest[1], L.end[1], w - 1)];
+  const p = clamp01(pressure);
+  const above = lerp(lerp(L.above.start[0], L.above.harvest[0], s), lerp(L.above.start[1], L.above.harvest[1], s), p);
+  return { lo, hi, dominant: [Math.round(lo), Math.round(hi)], above, below: lerp(L.below[0], L.below[1], s) };
+}
+
+/** Soft window membership of a length: 1 well inside, fading to 0 over `edge` letters past each bound. */
+function membership(len: number, win: LengthWindow, t: DirectorTuning): number {
+  const e = t.lengths.edge;
+  return smoothstep((len - (win.lo - 1)) / e) * smoothstep((win.hi + 1 - len) / e);
+}
+
+const BAND_PEAK: Record<LengthBand, number> = { short: 0, medium: 0.5, long: 1 };
+
+/** Length weights for one band of the window: library availability (√count) × membership × band affinity, tilted longer with pressure. */
+function lengthWeights(band: LengthBand, win: LengthWindow, pressure: number, counts: Readonly<Record<number, number>>, t: DirectorTuning): [number, number][] {
+  const out: [number, number][] = [];
+  const width = Math.max(1, win.hi - win.lo);
+  for (let len = t.lengths.library[0]; len <= t.lengths.library[1]; len++) {
+    const n = counts[len] ?? 0;
+    if (n <= 0) continue;
+    const m = membership(len, win, t);
+    if (m <= 0.001) continue;
+    const pos = (len - win.lo) / width;
+    const affinity = Math.exp(-(((pos - BAND_PEAK[band]) / t.lengths.bandSpread) ** 2));
+    const w = Math.sqrt(n) * m * affinity * Math.exp(t.lengthTilt * clamp01(pressure) * clamp01(pos));
+    if (w > 1e-6) out.push([len, w]);
+  }
+  return out;
+}
+
+/** Outlier lengths just outside the window, each further letter rarer by `tailDecay`. */
+function tailWeights(side: 'above' | 'below', win: LengthWindow, counts: Readonly<Record<number, number>>, t: DirectorTuning): [number, number][] {
+  const out: [number, number][] = [];
+  const [minLen, maxLen] = t.lengths.library;
+  for (let k = 1; k <= 3; k++) {
+    const len = side === 'above' ? win.dominant[1] + k : win.dominant[0] - k;
+    if (len < minLen || len > maxLen || (counts[len] ?? 0) <= 0) continue;
+    out.push([len, Math.sqrt(counts[len]!) * t.lengths.tailDecay ** (k - 1)]);
+  }
+  return out;
+}
+
+function pickWeighted(weights: [number, number][], r: number, fallback: number): number {
+  const total = weights.reduce((sum, [, v]) => sum + v, 0);
+  if (total <= 0) return fallback;
+  let roll = r * total;
+  for (const [len, v] of weights) {
+    roll -= v;
+    if (roll < 0) return len;
+  }
+  return weights[weights.length - 1]![0];
+}
+
+function expectedOf(weights: [number, number][], fallback: number): number {
+  const total = weights.reduce((sum, [, v]) => sum + v, 0);
+  return total > 0 ? weights.reduce((sum, [len, v]) => sum + len * v, 0) / total : fallback;
 }
 
 export function speedBandsAt(spec: Pick<DirectorSpec, 'mode' | 'apprenticeship'>, overdrive = 1, t: DirectorTuning = DIRECTOR_TUNING): Record<SpeedBand, Range> {
@@ -283,24 +394,6 @@ export function speedBandsAt(spec: Pick<DirectorSpec, 'mode' | 'apprenticeship'>
     return [lerp(s[0], e[0], a) * scale, lerp(s[1], e[1], a) * scale];
   };
   return { slow: band('slow'), medium: band('medium'), fast: band('fast') };
-}
-
-/** Length weights inside a band: library availability (√count), tilted longer with pressure. */
-function lengthWeights(band: Range, pressure: number, counts: Readonly<Record<number, number>>, t: DirectorTuning): [number, number][] {
-  const out: [number, number][] = [];
-  const span = Math.max(1, band[1] - band[0]);
-  for (let len = band[0]; len <= band[1]; len++) {
-    const n = counts[len] ?? 0;
-    if (n <= 0) continue;
-    out.push([len, Math.sqrt(n) * Math.exp(t.lengthTilt * clamp01(pressure) * ((len - band[0]) / span))]);
-  }
-  return out;
-}
-
-function expectedLengthIn(band: Range, pressure: number, counts: Readonly<Record<number, number>>, t: DirectorTuning): number {
-  const w = lengthWeights(band, pressure, counts, t);
-  const total = w.reduce((s, [, v]) => s + v, 0);
-  return total > 0 ? w.reduce((s, [len, v]) => s + len * v, 0) / total : (band[0] + band[1]) / 2;
 }
 
 export function validateDirectorSpec(raw: unknown): string[] {
@@ -361,25 +454,26 @@ export class DifficultyDirector {
     const pressure = endless ? endless.pressure : pressureAt(spec, ctx, t);
     const overdrive = endless?.overdrive ?? 1;
     const mix = mixAt(pressure, t);
-    const lengthBands = lengthBandsAt(spec.apprenticeship, t);
+    const lengthWindow = lengthWindowAt(spec, pressure, t);
     const speedBands = speedBandsAt(spec, overdrive, t);
+    const mid = (lengthWindow.lo + lengthWindow.hi) / 2;
     let expectedLength = 0;
     LENGTH_BANDS.forEach((band, i) => {
       const share = mix[i]!.reduce((s, v) => s + v, 0);
-      expectedLength += share * expectedLengthIn(lengthBands[band], pressure, this.lengthCounts, t);
+      expectedLength += share * expectedOf(lengthWeights(band, lengthWindow, pressure, this.lengthCounts, t), mid);
     });
     const floor = spec.kind === 'endless' ? encounterBase({ ...spec, arcPosition: 1 }, t) : encounterBase(spec, t);
     const ceiling = spec.kind === 'endless' ? 1 : encounterCeiling(spec, t);
     const [d0, d1] = t.density;
     return {
-      pressure, floor, ceiling, mix, lengthBands, speedBands, expectedLength,
+      pressure, floor, ceiling, mix, lengthWindow, speedBands, expectedLength,
       spawnScale: Math.pow(expectedLength / spec.referenceLength, t.letterRateMatch) * lerp(d0, d1, pressure),
       referenceFallSeconds: (speedBands.medium[0] + speedBands.medium[1]) / 2,
       overdrive,
     };
   }
 
-  /** Plan the next spawn. Exactly four draws, always in the same order. */
+  /** Plan the next spawn. Exactly five draws, always in the same order. */
   next(ctx: DirectorContext): SpawnPlan {
     const t = this.tuning;
     const env = this.envelope(ctx);
@@ -387,6 +481,7 @@ export class DifficultyDirector {
     const rLength = this.rng.next();
     const rSpeed = this.rng.next();
     const rAdjust = this.rng.next();
+    const rTail = this.rng.next();
 
     const weights = env.mix.map((row) => [...row]);
     let adjusted: SpawnPlan['adjusted'] = null;
@@ -427,25 +522,32 @@ export class DifficultyDirector {
 
     const lengthBand = LENGTH_BANDS[li]!;
     const speedBand = SPEED_BANDS[si]!;
-    const lw = lengthWeights(env.lengthBands[lengthBand], env.pressure, this.lengthCounts, t);
-    let length = env.lengthBands[lengthBand][0];
-    if (lw.length > 0) {
-      const lt = lw.reduce((s, [, v]) => s + v, 0);
-      let lr = rLength * lt;
-      length = lw[lw.length - 1]![0];
-      for (const [len, v] of lw) {
-        lr -= v;
-        if (lr < 0) {
-          length = len;
-          break;
-        }
-      }
+    const win = env.lengthWindow;
+    // D-098 tails: a rare word above the window (any cell), or a shorter
+    // relief word below it (short cells only, scaled so the overall share
+    // matches `below`). Openings never get an upper outlier.
+    const shortShare = Math.max(1e-6, env.mix[0].reduce((sum, v) => sum + v, 0));
+    const belowChance = Math.min(1 - win.above, win.below / shortShare);
+    let outlier: SpawnPlan['outlier'] = null;
+    // An outlier's length roll is rTail rescaled within its slice (uniform).
+    let tailRoll = 0;
+    if (!ctx.opening && rTail < win.above) {
+      outlier = 'above';
+      tailRoll = rTail / win.above;
+    } else if (li === 0 && rTail >= win.above && rTail < win.above + belowChance) {
+      outlier = 'below';
+      tailRoll = (rTail - win.above) / belowChance;
     }
+    const tail = outlier ? tailWeights(outlier, win, this.lengthCounts, t) : [];
+    const length = tail.length > 0
+      ? pickWeighted(tail, tailRoll, win.dominant[outlier === 'above' ? 1 : 0])
+      : pickWeighted(lengthWeights(lengthBand, win, env.pressure, this.lengthCounts, t), rLength, Math.round((win.lo + win.hi) / 2));
+    if (tail.length === 0) outlier = null;
     const [slowest, fastest] = env.speedBands[speedBand];
     const u = Math.pow(rSpeed, 1 / (1 + t.speedTilt * env.pressure));
     const fallSeconds = lerp(slowest, fastest, u);
 
-    const plan: SpawnPlan = { spawnIndex: this.spawnIndex, length, fallSeconds, lengthBand, speedBand, pressure: env.pressure, adjusted };
+    const plan: SpawnPlan = { spawnIndex: this.spawnIndex, length, fallSeconds, lengthBand, speedBand, pressure: env.pressure, adjusted, outlier };
     if (li === 2 && si === 2) this.lastSpike = this.spawnIndex;
     this.sinceRelief = li === 0 && si === 0 ? 0 : this.sinceRelief + 1;
     this.spawnIndex++;

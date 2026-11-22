@@ -4,7 +4,7 @@ import { FIELD } from '../src/core/GameConfig';
 import { WORDS } from '../src/data/wordList';
 import { validateLevels } from '../src/difficulty/DifficultyConfig';
 import {
-  arcShape, convexRise, DIRECTOR_TUNING, DifficultyDirector, endlessState, floorAt, mixAt, pressureAt, speedBandsAt,
+  arcShape, convexRise, DIRECTOR_TUNING, DifficultyDirector, endlessState, floorAt, lengthWindowAt, mixAt, pressureAt, speedBandsAt,
   validateDirectorSpec, type DirectorSpec, type SpawnPlan,
 } from '../src/difficulty/DifficultyDirector';
 import { simulateRun, summarize } from '../src/difficulty/DirectorSimulation';
@@ -42,14 +42,6 @@ describe('Difficulty Director: shared language from the first lesson (acceptance
       const ps = plans(spec({ mode }), 4000);
       for (const c of ['short-slow', 'long-slow', 'short-fast', 'long-fast']) expect(share(ps, (p) => corner(p) === c)).toBeGreaterThan(0.015);
     }
-  });
-
-  it('has no word-length gate: long words appear in the first level of the first apprenticeship', () => {
-    const config = directorTrialLevel('normal', 1, 1);
-    expect(config.maxWordLength).toBeGreaterThanOrEqual(8);
-    const run = simulateRun(config, WORDS, 5, { cps: 5, reactionMs: 300 });
-    expect(run.spawns.some((s) => s.length >= 7)).toBe(true);
-    expect(run.spawns.some((s) => s.length <= 4)).toBe(true);
   });
 
   it('samples length and speed jointly: short-fast and long-slow are distinct, common scenarios', () => {
@@ -304,18 +296,126 @@ describe('Difficulty Director: integration preserves classic behavior (acceptanc
 });
 
 describe('Difficulty Director: simulation comparison (Phase 2 smoke)', () => {
-  it('classic early apprenticeships never produce long words; the director does, while keeping relief late', () => {
+  it('classic late apprenticeships lose relief; the director keeps it while staying harder than its first', () => {
     const typist = { cps: 5, reactionMs: 300 };
-    const sum = (make: (seed: number) => ReturnType<typeof simulateRun>) => summarize([1, 2, 3, 4].map(make), typist);
-    const classicFirst = sum((s) => simulateRun(trialLevel('normal', 1, 6), WORDS, s, typist));
-    const directorFirst = sum((s) => simulateRun(directorTrialLevel('normal', 1, 6), WORDS, s, typist));
-    const classicLast = sum((s) => simulateRun(trialLevel('normal', 9, 12), WORDS, s, typist));
-    const directorLast = sum((s) => simulateRun(directorTrialLevel('normal', 9, 12), WORDS, s, typist));
-    expect(classicFirst.corners.longSlow + classicFirst.corners.longFast).toBe(0);
-    expect(directorFirst.corners.longSlow + directorFirst.corners.longFast).toBeGreaterThan(0.05);
-    expect(classicLast.corners.shortSlow).toBeLessThan(0.05);
-    expect(directorLast.corners.shortSlow).toBeGreaterThan(0.1);
-    expect(directorLast.meanLength).toBeGreaterThan(directorFirst.meanLength);
+    const windowOf = (t: number, l: number) => lengthWindowAt(directorTrialLevel('normal', t, l).director!).dominant;
+    const sum = (make: (seed: number) => ReturnType<typeof simulateRun>, w: readonly [number, number]) => summarize([1, 2, 3, 4].map(make), typist, w);
+    const directorFirst = sum((s) => simulateRun(directorTrialLevel('normal', 1, 6), WORDS, s, typist), windowOf(1, 6));
+    const classicLast = sum((s) => simulateRun(trialLevel('normal', 9, 12), WORDS, s, typist), windowOf(9, 12));
+    const directorLast = sum((s) => simulateRun(directorTrialLevel('normal', 9, 12), WORDS, s, typist), windowOf(9, 12));
+    expect(classicLast.corners.shortSlow).toBeLessThan(0.12);
+    expect(directorLast.corners.shortSlow).toBeGreaterThan(0.12);
+    expect(directorLast.meanLength).toBeGreaterThan(directorFirst.meanLength + 2);
     expect(directorLast.fall.p50).toBeLessThan(directorFirst.fall.p50);
+  });
+});
+
+/**
+ * D-098: dominant, softly bounded word-length windows with rare outliers.
+ * EXPERIMENTAL prototype tolerances, not approved balance. They exist so a
+ * regression that floods Slow level 1 with seven-letter words, or Harvest
+ * with short words, fails loudly.
+ */
+const D098_TOLERANCES = {
+  slowLevel1: { window: [3, 6] as const, minWithin: 0.95, maxSevenPlus: 0.02, maxSevenPlusOpening: 0.01 },
+  harvest: { minSixPlus: 0.85, maxFourOrLess: 0.03, minRelief: 0.01, maxRelief: 0.15, minMedian: 7 },
+};
+const lengthsOf = (ps: { length: number }[]) => ps.map((p) => p.length);
+const shareOf = (ls: number[], f: (l: number) => boolean) => ls.filter(f).length / ls.length;
+const quantile = (ls: number[], q: number) => [...ls].sort((a, b) => a - b)[Math.floor((ls.length - 1) * q)]!;
+
+describe('D-098: Slow level 1 keeps the familiar 3–6 letter window', () => {
+  const T = D098_TOLERANCES.slowLevel1;
+  for (const mode of ['normal', 'hardcore'] as const) {
+    it(`${mode}: deterministic sampling across the whole level stays recognizably 3–6, 7+ genuinely rare`, () => {
+      const s = directorTrialLevel(mode, 1, 1).director!;
+      expect(lengthWindowAt(s).dominant).toEqual(T.window);
+      const ps = plans(s, 20000, 98);
+      const ls = lengthsOf(ps);
+      expect(shareOf(ls, (l) => l >= 3 && l <= 6)).toBeGreaterThanOrEqual(T.minWithin);
+      expect(shareOf(ls, (l) => l >= 7)).toBeLessThanOrEqual(T.maxSevenPlus);
+      // Opening-lesson safety envelope: the first quarter of the level is even stricter.
+      expect(shareOf(lengthsOf(ps.slice(0, 5000)), (l) => l >= 7)).toBeLessThanOrEqual(T.maxSevenPlusOpening);
+      expect(quantile(ls, 0.1)).toBeGreaterThanOrEqual(3);
+      expect(quantile(ls, 0.9)).toBeLessThanOrEqual(6);
+      // Soft, not hard: outliers exist on both sides, every window length is used.
+      expect(ls.some((l) => l >= 7)).toBe(true);
+      expect(ls.some((l) => l < 3)).toBe(true);
+      for (const l of [3, 4, 5, 6]) expect(shareOf(ls, (x) => x === l)).toBeGreaterThan(0.03);
+    });
+
+    it(`${mode}: in the real engine, Slow level 1 spawns stay in the window and opening words are never 7+`, () => {
+      const spawns = Array.from({ length: 40 }, (_, i) => simulateRun(directorTrialLevel(mode, 1, 1), WORDS, 300 + i, { cps: 5, reactionMs: 300 })).flatMap((r) => r.spawns);
+      const ls = spawns.map((x) => x.length);
+      expect(ls.length).toBeGreaterThan(500);
+      expect(shareOf(ls, (l) => l >= 3 && l <= 6)).toBeGreaterThanOrEqual(T.minWithin);
+      expect(shareOf(ls, (l) => l >= 7)).toBeLessThanOrEqual(T.maxSevenPlus);
+      const openers = spawns.filter((x) => x.timeToWard < x.fallSeconds - 0.01);
+      expect(openers.length).toBeGreaterThan(0);
+      expect(openers.every((x) => x.length <= 6)).toBe(true);
+    });
+  }
+
+  it('early long-fast is rare and the four combinations are far from equal at Slow level 1', () => {
+    const ps = plans(directorTrialLevel('normal', 1, 1).director!, 20000, 5);
+    const ss = share(ps, (p) => corner(p) === 'short-slow');
+    const lf = share(ps, (p) => corner(p) === 'long-fast');
+    expect(lf).toBeLessThan(0.04);
+    expect(ss).toBeGreaterThan(5 * lf);
+    // Absolute long (7+) and fast together: almost never.
+    expect(share(ps, (p) => p.length >= 7 && p.speedBand === 'fast')).toBeLessThan(0.003);
+  });
+});
+
+describe('D-098: Harvest is dominated by 6+ letters with rare shorter relief', () => {
+  const T = D098_TOLERANCES.harvest;
+  for (const mode of ['normal', 'hardcore'] as const)
+    for (const level of [1, 6, LEVELS_PER_TRIAL, BOSS_LEVEL])
+      it(`${mode} Harvest ${level === BOSS_LEVEL ? 'boss' : `level ${level}`}: 6+ dominant, short words rare but present`, () => {
+        const ls = lengthsOf(plans(directorTrialLevel(mode, 8, level).director!, 20000, 13));
+        expect(shareOf(ls, (l) => l >= 6)).toBeGreaterThanOrEqual(T.minSixPlus);
+        expect(shareOf(ls, (l) => l <= 4)).toBeLessThanOrEqual(T.maxFourOrLess);
+        const relief = shareOf(ls, (l) => l <= 5);
+        expect(relief).toBeGreaterThanOrEqual(T.minRelief);
+        expect(relief).toBeLessThanOrEqual(T.maxRelief);
+        expect(quantile(ls, 0.5)).toBeGreaterThanOrEqual(T.minMedian);
+        // 6+ is a lower anchor, not a licence for endless length.
+        expect(shareOf(ls, (l) => l >= 11)).toBeLessThan(0.08);
+      });
+
+  it('in the real engine, Harvest spawns are dominated by 6+ letters', () => {
+    const ls = Array.from({ length: 30 }, (_, i) => simulateRun(directorTrialLevel('normal', 8, 6), WORDS, 500 + i, { cps: 6, reactionMs: 300 }))
+      .flatMap((r) => r.spawns.map((x) => x.length));
+    expect(ls.length).toBeGreaterThan(500);
+    expect(shareOf(ls, (l) => l >= 6)).toBeGreaterThanOrEqual(T.minSixPlus);
+    expect(shareOf(ls, (l) => l <= 4)).toBeLessThanOrEqual(T.maxFourOrLess);
+  });
+});
+
+describe('D-098: intermediate apprenticeships move naturally between the anchors', () => {
+  it('window bounds, median and lower quantile rise monotonically; each window stays dominant', () => {
+    let last = { lo: 0, hi: 0, p10: 0, p50: 0 };
+    for (let t = 1; t <= 9; t++) {
+      const s = directorTrialLevel('normal', t, 1).director!;
+      const w = lengthWindowAt(s);
+      const ls = lengthsOf(plans(s, 8000, 21));
+      const now = { lo: w.lo, hi: w.hi, p10: quantile(ls, 0.1), p50: quantile(ls, 0.5) };
+      expect(now.lo).toBeGreaterThanOrEqual(last.lo);
+      expect(now.hi).toBeGreaterThanOrEqual(last.hi);
+      expect(now.p10).toBeGreaterThanOrEqual(last.p10);
+      expect(now.p50).toBeGreaterThanOrEqual(last.p50);
+      if (t > 1) expect(now.hi - last.hi).toBeLessThanOrEqual(1.01); // no jumps
+      expect(shareOf(ls, (l) => l >= w.dominant[0] && l <= w.dominant[1])).toBeGreaterThan(0.85);
+      last = now;
+    }
+  });
+
+  it('the window also drifts gently within an apprenticeship (level 1 → boss), never backwards', () => {
+    for (let t = 1; t <= 9; t++) {
+      const first = lengthWindowAt(directorTrialLevel('normal', t, 1).director!);
+      const boss = lengthWindowAt(directorTrialLevel('normal', t, BOSS_LEVEL).director!);
+      expect(boss.lo).toBeGreaterThanOrEqual(first.lo);
+      expect(boss.hi - first.hi).toBeLessThan(0.6);
+    }
   });
 });

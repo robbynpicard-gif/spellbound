@@ -136,10 +136,16 @@ export function simulateRun(config: DifficultyConfig, words: readonly string[], 
 
 // ───────────── aggregation ─────────────
 
-export const QUADRANT_THRESHOLDS = { shortMax: 4, longMin: 7, slowMinSeconds: 13.5, fastMaxSeconds: 10 };
+/** Speed classes are absolute seconds to the Ward. */
+export const QUADRANT_THRESHOLDS = { slowMinSeconds: 13.5, fastMaxSeconds: 10 };
 
-export function lengthClass(len: number): 'short' | 'medium' | 'long' {
-  return len <= QUADRANT_THRESHOLDS.shortMax ? 'short' : len >= QUADRANT_THRESHOLDS.longMin ? 'long' : 'medium';
+/**
+ * Length classes are RELATIVE to the apprenticeship's dominant window (D-098):
+ * short = the window's two lowest lengths or below; long = its top length or
+ * above. Slow [3, 6]: short ≤ 4, long ≥ 6. Harvest [6, 9]: short ≤ 7, long ≥ 9.
+ */
+export function lengthClass(len: number, window: readonly [number, number]): 'short' | 'medium' | 'long' {
+  return len <= window[0] + 1 ? 'short' : len >= window[1] ? 'long' : 'medium';
 }
 export function speedClass(fall: number): 'slow' | 'medium' | 'fast' {
   return fall >= QUADRANT_THRESHOLDS.slowMinSeconds ? 'slow' : fall <= QUADRANT_THRESHOLDS.fastMaxSeconds ? 'fast' : 'medium';
@@ -159,8 +165,11 @@ export interface Summary {
   spawns: number;
   lengthHistogram: Record<number, number>;
   meanLength: number;
+  length: { p10: number; p50: number; p90: number };
+  /** D-098: share of words inside, above and below the dominant window used for classes. */
+  window: { range: readonly [number, number]; within: number; above: number; below: number };
   fall: { p10: number; p50: number; p90: number; min: number };
-  /** Shares of the 3 × 3 grid, by absolute thresholds (same for both systems). */
+  /** Shares of the 3 × 3 grid (same thresholds for both systems; lengths relative to the window). */
   grid: Record<string, number>;
   corners: { shortSlow: number; longSlow: number; shortFast: number; longFast: number };
   /** time-to-Ward ÷ time to type it alone at the typist's rate. Lower = tighter. */
@@ -180,7 +189,7 @@ export interface Summary {
   missesPerRun: number;
 }
 
-export function summarize(reports: readonly RunReport[], typist: Typist): Summary {
+export function summarize(reports: readonly RunReport[], typist: Typist, window: readonly [number, number] = [3, 6]): Summary {
   const spawns = reports.flatMap((r) => r.spawns);
   const hist: Record<number, number> = {};
   for (const s of spawns) hist[s.length] = (hist[s.length] ?? 0) + 1;
@@ -188,7 +197,8 @@ export function summarize(reports: readonly RunReport[], typist: Typist): Summar
   for (const k of Object.keys(hist)) hist[Number(k)] = hist[Number(k)]! / n;
   const grid: Record<string, number> = {};
   for (const l of ['short', 'medium', 'long']) for (const v of ['slow', 'medium', 'fast']) grid[`${l}-${v}`] = 0;
-  for (const s of spawns) grid[`${lengthClass(s.length)}-${speedClass(s.fallSeconds)}`]! += 1 / n;
+  for (const s of spawns) grid[`${lengthClass(s.length, window)}-${speedClass(s.fallSeconds)}`]! += 1 / n;
+  const lengths = spawns.map((s) => s.length);
   const falls = spawns.map((s) => s.fallSeconds);
   const slack = spawns.map((s) => s.timeToWard / (s.length / typist.cps + typist.reactionMs / 1000));
   const curve = Array.from({ length: 10 }, () => [] as number[]);
@@ -227,7 +237,14 @@ export function summarize(reports: readonly RunReport[], typist: Typist): Summar
     runs: reports.length,
     spawns: spawns.length,
     lengthHistogram: hist,
-    meanLength: mean(spawns.map((s) => s.length)),
+    meanLength: mean(lengths),
+    length: { p10: percentile(lengths, 0.1), p50: percentile(lengths, 0.5), p90: percentile(lengths, 0.9) },
+    window: {
+      range: window,
+      within: lengths.filter((l) => l >= window[0] && l <= window[1]).length / n,
+      above: lengths.filter((l) => l > window[1]).length / n,
+      below: lengths.filter((l) => l < window[0]).length / n,
+    },
     fall: { p10: percentile(falls, 0.1), p50: percentile(falls, 0.5), p90: percentile(falls, 0.9), min: Math.min(...falls) },
     grid,
     corners: { shortSlow: grid['short-slow']!, longSlow: grid['long-slow']!, shortFast: grid['short-fast']!, longFast: grid['long-fast']! },

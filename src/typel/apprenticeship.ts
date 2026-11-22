@@ -8,7 +8,7 @@
  * the old stage 1 → 5 curve. Masters, names and every line are PLACEHOLDERS.
  */
 import { averageWordLength, type DifficultyConfig } from '../difficulty/DifficultyConfig';
-import { lengthBandsAt, type DirectorSpec, type EncounterKind } from '../difficulty/DifficultyDirector';
+import { DIRECTOR_TUNING, type DirectorSpec, type EncounterKind } from '../difficulty/DifficultyDirector';
 import { endlessConfig, stageLevel, type StageMode } from '../difficulty/Stages';
 import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
 
@@ -239,9 +239,9 @@ function withDirector(classic: DifficultyConfig, mode: Mode, a: number, arcPosit
   delete rest.wordLengthWeights;
   return {
     ...rest,
-    // The director chooses lengths, so the generator may hold every band's words.
-    minWordLength: lengthBandsAt(a).short[0],
-    maxWordLength: lengthBandsAt(a).long[1],
+    // The director chooses lengths (D-098 soft windows with rare tails), so the generator holds every usable length.
+    minWordLength: DIRECTOR_TUNING.lengths.library[0],
+    maxWordLength: DIRECTOR_TUNING.lengths.library[1],
     // Endless keeps its spawn escalation and waves; fall speed no longer compounds (bounded overdrive instead).
     ...(classic.escalation ? { escalation: { ...classic.escalation, speed: 0 } } : {}),
     director,
