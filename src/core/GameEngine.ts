@@ -55,6 +55,7 @@ import type { GameEvents, GameResult } from './GameEvents';
 import { FIELD, SIMULATION_STEP_MS, type FieldConfig } from './GameConfig';
 import { createInitialState, type GameState, type GameStatus } from './GameState';
 import { SeededRandom } from './Random';
+import { DifficultyDirector, type SpawnPlan } from '../difficulty/DifficultyDirector';
 
 /**
  * A player action, stamped with the tick it happened on. The command log is
@@ -220,6 +221,11 @@ export class GameEngine {
   private endlessWaveActive = false;
   /** Short respite after a campaign surge, without lowering the level's baseline. */
   private recoveryUntilTick = 0;
+  /** D-097: its own seeded stream, so the director never shifts words, layout or drops. */
+  private readonly directorRng: SeededRandom;
+  private directorCache: DifficultyDirector | null = null;
+  /** The last spawn's plan (inspection and simulation only). */
+  lastSpawnPlan: SpawnPlan | null = null;
 
   constructor(options: EngineOptions) {
     this.config = options.config;
@@ -233,6 +239,7 @@ export class GameEngine {
     this.experimentalScoring = options.experimentalScoring === true;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
     this.laneRng = new SeededRandom((this.seed ^ 0x1a4e1a4e) >>> 0);
+    this.directorRng = new SeededRandom((this.seed ^ 0x0d1ec7ed) >>> 0);
     this.ward = this.experimentalScoring && options.initialWard ? parseWard(options.initialWard.cap, options.initialWard.wagers) : freshWard();
     // A scarred Ward can never start above its maximum.
     this.instability = new InstabilityManager(Math.max(100 - this.ward.cap, options.initialInstability ?? 0));
@@ -359,8 +366,32 @@ export class GameEngine {
    * Current pace. Normal levels use their fixed values; a boss level moves
    * smoothly from its base values to its `ramp` values over the timer.
    */
+  /** D-097 prototype director for the current config (null on classic difficulty). */
+  get director(): DifficultyDirector | null {
+    const d = this.config.director;
+    if (!d) return null;
+    if (this.directorCache?.settings !== d) this.directorCache = new DifficultyDirector(d, this.field.height);
+    return this.directorCache;
+  }
+
+  /** Endless director laps: each `rampWords` captures is one pressure arc. */
+  private get directorLap(): number {
+    const c = this.config;
+    return !c.requiredWords && !c.survivalMs && c.rampWords ? Math.floor(this.s.completed / c.rampWords) : 0;
+  }
+
   get pace(): Pace {
     const c = this.config;
+    const director = this.director;
+    if (director) {
+      // D-097: the director owns the base pace; surges and their recovery still apply on top.
+      let pace: Pace = director.pace(this.progress, this.directorLap);
+      if (this.s.surgeTicks > 0)
+        pace = { ...pace, spawnInterval: pace.spawnInterval * SURGE_SPAWN_FACTOR, maxActiveWords: pace.maxActiveWords + SURGE_EXTRA_WORDS };
+      else if (this.s.tick < this.recoveryUntilTick)
+        pace = { ...pace, spawnInterval: pace.spawnInterval * 1.25, maxActiveWords: Math.max(4, pace.maxActiveWords - 2) };
+      return pace;
+    }
     let pace = { fallSpeed: c.initialFallSpeed, spawnInterval: c.spawnInterval, maxActiveWords: c.maxActiveWords };
     if (isSurvival(c) && c.ramp) {
       const t = Math.min(1, this.elapsedMs / c.survivalMs!);
@@ -465,7 +496,7 @@ export class GameEngine {
       s.spawnTimerMs = this.pace.spawnInterval;
     }
     if (s.surgeTicks > 0 && --s.surgeTicks === 0) {
-      if (!c.escalation) this.recoveryUntilTick = s.tick + Math.round(4000 / SIMULATION_STEP_MS);
+      if (!c.escalation || c.director) this.recoveryUntilTick = s.tick + Math.round(4000 / SIMULATION_STEP_MS);
       this.events.emit('surgeChanged', { active: false });
     }
     if (!c.requiredWords && !c.survivalMs && c.rampWords) {
@@ -956,7 +987,15 @@ export class GameEngine {
 
   private spawn(fallSpeed: number, startY = 0): void {
     const s = this.s;
-    const text = s.easyTicks > 0 && this.easyGenerator ? this.easyGenerator.next() : this.generator.next();
+    const director = this.director;
+    let plan: SpawnPlan | null = null;
+    if (director) {
+      const fast = director.fastSeconds(this.progress, this.directorLap);
+      const longFastOnField = s.words.filter((w) => w.text.length >= 7 && this.field.height / Math.max(1, w.baseSpeed) <= fast).length;
+      plan = director.plan({ progress: this.progress, lap: this.directorLap, longFastOnField }, this.directorRng);
+      this.lastSpawnPlan = plan;
+    }
+    const text = s.easyTicks > 0 && this.easyGenerator ? this.easyGenerator.next() : plan ? this.generator.nextOfLength(plan.length) : this.generator.next();
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;
@@ -985,7 +1024,8 @@ export class GameEngine {
       available.length > 0 && this.rng.chance(this.config.spellDropChance)
         ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
         : null;
-    const speed = this.spawnSpeed(fallSpeed);
+    // D-097: the director's joint plan sets this word's own time-to-Ward.
+    const speed = plan ? this.field.height / plan.fallSeconds : this.spawnSpeed(fallSpeed);
 
     const word: WordState = {
       id: s.nextWordId++,

@@ -1,4 +1,5 @@
 import { isSpellId, type SpellId } from '../gameplay/SpellManager';
+import type { DirectorSettings } from './DifficultyDirector';
 
 /**
  * Everything that makes one level harder or easier than another.
@@ -93,6 +94,12 @@ export interface DifficultyConfig {
    * level's base values to these.
    */
   ramp?: Readonly<{ initialFallSpeed: number; spawnInterval: number; maxActiveWords: number }> | null;
+  /**
+   * D-097 prototype: when set, the Difficulty Director samples each word's
+   * length and fall speed jointly and sets the pace; the fixed fall speed,
+   * length weights and ramps above are then only reference values.
+   */
+  director?: DirectorSettings | null;
 }
 
 /** True for a boss level (survive a timer instead of reaching a quota). */

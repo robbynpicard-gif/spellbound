@@ -62,6 +62,23 @@ interface Run {
 
 const HARDCORE_RECOVERY: Record<number, number> = { 4: 25, 8: 25 };
 
+/** Records are kept per difficulty system, so classic and director scores never mix (D-097 dev flag). */
+const recordKey = (mode: string, trial: number) => `${mode}:${trial}${prefs.data.difficulty === 'director' ? ':director' : ''}`;
+
+/** D-097 dev toggle: the Difficulty Director prototype or the classic stage curve. */
+function difficultyToggle(rerender: () => void): HTMLElement {
+  const set = (v: 'director' | 'classic') => () => ((prefs.data.difficulty = v), prefs.save(), rerender());
+  const on = prefs.data.difficulty;
+  return el('div', { class: 't-row' },
+    el('span', { class: 't-small' }, 'Difficulty (dev):'),
+    btn('Director · D-097 prototype', set('director'), on === 'director' ? 'primary small' : 'small'),
+    btn('Classic stages', set('classic'), on === 'classic' ? 'primary small' : 'small'),
+    el('span', { class: 't-small' }, on === 'director'
+      ? 'Short, long, slow and fast words from the first lesson; the floor rises slowly; each level builds to a climax with breathers. All numbers experimental.'
+      : 'The old curve: word length and speed step up by stage. Kept for comparison.'),
+  );
+}
+
 export class TypeLApp {
   private run: Run | null = null;
   private mode: Mode = 'normal';
@@ -139,7 +156,7 @@ export class TypeLApp {
     for (const t of TRIALS) {
       const pick = el('select', { class: 't-levelpick', 'aria-label': `Start ${t.title} at level` });
       for (let l = 1; l <= BOSS_LEVEL; l++) pick.append(el('option', { value: String(l) }, l === BOSS_LEVEL ? 'Boss' : `Level ${l}`));
-      const best = prefs.data.bestTrialScore[`${this.mode}:${t.index}`];
+      const best = prefs.data.bestTrialScore[recordKey(this.mode, t.index)];
       list.append(
         el('article', { class: `t-trial${done.has(t.index) ? ' done' : ''}`, style: t.spell ? `--hue:${SPELL_HUE[t.spell]}` : '--hue:#d9a441' },
           el('div', { class: 't-trial-glyph' }, t.spell ? SPELL_GLYPH[t.spell] : '✶'),
@@ -160,6 +177,7 @@ export class TypeLApp {
           ? 'Normal teaches: number keys 1–8 cast, the Ward is fresh every level.'
           : 'Hardcore expects mastery: spells are typed, the Ward carries between levels. (Unlocked for testing; it will require Normal.)'),
       ),
+      difficultyToggle(() => this.showApprenticeship()),
       list,
       el('p', { class: 't-small' }, `Each apprenticeship: ${LEVELS_PER_TRIAL} levels and a spell boss, then Endless. Spells you have learned come with you. All unlocked for testing; the level picker is a testing tool.`),
       el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
@@ -214,7 +232,7 @@ export class TypeLApp {
     const run = this.run!;
     const trial = TRIALS[run.trial - 1]!;
     const boss = run.level >= BOSS_LEVEL;
-    const config = trialLevel(run.mode, run.trial, run.level);
+    const config = trialLevel(run.mode, run.trial, run.level, prefs.data.difficulty);
     const hint = trial.hints[run.level];
     this.startPlay({
       config,
@@ -308,7 +326,7 @@ export class TypeLApp {
 
   private trialWon(trial: Trial, stats: GameStats): void {
     const run = this.run!;
-    const key = `${run.mode}:${run.trial}`;
+    const key = recordKey(run.mode, run.trial);
     const list = prefs.data.completed[run.mode];
     if (!list.includes(run.trial)) list.push(run.trial);
     prefs.data.lifetime.bosses++;
@@ -343,7 +361,9 @@ export class TypeLApp {
         btn('Enter Endless', () => this.enterEndless(), 'primary'),
         nextTrial ? btn(`Next: ${nextTrial.title}`, () => this.beginTrial(nextTrial.index)) : null,
         btn('Apprenticeship', () => this.showApprenticeship())),
-      el('p', { class: 't-small' }, 'Endless continues this exact field with everything you have learned, and the pace keeps climbing.'),
+      el('p', { class: 't-small' }, prefs.data.difficulty === 'director'
+        ? 'Endless continues this exact field with everything you have learned: wave after wave, each building a little higher, until the Ward falls.'
+        : 'Endless continues this exact field with everything you have learned, and the pace keeps climbing.'),
     ), { overlay: true });
   }
 
@@ -351,12 +371,12 @@ export class TypeLApp {
     const run = this.run!;
     run.endless = true;
     this.clearUi();
-    this.play.continueEndless(trialEndless(run.mode, run.trial), `Endless · ${TRIALS[run.trial - 1]!.title}`);
+    this.play.continueEndless(trialEndless(run.mode, run.trial, prefs.data.difficulty), `Endless · ${TRIALS[run.trial - 1]!.title}`);
   }
 
   private endlessOver(stats: GameStats): void {
     const run = this.run!;
-    const key = `${run.mode}:${run.trial}`;
+    const key = recordKey(run.mode, run.trial);
     const best = prefs.data.bestEndless[key] ?? 0;
     const total = stats.score;
     if (total > best) prefs.data.bestEndless[key] = total;
@@ -395,6 +415,7 @@ export class TypeLApp {
         btn('Normal rules', () => ((sb.mode = 'normal'), this.showSandboxSetup()), sb.mode === 'normal' ? 'primary small' : 'small'),
         btn('Hardcore rules', () => ((sb.mode = 'hardcore'), this.showSandboxSetup()), sb.mode === 'hardcore' ? 'primary small' : 'small')),
       el('div', { class: 't-row' }, ...[1, 2, 3, 4, 5].map((n) => btn(`Pace ${n}`, () => ((sb.tier = n), this.showSandboxSetup()), sb.tier === n ? 'primary small' : 'small'))),
+      difficultyToggle(() => this.showSandboxSetup()),
       el('div', { class: 't-row' }, btn('Start', () => this.startSandbox(), 'primary'), btn('Back', () => this.showTitle())),
       el('p', { class: 't-small' }, 'Try: Wind at full Ward then Harvest · Ice and type perfectly · Shock into a crowd · Fire on a cluster · Barrier then slip and correct · submit a wrong word on purpose and catch the plunge.'),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
@@ -404,7 +425,7 @@ export class TypeLApp {
     const sb = this.sandbox;
     const charges: Partial<SpellCharges> = Object.fromEntries(SPELL_ORDER.map((s) => [s, s === 'wind' ? 6 : 4]));
     this.startPlay({
-      config: sandboxConfig(sb.mode, sb.tier),
+      config: sandboxConfig(sb.mode, sb.tier, prefs.data.difficulty),
       hardcore: sb.mode === 'hardcore',
       initialSpells: charges,
       poolLimitOverride: 60,
@@ -527,6 +548,9 @@ export class TypeLApp {
         h3('Precision Combo'), p('Every perfectly typed capture adds 1 (Ice Focus adds more). Every 10 Combo raises the multiplier by ×1. A typo, a wrong Enter or a missed word breaks it. A Barrier layer can save it from one slip you correct.'),
         h3('Arcane Rush'), p('Your flow state (called Arcane Volley in older notes). Your first perfect capture opens a timing window (the gold bar on the Rush column); a second inside it starts the Rush at ×1.2. Keep capturing in time and it climbs +0.2 per capture to ×5 (Mastery), then +0.1 per ever-harder step. Longer words get longer windows. An empty field pauses the window. Slow gives it 25% more time. Harvest spends it.'),
         h3('Catch it!'), p('Submitting a wrong word sends the word you meant into a plunge. Most plunges are brisk, some urgent, and now and then one is desperate. Catch it before it reaches the Ward to earn Saving Grace (Daring Rescue for the fastest). Another wrong submission on a plunging word makes it fall faster still. A wrong letter you fix with Backspace never causes a plunge.'),
+        h3('How the pressure builds'), p(prefs.data.difficulty === 'director'
+          ? 'From the first lesson, scrolls come short and long, slow and fast. Long words that drift and short ones that dive each test you differently. Every level starts calm, breathes twice, and builds to a climax. Each apprenticeship starts a little harder than the last, but breathers never vanish. (Prototype: every number is still being tuned.)'
+          : 'Classic stages: each apprenticeship allows longer words and a quicker fall than the last, and each level speeds up as it goes.'),
         h3('Backspace'), p('Backspace un-inks letters from the paper and the scroll. Fixing a slip is always allowed; the slip itself still broke your Combo unless a Barrier layer caught it.'),
         h3('The Ward'), p(`Words that reach the bottom crack the Ward. At 0% you fall. Wind at your Ward’s current maximum goes All-In: the Ward drops to ${WARD_TUNING.wagerStability}%, its maximum is scarred (−${WARD_TUNING.firstScar}, then ${WARD_TUNING.scarGrowth} more each time), and for ${WARD_TUNING.allInTicks / 60} seconds your score is ×${WARD_TUNING.allInMultiplier}. Healing never rises above the scar. A breach ends All-In; in Hardcore any slip does.`),
         h3('Normal and Hardcore'), p('Normal: number keys 1–8 cast; the Ward is fresh every level. Hardcore: spells are typed (a clean typed spell earns Combo and points); the Ward and its scars carry through the apprenticeship, with small recoveries after levels 4 and 8.'),

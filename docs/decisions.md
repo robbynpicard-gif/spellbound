@@ -1347,3 +1347,26 @@ _2026-11-21 · Owner decision (chat); refines D-096; art requested (PLT-007 v2);
 - **Code and docs:** titles, package name, class names (`TypeLApp`, `TypeLPlayScene`…), debug globals (`typelGame`, `typelApp`, `typelEngine`), CI artifact names and file names now say TypeL / `typel`. This log and development-log.md keep their historical wording.
 - **Saves:** storage keys move to `typel.*` (`typel.save`, `typel.preview.*`). `src/storage/legacyKeys.ts` copies any `spellbound.*` / `wizzytype.*` key to its `typel.*` name on start-up without overwriting, and leaves the old keys in place, so no progress is lost.
 - **Unchanged:** the falling word "spellbound" stays in words.json.
+
+### D-100 — Difficulty Director prototype implemented for D-097, behind a dev flag (2026-11-22)
+_2026-11-22 · Numbered D-100 because another session used D-099 for the TypeL rename · Prototype choices (reversible) implementing the owner's D-097 direction; numeric tuning NOT approved · details in `docs/apprenticeship-difficulty-director-2026-11-22-implementation.md`, results in `docs/difficulty-director-simulation-2026-11-22.md`_
+
+**What was built:**
+- `src/difficulty/DifficultyDirector.ts`: a pure, deterministic director with:
+  - a slowly rising journey floor (smoothstep over all 117 apprenticeship levels);
+  - a convex in-encounter pressure arc (`(e^{kp}−1)/(e^k−1)`) with two relief windows, and saturating Endless laps;
+  - joint 3×3 length-band × speed-band sampling, where all four quadrants are possible from lesson 1;
+  - a hard speed cap, a short+slow minimum share, a limit on stacked long+fast words, and a per-word fairness floor;
+  - spawn pace and density as secondary levers.
+- **Engine:** an optional `config.director` seam with its own RNG stream.
+
+**Unchanged:** spells, scoring, Rush, the catch loop, audio, visuals, the old campaign, duels and production. Classic configs and replays are untouched.
+
+**The dev flag:**
+- "Difficulty (dev)" on the Apprenticeship and Sandbox screens, **defaulting to Director on the preview**; Classic stays one click away.
+- Records are kept per system.
+- The Codex and the Endless text describe the active system.
+
+**Not done, per D-097:** no player-skill adaptation, and no hidden assistance.
+
+**Open for the owner:** ramp intensity, breather cadence, how the late floor rises, lesson-1 long+fast tolerance, and boss and Endless shapes.
