@@ -237,10 +237,19 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload: PLT-005_no-title_v1.png"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
@@ -269,10 +278,19 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload: PLT-006_shelf-title_v1_a.png + _b"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
@@ -284,8 +302,8 @@
   },
   {
    "id": "PLT-007",
-   "name": "Rune conveyor display",
-   "function": "Rune medals ride a conveyor in the score machine; Rune name on the strip; desk tray removed",
+   "name": "Rune display (Halo-medal style)",
+   "function": "Large display in the score machine that absorbs earned Runes: newest shown big with its name, then joins a row of recent Runes (D-098)",
    "category": "visual/plate-edit",
    "delivery_format": "PNG 16:9 edit of clean plate v1",
    "dimensions": "region PLT-007",
@@ -297,7 +315,7 @@
     "PLT-002"
    ],
    "prompt": {
-    "version": 1,
+    "version": 2,
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
@@ -306,11 +324,16 @@
     {
      "status": "REQUESTED",
      "date": "2026-11-21"
+    },
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21",
+     "note": "v2 prompt: conveyor concept replaced by Rune display (D-098)"
     }
    ],
    "approved_source": null,
    "final_path": null,
-   "integration_notes": "Replaces tray slots (keyart.json tray) with a conveyor path; level text moves to the stage banner.",
+   "integration_notes": "Replaces keyart tray slots and the level plate; level name moves to the stage banner. Medals keep the D-093 cut-outs until MED-001.",
    "test_status": "not tested",
    "known_limitations": "Objects on the belt; window too small."
   },
@@ -333,10 +356,19 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload: PLT-008_spell-keys-orb-pipe_v1_a.png + _b"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
@@ -365,10 +397,19 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload: RIB-001_shelf-ribbons_v1.png"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
@@ -397,10 +438,19 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload: KEY-001_spell-gems_v1.png"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
@@ -429,10 +479,19 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload: MIX-001_lock-seals-orb_v1.png"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],

@@ -2,7 +2,7 @@
 
 _Requested 2026-11-21 · Shared style block: **TYPEL SHARED STYLE v1** · Prompts: v1 · Edits are made on the batch-01 clean plate_
 
-**Why now:** the owner revised the play screen before batch 01 is integrated: a 10 % larger field, the title moved above the shelf with a stage banner, a Rune conveyor in the score machine, the Ward as an orb on the typewriter, spell keys with a Hardcore lock, a smoking pipe, and colour ribbons on the shelf. Everything that changes the painted plate is a region edit **of the clean plate** (so it stacks on batch 01); everything that moves, lights up or appears conditionally is an isolated sprite. Text (banner, level, Rune names, key numbers) stays live.
+**Why now:** the owner revised the play screen before batch 01 is integrated: a 10 % larger field, the title moved above the shelf with a stage banner, a Rune display in the score machine, the Ward as an orb on the typewriter, spell keys with a Hardcore lock, a smoking pipe, and colour ribbons on the shelf. Everything that changes the painted plate is a region edit **of the clean plate** (so it stacks on batch 01); everything that moves, lights up or appears conditionally is an isolated sprite. Text (banner, level, Rune names, key numbers) stays live.
 
 **Plan image (for you, not for Flow):** `docs/assets/guides/G-HUD-REV1_plan_labelled.png`.
 
@@ -71,10 +71,35 @@ DO NOT CHANGE: anything else in the picture. Do not add any text other than the 
 
 ---
 
-## PLT-007 · Rune conveyor display (replaces level plate and medal tray)
+## PLT-007 · Rune display (v2: replaces the conveyor idea)
 
 | Field | Value |
 |---|---|
+| **Purpose** | A large display in the score machine that **absorbs** the Runes you earn and shows them, Halo-medal style: the newest Rune pops up big with its name, then joins a short row of recent Runes; older ones slide out. Display method only (D-098). |
+| **Kind** | Edit |
+| **Technical** | 16:9 edit of the clean plate; only the lower-left area (machine below the tubes + desk tray) is used. |
+| **Attach** | `TYPEL-BASE_clean-plate_v1.png` |
+| **Return as** | `PLT-007_rune-display_v2.png` |
+
+**Flow prompt (copy all):**
+
+```
+TYPEL SHARED STYLE v1: Hand-painted digital fantasy illustration that matches the attached Typel concept art exactly in technique: painterly brushwork with soft blended gradients and fine visible brush texture, confident dark-umber (never pure black) contour lines on object edges, warm saturated colour, storybook-meets-premium-indie-game finish. World: an Arcane Renaissance alchemist-wizard's workshop. Materials: aged polished brass with warm cream highlights and deep umber shadows, round rivets and engraved filigree; dark walnut and mahogany wood with visible grain; warm cream parchment with soft stains; ivory; clear glass with bright rim highlights; dark blackened iron. Lighting: cool blue-violet moonlight from the upper left as a rim light, warm amber candlelight from below on both sides as the fill, strong readable value contrast, soft shadows in crevices. Mood: whimsical, grounded, quietly satirical, mature; neither childish cartoon nor grim and dark.
+
+EDIT THE ATTACHED IMAGE. Keep the whole picture exactly the same: same framing, same size and position of everything, same colours, lighting and painting style. Change ONLY the lower part of the brass score machine on the left and the desk in front of it:
+1. Replace everything on the machine below the two glass tubes, including the large blank brass plate, AND the red velvet medal tray on the desk, with one large arcane display: a big viewing pane of dark glass set into the front of the machine, filling the machine's whole width and reaching from just under the tubes down to the desk, about one and a half times wider than it is tall. Frame it in heavy polished brass with rivets and engraved filigree.
+2. Behind the glass is a deep, dark indigo space with faint swirling arcane mist and a soft cyan glow around its edges, like a scrying glass. It is EMPTY: no medals, runes, symbols or text inside it.
+3. At the top centre of the frame, add a small round brass intake lens, a ring of brass with a glowing cyan glass eye, through which magic is drawn into the display.
+4. Along the bottom of the frame, add a narrow blank brass name strip with no lettering.
+Paint the walnut desk top where the velvet tray was, keeping the loose scroll and the ink spot at the far left.
+
+DO NOT CHANGE: the drum counter, the small plates, the glass tubes and their contents, the gears, pipes and steam, the typewriter, or anything else. Do not add any text, numbers, medals or objects.
+```
+
+**Acceptance criteria:** a big, dark, empty display pane filling the machine's width below the tubes, brass frame, an intake lens at the top, a blank strip at the bottom; the velvet tray gone; nothing inside the pane.
+**Expected limitations:** the model may keep the old plate, shrink the pane, or put symbols inside it (re-run asking for it to be empty).
+
+---|---|
 | **Purpose** | The Rune medals ride a conveyor inside the score machine; the Rune name shows on the strip under it. The level name moves to the new banner (D-096). |
 | **Kind** | Edit |
 | **Technical** | 16:9 edit of the clean plate; only the lower-left area is used. |

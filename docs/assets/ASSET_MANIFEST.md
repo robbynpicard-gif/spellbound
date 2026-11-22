@@ -12,7 +12,7 @@ Lifecycle: PLANNED → REQUESTED → GENERATED → UNDER REVIEW → APPROVED →
 
 ## Summary
 
-UNDER REVIEW: 5 · REQUESTED: 7 · PLANNED: 12 · REJECTED: 1
+UNDER REVIEW: 11 · REQUESTED: 1 · PLANNED: 12 · REJECTED: 1
 
 | ID | Name | Batch | Status | Category | Format | Size | Transparency / loop |
 |---|---|---|---|---|---|---|---|
@@ -21,13 +21,13 @@ UNDER REVIEW: 5 · REQUESTED: 7 · PLANNED: 12 · REJECTED: 1
 | PLT-003 | Clean typewriter and desk region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-003 | opaque (region composite) |
 | PLT-004 | Empty shelf region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-004 | opaque (region composite) |
 | SCR-001 | Plain word scroll (blank) | 1 | **UNDER REVIEW** | visual/gameplay-target | PNG 16:9 on #FF00FF | ships 229×67 (+2×), capL/capR re-measured | alpha (chroma key); 3-slice |
-| PLT-005 | Title removed from the arch top | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-005 | opaque (region composite) |
-| PLT-006 | Shorter shelf + TYPEL title + blank stage banner | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-006 | opaque (region composite) |
-| PLT-007 | Rune conveyor display | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-007 | opaque (region composite) |
-| PLT-008 | Spell-key row, Ward orb, desk pipe | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-008 | opaque (region composite) |
-| RIB-001 | Shelf ribbon markers ×8 | 1b | **REQUESTED** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~22×80 each | alpha; sheet split |
-| KEY-001 | Spell gems ×8 | 1b | **REQUESTED** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~30 px each | alpha; sheet split |
-| MIX-001 | Hardcore lock bar, Normal/Hardcore seals, Ward orb liquid | 1b | **REQUESTED** | visual/hud-part | PNG 16:9 sheet on #FF00FF | 4 sprites | alpha; sheet split |
+| PLT-005 | Title removed from the arch top | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-005 | opaque (region composite) |
+| PLT-006 | Shorter shelf + TYPEL title + blank stage banner | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-006 | opaque (region composite) |
+| PLT-007 | Rune display (Halo-medal style) | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-007 | opaque (region composite) |
+| PLT-008 | Spell-key row, Ward orb, desk pipe | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-008 | opaque (region composite) |
+| RIB-001 | Shelf ribbon markers ×8 | 1b | **UNDER REVIEW** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~22×80 each | alpha; sheet split |
+| KEY-001 | Spell gems ×8 | 1b | **UNDER REVIEW** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~30 px each | alpha; sheet split |
+| MIX-001 | Hardcore lock bar, Normal/Hardcore seals, Ward orb liquid | 1b | **UNDER REVIEW** | visual/hud-part | PNG 16:9 sheet on #FF00FF | 4 sprites | alpha; sheet split |
 | SCR-002 | Elemental spell scrolls ×8 | 2 | **PLANNED** | visual/gameplay-target | PNG sheet on #FF00FF | matches SCR-001 | alpha |
 | SCR-003 | CATCH! stamp | 2 | **PLANNED** | visual/feedback | PNG on #FF00FF | ~123×60 | alpha |
 | RCK-002 | Shelf scrolls ×8 (isolated) | 2 | **PLANNED** | visual/hud-part | PNG sheet on #FF00FF | 257×80–91 each | alpha; sheet split |
@@ -121,7 +121,7 @@ UNDER REVIEW: 5 · REQUESTED: 7 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-005 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** clean plate v1
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: PLT-005_no-title_v1.png); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** TBD
 - **Integration notes:** Stage-2 plate build (plate-build-v2.json).
@@ -135,24 +135,24 @@ UNDER REVIEW: 5 · REQUESTED: 7 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-006 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** clean plate v1
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: PLT-006_shelf-title_v1_a.png + _b); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** TBD
 - **Integration notes:** rack_<spell> layers re-placed and scaled to the new compartments; rackCount positions re-measured.
 - **Test status:** not tested
 - **Known limitations:** Shelf count; TYPEL spelling.
 
-### PLT-007 · Rune conveyor display
+### PLT-007 · Rune display (Halo-medal style)
 
-- **Game function:** Rune medals ride a conveyor in the score machine; Rune name on the strip; desk tray removed
+- **Game function:** Large display in the score machine that absorbs earned Runes: newest shown big with its name, then joins a row of recent Runes (D-098)
 - **Category:** visual/plate-edit · **Batch:** 1b · **Priority:** 1 · **Depends on:** PLT-002
 - **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-007 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** clean plate v1
-- **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Prompt:** v2 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
+- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED; 2026-11-21 REQUESTED (v2 prompt: conveyor concept replaced by Rune display (D-098))
 - **Approved source file:** —
 - **Final integrated path:** TBD
-- **Integration notes:** Replaces tray slots (keyart.json tray) with a conveyor path; level text moves to the stage banner.
+- **Integration notes:** Replaces keyart tray slots and the level plate; level name moves to the stage banner. Medals keep the D-093 cut-outs until MED-001.
 - **Test status:** not tested
 - **Known limitations:** Objects on the belt; window too small.
 
@@ -163,7 +163,7 @@ UNDER REVIEW: 5 · REQUESTED: 7 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-008 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** clean plate v1
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: PLT-008_spell-keys-orb-pipe_v1_a.png + _b); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** TBD
 - **Integration notes:** keys re-measured; spell keys cut live and pressed; needle/gauge code replaced by the orb; pipe smoke = existing steam emitter.
@@ -177,7 +177,7 @@ UNDER REVIEW: 5 · REQUESTED: 7 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 sheet on #FF00FF · **Dimensions/duration:** ~22×80 each · **Transparency/looping:** alpha; sheet split
 - **Source reference:** REF-001-C4
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: RIB-001_shelf-ribbons_v1.png); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** TBD
 - **Integration notes:** Shown when learned, regardless of charges.
@@ -191,7 +191,7 @@ UNDER REVIEW: 5 · REQUESTED: 7 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 sheet on #FF00FF · **Dimensions/duration:** ~30 px each · **Transparency/looping:** alpha; sheet split
 - **Source reference:** REF-001-C2
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: KEY-001_spell-gems_v1.png); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** TBD
 - **Integration notes:** Additive glow drawn in code.
@@ -205,7 +205,7 @@ UNDER REVIEW: 5 · REQUESTED: 7 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 sheet on #FF00FF · **Dimensions/duration:** 4 sprites · **Transparency/looping:** alpha; sheet split
 - **Source reference:** REF-001-C2
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: MIX-001_lock-seals-orb_v1.png); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** TBD
 - **Integration notes:** Orb liquid level = Ward stability; scar = dark cracked cap above the recoverable maximum (code).

@@ -120,13 +120,13 @@
    ]
   },
   "PLT-007": {
-   "label": "Rune conveyor display; medal tray removed",
+   "label": "Rune display (replaces level plate and medal tray), D-098",
    "rects": [
     [
-     90,
-     770,
-     505,
-     1065
+     80,
+     780,
+     515,
+     1070
     ]
    ]
   },

@@ -52,3 +52,27 @@ _Append-only. Records which assets were added, what code changed, which systems 
 - WRD-001 (gauge) is rejected and replaced by the orb.
 - Batch 01 assets remain UNDER REVIEW: approval of PLT-001 and SCR-001 (and which scroll tone) is still open.
 - **Game:** unchanged.
+
+## 2026-11-21 · Entry 4 — Batch 01b received (except PLT-007); Rune display rethought (D-098)
+
+- **Received** (UNDER REVIEW, originals in `assets-src/flow/`):
+  - PLT-005;
+  - PLT-006 a (1920×1080) and b;
+  - PLT-008 a and b;
+  - MIX-001, KEY-001, RIB-001.
+- **Alignment:** all five edits are registered to the clean plate exactly (scale 1.000, shift 0 px).
+- **Findings:**
+  - **PLT-005:** title gone, arch continuous. Good.
+  - **PLT-006:**
+    - TYPEL is spelled correctly in both candidates, and the banner is blank.
+    - **Neither shelf has 8 compartments:** a has 7, b has 6–7.
+    - Plan: rebuild the interior of candidate a to 8 even compartments from its own painted compartment, by slicing and restacking painted pixels (no code-drawn substitute). Otherwise, a re-roll.
+  - **PLT-008:**
+    - Both have exactly 8 spell keys, an empty glass orb on the right and the pipe. The gauge is removed, and the paper's top edge is unchanged (Ward line intact).
+    - a has larger spell keys and a lightly banded orb (the liquid stays readable). b has an ornate cage whose bars cross the orb.
+    - Recommend a.
+  - **MIX-001:** all four objects are present. The orb liquid came inside a glass ball; it will be masked to the plate orb's inner circle, so the extra rim is cut away.
+  - **KEY-001:** 8 gems in order, but Shock's yellow (5) is close to Harvest's amber (8). Plan: a hue correction of gem 5 toward lemon yellow in processing.
+  - **RIB-001:** 8 ribbons in the correct order and colours. Good.
+- **PLT-007 re-requested (v2) as a Rune display** (D-098); its region is widened to the machine below the tubes plus the old tray area.
+- **Game:** unchanged.

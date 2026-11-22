@@ -1318,3 +1318,23 @@ _2026-11-21 · Owner decisions (chat, on reviewing batch 01); art requested as b
 _2026-11-21 · **Owner-approved core gameplay direction; numeric director is not yet implemented**_
 
 Every apprenticeship uses the same core difficulty language: **word length AND word fall speed from the first lesson**, including short/slow, long/slow, short/fast and long/fast combinations. The baseline **floor rises gradually across apprenticeships** while the internal loop has **nonlinear, exponential-feeling pressure escalation**, peaks and relief. Difficulty is the *experienced interaction* of word length, fall speed and their changing distribution, not a predetermined stage-specific word-length bracket or simple linear WPM ramp. Spawn density, surges and complexity remain secondary levers. Preserve readability, skill-based fairness, recovery opportunities, seeded deterministic replay, spell interactions and the existing gameplay/audio/visual decisions. Exponential feeling does not mean uncapped exponential physical speeds. **Exact curve, probabilities, caps, length ranges, timing and optional adaptive behavior remain exploratory.** Existing `src/difficulty/Stages.ts` is historical implementation and must not be described as satisfying this direction. Audit current apprenticeship entrypoints first, implement a pure deterministic director behind a dev flag, simulate and test, then integrate into isolated preview for owner playtest. No production edits. Full specification: `docs/apprenticeship-difficulty-director-2026-11-21.md`.
+
+
+### D-098 — The Rune conveyor becomes a Rune display that absorbs and shows recent Runes, Halo-medal style (2026-11-21)
+_2026-11-21 · Owner decision (chat); refines D-096; art requested (PLT-007 v2); not yet built. Numbered D-098 because D-097 is taken._
+
+**Owner decision:** the "Rune conveyor" is not a conveyor belt. It is a **large display area** in the score machine. Runes earned in play are **absorbed** into it and shown there as a nod to the Runes recently gained. The model is **Halo medals**, strictly for how they work and are displayed, not their values or triggers.
+
+**Prototype choices (reversible):**
+- **Where:** the whole front of the score machine below the two tubes, plus the old desk tray area, becomes one large dark scrying pane in a brass frame. An intake lens sits at the top and a blank name strip at the bottom.
+- **How a Rune arrives:**
+  1. A glowing sigil flies from where the Rune was earned into the intake lens.
+  2. The pane flares.
+  3. The Rune's medal pops in large at the centre, with its name on the strip.
+  4. After about 2.5 s it shrinks into a row of recent Runes along the bottom of the pane.
+- **The recent row:**
+  - It holds the last 4 Runes. The newest enters on the left, pushes the others right, and the oldest fades out.
+  - After a quiet spell the row dims but stays visible.
+- **Queueing and play:** awards in quick succession queue about 0.5 s apart (D-089), and each still gets its moment. Nothing pauses play, takes focus or covers words (D-089). The Grand Wizard's remarks (D-090) are unchanged.
+- **Art:** the medals are the D-093 cut-outs until MED-001.
+- **Supersedes:** D-096's conveyor wording and D-089's three-slot tray roll.
