@@ -11,14 +11,20 @@
      40,
      1660,
      660
+    ],
+    [
+     985,
+     640,
+     1235,
+     684
     ]
    ],
    "exclude": [
     [
-     740,
+     815,
      0,
-     1200,
-     135
+     1105,
+     122
     ]
    ]
   },
@@ -26,28 +32,28 @@
    "label": "Score engine: drum digits, plates, level plate, medals",
    "rects": [
     [
-     110,
      95,
-     470,
-     245
+     90,
+     475,
+     248
     ],
     [
-     120,
-     250,
-     465,
-     310
-    ],
-    [
-     120,
-     790,
-     470,
-     900
+     95,
+     245,
+     475,
+     318
     ],
     [
      110,
-     880,
-     490,
-     1040
+     785,
+     480,
+     905
+    ],
+    [
+     100,
+     875,
+     495,
+     1045
     ]
    ]
   },
@@ -56,21 +62,21 @@
    "rects": [
     [
      500,
-     640,
+     662,
      1450,
      1080
     ],
     [
-     1480,
-     880,
+     1470,
+     870,
      1690,
-     1060
+     1065
     ],
     [
-     1690,
-     860,
-     1860,
-     1060
+     1680,
+     850,
+     1870,
+     1070
     ]
    ]
   },
@@ -78,12 +84,25 @@
    "label": "Shelf: the eight rolled scrolls and counts",
    "rects": [
     [
-     1640,
-     70,
+     1585,
+     60,
      1920,
-     960
+     862
+    ],
+    [
+     1780,
+     790,
+     1920,
+     885
     ]
    ]
   }
- }
+ },
+ "build_order": [
+  "PLT-003",
+  "PLT-001",
+  "PLT-004",
+  "PLT-002"
+ ],
+ "build_note": "Later regions win where they overlap. PLT-003 first so the sky edit (PLT-001) cleans the stamp area above the paper; PLT-004 after PLT-001 so the shelf edit wins over the sky edit; PLT-003 starts at the paper top (y 662) and only the feather crosses it. PLT-004 stops above the note and gauge (y 862) so it cannot restore them."
 }

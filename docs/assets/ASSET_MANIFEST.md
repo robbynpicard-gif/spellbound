@@ -12,15 +12,15 @@ Lifecycle: PLANNED → REQUESTED → GENERATED → UNDER REVIEW → APPROVED →
 
 ## Summary
 
-REQUESTED: 5 · PLANNED: 13
+UNDER REVIEW: 5 · PLANNED: 13
 
 | ID | Name | Batch | Status | Category | Format | Size | Transparency / loop |
 |---|---|---|---|---|---|---|---|
-| PLT-001 | Clean sky plate region | 1 | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of REF-001 | used at 1920×1080, region PLT-001 | opaque (region composite) |
-| PLT-002 | Clean score-engine region | 1 | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-002 | opaque (region composite) |
-| PLT-003 | Clean typewriter and desk region | 1 | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-003 | opaque (region composite) |
-| PLT-004 | Empty shelf region | 1 | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-004 | opaque (region composite) |
-| SCR-001 | Plain word scroll (blank) | 1 | **REQUESTED** | visual/gameplay-target | PNG 16:9 on #FF00FF | ships 229×67 (+2×), capL/capR re-measured | alpha (chroma key); 3-slice |
+| PLT-001 | Clean sky plate region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | used at 1920×1080, region PLT-001 | opaque (region composite) |
+| PLT-002 | Clean score-engine region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-002 | opaque (region composite) |
+| PLT-003 | Clean typewriter and desk region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-003 | opaque (region composite) |
+| PLT-004 | Empty shelf region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-004 | opaque (region composite) |
+| SCR-001 | Plain word scroll (blank) | 1 | **UNDER REVIEW** | visual/gameplay-target | PNG 16:9 on #FF00FF | ships 229×67 (+2×), capL/capR re-measured | alpha (chroma key); 3-slice |
 | SCR-002 | Elemental spell scrolls ×8 | 2 | **PLANNED** | visual/gameplay-target | PNG sheet on #FF00FF | matches SCR-001 | alpha |
 | SCR-003 | CATCH! stamp | 2 | **PLANNED** | visual/feedback | PNG on #FF00FF | ~123×60 | alpha |
 | RCK-002 | Shelf scrolls ×8 (isolated) | 2 | **PLANNED** | visual/hud-part | PNG sheet on #FF00FF | 257×80–91 each | alpha; sheet split |
@@ -44,11 +44,11 @@ REQUESTED: 5 · PLANNED: 13
 - **Required format:** PNG 16:9 edit of REF-001 · **Dimensions/duration:** used at 1920×1080, region PLT-001 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** REF-001
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** `public/assets/typel/keyart/plate.jpg (+ front.webp re-sliced)`
 - **Integration notes:** align → diff → composite region onto plate; re-run tools/keyart slicing on the clean plate.
-- **Test status:** not tested
+- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
 - **Known limitations:** Ghost outlines; missed items need a second pass.
 
 ### PLT-002 · Clean score-engine region
@@ -58,11 +58,11 @@ REQUESTED: 5 · PLANNED: 13
 - **Required format:** PNG 16:9 edit of REF-001 · **Dimensions/duration:** region PLT-002 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** REF-001
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** `public/assets/typel/keyart/plate.jpg / front.webp`
 - **Integration notes:** As PLT-001.
-- **Test status:** not tested
+- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
 - **Known limitations:** Model may rewrite text instead of removing it.
 
 ### PLT-003 · Clean typewriter and desk region
@@ -72,11 +72,11 @@ REQUESTED: 5 · PLANNED: 13
 - **Required format:** PNG 16:9 edit of REF-001 · **Dimensions/duration:** region PLT-003 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** REF-001
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** `public/assets/typel/keyart/front.webp`
 - **Integration notes:** Key letters become live text on blank caps (rendering change at integration). Paper top edge must not move (Ward line).
-- **Test status:** not tested
+- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
 - **Known limitations:** Invented keys under the hands may misalign.
 
 ### PLT-004 · Empty shelf region
@@ -86,11 +86,11 @@ REQUESTED: 5 · PLANNED: 13
 - **Required format:** PNG 16:9 edit of REF-001 · **Dimensions/duration:** region PLT-004 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** REF-001
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** `public/assets/typel/keyart/plate.jpg / front.webp`
 - **Integration notes:** As PLT-001.
-- **Test status:** not tested
+- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
 - **Known limitations:** Flying-scroll remnants on shelf 4.
 
 ### SCR-001 · Plain word scroll (blank)
@@ -100,11 +100,11 @@ REQUESTED: 5 · PLANNED: 13
 - **Required format:** PNG 16:9 on #FF00FF · **Dimensions/duration:** ships 229×67 (+2×), capL/capR re-measured · **Transparency/looping:** alpha (chroma key); 3-slice
 - **Source reference:** REF-001-C3 (TRANSMUTE/ALAKAZAM)
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** `public/assets/typel/keyart/scroll_plain.png`
 - **Integration notes:** Replaces the cut-from-painting scroll; keyart.json capL/capR updated.
-- **Test status:** not tested
+- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
 - **Known limitations:** May come back with a word or curl.
 
 ### SCR-002 · Elemental spell scrolls ×8

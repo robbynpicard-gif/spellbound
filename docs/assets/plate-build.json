@@ -1,0 +1,10 @@
+{
+ "base": "assets-src/reference/REF-001_typel-concept-primary_v1_1920x1080.png",
+ "feather": 24,
+ "edits": {
+  "PLT-001": "assets-src/flow/PLT-001/PLT-001_clean-sky_v1_a.png",
+  "PLT-002": "assets-src/flow/PLT-002/PLT-002_clean-engine_v1.png",
+  "PLT-003": "assets-src/flow/PLT-003/PLT-003_clean-desk_v1.png",
+  "PLT-004": "assets-src/flow/PLT-004/PLT-004_empty-shelf_v1.png"
+ }
+}

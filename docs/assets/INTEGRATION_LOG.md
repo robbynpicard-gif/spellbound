@@ -19,3 +19,29 @@ _Append-only. Records which assets were added, what code changed, which systems 
 - Guides rebuilt from `keyart.json`: `G-000` play layout, `G-PLT` edit regions, `G-SCR-001` scroll shape.
 - **Tested:** tools as above; `manifest.py check`. `npm run check` is not runnable in Claude's workspace (package installs are blocked); GitHub Actions validates the push.
 - **Deployed:** no.
+
+## 2026-11-21 · Entry 2 — Batch 01 received and checked (not yet approved, not integrated)
+
+- **Received** (owner upload, no approval stated yet → UNDER REVIEW): PLT-001 ×2 candidates (a, b), PLT-002, PLT-003, PLT-004, SCR-001. All 1344×756 RGB. Originals stored untouched in `assets-src/flow/<ID>/`.
+- **Alignment:** every edit came back pixel-registered to REF-001 (scale 1.000, shift 0.0 px, ≥1483/1500 inliers, residual ≤ 0.01 px).
+- **Containment** (pixels changed by > 24 levels; at 1344×756 against REF-001):
+  - inside its own area, 21–32 %;
+  - outside it, 1.1–2.2 %, which is resampling noise plus the flying scroll that PLT-004 also removed.
+- **Content:**
+  - PLT-001 a and b differ by under 0.1 %; **a** chosen. Sky calm, all eight scrolls, the flying scroll and the wizard removed, no ghosts.
+  - PLT-002: drums, plates and level plate blank. Tray hollows are medal-shaped (star-edged), not round; acceptable.
+  - PLT-003:
+    - paper blank, hammer, hands and sleeves gone, all keys blank, note blank, needle gone, paper top edge unchanged (Ward line intact);
+    - the invented keyboard has 3 rows plus a space bar, with the live key positions sitting on keys (A row about 10–15 px left of centre; re-measure at integration).
+  - PLT-004: eight empty compartments within about 5 px of the rack layers' positions.
+- **My region map was too tight.** The first composite showed edge leftovers: a flame corner, the CATCH! stamp, shelf-scroll ends, "BA" on the plate, and a faint ×4. Fixed in `plate-regions.json`:
+  - widened areas;
+  - a build order of PLT-003, then PLT-001, then PLT-004, then PLT-002;
+  - PLT-004 stops above the gauge;
+  - a strip of PLT-001 covers the stamp's lower edge over the paper.
+  - New `tools/assets/build_plate.py` + `docs/assets/plate-build.json` rebuild the plate reproducibly: `assets-src/work/PLT/clean-plate_v1_1920.png`, checked visually region by region, no leftovers found.
+- **SCR-001:**
+  - Flat magenta (#fe01fc). Keyed with despill: 0 % magenta-tinted opaque pixels; trimmed to 1018×260; clean on dark and light.
+  - Middle parchment `#f0d9af` (std 1.4, very even) is lighter than the painting's scrolls (`#d4bb95`). A toned variant matching the painting was prepared for comparison (`assets-src/work/SCR-001_compare_v1.png`).
+- **Resolution note:** the edits are 1344×756, so the clean areas are upscaled 1.43× to 1920×1080. They are a little softer than the D-093 layers cut from the 5376×3024 original, but sharper than the filled patches they replace. A 2K/4K download of the same edits would drop straight in (same geometry).
+- **Game:** unchanged. Nothing integrated; waiting for owner approval.

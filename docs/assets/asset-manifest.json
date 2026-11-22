@@ -40,17 +40,26 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload 2026-11-21"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
    "approved_source": null,
    "final_path": "public/assets/typel/keyart/plate.jpg (+ front.webp re-sliced)",
    "integration_notes": "align → diff → composite region onto plate; re-run tools/keyart slicing on the clean plate.",
-   "test_status": "not tested",
+   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
    "known_limitations": "Ghost outlines; missed items need a second pass."
   },
   {
@@ -70,17 +79,26 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload 2026-11-21"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
    "approved_source": null,
    "final_path": "public/assets/typel/keyart/plate.jpg / front.webp",
    "integration_notes": "As PLT-001.",
-   "test_status": "not tested",
+   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
    "known_limitations": "Model may rewrite text instead of removing it."
   },
   {
@@ -100,17 +118,26 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload 2026-11-21"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
    "approved_source": null,
    "final_path": "public/assets/typel/keyart/front.webp",
    "integration_notes": "Key letters become live text on blank caps (rendering change at integration). Paper top edge must not move (Ward line).",
-   "test_status": "not tested",
+   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
    "known_limitations": "Invented keys under the hands may misalign."
   },
   {
@@ -130,17 +157,26 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload 2026-11-21"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
    "approved_source": null,
    "final_path": "public/assets/typel/keyart/plate.jpg / front.webp",
    "integration_notes": "As PLT-001.",
-   "test_status": "not tested",
+   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
    "known_limitations": "Flying-scroll remnants on shelf 4."
   },
   {
@@ -160,17 +196,26 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
+     "date": "2026-11-21"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload 2026-11-21"
+    },
+    {
+     "status": "UNDER REVIEW",
      "date": "2026-11-21"
     }
    ],
    "approved_source": null,
    "final_path": "public/assets/typel/keyart/scroll_plain.png",
    "integration_notes": "Replaces the cut-from-painting scroll; keyart.json capL/capR updated.",
-   "test_status": "not tested",
+   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
    "known_limitations": "May come back with a word or curl."
   },
   {
