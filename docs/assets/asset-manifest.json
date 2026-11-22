@@ -1,0 +1,525 @@
+{
+ "schema": 1,
+ "lifecycle": [
+  "PLANNED",
+  "REQUESTED",
+  "GENERATED",
+  "UNDER REVIEW",
+  "APPROVED",
+  "INTEGRATED",
+  "VERIFIED",
+  "REJECTED",
+  "NEEDS REVISION"
+ ],
+ "references": [
+  {
+   "id": "REF-001",
+   "name": "Typel concept art (primary visual reference)",
+   "file": "assets-src/reference/REF-001_typel-concept-primary_v1.png",
+   "sha256": "3e13600b0f5e6743959f254d7c2d3166819e1ccfa689dcd53149767805688beb",
+   "status": "APPROVED by owner 2026-11-21",
+   "provenance": "Supplied by the owner in chat, 2026-11-21 (generated image, \"download_1.png\")",
+   "notes": "The D-093 session also keeps a JPEG copy at art/reference/typel-keyart-reference-2026-11-21.jpg; REF-001 here is the byte-identical original."
+  }
+ ],
+ "assets": [
+  {
+   "id": "PLT-001",
+   "name": "Clean sky plate region",
+   "function": "Field background without the painted scrolls, flying scroll or wizard",
+   "category": "visual/plate-edit",
+   "delivery_format": "PNG 16:9 edit of REF-001",
+   "dimensions": "used at 1920×1080, region PLT-001",
+   "transparency_or_loop": "opaque (region composite)",
+   "source_reference": "REF-001",
+   "batch": 1,
+   "priority": 1,
+   "depends_on": [],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": "public/assets/typel/keyart/plate.jpg (+ front.webp re-sliced)",
+   "integration_notes": "align → diff → composite region onto plate; re-run tools/keyart slicing on the clean plate.",
+   "test_status": "not tested",
+   "known_limitations": "Ghost outlines; missed items need a second pass."
+  },
+  {
+   "id": "PLT-002",
+   "name": "Clean score-engine region",
+   "function": "Blank drums, BASE/×COMBO/×RUSH plates, level plate; empty medal tray (all live)",
+   "category": "visual/plate-edit",
+   "delivery_format": "PNG 16:9 edit of REF-001",
+   "dimensions": "region PLT-002",
+   "transparency_or_loop": "opaque (region composite)",
+   "source_reference": "REF-001",
+   "batch": 1,
+   "priority": 1,
+   "depends_on": [],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": "public/assets/typel/keyart/plate.jpg / front.webp",
+   "integration_notes": "As PLT-001.",
+   "test_status": "not tested",
+   "known_limitations": "Model may rewrite text instead of removing it."
+  },
+  {
+   "id": "PLT-003",
+   "name": "Clean typewriter and desk region",
+   "function": "Blank paper, no hands/sleeves, blank keys, blank note, no gauge needle",
+   "category": "visual/plate-edit",
+   "delivery_format": "PNG 16:9 edit of REF-001",
+   "dimensions": "region PLT-003",
+   "transparency_or_loop": "opaque (region composite)",
+   "source_reference": "REF-001",
+   "batch": 1,
+   "priority": 1,
+   "depends_on": [],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": "public/assets/typel/keyart/front.webp",
+   "integration_notes": "Key letters become live text on blank caps (rendering change at integration). Paper top edge must not move (Ward line).",
+   "test_status": "not tested",
+   "known_limitations": "Invented keys under the hands may misalign."
+  },
+  {
+   "id": "PLT-004",
+   "name": "Empty shelf region",
+   "function": "Shelf behind the live rack_<spell> layers",
+   "category": "visual/plate-edit",
+   "delivery_format": "PNG 16:9 edit of REF-001",
+   "dimensions": "region PLT-004",
+   "transparency_or_loop": "opaque (region composite)",
+   "source_reference": "REF-001",
+   "batch": 1,
+   "priority": 1,
+   "depends_on": [],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": "public/assets/typel/keyart/plate.jpg / front.webp",
+   "integration_notes": "As PLT-001.",
+   "test_status": "not tested",
+   "known_limitations": "Flying-scroll remnants on shelf 4."
+  },
+  {
+   "id": "SCR-001",
+   "name": "Plain word scroll (blank)",
+   "function": "Parchment banner behind every falling word (3-slice)",
+   "category": "visual/gameplay-target",
+   "delivery_format": "PNG 16:9 on #FF00FF",
+   "dimensions": "ships 229×67 (+2×), capL/capR re-measured",
+   "transparency_or_loop": "alpha (chroma key); 3-slice",
+   "source_reference": "REF-001-C3 (TRANSMUTE/ALAKAZAM)",
+   "batch": 1,
+   "priority": 1,
+   "depends_on": [],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": "public/assets/typel/keyart/scroll_plain.png",
+   "integration_notes": "Replaces the cut-from-painting scroll; keyart.json capL/capR updated.",
+   "test_status": "not tested",
+   "known_limitations": "May come back with a word or curl."
+  },
+  {
+   "id": "SCR-002",
+   "name": "Elemental spell scrolls ×8",
+   "function": "Visual identity of each falling spell scroll (burning, frosted, crackling, hexed…)",
+   "category": "visual/gameplay-target",
+   "delivery_format": "PNG sheet on #FF00FF",
+   "dimensions": "matches SCR-001",
+   "transparency_or_loop": "alpha",
+   "source_reference": "REF-001-C3 FIREBALL/FROSTBITE/LEVITATE/HEX",
+   "batch": 2,
+   "priority": 2,
+   "depends_on": [
+    "SCR-001"
+   ],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Replaces particle/tint stand-ins for spell scrolls; the live glyph stays.",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "SCR-003",
+   "name": "CATCH! stamp",
+   "function": "Plunge warning stamp (catch loop)",
+   "category": "visual/feedback",
+   "delivery_format": "PNG on #FF00FF",
+   "dimensions": "~123×60",
+   "transparency_or_loop": "alpha",
+   "source_reference": "REF-001 CATCH! stamp",
+   "batch": 2,
+   "priority": 2,
+   "depends_on": [],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Current one is cut from the painting; replace only if it looks soft.",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "RCK-002",
+   "name": "Shelf scrolls ×8 (isolated)",
+   "function": "rack_<spell> layers; includes a proper Barrier scroll (currently a recoloured Ice scroll)",
+   "category": "visual/hud-part",
+   "delivery_format": "PNG sheet on #FF00FF",
+   "dimensions": "257×80–91 each",
+   "transparency_or_loop": "alpha; sheet split",
+   "source_reference": "REF-001-C4",
+   "batch": 2,
+   "priority": 2,
+   "depends_on": [
+    "PLT-004"
+   ],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "CHR-001",
+   "name": "Grand Wizard pose sheet",
+   "function": "Idle, sip, puff, eyebrow raise, chuckle, harrumph, impressed, nod (D-093 reactions)",
+   "category": "visual/character",
+   "delivery_format": "PNG sheet on #FF00FF",
+   "dimensions": "237×329 each",
+   "transparency_or_loop": "alpha",
+   "source_reference": "REF-001 wizard",
+   "batch": 3,
+   "priority": 2,
+   "depends_on": [],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "",
+   "test_status": "not tested",
+   "known_limitations": "Character consistency across poses: generate as one sheet."
+  },
+  {
+   "id": "HND-001",
+   "name": "Hands pose sheet",
+   "function": "Rest, press left, press right, cast (raised, glowing), flinch, cheer",
+   "category": "visual/character-part",
+   "delivery_format": "PNG sheet on #FF00FF",
+   "dimensions": "hand_l 269×229 / hand_r 309×229",
+   "transparency_or_loop": "alpha",
+   "source_reference": "REF-001 hands",
+   "batch": 3,
+   "priority": 2,
+   "depends_on": [
+    "PLT-003"
+   ],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "MED-001",
+   "name": "Rune medals by category × tier",
+   "function": "Rune tray medals (D-089 categories) in the painting style",
+   "category": "visual/reward",
+   "delivery_format": "PNG sheet on #FF00FF",
+   "dimensions": "~100×100 each",
+   "transparency_or_loop": "alpha",
+   "source_reference": "REF-001 medals",
+   "batch": 4,
+   "priority": 2,
+   "depends_on": [
+    "PLT-002"
+   ],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "FX-001",
+   "name": "Spell effect sprites",
+   "function": "Fireball burst, lightning bolt, ice crystals, wind gust, harvest sweep, barrier layer",
+   "category": "visual/effect",
+   "delivery_format": "PNG sheets on black (additive) or magenta",
+   "dimensions": "varies",
+   "transparency_or_loop": "alpha/additive",
+   "source_reference": "REF-001 effects on scrolls",
+   "batch": 4,
+   "priority": 2,
+   "depends_on": [],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Rigid sprites driven by code; no frame-by-frame AI animation.",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "WRD-001",
+   "name": "Ward gauge face + needle",
+   "function": "Clean gauge (no needle) and a separate needle",
+   "category": "visual/hud",
+   "delivery_format": "PNG on #FF00FF (2 parts)",
+   "dimensions": "needle 80×80, face ~170×200",
+   "transparency_or_loop": "alpha",
+   "source_reference": "REF-001 gauge",
+   "batch": 4,
+   "priority": 2,
+   "depends_on": [
+    "PLT-003"
+   ],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "PLT-003 may already deliver an acceptable face; then only the needle is needed.",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "UI-002",
+   "name": "Menu panels (parchment + walnut)",
+   "function": "Main menu, Codex, options",
+   "category": "visual/ui",
+   "delivery_format": "PNG",
+   "dimensions": "TBD",
+   "transparency_or_loop": "alpha",
+   "source_reference": "REF-001 materials",
+   "batch": 5,
+   "priority": 2,
+   "depends_on": [],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "AUD-VO-001",
+   "name": "Grand Wizard recorded lines (65)",
+   "function": "Rune announcer voice (D-090)",
+   "category": "audio/voice",
+   "delivery_format": "WAV 48 kHz/24-bit → MP3",
+   "dimensions": "per line",
+   "transparency_or_loop": "one-shot",
+   "source_reference": "docs/grand-wizard-voice-script.md",
+   "batch": "owner",
+   "priority": 2,
+   "depends_on": [],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Owner records; IDs from voiceLines.ts; plug in via voice-manifest.json.",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "AUD-MUS-001",
+   "name": "Final score production",
+   "function": "Replace synthesized D-092 stand-ins for release",
+   "category": "audio/music",
+   "delivery_format": "WAV 48 kHz/24-bit stems",
+   "dimensions": "loops",
+   "transparency_or_loop": "seamless loops + stems",
+   "source_reference": "AUDIO_BIBLE §3",
+   "batch": "later",
+   "priority": 2,
+   "depends_on": [],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "AUD-SFX-001",
+   "name": "Recorded typewriter foley layer (optional)",
+   "function": "Deepen key/carriage/bell sounds",
+   "category": "audio/sfx",
+   "delivery_format": "WAV 48 kHz/24-bit",
+   "dimensions": "< 300 ms",
+   "transparency_or_loop": "one-shot, 4–8 variations",
+   "source_reference": "AUDIO_BIBLE §2",
+   "batch": "later",
+   "priority": 2,
+   "depends_on": [],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Only if owner wants recorded sound; current synthesis is approved.",
+   "test_status": "not tested",
+   "known_limitations": ""
+  },
+  {
+   "id": "AUD-AMB-001",
+   "name": "Workshop ambience bed",
+   "function": "Quiet candles/gears/wind room tone",
+   "category": "audio/ambience",
+   "delivery_format": "WAV 48 kHz/24-bit",
+   "dimensions": "60–120 s",
+   "transparency_or_loop": "seamless loop",
+   "source_reference": "AUDIO_BIBLE §4",
+   "batch": "later",
+   "priority": 2,
+   "depends_on": [],
+   "prompt": null,
+   "status": "PLANNED",
+   "status_history": [
+    {
+     "status": "PLANNED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "",
+   "test_status": "not tested",
+   "known_limitations": ""
+  }
+ ]
+}

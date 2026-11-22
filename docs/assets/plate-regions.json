@@ -1,0 +1,89 @@
+{
+ "about": "Regions of the concept painting (1920x1080 = src/typel/render/keyart.json space) that each plate edit is allowed to change. Used by tools/assets/prep.py composite. Rectangles are [x0, y0, x1, y1].",
+ "width": 1920,
+ "height": 1080,
+ "regions": {
+  "PLT-001": {
+   "label": "Sky: word scrolls and their effects, flying scroll, Grand Wizard (title cartouche excluded)",
+   "rects": [
+    [
+     560,
+     40,
+     1660,
+     660
+    ]
+   ],
+   "exclude": [
+    [
+     740,
+     0,
+     1200,
+     135
+    ]
+   ]
+  },
+  "PLT-002": {
+   "label": "Score engine: drum digits, plates, level plate, medals",
+   "rects": [
+    [
+     110,
+     95,
+     470,
+     245
+    ],
+    [
+     120,
+     250,
+     465,
+     310
+    ],
+    [
+     120,
+     790,
+     470,
+     900
+    ],
+    [
+     110,
+     880,
+     490,
+     1040
+    ]
+   ]
+  },
+  "PLT-003": {
+   "label": "Typewriter and desk: paper text and hammer, hands, key letters, note, gauge needle",
+   "rects": [
+    [
+     500,
+     640,
+     1450,
+     1080
+    ],
+    [
+     1480,
+     880,
+     1690,
+     1060
+    ],
+    [
+     1690,
+     860,
+     1860,
+     1060
+    ]
+   ]
+  },
+  "PLT-004": {
+   "label": "Shelf: the eight rolled scrolls and counts",
+   "rects": [
+    [
+     1640,
+     70,
+     1920,
+     960
+    ]
+   ]
+  }
+ }
+}

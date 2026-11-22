@@ -1,0 +1,482 @@
+[
+ {
+  "name": "sky_upper_violet",
+  "median": "#433964",
+  "p10": "#252b4e",
+  "p90": "#6b89a4",
+  "rect_percent": [
+   62,
+   6,
+   70,
+   14
+  ]
+ },
+ {
+  "name": "sky_deep_blue_left",
+  "median": "#4f5f76",
+  "p10": "#3c4e6c",
+  "p90": "#6b7791",
+  "rect_percent": [
+   28,
+   30,
+   31,
+   40
+  ]
+ },
+ {
+  "name": "sky_mid_purple_clouds",
+  "median": "#486e80",
+  "p10": "#3b526d",
+  "p90": "#5a879b",
+  "rect_percent": [
+   60,
+   32,
+   66,
+   42
+  ]
+ },
+ {
+  "name": "sky_lower_haze",
+  "median": "#6b7e88",
+  "p10": "#4d3e1e",
+  "p90": "#afcfa2",
+  "rect_percent": [
+   66,
+   58,
+   72,
+   64
+  ]
+ },
+ {
+  "name": "moon_highlight",
+  "median": "#9ac0d0",
+  "p10": "#83aac2",
+  "p90": "#b8dae3",
+  "rect_percent": [
+   29,
+   8,
+   31,
+   14
+  ]
+ },
+ {
+  "name": "parchment_scroll_body",
+  "median": "#d4bb95",
+  "p10": "#ceb48e",
+  "p90": "#dfc89f",
+  "rect_percent": [
+   40.5,
+   37.5,
+   42,
+   39.5
+  ]
+ },
+ {
+  "name": "parchment_paper_typewriter",
+  "median": "#eedcbe",
+  "p10": "#e9d8b9",
+  "p90": "#f6e4c5",
+  "rect_percent": [
+   56,
+   61.5,
+   62,
+   64
+  ]
+ },
+ {
+  "name": "parchment_scroll_edge_shadow",
+  "median": "#211712",
+  "p10": "#0e0a06",
+  "p90": "#484c6e",
+  "rect_percent": [
+   40,
+   36,
+   51,
+   40.5
+  ]
+ },
+ {
+  "name": "scroll_ink_black",
+  "median": "#15100d",
+  "p10": "#0c0905",
+  "p90": "#49412f",
+  "rect_percent": [
+   40,
+   37,
+   51,
+   40
+  ]
+ },
+ {
+  "name": "red_ink_INCANTAT",
+  "median": "#5e1f17",
+  "p10": "#2d160e",
+  "p90": "#742c23",
+  "rect_percent": [
+   38,
+   65.5,
+   52,
+   70
+  ]
+ },
+ {
+  "name": "brass_counter_shadow",
+  "median": "#251c10",
+  "p10": "#120c05",
+  "p90": "#332626",
+  "rect_percent": [
+   2,
+   10,
+   8,
+   20
+  ]
+ },
+ {
+  "name": "dark_iron_machine_body",
+  "median": "#40342b",
+  "p10": "#332a1a",
+  "p90": "#654e3b",
+  "rect_percent": [
+   2,
+   44,
+   7,
+   60
+  ]
+ },
+ {
+  "name": "typewriter_wood_body",
+  "median": "#795138",
+  "p10": "#714a33",
+  "p90": "#7f563c",
+  "rect_percent": [
+   32,
+   73,
+   37,
+   76
+  ]
+ },
+ {
+  "name": "desk_wood_floor",
+  "median": "#473328",
+  "p10": "#412e24",
+  "p90": "#544234",
+  "rect_percent": [
+   3,
+   95,
+   8,
+   99
+  ]
+ },
+ {
+  "name": "combo_tube_blue_liquid",
+  "median": "#498fb4",
+  "p10": "#4383ac",
+  "p90": "#53a0bf",
+  "rect_percent": [
+   8.5,
+   58,
+   10.5,
+   68
+  ]
+ },
+ {
+  "name": "rush_tube_green_glow",
+  "median": "#baec9a",
+  "p10": "#a0dc7f",
+  "p90": "#ddfcaf",
+  "rect_percent": [
+   15,
+   36,
+   18,
+   68
+  ]
+ },
+ {
+  "name": "ward_arch_rune_cyan",
+  "median": "#9dd0ab",
+  "p10": "#7db18c",
+  "p90": "#d7f6d3",
+  "rect_percent": [
+   31.5,
+   30,
+   33,
+   45
+  ]
+ },
+ {
+  "name": "typewriter_key_cap_ivory",
+  "median": "#d9be86",
+  "p10": "#d4b87e",
+  "p90": "#e5cb94",
+  "rect_percent": [
+   36,
+   77.7,
+   38.5,
+   79.5
+  ]
+ },
+ {
+  "name": "velvet_tray_red",
+  "median": "#5e2429",
+  "p10": "#3d1e19",
+  "p90": "#6c2c33",
+  "rect_percent": [
+   8,
+   84,
+   10,
+   88
+  ]
+ },
+ {
+  "name": "frostbite_scroll_ice",
+  "median": "#afccd9",
+  "p10": "#97b8c9",
+  "p90": "#b9d4e0",
+  "rect_percent": [
+   51.5,
+   20.5,
+   52.5,
+   23.5
+  ]
+ },
+ {
+  "name": "mischief_catch_red_glow",
+  "median": "#edc8a1",
+  "p10": "#e2bc98",
+  "p90": "#fcdab1",
+  "rect_percent": [
+   53.5,
+   53,
+   55,
+   58
+  ]
+ },
+ {
+  "name": "stone_wall_left_top",
+  "median": "#1e223f",
+  "p10": "#1c213d",
+  "p90": "#444045",
+  "rect_percent": [
+   22,
+   0.5,
+   25,
+   3
+  ]
+ },
+ {
+  "name": "brass_tube_cap",
+  "median": "#35251d",
+  "p10": "#211f14",
+  "p90": "#463320",
+  "rect_percent": [
+   9,
+   29,
+   11,
+   31
+  ]
+ },
+ {
+  "name": "brass_tube_cap_highlight",
+  "median": "#523d23",
+  "p10": "#45311c",
+  "p90": "#755835",
+  "rect_percent": [
+   9,
+   29,
+   11,
+   31
+  ]
+ },
+ {
+  "name": "brass_plate_BASE",
+  "median": "#a98551",
+  "p10": "#937547",
+  "p90": "#b18c57",
+  "rect_percent": [
+   6.5,
+   24.5,
+   7.5,
+   26.5
+  ]
+ },
+ {
+  "name": "brass_typewriter_frame",
+  "median": "#846b3c",
+  "p10": "#624928",
+  "p90": "#a58d66",
+  "rect_percent": [
+   30,
+   63,
+   31.5,
+   70
+  ]
+ },
+ {
+  "name": "brass_typewriter_frame_hi",
+  "median": "#b99e6b",
+  "p10": "#84894e",
+  "p90": "#e3c2a1",
+  "rect_percent": [
+   30,
+   63,
+   31.5,
+   70
+  ]
+ },
+ {
+  "name": "counter_drum_digit_face",
+  "median": "#fce19e",
+  "p10": "#f0d38e",
+  "p90": "#ffeaa8",
+  "rect_percent": [
+   9,
+   13,
+   10.5,
+   15
+  ]
+ },
+ {
+  "name": "candle_flame_left",
+  "median": "#e7b881",
+  "p10": "#bc9c7a",
+  "p90": "#fcd591",
+  "rect_percent": [
+   21.6,
+   57.5,
+   22.4,
+   59.5
+  ]
+ },
+ {
+  "name": "candle_wax_left",
+  "median": "#b8a077",
+  "p10": "#ab966e",
+  "p90": "#c5ad8f",
+  "rect_percent": [
+   21.3,
+   61,
+   22.7,
+   66
+  ]
+ },
+ {
+  "name": "title_cartouche_teal",
+  "median": "#2e3c42",
+  "p10": "#271913",
+  "p90": "#333e45",
+  "rect_percent": [
+   44,
+   4.5,
+   45.5,
+   6.5
+  ]
+ },
+ {
+  "name": "title_letter_gold",
+  "median": "#b5975b",
+  "p10": "#3b514a",
+  "p90": "#ddc080",
+  "rect_percent": [
+   45,
+   2,
+   47,
+   7
+  ]
+ },
+ {
+  "name": "rack_slow_purple",
+  "median": "#a57ebc",
+  "p10": "#9e77b5",
+  "p90": "#ab84c3",
+  "rect_percent": [
+   86.5,
+   14,
+   88.5,
+   16
+  ]
+ },
+ {
+  "name": "rack_fire_orange",
+  "median": "#d98152",
+  "p10": "#d3794a",
+  "p90": "#df8b5b",
+  "rect_percent": [
+   86.5,
+   22,
+   88.5,
+   24
+  ]
+ },
+ {
+  "name": "rack_ice_cyan",
+  "median": "#71c7ca",
+  "p10": "#6bbfc3",
+  "p90": "#7cd2d5",
+  "rect_percent": [
+   86.5,
+   31,
+   88.5,
+   33
+  ]
+ },
+ {
+  "name": "rack_barrier_periwinkle",
+  "median": "#b0b1ba",
+  "p10": "#9ea0a7",
+  "p90": "#c2c0cc",
+  "rect_percent": [
+   86.5,
+   40,
+   88.5,
+   42
+  ]
+ },
+ {
+  "name": "rack_shock_yellow",
+  "median": "#d2b852",
+  "p10": "#bea246",
+  "p90": "#ddc458",
+  "rect_percent": [
+   86.5,
+   48.5,
+   88.5,
+   50.5
+  ]
+ },
+ {
+  "name": "rack_alter_pink",
+  "median": "#94525d",
+  "p10": "#8f4e56",
+  "p90": "#ab656e",
+  "rect_percent": [
+   86.5,
+   57.5,
+   88.5,
+   59.5
+  ]
+ },
+ {
+  "name": "rack_wind_green",
+  "median": "#4d6d3c",
+  "p10": "#476638",
+  "p90": "#527242",
+  "rect_percent": [
+   86.5,
+   66,
+   88.5,
+   68
+  ]
+ },
+ {
+  "name": "rack_harvest_gold",
+  "median": "#6f491f",
+  "p10": "#452918",
+  "p90": "#8a5933",
+  "rect_percent": [
+   86.5,
+   75,
+   88.5,
+   77
+  ]
+ }
+]

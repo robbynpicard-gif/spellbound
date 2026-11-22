@@ -1255,3 +1255,19 @@ _2026-11-21 · Owner decisions (chat); implemented on dev · details in `docs/ty
 - The gauge reads 100% on the left, with the red zone as weakness. The scar is a dead arc behind a stop pin.
 - **Supersedes:** D-087's wizard and palette, D-088's left column and desk-note layout (its rules, such as hidden exact points and the strike-point paper, carry over), and D-089's medal shapes and the code-drawn hands and scrolls.
 - **Placeholder or inferred:** the filled-in patches, the fixed poses of the wizard and hands, the particle spell effects, and Barrier's rebuilt shelf scroll. The asset list for replacement art is in the details doc.
+
+
+### D-094 — Human-in-the-loop asset production replaces the D-093 cut-up layers piece by piece (2026-11-21)
+_2026-11-21 · Owner decisions (workflow brief in chat); system set up on dev; no game code changed. Builds on D-093._
+
+**Owner decisions:**
+- The owner's concept/key-art painting (D-093) stays the **approved primary visual reference**. Its original is kept byte-identical as `assets-src/reference/REF-001_typel-concept-primary_v1.png`.
+- **Roles:** the owner is creative director and final approver and generates art (Google Flow) and audio; Claude specifies each asset with a complete prompt, processes, integrates, tests and keeps the records. Claude doesn't substitute code-drawn approximations where an illustrated asset should be requested.
+- The game is built from **independent functional components**; changing text and numbers stay live. Gameplay, audio, saves and progression are preserved; the renderer keeps reading engine state. An upload is not an approval. Third-party audio needs confirmed commercial rights.
+
+**Prototype choices (reversible):**
+- Records in `docs/assets/`; tools in `tools/assets/`.
+- **IDs and lifecycle:** asset IDs by family; lifecycle PLANNED → REQUESTED → GENERATED → UNDER REVIEW → APPROVED → INTEGRATED → VERIFIED (+ REJECTED / NEEDS REVISION).
+- **Clean plates come from edits, not redraws.** Because the D-093 game is laid out exactly as the painting (keyart.json is the painting's 1920×1080 space), clean plates are made by asking Flow to *edit* the painting (remove only the live content in one region). The edit is aligned back to the painting, and only that region is composited in. The D-093 slicing then runs on the clean plate.
+- New isolated objects are generated on flat magenta and keyed. Originals stay untouched in `assets-src/`; replacement layers keep the D-093 file names, sizes and positions.
+- **Batch 01 requested:** four region edits (sky, score engine, typewriter and desk, shelf) and the plain scroll kit.
