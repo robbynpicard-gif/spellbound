@@ -151,3 +151,12 @@ This supersedes §9's wizard and §10's parchment-slip Rune notice. Details in D
   - Arcane Rush adds a shimmering harp instead of speed.
 - **Catch odds:** 72/22/6.
 - This supersedes §4's music row and the catch-loop trigger and odds in §4 and O-4. Details in D-092.
+
+## 13. Update — D-093 (2026-11-21): the key art is the game
+**Owner decision:** the owner's painterly key art is Typel's visual source of truth. It replaces the D-087 to D-089 look, and D-091 is shelved. The name stays Arcane Rush. Gameplay and audio are unchanged.
+
+**Prototype:**
+- The painting is cut into layers, with every game-state element live on top.
+- The field sits between the score engine and the shelf; the paper is the Ward.
+
+Details, gaps and the asset list for better art are in `docs/typel-keyart-reconstruction-2026-11-21.md`.

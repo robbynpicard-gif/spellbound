@@ -1238,3 +1238,20 @@ _2026-11-21 · Owner decisions (chat); implemented on dev. Numbered D-092 becaus
   - the odds lean gentle.
 
 **Resolved (owner, 2026-11-21): remove the clockwork sound.** When the unpushed D-091 key-art patch (`dev/typel-keyart-20261121`) lands, drop its clockwork music layer (it was scheduled by the old scherzo and sped up with Rush and Combo). Its other new sound effects stay. The Slow spell's ticking is a sound effect, not this layer, and is kept.
+
+
+### D-093 — The owner's key-art painting is Typel's visual source of truth; the game is rebuilt on it (2026-11-21)
+_2026-11-21 · Owner decisions (chat); implemented on dev · details in `docs/typel-keyart-reconstruction-2026-11-21.md`_
+
+**Owner decisions:**
+- The supplied painterly key art is the **approved primary visual reference** ("literally a picture of what I want to play"). It replaces the open-ended art exploration and the D-087 to D-089 look. The style and composition are approved, not every prop or label; inferences are allowed.
+- Rebuild the presentation around it while preserving gameplay, sound and progression. Cut up the painting now and list assets for better art later.
+- Keep the name **Arcane Rush** (D-086); the painting's ×RUSH is that system, not a new mechanic.
+- Shelve the unpushed **D-091** key-art patch: its code-drawn look is replaced, and its sound effects wait for a separate audio proposal (the clockwork layer stays removed).
+
+**Prototype choices (reversible):**
+- The painting is sliced into layers from the 5376×3024 original by `tools/keyart/`. Every game-state element is live: score drums, plates, tubes, level plate, medal tray, paper and typebar, keys, hands, the 8-scroll shelf, the Ward Strength gauge, the Master's note, the Grand Wizard, and the rune arch as the Ward.
+- The field is the sky between the score engine and the shelf, and **the paper's top edge is the Ward line**.
+- The gauge reads 100% on the left, with the red zone as weakness. The scar is a dead arc behind a stop pin.
+- **Supersedes:** D-087's wizard and palette, D-088's left column and desk-note layout (its rules, such as hidden exact points and the strike-point paper, carry over), and D-089's medal shapes and the code-drawn hands and scrolls.
+- **Placeholder or inferred:** the filled-in patches, the fixed poses of the wizard and hands, the particle spell effects, and Barrier's rebuilt shelf scroll. The asset list for replacement art is in the details doc.

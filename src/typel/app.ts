@@ -125,7 +125,7 @@ export class TypelApp {
         btn('Codex', () => this.showCodex('rules')),
         btn('Options', () => this.showOptions()),
       ),
-      el('p', { class: 't-foot' }, 'Prototype · procedural placeholder art, music and characters · nothing here is final'),
+      el('p', { class: 't-foot' }, 'Prototype · art cut from the key-art reference · placeholder music and voice · nothing here is final'),
     );
     this.show(menu);
   }
@@ -587,7 +587,7 @@ export class TypelApp {
         btn('Reset prototype progress', () => {
           if (window.confirm('Reset all Typel prototype progress, records and Runes?')) (prefs.reset(), this.showOptions());
         })),
-      el('p', { class: 't-small' }, 'The Grand Wizard speaks only when you earn a Rune. His voice is a placeholder babble until real recorded lines replace it; his words always appear as text on the Rune tray.'),
+      el('p', { class: 't-small' }, 'The Grand Wizard speaks only when you earn a Rune. His voice is a placeholder babble until real recorded lines replace it; his words always appear as text in his speech bubble.'),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
   }
 }
