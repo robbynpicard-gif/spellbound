@@ -1,4 +1,4 @@
-# Spellbound — Physical Sandbox Interactions
+# TypeL — Physical Sandbox Interactions
 _2026-11-20 · Working design assumptions under D-069. Only Temporal Flow is newly implemented in code._
 
 ## World rule

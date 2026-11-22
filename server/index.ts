@@ -32,11 +32,11 @@ export interface RunningServer {
 }
 
 /**
- * The Wizzy Type multiplayer server: WebSockets + room/match logic.
+ * The TypeL multiplayer server: WebSockets + room/match logic.
  * The game works without it; it's only needed for Wizard Duels.
  */
 export function startServer(options: ServerOptions = {}): Promise<RunningServer> {
-  const log = options.log ?? ((m: string) => console.log(`[wizzy-type] ${m}`));
+  const log = options.log ?? ((m: string) => console.log(`[typel] ${m}`));
   const rooms = new RoomManager({ ...options, levels: CAMPAIGN_LEVELS });
   const wss = new WebSocketServer({
     port: options.port ?? DEFAULT_SERVER_PORT,

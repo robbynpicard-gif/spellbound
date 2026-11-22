@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   // Relative asset paths so the build works from a GitHub Pages sub-path
-  // (e.g. https://<user>.github.io/spellbound/).
+  // (e.g. https://<user>.github.io/TypeL/).
   base: './',
   server: {
     port: 5173,

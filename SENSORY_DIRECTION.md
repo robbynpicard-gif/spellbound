@@ -1,4 +1,4 @@
-# Spellbound prototype — sensory and world-direction contract
+# TypeL prototype — sensory and world-direction contract
 
 Status: design constraints for the development preview, not finalized sound assets. Production remains unchanged.
 

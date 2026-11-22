@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Spellbound — Apprenticeship Prototype</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TypeL — Apprenticeship Prototype</title>
 <style>
 :root{font-family:Georgia,serif;color:#f4e7c4;background:#101a2a}*{box-sizing:border-box}body{margin:0;padding:18px}main{max-width:1050px;margin:auto}header,nav,.panel,.hud{border:1px solid #8a6c3e;border-radius:8px;background:#19263a;padding:14px;margin-bottom:12px}header h1{margin:0;color:#eecb81}small,.muted{color:#b5bfd0}button,input,select{font:inherit}button{cursor:pointer;background:#6c4e2b;color:#fff3d8;border:1px solid #c6a46b;border-radius:5px;padding:9px 14px;margin:3px}button:disabled{opacity:.4;cursor:not-allowed}button:hover:not(:disabled){background:#886438}nav{display:flex;flex-wrap:wrap;gap:6px}.hud{display:flex;flex-wrap:wrap;gap:20px}#arena{height:370px;position:relative;overflow:hidden;background:linear-gradient(#1d314b,#111c2d);border:2px solid #95764d;border-radius:9px;margin-bottom:10px}#ward{position:absolute;bottom:0;left:0;right:0;height:16%;background:linear-gradient(transparent,#4d80a677);border-top:2px solid #87b8dc}#ward:after{content:"WARD";position:absolute;right:12px;bottom:8px;color:#a6d8ee}.scroll{position:absolute;white-space:nowrap;padding:7px 13px;background:#e9d5a6;color:#302716;border:2px solid #977345;border-radius:5px;box-shadow:0 3px 12px #0008;font:700 20px Georgia;transform:translateX(-50%)}.scroll.arcane{border-color:#59c7ff;box-shadow:0 0 15px #46baff99}.scroll.target{outline:3px solid #f7edaa}.scroll .typed{color:#267b5e;text-decoration:underline}#entry{width:100%;padding:13px;font:24px Georgia;background:#f8efd9;color:#1c2632;border:3px solid #ad8650;border-radius:6px}#message{min-height:45px;color:#f3d79c}.hidden{display:none!important}label{display:inline-block;margin:8px}input[type=range]{vertical-align:middle}.stat{min-width:90px}#history{font-size:14px;color:#b8d1e0}
 </style></head><body><main>
-<header><h1>Spellbound <small>— Apprentice's Workshop</small></h1><p class="muted">Mechanics-only development prototype. The existing game's art and production build are untouched.</p></header>
+<header><h1>TypeL <small>— Apprentice's Workshop</small></h1><p class="muted">Mechanics-only development prototype. The existing game's art and production build are untouched.</p></header>
 <nav><button id="campaign">Campaign</button><button id="endless">Endless 🔒</button><button id="practice">Typing Practice</button><button id="reset">Reset prototype progress</button></nav>
 <section class="panel" id="setup"><h2 id="heading">The Grand Apprenticeship</h2><p id="description"></p><div id="controls"></div><button id="start">Begin encounter</button><p id="history"></p></section>
 <div class="hud"><span class="stat">Score: <b id="score">0</b></span><span class="stat">Accuracy: <b id="accuracy">100%</b></span><span class="stat">Streak: <b id="streak">0</b></span><span class="stat">Ward: <b id="health">5</b></span><span class="stat">Fire: <b id="fire">0</b></span><span class="stat">Captured: <b id="captured">0</b></span></div>
@@ -18,8 +18,8 @@ const LESSONS=[
 {name:'III · A Taste of Fire',description:'Capture twelve scrolls. Blue arcane scrolls award Fire charges; cast Fire to clear nearby threats.',quota:12,rate:1400,speed:42,fire:true},
 {name:'IV · The First Examination',description:'Pass the Grand Wizard’s examination: fifteen captures, rising pressure, and the Fire spell.',quota:15,rate:1150,speed:49,fire:true}
 ];
-const KEY='spellbound.dev.apprenticeship.v1';
-let progress={completed:0,fireSeen:false};try{progress={...progress,...JSON.parse(localStorage.getItem(KEY)||'{}')}}catch{}
+const KEY='typel.dev.apprenticeship.v1';
+let progress={completed:0,fireSeen:false};try{progress={...progress,...JSON.parse(localStorage.getItem(KEY)||localStorage.getItem('spellbound.dev.apprenticeship.v1')||'{}')}}catch{}
 let mode='campaign',hardcore=false,speedScale=1,density=1,fireEnabled=true,active=false,words=[],nextId=0,score=0,good=0,errors=0,streak=0,health=5,fire=0,captured=0,last=0,spawnClock=0,frame=0,session=0,lesson=null,spawned=0;
 const save=()=>localStorage.setItem(KEY,JSON.stringify(progress));
 const rand=n=>Math.floor(Math.random()*n);

@@ -1,4 +1,4 @@
-# Publish the stable game at /spellbound/ and the isolated development prototype at /spellbound/preview/.
+# Publish the stable game at /TypeL/ and the isolated development prototype at /TypeL/preview/.
 # The preview is sourced from the dev branch; production game files always come from main.
 # Pages deployment runs must originate on main due to github-pages environment branch restrictions.
 # Development branch changes are validated separately and included on the next main deployment.
@@ -73,12 +73,12 @@ jobs:
       - name: Stamp preview with actual development commit
         run: |
           DEV_SHA=$(git -C development rev-parse --short HEAD)
-          sed -i "s/TYPAL · DEV PREVIEW · BUILD [^<]*/TYPAL · DEV PREVIEW · BUILD ${DEV_SHA}/" production/dist/preview/index.html
-          grep -q "TYPAL · DEV PREVIEW · BUILD ${DEV_SHA}" production/dist/preview/index.html
-      - name: Verify preview is Typal and contains built assets
+          sed -i "s/TYPEL · DEV PREVIEW · BUILD [^<]*/TYPEL · DEV PREVIEW · BUILD ${DEV_SHA}/" production/dist/preview/index.html
+          grep -q "TYPEL · DEV PREVIEW · BUILD ${DEV_SHA}" production/dist/preview/index.html
+      - name: Verify preview is TypeL and contains built assets
         run: |
           test -f production/dist/preview/index.html
-          grep -q 'TYPAL · DEV PREVIEW' production/dist/preview/index.html
+          grep -q 'TYPEL · DEV PREVIEW' production/dist/preview/index.html
           test -d production/dist/preview/assets
           find production/dist/preview/assets -type f -name '*.js' | grep -q .
           if grep -q 'src="/src/main.ts"' production/dist/preview/index.html; then
@@ -88,7 +88,7 @@ jobs:
       - name: Preserve preview as a static Pages directory
         run: |
           touch production/dist/.nojekyll
-          printf 'Typal preview published from %s\\n' "$(git -C development rev-parse --short HEAD)" > production/dist/preview/health.txt
+          printf 'TypeL preview published from %s\\n' "$(git -C development rev-parse --short HEAD)" > production/dist/preview/health.txt
           test -f production/dist/preview/index.html
           test -f production/dist/preview/health.txt
           test -f production/dist/.nojekyll

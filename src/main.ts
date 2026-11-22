@@ -1,3 +1,4 @@
+import './storage/legacyKeys';
 import Phaser from 'phaser';
 import './styles/main.css';
 import './styles/menu.css';
@@ -31,8 +32,8 @@ const game = new Phaser.Game({
 // browser storage so testing never overwrites a player's live-game progress.
 const backingStorage = browserStorage();
 const previewStorage = backingStorage && {
-  getItem: (key: string) => backingStorage.getItem('spellbound.preview.' + key),
-  setItem: (key: string, value: string) => backingStorage.setItem('spellbound.preview.' + key, value),
+  getItem: (key: string) => backingStorage.getItem('typel.preview.' + key),
+  setItem: (key: string, value: string) => backingStorage.setItem('typel.preview.' + key, value),
 };
 const save = new SaveManager(previewStorage, CAMPAIGN_LEVELS.count);
 audio.applySettings(save.audio);
@@ -50,5 +51,5 @@ game.events.once(BOOT_COMPLETE, () => app.showMainMenu());
 
 // Handy for debugging in the browser console during development only.
 if (import.meta.env.DEV) {
-  Object.assign(window, { wizzyType: game, wizzyApp: app });
+  Object.assign(window, { typelGame: game, typelApp: app });
 }

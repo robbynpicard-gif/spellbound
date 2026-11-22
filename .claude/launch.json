@@ -2,7 +2,7 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "wizzy-type-dev",
+      "name": "typel-dev",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
@@ -11,7 +11,7 @@
       "port": 5173
     },
     {
-      "name": "wizzy-type-server",
+      "name": "typel-server",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",

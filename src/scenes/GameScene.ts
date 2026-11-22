@@ -402,7 +402,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     if (import.meta.env.DEV) {
-      (window as unknown as { wizzyEngine: GameEngine }).wizzyEngine = this.engine;
+      (window as unknown as { typelEngine: GameEngine }).typelEngine = this.engine;
     }
   }
 

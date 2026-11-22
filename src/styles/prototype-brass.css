@@ -51,7 +51,7 @@ body {
   .menu-button, button { transition: none; }
 }
 
-/* Typal: the menu is a parchment folio laid over the apprentice's study. */
+/* TypeL: the menu is a parchment folio laid over the apprentice's study. */
 .main-menu {
   position: relative;
   padding: clamp(20px, 4vw, 42px);

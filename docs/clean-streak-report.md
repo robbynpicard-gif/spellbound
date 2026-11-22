@@ -1,6 +1,6 @@
 # Clean Streak — implementation report (v0.18.0)
 
-_2026-11-17. The response to "Wizzy Type — Scoring System Redesign & Playtest Handoff". Live at https://robbynpicard-gif.github.io/spellbound/_
+_2026-11-17. The response to "TypeL — Scoring System Redesign & Playtest Handoff". Live at https://robbynpicard-gif.github.io/TypeL/_
 
 ## 1. What changed
 
@@ -102,7 +102,7 @@ In Practice, 200 is a pure endurance target. If 100 and 200 should be goals with
 
 ## 6. How to playtest
 
-1. Open https://robbynpicard-gif.github.io/spellbound/ and refresh to get v0.18.0. The version number is shown at the bottom of the Credits screen.
+1. Open https://robbynpicard-gif.github.io/TypeL/ and refresh to get v0.18.0. The version number is shown at the bottom of the Credits screen.
 2. Start Campaign → Normal. Watch the third panel of the status bar: CLEAN STREAK, the ×multiplier, and the bar to the next milestone.
 3. Type five words cleanly: ×2 appears, then CLEAN STREAK I.
 4. Type a wrong letter and then Backspace: the panel shakes and shows the drop.

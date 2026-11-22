@@ -1,4 +1,4 @@
-# Spellbound — Foundation-First Roadmap
+# TypeL — Foundation-First Roadmap
 _2026-11-20 · Proposed prioritization under D-066_
 
 ## Goal

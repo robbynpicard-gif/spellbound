@@ -3,7 +3,7 @@ import { SPARK_TEXTURE } from '../render/Effects';
 import { ART } from '../render/layout';
 
 /** Game-level event fired once shared assets are ready. */
-export const BOOT_COMPLETE = 'wizzytype-boot-complete';
+export const BOOT_COMPLETE = 'typel-boot-complete';
 
 /** Longest we wait for the web fonts before starting anyway (with fallback fonts). */
 const FONT_TIMEOUT_MS = 3000;

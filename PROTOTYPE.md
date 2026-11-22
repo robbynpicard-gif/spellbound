@@ -1,4 +1,4 @@
-# Spellbound — apprenticeship vertical slice (development branch)
+# TypeL — apprenticeship vertical slice (development branch)
 
 This branch is isolated from `main`. The prototype is a standalone playable page at `prototype.html` so it does not modify the existing Phaser game, menus, artwork, or production deployment.
 

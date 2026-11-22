@@ -1,4 +1,4 @@
-# Wizzy Type — Current Design Reference
+# TypeL — Current Design Reference
 
 Last updated 2026-11-18 (v0.27.0). This is the single source of truth for the
 current design. Older plans marked "Superseded" are kept only for history.
@@ -20,7 +20,7 @@ current design. Older plans marked "Superseded" are kept only for history.
 - **Current focus: gameplay feel and the gameplay loop.** Art is parked; the
   owner will make mockups later.
 - Mystical tone. No gambling mechanics and no dark patterns.
-- **WPM** always means in-game Wizzy Type WPM (5 letters = 1 word).
+- **WPM** always means in-game TypeL WPM (5 letters = 1 word).
 
 ## 2. Structure — Confirmed (D-047)
 

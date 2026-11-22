@@ -52,7 +52,7 @@ Bots played each sampled level in the real engine (seed 7, spells unused):
 - **@target**: a steady typist at exactly the stage's target WPM.
 - **@80%**: a steady typist at 80% of the target.
 
-WPM is in-game Wizzy Type WPM (5 letters = 1 word). Ward = shield left.
+WPM is in-game TypeL WPM (5 letters = 1 word). Ward = shield left.
 
 ## Normal (targets 18/22/26/30/35)
 

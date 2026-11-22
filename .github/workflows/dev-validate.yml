@@ -20,5 +20,5 @@ jobs:
       - name: Upload browser build for inspection
         uses: actions/upload-artifact@v4
         with:
-          name: spellbound-dev-build
+          name: typel-dev-build
           path: dist
