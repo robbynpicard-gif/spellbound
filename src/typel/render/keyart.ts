@@ -28,17 +28,35 @@ export const KA = layout as unknown as {
   candles: Pt[];
   steam: { vent: Pt; cup: Pt; pipe: Pt };
   field: { x: number; y: number; w: number; h: number };
+  /** D-096: the shorter shelf under the title; `boards` are the shelf surfaces, top to bottom. */
+  shelf: { boards: number[]; top: number; left: number; right: number; scrollX: number; countX: number; ribbonX: number };
+  /** D-096: the eight spell keys (Normal 1–8) above the letter keys. */
+  spellKeys: Pt[];
+  /** D-096: the Ward orb on the typewriter's right side. */
+  orb: { x: number; y: number; r: number };
+  /** D-098: the Rune display pane in the score machine. */
+  runeDisplay: { x: number; y: number; w: number; h: number; lens: Pt; strip: Pt };
+  /** D-096: the stage banner under the TYPEL plaque. */
+  banner: { x: number; y: number; w: number; seal: Pt };
+  pool: Pt;
+  pipe: Pt;
 };
 
 const BASE = 'assets/typel/keyart/';
 const FILES: Record<string, string> = {
   plate: 'plate.jpg', front: 'front.webp', arch: 'arch.png', wisps: 'wisps.webp', wizard: 'wizard.png',
   hand_l: 'hand_l.png', hand_r: 'hand_r.png', medal_1: 'medal_1.png', medal_2: 'medal_2.png', medal_3: 'medal_3.png',
-  scroll_plain: 'scroll_plain.png', flame: 'flame.png', catch: 'catch.png', hammer: 'hammer.png', needle: 'needle.png', gear: 'gear.png',
+  scroll_plain: 'scroll_plain.png', flame: 'flame.png', catch: 'catch.png', hammer: 'hammer.png', gear: 'gear.png',
   combo_empty: 'combo_empty.png', combo_liquid: 'combo_liquid.png', combo_surface: 'combo_surface.png',
   rush_empty: 'rush_empty.png', rush_liquid: 'rush_liquid.png', rush_band: 'rush_band.png',
 };
-for (const s of ['slow', 'fire', 'ice', 'barrier', 'shock', 'alter', 'wind', 'harvest']) FILES[`rack_${s}`] = `rack_${s}.png`;
+for (const s of ['slow', 'fire', 'ice', 'barrier', 'shock', 'alter', 'wind', 'harvest']) {
+  FILES[`rack_${s}`] = `rack_${s}.png`;
+  FILES[`ribbon_${s}`] = `ribbon_${s}.png`;
+  FILES[`gem_${s}`] = `gem_${s}.png`;
+}
+// D-096 batch 01b sprites (owner-approved Flow art)
+Object.assign(FILES, { lockbar_bar: 'lockbar_bar.png', lockbar_lock: 'lockbar_lock.png', seal_normal: 'seal_normal.png', seal_hardcore: 'seal_hardcore.png', orb_liquid: 'orb_liquid.png' });
 
 /** Queue every painted layer that isn't loaded yet. Call from a scene's preload(). */
 export function preloadKeyart(scene: Phaser.Scene): void {
@@ -46,6 +64,25 @@ export function preloadKeyart(scene: Phaser.Scene): void {
 }
 
 const box = (name: string) => KA.sprites[name]!;
+
+/** D-096: the shelf scrolls sit smaller on the shorter shelf. */
+export const RACK_SCALE = 0.56;
+const RIBBON_SCALE = 0.62;
+/** Where spell `i`'s scroll rests: centred on its shelf, sitting on the board. */
+export function shelfSpot(i: number, id: string): { x: number; y: number } {
+  const h = box(`rack_${id}`).h * RACK_SCALE;
+  return { x: KA.shelf.scrollX, y: KA.shelf.boards[i]! - h / 2 + 3 };
+}
+/** A shelf scroll at its spot. */
+export function placeRack(scene: Phaser.Scene, i: number, id: string, depth: number): Phaser.GameObjects.Image {
+  const p = shelfSpot(i, id);
+  return scene.add.image(p.x, p.y, `ka-rack_${id}`).setScale(RACK_SCALE).setDepth(depth);
+}
+/** D-096: the spell's colour ribbon, hanging at the left of its compartment. */
+export function placeRibbon(scene: Phaser.Scene, i: number, id: string, depth: number): Phaser.GameObjects.Image {
+  const top = i === 0 ? KA.shelf.top : KA.shelf.boards[i - 1]! + 8;
+  return scene.add.image(KA.shelf.ribbonX, top, `ka-ribbon_${id}`).setOrigin(0.5, 0).setScale(RIBBON_SCALE).setDepth(depth);
+}
 /** Place a painted cut-out exactly where it sits in the painting, centred for animation. */
 export function placed(scene: Phaser.Scene, name: string, depth: number): Phaser.GameObjects.Image {
   const b = box(name);
@@ -252,16 +289,22 @@ export function buildWorld(scene: Phaser.Scene, reduced: boolean): World {
       lifespan: 2200, speedY: { min: -40, max: -18 }, speedX: { min: 4, max: 22 }, scale: { start: 0.2, end: 0.9 },
       alpha: { start: 0.3, end: 0 }, tint: 0xe8e4f0, frequency: 420,
     }).setDepth(-26);
+    // D-096: the wizard's pipe smoulders on the desk
+    const [px, py] = KA.pipe;
+    scene.add.particles(px, py, 'typel-glow-gold', {
+      lifespan: 3200, speedY: { min: -34, max: -16 }, speedX: { min: -14, max: 4 }, scale: { start: 0.12, end: 0.75 },
+      alpha: { start: 0.34, end: 0 }, tint: 0xd8d4e8, frequency: 360,
+    }).setDepth(21.6);
   }
   return { arch, barriers, wisps, gear, candles, wizard };
 }
 
-/** Static dressing for the menus: a full shelf, the painted medals, a calm gauge. */
+/** Static dressing for the menus: a full shelf with its ribbons, zeroed drums, the note. */
 export function dressForMenu(scene: Phaser.Scene): void {
-  for (const id of ['slow', 'fire', 'ice', 'barrier', 'shock', 'alter', 'wind', 'harvest']) placed(scene, `rack_${id}`, 21);
-  ['medal_3', 'medal_2', 'medal_1'].forEach((m, i) => scene.add.image(KA.tray[i]![0], KA.tray[i]![1], `ka-${m}`).setDepth(21));
-  const n = box('needle');
-  scene.add.image(KA.gauge.x, KA.gauge.y, 'ka-needle').setOrigin(n.pivotX! / n.w, n.pivotY! / n.h).setAngle(gaugeAngle(100) - NEEDLE_PAINTED).setDepth(21);
+  ['slow', 'fire', 'ice', 'barrier', 'shock', 'alter', 'wind', 'harvest'].forEach((id, i) => {
+    placeRibbon(scene, i, id, 20.9);
+    placeRack(scene, i, id, 21);
+  });
   placed(scene, 'hand_l', 24);
   placed(scene, 'hand_r', 24);
   const D = KA.drums;
@@ -270,8 +313,3 @@ export function dressForMenu(scene: Phaser.Scene): void {
   scene.add.text(KA.note.x, KA.note.y, 'NO SMUDGES!\nAnd spell it right this time.\n— M.', { fontFamily: '"Kalam", "Patrick Hand", sans-serif', fontStyle: '700', fontSize: '18px', color: '#2a1a10', align: 'center', wordWrap: { width: KA.note.w } })
     .setOrigin(0.5).setAngle(KA.note.angle).setDepth(21);
 }
-
-/** The needle as painted points this many degrees clockwise from straight up. */
-export const NEEDLE_PAINTED = (Math.atan2(1271 - 1236, 665 - 631) * 180) / Math.PI;
-/** Dial angle (degrees clockwise from up) for a Ward stability 0–100: full strength on the left, the red zone on the right. */
-export const gaugeAngle = (stability: number) => KA.gauge.from + (1 - Math.max(0, Math.min(100, stability)) / 100) * (KA.gauge.to - KA.gauge.from);

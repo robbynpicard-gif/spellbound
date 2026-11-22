@@ -132,7 +132,12 @@ def cmd_key(a) -> None:
     border = np.unique(np.concatenate([lab[0], lab[-1], lab[:, 0], lab[:, -1]]))
     border = border[border > 0]
     connected = np.isin(lab, border)
-    alpha = np.where(connected, t, 1.0) * (arr[..., 3] / 255)
+    # enclosed pockets of near-exact key colour (e.g. inside a padlock shackle) are background too:
+    # pure magenta never occurs in Typel art, so a strict threshold is safe there
+    pocket = (~connected) & (dist < a.tol * 0.8)
+    pocket = ndimage.binary_dilation(pocket, iterations=1) & (dist < a.tol + a.soft)
+    alpha = np.where(connected | pocket, t, 1.0) * (arr[..., 3] / 255)
+    connected = connected | pocket
     if a.despill:
         # remove the key colour's contribution from semi-transparent edge pixels
         # edge band: semi-transparent pixels plus a few opaque pixels next to the cut-out

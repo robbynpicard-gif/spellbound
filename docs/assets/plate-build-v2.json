@@ -2,5 +2,10 @@
  "base": "assets-src/work/PLT/clean-plate_v1_1920.png",
  "order": "build_order_v2",
  "feather": 24,
- "edits": {}
+ "edits": {
+  "PLT-005": "assets-src/flow/PLT-005/PLT-005_no-title_v1.png",
+  "PLT-006": "assets-src/flow/PLT-006/PLT-006_shelf-title_v2.png",
+  "PLT-007": "assets-src/flow/PLT-007/PLT-007_rune-display_v2.png",
+  "PLT-008": "assets-src/flow/PLT-008/PLT-008_spell-keys-orb-pipe_v1_a.png"
+ }
 }

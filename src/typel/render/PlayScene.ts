@@ -23,7 +23,7 @@ import { sound } from '../audio';
 import { prefs } from '../prefs';
 import { SPELL_GLYPH, SPELL_HUE } from './paint';
 import { ensureTextures, FONT_ARCADE, FONT_TITLE, FONT_WORD, FONT_BODY, hexNum } from './study';
-import { buildWorld, gaugeAngle, KA, NEEDLE_PAINTED, PaintedHands, placed, preloadKeyart, type World } from './keyart';
+import { buildWorld, KA, PaintedHands, placeRack, placeRibbon, placed, preloadKeyart, RACK_SCALE, type World } from './keyart';
 import { voice } from '../voice';
 import { MOCKERY, PRAISE, RUNE_CALLOUTS, SPECIAL, type VoiceLine } from '../voiceLines';
 import type { RuneDef } from '../../gameplay/runes/RuneCatalogue';
@@ -50,6 +50,8 @@ export interface PlaySetup {
   spells: readonly SpellId[];
   title: string;
   subtitle: string;
+  /** D-096: the stage banner under the TYPEL plaque, e.g. "Flame · Level 2". */
+  stage?: string;
   lines?: Line[];
   boss?: boolean;
   /** Practice views only: show the exact points each capture or cash-out earned (D-088). */
@@ -75,8 +77,8 @@ const SMUDGE = '#1a1212';
 const WORD_STYLE = { fontFamily: FONT_WORD, fontSize: '29px', fontStyle: '700', color: INK, letterSpacing: 1.2 };
 const PLUNGE_COLOR = [0, 0xffd60a, 0xff8a1a, 0xff2a3a];
 const SCROLL = KA.sprites['scroll_plain']!;
-/** D-095: scrolls ~15% larger than D-093 for readability. */
-const SCROLL_SCALE = 0.99;
+/** D-095: scrolls ~15% larger than D-093 for readability. SCR-001 (D-094) is painted at 2x, so half the scale gives the same size. */
+const SCROLL_SCALE = 0.99 * (67 / KA.sprites['scroll_plain']!.h);
 const SCROLL_H = SCROLL.h * SCROLL_SCALE;
 const PAPER = { x: KA.paper.strikeX, y: KA.paper.baseline - 20 };
 const PAPER_FONT = 56;
@@ -227,10 +229,12 @@ export class TypelPlayScene extends Phaser.Scene {
   private world!: World;
   /** The apprentice's painted hands at the keys (D-093). */
   private wizard!: PaintedHands;
-  private trayMedals: Phaser.GameObjects.Container[] = [];
-  private trayQueue: RuneDef[] = [];
-  private trayBusy = false;
-  private trayName!: Phaser.GameObjects.Text;
+  /** D-098: the Rune display. */
+  private runeQueue: RuneDef[] = [];
+  private runeBusy = false;
+  private runeRecent: Phaser.GameObjects.Image[] = [];
+  private runeName!: Phaser.GameObjects.Text;
+  private lastCapture = { x: 0, y: 0 };
 
   private paper!: Phaser.GameObjects.Text;
   private caret!: Phaser.GameObjects.Rectangle;
@@ -248,11 +252,15 @@ export class TypelPlayScene extends Phaser.Scene {
   private rushEruption!: Phaser.GameObjects.Particles.ParticleEmitter;
   private lastRush = 1;
   private lastMult = 1;
-  private levelPlate!: Phaser.GameObjects.Text;
-  private needle!: Phaser.GameObjects.Image;
-  private needleAngle = 0;
-  private gaugeMarks!: Phaser.GameObjects.Graphics;
-  private gaugeGlow!: Phaser.GameObjects.Image;
+  /** D-096: stage banner and the Ward orb. */
+  private stageText!: Phaser.GameObjects.Text;
+  private progressText!: Phaser.GameObjects.Text;
+  private orbLiquid!: Phaser.GameObjects.Image;
+  private orbMask!: Phaser.GameObjects.Graphics;
+  private orbScar!: Phaser.GameObjects.Graphics;
+  private orbGlow!: Phaser.GameObjects.Image;
+  private orbLevel = 1;
+  private orbSlosh = 0;
   private gaugeText!: Phaser.GameObjects.Text;
   private allInText!: Phaser.GameObjects.Text;
   private wardLine!: Phaser.GameObjects.Graphics;
@@ -263,6 +271,9 @@ export class TypelPlayScene extends Phaser.Scene {
   private rack = new Map<SpellId, { sprite: Phaser.GameObjects.Image; count: Phaser.GameObjects.Text; learned: boolean; home: { x: number; y: number } }>();
   private poolText!: Phaser.GameObjects.Text;
   private keys = new Map<string, Phaser.GameObjects.Image>();
+  /** D-096: spell keys 1–8 and their gems. */
+  private spellKeys = new Map<SpellId, Phaser.GameObjects.Image>();
+  private gems = new Map<SpellId, Phaser.GameObjects.Image>();
   private trails = new Map<number, Phaser.GameObjects.Particles.ParticleEmitter>();
   private lastInput = '';
   private pressureTimer = 0;
@@ -277,6 +288,8 @@ export class TypelPlayScene extends Phaser.Scene {
     this.views = new Map();
     this.rack = new Map();
     this.keys = new Map();
+    this.spellKeys = new Map();
+    this.gems = new Map();
     this.trails = new Map();
     this.drums = [];
     this.acc = 0;
@@ -310,9 +323,10 @@ export class TypelPlayScene extends Phaser.Scene {
     ensureTextures(this);
     this.world = buildWorld(this, this.reduced);
     this.wizard = new PaintedHands(this, this.reduced);
-    this.trayMedals = [];
-    this.trayQueue = [];
-    this.trayBusy = false;
+    this.runeQueue = [];
+    this.runeBusy = false;
+    this.runeRecent = [];
+    this.lastCapture = { x: CX, y: FIELD_RECT.y + FIELD_RECT.h / 2 };
     this.buildHud();
     this.bindEvents();
     this.bindInput();
@@ -354,7 +368,7 @@ export class TypelPlayScene extends Phaser.Scene {
     this.add.tileSprite(rt.x, rt.top, rt.w, rt.bottom - rt.top, 'ka-rush_empty').setOrigin(0).setDepth(21);
     this.rushLiquid = this.add.tileSprite(rt.x, rt.bottom, rt.w, 0, 'ka-rush_liquid').setOrigin(0, 1).setDepth(21.1);
     placed(this, 'rush_band', 21.4);
-    this.rushState = this.text(rt.x + rt.w / 2, rt.bottom + 36, '', 17, '#d6ffe6', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#0b3a1a', strokeThickness: 5 }).setOrigin(0.5).setDepth(22);
+    this.rushState = this.text(rt.x + rt.w / 2, rt.bottom - 22, '', 17, '#d6ffe6', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#0b3a1a', strokeThickness: 5 }).setOrigin(0.5).setDepth(22);
     this.rushBubbles = this.add.particles(0, 0, 'typel-spark', {
       x: { min: rt.x + 8, max: rt.x + rt.w - 8 }, y: rt.bottom - 8, lifespan: 1400, speedY: { min: -160, max: -60 },
       scale: { start: 0.3, end: 0 }, alpha: { start: 0.9, end: 0 }, tint: [0x7dffb5, 0xffffff, 0xffe08a], blendMode: 'ADD', frequency: 90, emitting: false,
@@ -364,10 +378,13 @@ export class TypelPlayScene extends Phaser.Scene {
       tint: [0x4fbf78, 0xffc46a, 0xfff0c8], blendMode: 'ADD', frequency: 60, emitting: false,
     }).setDepth(31);
 
-    // the level plate, engraved at the plate's slant
-    this.levelPlate = this.text(KA.plates.level[0], KA.plates.level[1], '', 15, '#2b1a0a', { fontFamily: FONT_ARCADE, fontStyle: '700', align: 'center', lineSpacing: -2 })
-      .setOrigin(0.5).setAngle(KA.plates.levelAngle).setDepth(22);
-    this.trayName = this.text(KA.tray[1]![0], KA.tray[1]![1] + 78, '', 17, '#ffe7a8', { fontFamily: FONT_TITLE, fontStyle: '700', align: 'center', stroke: '#2a0a04', strokeThickness: 4 }).setOrigin(0.5).setDepth(31);
+    // D-096: the stage banner under the TYPEL plaque, sealed blue (Normal) or red (Hardcore)
+    const BN = KA.banner;
+    this.stageText = this.text(BN.x, BN.y - 8, '', 17, '#2b1a0a', { fontFamily: FONT_ARCADE, fontStyle: '700', align: 'center' }).setOrigin(0.5).setDepth(22);
+    this.progressText = this.text(BN.x, BN.y + 12, '', 13, '#4a2c12', { fontFamily: FONT_BODY, fontStyle: '700', align: 'center' }).setOrigin(0.5).setDepth(22);
+    this.add.image(BN.seal[0], BN.seal[1], this.setup.hardcore ? 'ka-seal_hardcore' : 'ka-seal_normal').setDisplaySize(46, 46).setDepth(22.2);
+    // D-098: the Rune display; the newest Rune's name is engraved on its brass strip
+    this.runeName = this.text(KA.runeDisplay.strip[0], KA.runeDisplay.strip[1], '', 15, '#2b1a0a', { fontFamily: FONT_TITLE, fontStyle: '700', align: 'center' }).setOrigin(0.5).setDepth(31);
 
     // the paper: letters stamp at the strike point and the line slides left (D-088)
     const pp = KA.paper;
@@ -379,15 +396,18 @@ export class TypelPlayScene extends Phaser.Scene {
     const hb = KA.sprites['hammer']!;
     this.hammer = this.add.image(hb.x + hb.pivotX!, hb.y + hb.pivotY!, 'ka-hammer').setOrigin(hb.pivotX! / hb.w, hb.pivotY! / hb.h).setDepth(22.6).setAngle(-55);
 
-    // the Ward: a faint line along the paper's top edge, and the brass gauge
+    // the Ward: a faint line along the paper's top edge, and (D-096) the orb on the typewriter,
+    // whose liquid is the Ward's stability and whose dark, cracked cap is the scar
     this.wardLine = this.add.graphics().setDepth(9);
-    const n = KA.sprites['needle']!;
-    this.gaugeGlow = this.add.image(KA.gauge.x, KA.gauge.y, 'typel-glow-gold').setDisplaySize(KA.gauge.r * 3.4, KA.gauge.r * 3.4).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setDepth(20.5);
-    this.gaugeMarks = this.add.graphics().setDepth(21);
-    this.needle = this.add.image(KA.gauge.x, KA.gauge.y, 'ka-needle').setOrigin(n.pivotX! / n.w, n.pivotY! / n.h).setDepth(21.5);
-    this.needleAngle = gaugeAngle(this.engine.wardInfo.stability);
-    this.gaugeText = this.text(KA.gauge.x, KA.gauge.y - KA.gauge.r * 0.42, '', 15, '#3a2410', { fontFamily: FONT_ARCADE, fontStyle: '700' }).setOrigin(0.5).setDepth(21.6);
-    this.allInText = this.text(KA.gauge.x - 20, KA.gauge.y - KA.gauge.r - 22, '', 20, '#ffd35a', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#4a1000', strokeThickness: 5, align: 'center' }).setOrigin(0.5, 1).setDepth(31);
+    const O = KA.orb;
+    this.orbGlow = this.add.image(O.x, O.y, 'typel-glow-gold').setDisplaySize(O.r * 3.6, O.r * 3.6).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setDepth(20.5);
+    this.orbLiquid = this.add.image(O.x, O.y, 'ka-orb_liquid').setDisplaySize(O.r * 2.08, O.r * 2.08).setAlpha(0.95).setDepth(21.4);
+    this.orbMask = this.make.graphics({}, false);
+    this.orbLiquid.setMask(this.orbMask.createGeometryMask());
+    this.orbScar = this.add.graphics().setDepth(21.5);
+    this.orbLevel = this.engine.wardInfo.stability / 100;
+    this.gaugeText = this.text(O.x, O.y + O.r * 0.42, '', 15, '#effffa', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#06221e', strokeThickness: 4 }).setOrigin(0.5).setDepth(21.6);
+    this.allInText = this.text(O.x - 30, O.y - O.r - 24, '', 20, '#ffd35a', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#4a1000', strokeThickness: 5, align: 'center' }).setOrigin(0.5, 1).setDepth(31);
 
     // the Master's note, pinned to the desk (the painting's own words until a lesson begins)
     this.note = this.text(KA.note.x, KA.note.y, 'NO SMUDGES!\nAnd spell it right this time.\n— M.', 18, '#2a1a10', { fontFamily: FONT_WORD, fontStyle: '700', align: 'center', wordWrap: { width: KA.note.w }, lineSpacing: -2 })
@@ -464,18 +484,64 @@ export class TypelPlayScene extends Phaser.Scene {
   }
 
   private buildRack(): void {
-    this.poolText = this.text(1742, 112, '', 16, '#ffe7b8', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#1a0a02', strokeThickness: 4 }).setOrigin(0.5).setDepth(31);
+    this.poolText = this.text(KA.pool[0], KA.pool[1], '', 14, '#ffe7b8', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#1a0a02', strokeThickness: 4 }).setOrigin(0.5).setDepth(31);
     SPELL_ORDER.forEach((id, i) => {
       const learned = this.setup.spells.includes(id);
-      const sprite = placed(this, `rack_${id}`, 21).setVisible(learned);
+      // D-096: a learned spell's ribbon marks its shelf even when the shelf is empty
+      if (learned) placeRibbon(this, i, id, 20.9);
+      const sprite = placeRack(this, i, id, 21).setVisible(learned);
       const [cx, cy] = KA.rackCount[id]!;
-      const count = this.text(cx, cy, '', 30, '#ffffff', { fontFamily: '"Arial Black", "Helvetica Neue", Arial, sans-serif', fontStyle: '900', stroke: '#140a04', strokeThickness: 6 }).setOrigin(0.5).setDepth(22).setVisible(learned);
-      if (learned && !this.setup.hardcore) {
-        const b = sprite.getBounds();
-        this.text(b.left + 2, b.top + 4, String(i + 1), 16, '#ffe7b8', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#140a04', strokeThickness: 4 }).setOrigin(0, 0).setDepth(22);
-      }
+      const count = this.text(cx, cy, '', 24, '#ffffff', { fontFamily: '"Arial Black", "Helvetica Neue", Arial, sans-serif', fontStyle: '900', stroke: '#140a04', strokeThickness: 5 }).setOrigin(0.5).setDepth(22).setVisible(learned);
       this.rack.set(id, { sprite, count, learned, home: { x: sprite.x, y: sprite.y } });
     });
+    this.buildSpellKeys();
+  }
+
+  /**
+   * D-096: spell keys 1–8 above the letter keys. A learned spell's gem glows
+   * while it has charges. In Hardcore spells are cast by typing their names
+   * (D-049), so an iron lock bar lies across the row and the gems stay dark.
+   */
+  private buildSpellKeys(): void {
+    const r = 30;
+    SPELL_ORDER.forEach((id, i) => {
+      const [x, y] = KA.spellKeys[i]!;
+      const key = this.add.image(0, 0, 'ka-plate').setOrigin(0).setCrop(x - r - 2, y - r + 4, 2 * r + 4, 2 * r).setDepth(22.5).setVisible(false);
+      key.setMask(this.make.graphics({}, false).fillEllipse(x, y + 4, 2 * r + 4, 2 * r - 8).createGeometryMask());
+      this.spellKeys.set(id, key);
+      const learned = this.setup.spells.includes(id);
+      this.gems.set(id, this.add.image(x, y - 2, `ka-gem_${id}`).setDisplaySize(30, 30).setDepth(22.6).setVisible(learned));
+      if (learned && !this.setup.hardcore) {
+        this.text(x, y + 19, String(i + 1), 13, '#ffe7b8', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#140a04', strokeThickness: 3 }).setOrigin(0.5).setDepth(22.7);
+      }
+    });
+    if (this.setup.hardcore) {
+      const scale = 0.9;
+      const x0 = KA.spellKeys[0]![0] - 52;
+      const x1 = KA.spellKeys[7]![0] + 52;
+      const y = KA.spellKeys[0]![1];
+      this.add.nineslice((x0 + x1) / 2, y, 'ka-lockbar_bar', undefined, (x1 - x0) / scale, 72, 44, 44, 0, 0).setScale(scale).setDepth(22.8);
+      this.add.image((x0 + x1) / 2, y - (36 - 34) * scale, 'ka-lockbar_lock').setOrigin(0.5, 0).setScale(scale).setDepth(22.9);
+    }
+  }
+
+  /** The spell key presses and its gem flares when a spell is cast. */
+  private pressSpellKey(spell: SpellId): void {
+    const k = this.spellKeys.get(spell);
+    const gem = this.gems.get(spell);
+    if (gem) {
+      const flare = this.add.image(gem.x, gem.y, 'typel-glow-gold').setDisplaySize(90, 90).setTint(hexNum(SPELL_HUE[spell])).setBlendMode(Phaser.BlendModes.ADD).setDepth(22.65);
+      this.tweens.add({ targets: flare, alpha: 0, scale: flare.scale * 1.4, duration: 420, onComplete: () => flare.destroy() });
+    }
+    if (!k || this.reduced) return;
+    this.tweens.killTweensOf(k);
+    k.setVisible(true).setY(5).setTint(0xb8a890);
+    if (gem) {
+      const gy = KA.spellKeys[SPELL_ORDER.indexOf(spell)]![1] - 2;
+      this.tweens.killTweensOf(gem);
+      this.tweens.add({ targets: gem, y: { from: gy + 5, to: gy }, duration: 110, ease: 'Quad.easeOut' });
+    }
+    this.tweens.add({ targets: k, y: 0, duration: 110, ease: 'Quad.easeOut', onComplete: () => k.setVisible(false).clearTint() });
   }
 
   /** Each painted key presses into the typewriter: it sinks into its well under a fixed rim. */
@@ -540,6 +606,7 @@ export class TypelPlayScene extends Phaser.Scene {
     ev.on('inputChanged', ({ input, valid }) => this.setPaper(input, valid));
     ev.on('wordCompleted', ({ word, points, combo, perfect, volley }) => {
       const at = this.posOf(word);
+      this.lastCapture = at;
       this.stopTrail(word.id);
       this.collectView(word.id, false);
       sound.capture(combo, volley ?? 1, perfect === true);
@@ -602,6 +669,7 @@ export class TypelPlayScene extends Phaser.Scene {
       const tip = this.wizard.cast();
       this.burst(tip.x, tip.y, hexNum(SPELL_HUE[spell]), 18);
       this.castFromShelf(spell);
+      this.pressSpellKey(spell);
       this.callout(cx, 140, spell.toUpperCase(), SPELL_HUE[spell], 44, '#1a0630');
     });
     ev.on('spellFizzled', ({ spell }) => {
@@ -716,10 +784,10 @@ export class TypelPlayScene extends Phaser.Scene {
       sound.rune(tier);
       prefs.noteRune(id);
       const def = RUNE_BY_ID.get(id);
-      if (def) this.trayQueue.push(def);
+      if (def) this.runeQueue.push(def);
       void name;
       void points;
-      this.runTray();
+      this.runRunes();
     });
     ev.on('gameOver', ({ result }) => {
       this.ended = true;
@@ -953,31 +1021,51 @@ export class TypelPlayScene extends Phaser.Scene {
     // a faint glow along the paper's top edge: where the Ward meets the words
     const wl = this.wardLine.clear();
     wl.lineStyle(3, tint, 0.35 + 0.25 * Math.sin(t / (stab < 30 ? 90 : 400))).lineBetween(FIELD_RECT.x + 90, WARD_Y - 2, FIELD_RECT.x + FIELD_RECT.w - 90, WARD_Y - 2);
-    // gauge needle: sprung, with a little overshoot
-    const target = gaugeAngle(stab);
-    this.needleAngle += (target - this.needleAngle) * Math.min(1, delta / 120);
-    const jitter = stab < 25 && !this.reduced ? (Math.random() - 0.5) * 2.5 : 0;
-    this.needle.setAngle(this.needleAngle + jitter - NEEDLE_PAINTED);
-    this.gaugeText.setText(`${Math.round(stab)}%`);
-    const g = this.gaugeMarks.clear();
-    const G = KA.gauge;
-    const rad = (deg: number) => ((deg - 90) * Math.PI) / 180;
-    if (w.cap < 100) {
-      // the scar: a dead, cracked arc the needle can never reach again
-      const from = rad(gaugeAngle(100));
-      const to = rad(gaugeAngle(w.cap));
-      g.lineStyle(G.r * 0.2, 0x2a0606, 0.78).beginPath().arc(G.x, G.y, G.r * 0.82, from, to, false).strokePath();
-      g.lineStyle(2, 0xc0302a, 0.9);
-      for (let d = gaugeAngle(100) + 6; d < gaugeAngle(w.cap) - 2; d += 11) {
-        const r0 = G.r * 0.72;
-        const r1 = G.r * 0.92;
-        g.lineBetween(G.x + Math.cos(rad(d)) * r0, G.y + Math.sin(rad(d)) * r0, G.x + Math.cos(rad(d + 5)) * r1, G.y + Math.sin(rad(d + 5)) * r1);
-      }
-      const pin = rad(gaugeAngle(w.cap));
-      g.fillStyle(0x8a6a2a, 1).fillCircle(G.x + Math.cos(pin) * G.r * 0.82, G.y + Math.sin(pin) * G.r * 0.82, 6);
-      g.fillStyle(0xf0d080, 1).fillCircle(G.x + Math.cos(pin) * G.r * 0.82 - 1.5, G.y + Math.sin(pin) * G.r * 0.82 - 1.5, 2.5);
+    // D-096 Ward orb: the liquid settles to the Ward's stability (sloshing on a breach or a wager);
+    // above the scarred maximum the glass is dark and cracked
+    const O = KA.orb;
+    this.orbLevel += (stab / 100 - this.orbLevel) * Math.min(1, delta / 260);
+    this.orbSlosh *= Math.max(0, 1 - delta / 500);
+    const wobble = this.reduced ? 0 : Math.sin(t / 90) * this.orbSlosh * 6 + (stab < 25 ? Math.sin(t / 60) * 1.5 : 0);
+    const r = O.r - 3;
+    const surface = O.y + r - 2 * r * this.orbLevel;
+    const mask = this.orbMask.clear().fillStyle(0xffffff);
+    const pts: Phaser.Math.Vector2[] = [];
+    for (let i = 0; i <= 24; i++) {
+      const x = O.x - r + (2 * r * i) / 24;
+      const dx = x - O.x;
+      const half = Math.sqrt(Math.max(0, r * r - dx * dx));
+      const top = Math.max(O.y - half, surface + wobble * Math.sin(i / 3 + t / 120));
+      pts.push(new Phaser.Math.Vector2(x, Math.min(top, O.y + half)));
     }
-    this.gaugeGlow.setTint(allIn ? 0xffb040 : 0xff3030).setAlpha(allIn ? 0.45 + 0.15 * Math.sin(t / 150) : stab < 25 ? 0.25 + 0.2 * Math.abs(Math.sin(t / 120)) : 0);
+    for (let i = 24; i >= 0; i--) {
+      const x = O.x - r + (2 * r * i) / 24;
+      const dx = x - O.x;
+      pts.push(new Phaser.Math.Vector2(x, O.y + Math.sqrt(Math.max(0, r * r - dx * dx))));
+    }
+    mask.fillPoints(pts, true);
+    const g = this.orbScar.clear();
+    if (w.cap < 100) {
+      // the scar: the part of the orb the Ward can't refill, dark and cracked
+      const capY = O.y + r - 2 * r * (w.cap / 100);
+      const cap: Phaser.Math.Vector2[] = [];
+      for (let i = 0; i <= 24; i++) {
+        const a = Math.PI + (Math.PI * i) / 24;
+        cap.push(new Phaser.Math.Vector2(O.x + Math.cos(a) * r, Math.min(capY, O.y + Math.sin(a) * r)));
+      }
+      const half = Math.sqrt(Math.max(0, r * r - (capY - O.y) ** 2));
+      if (capY > O.y) cap.push(new Phaser.Math.Vector2(O.x + half, capY), new Phaser.Math.Vector2(O.x - half, capY));
+      g.fillStyle(0x140608, 0.62).fillPoints(cap, true);
+      g.lineStyle(2, 0xc0302a, 0.85).lineBetween(O.x - half + 4, capY, O.x + half - 4, capY);
+      g.lineStyle(1.5, 0xd8d0c8, 0.55);
+      for (let k = 0; k < 3; k++) {
+        const x0 = O.x - r * 0.5 + k * r * 0.45;
+        g.lineBetween(x0, capY - 4, x0 + 9, capY - 16).lineBetween(x0 + 9, capY - 16, x0 + 3, capY - 26);
+      }
+    }
+    this.gaugeText.setText(`${Math.round(stab)}%`);
+    this.orbGlow.setTint(allIn ? 0xffb040 : stab < 25 ? 0xff3030 : 0x5fe8c8)
+      .setAlpha(allIn ? 0.45 + 0.15 * Math.sin(t / 150) : stab < 25 ? 0.25 + 0.2 * Math.abs(Math.sin(t / 120)) : 0.12);
     this.allInText.setText(allIn ? `ALL-IN ×${w.allInMultiplier} · ${Math.ceil((w.allInTicks * SIMULATION_STEP_MS) / 1000)}s` : '');
   }
 
@@ -988,9 +1076,9 @@ export class TypelPlayScene extends Phaser.Scene {
     this.archFlashColor = color;
   }
 
-  /** The needle jolts (breach) or strains (a wager) before settling. */
+  /** The orb's liquid sloshes (breach) or heaves (a wager) before settling. */
   private kickNeedle(deg: number): void {
-    if (!this.reduced) this.needleAngle += deg;
+    if (!this.reduced) this.orbSlosh = Math.min(2, this.orbSlosh + Math.abs(deg) / 10);
   }
 
   private refreshPlates(): void {
@@ -999,10 +1087,15 @@ export class TypelPlayScene extends Phaser.Scene {
     const progress = rem !== null && isSurvival(e.config)
       ? rem > 0 ? `Survive ${Math.ceil(rem / 1000)}s` : 'Clear the field!'
       : e.config.requiredWords ? `${e.state.completed} / ${e.config.requiredWords} scrolls` : `${e.state.completed} scrolls`;
-    const label = `${this.setup.title.toUpperCase()}\n${progress}`;
-    if (this.levelPlate.text !== label) {
-      this.levelPlate.setText(label);
-      this.fit(this.levelPlate, 15, 218);
+    const stage = (this.setup.stage ?? this.setup.title).toUpperCase();
+    if (this.stageText.text !== stage) {
+      this.stageText.setText(stage);
+      this.fit(this.stageText, 17, KA.banner.w);
+    }
+    const line = `${this.setup.hardcore ? 'Hardcore' : 'Normal'} · ${progress}`;
+    if (this.progressText.text !== line) {
+      this.progressText.setText(line);
+      this.fit(this.progressText, 13, KA.banner.w);
     }
   }
 
@@ -1018,6 +1111,13 @@ export class TypelPlayScene extends Phaser.Scene {
       if (n > 0) slot.sprite.clearTint().setAlpha(1);
       else slot.sprite.setTint(0x6a6a72).setAlpha(0.55);
       slot.count.setAlpha(n > 0 ? 1 : 0.55);
+      // D-096: the spell key's gem glows while that spell has charges (dark in Hardcore: keys don't cast)
+      const gem = this.gems.get(id);
+      if (gem) {
+        const lit = n > 0 && !this.setup.hardcore;
+        if (lit) gem.clearTint().setAlpha(1);
+        else gem.setTint(0x5a5a62).setAlpha(this.setup.hardcore ? 0.45 : 0.6);
+      }
     }
     this.poolText.setText(`charges ${held} / ${this.engine.poolLimit}`);
   }
@@ -1188,53 +1288,81 @@ export class TypelPlayScene extends Phaser.Scene {
   }
 
   /**
-   * D-089 Rune tray, D-093 painted medals: the velvet tray holds the three
-   * latest Runes. Each award clacks in from the right; older medals roll left
-   * and drop away. The medal's metal shows the tier (silver, gold, the
-   * star-and-ribbon); fumbles arrive tarnished. Awards queue, nothing blocks the field.
+   * D-098 Rune display (Halo-medal style): an earned Rune's sigil flies from
+   * where it was earned into the display's lens, the pane flares, the medal
+   * shows large with its name on the strip, then shrinks into the row of the
+   * last four Runes (newest on the left; the oldest fades out). Awards queue
+   * about half a second apart; nothing pauses play or covers the words.
+   * Medal art: the painting's three medals by tier until MED-001.
    */
-  private runTray(): void {
-    if (this.trayBusy) return;
-    const rune = this.trayQueue.shift();
+  private runRunes(): void {
+    if (this.runeBusy) return;
+    const rune = this.runeQueue.shift();
     if (!rune) return;
-    this.trayBusy = true;
-    const T = KA.tray;
-    const shift = this.reduced ? 0 : 180;
-    for (const m of this.trayMedals) {
-      const slot = (m.getData('slot') as number) - 1;
-      m.setData('slot', slot);
-      if (slot < 0) {
-        this.tweens.add({ targets: m, x: T[0]![0] - 70, y: T[0]![1] + 60, alpha: 0, duration: shift, ease: 'Quad.easeIn', onComplete: () => m.destroy() });
-      } else this.tweens.add({ targets: m, x: T[slot]![0], y: T[slot]![1], duration: shift, ease: 'Back.easeOut' });
-    }
-    this.trayMedals = this.trayMedals.filter((m) => (m.getData('slot') as number) >= 0);
+    this.runeBusy = true;
+    const D = KA.runeDisplay;
+    const [lx, ly] = D.lens;
     const participation = rune.category === 'participation';
     const key = participation ? 'ka-medal_1' : `ka-medal_${Math.min(3, Math.max(1, rune.tier))}`;
-    const glow = this.add.image(0, 0, 'typel-glow-gold').setDisplaySize(150, 150).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
-    const medal = this.add.image(0, 0, key);
-    if (participation) medal.setTint(0xb07a48);
-    const c = this.add.container(T[2]![0], T[2]![1], [glow, medal]).setDepth(31).setData('slot', 2);
-    this.trayMedals.push(c);
-    if (!this.reduced) {
-      c.setScale(0.1, 1.2).setY(T[2]![1] + 40).setAlpha(0);
-      this.tweens.add({ targets: c, scaleX: 1, scaleY: 1, y: T[2]![1], alpha: 1, delay: 120, duration: 280, ease: 'Back.easeOut' });
-      this.tweens.add({ targets: glow, alpha: { from: 0.9, to: 0 }, delay: 260, duration: 700 });
-    }
-    // the Rune's name, engraved on the tray's lip; the Grand Wizard's remark in his bubble
-    this.trayName.setText(rune.name).setColor(participation ? '#e8b890' : '#ffe7a8');
-    this.fit(this.trayName, 17, 300);
-    if (!this.reduced) this.tweens.add({ targets: this.trayName, scale: { from: 1.25, to: 1 }, duration: 220, ease: 'Back.easeOut' });
-    const remark = this.quip(rune);
-    if (remark) this.world.wizard.say(remark);
-    if (participation) this.world.wizard.chuckle();
-    else if (rune.tier >= 3) {
-      this.confetti(40);
-      this.world.wizard.impressed();
-    }
-    this.time.delayedCall(this.reduced ? 300 : 520, () => {
-      this.trayBusy = false;
-      this.runTray();
+    const big = { x: D.x + D.w / 2, y: D.y + D.h * 0.42, scale: 1 };
+    const show = () => {
+      const flare = this.add.image(big.x, big.y, 'typel-glow-gold').setDisplaySize(D.w * 1.1, D.h * 1.4).setTint(0x7fe8ff).setBlendMode(Phaser.BlendModes.ADD).setDepth(30);
+      this.tweens.add({ targets: flare, alpha: 0, duration: 700, onComplete: () => flare.destroy() });
+      const medal = this.add.image(big.x, big.y, key).setScale(this.reduced ? big.scale : 0.1).setDepth(31);
+      if (participation) medal.setTint(0xb07a48);
+      if (!this.reduced) this.tweens.add({ targets: medal, scale: big.scale, duration: 300, ease: 'Back.easeOut' });
+      this.tweens.killTweensOf(this.runeName);
+      this.runeName.setText(rune.name).setColor(participation ? '#5a2a10' : '#2b1a0a').setAlpha(1);
+      this.fit(this.runeName, 15, 170);
+      if (!this.reduced) this.tweens.add({ targets: this.runeName, scale: { from: 1.25, to: 1 }, duration: 220, ease: 'Back.easeOut' });
+      const remark = this.quip(rune);
+      if (remark) this.world.wizard.say(remark);
+      if (participation) this.world.wizard.chuckle();
+      else if (rune.tier >= 3) {
+        this.confetti(40);
+        this.world.wizard.impressed();
+      }
+      // after its moment, the medal joins the recent row along the bottom of the pane
+      this.time.delayedCall(this.reduced ? 1200 : 2500, () => this.shelveRune(medal));
+      this.time.delayedCall(this.reduced ? 300 : 520, () => {
+        this.runeBusy = false;
+        this.runRunes();
+      });
+    };
+    if (this.reduced) return void show();
+    // the sigil is drawn from where the Rune was earned into the lens
+    const from = this.lastCapture;
+    const sigil = this.add.image(from.x, from.y, 'typel-glow-gold').setDisplaySize(46, 46).setTint(0x9ff8ee).setBlendMode(Phaser.BlendModes.ADD).setDepth(56);
+    const trail = this.add.particles(0, 0, 'typel-spark', { follow: sigil, lifespan: 260, scale: { start: 0.35, end: 0 }, alpha: { start: 0.8, end: 0 }, tint: 0x9ff8ee, blendMode: 'ADD', frequency: 18 }).setDepth(55);
+    this.tweens.add({
+      targets: sigil, x: lx, y: ly, displayWidth: 22, displayHeight: 22, duration: 420, ease: 'Cubic.easeIn',
+      onComplete: () => {
+        sigil.destroy();
+        trail.stop();
+        this.time.delayedCall(300, () => trail.destroy());
+        show();
+      },
     });
+  }
+
+  /** The featured Rune shrinks into the recent row; older ones slide right and the fifth fades out. */
+  private shelveRune(medal: Phaser.GameObjects.Image): void {
+    const D = KA.runeDisplay;
+    const slotX = (i: number) => D.x + 34 + i * ((D.w - 68) / 3);
+    const rowY = D.y + D.h - 30;
+    const small = 0.42;
+    this.runeRecent.unshift(medal);
+    this.runeRecent.forEach((m, i) => {
+      if (i >= 4) {
+        this.tweens.add({ targets: m, alpha: 0, x: m.x + 30, duration: 300, onComplete: () => m.destroy() });
+        return;
+      }
+      const target = { x: slotX(i), y: rowY, scale: small, alpha: i === 0 ? 1 : 0.85 };
+      if (this.reduced) m.setPosition(target.x, target.y).setScale(small).setAlpha(target.alpha);
+      else this.tweens.add({ targets: m, ...target, duration: 320, ease: 'Quad.easeInOut' });
+    });
+    this.runeRecent = this.runeRecent.slice(0, 4);
+    if (!this.runeBusy && this.runeQueue.length === 0) this.tweens.add({ targets: this.runeName, alpha: { from: 1, to: 0.55 }, delay: 1500, duration: 600 });
   }
 
   /**
@@ -1279,7 +1407,7 @@ export class TypelPlayScene extends Phaser.Scene {
       targets: path, t: 1, duration: 520, ease: 'Sine.easeIn',
       onUpdate: () => {
         const p = curve.getPoint(path.t);
-        flyer.setPosition(p.x, p.y).setScale(0.45 + path.t * 0.55);
+        flyer.setPosition(p.x, p.y).setScale(0.45 + path.t * (RACK_SCALE - 0.45));
       },
       onComplete: () => {
         flyer.destroy();

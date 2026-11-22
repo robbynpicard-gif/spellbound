@@ -228,6 +228,8 @@ export class TypelApp {
       spells: learnedSpells(run.trial),
       title: boss ? trial.bossName : trial.title,
       subtitle: `${run.mode === 'hardcore' ? 'Hardcore' : 'Normal'} · ${boss ? 'Spell boss' : `Level ${run.level} of ${LEVELS_PER_TRIAL}`}`,
+      // D-096 stage banner: "FLAME · LEVEL 2", or the boss's name
+      stage: `${trial.title.replace(/^The Apprenticeship of /, '')} · ${boss ? trial.bossName : run.endless ? 'Endless' : `Level ${run.level}`}`,
       lines: run.level === 1 ? trial.intro.slice(-1) : hint ? [hint] : undefined,
       boss,
       onPause: () => this.pauseMenu(() => this.launchLevel()),
@@ -409,6 +411,7 @@ export class TypelApp {
       spells: SPELL_ORDER,
       title: 'Sandbox',
       showSequenceScore: true,
+      stage: `Sandbox · Pace ${sb.tier}`,
       subtitle: `${sb.mode === 'hardcore' ? 'Hardcore' : 'Normal'} rules · pace ${sb.tier} · not recorded`,
       lines: [{ who: 'The Grand Wizard', text: 'Here nothing is at stake. Experiment. Combine. Break things.' }],
       onPause: () => this.pauseMenu(() => this.startSandbox()),

@@ -101,10 +101,10 @@
    "label": "Title removed from the top of the arch",
    "rects": [
     [
-     740,
+     700,
      0,
-     1180,
-     150
+     1235,
+     132
     ]
    ]
   },
@@ -112,10 +112,10 @@
    "label": "Shorter shelf, TYPEL title above, blank stage banner",
    "rects": [
     [
-     1560,
+     1555,
      0,
      1920,
-     885
+     880
     ]
    ]
   },
@@ -123,10 +123,10 @@
    "label": "Rune display (replaces level plate and medal tray), D-098",
    "rects": [
     [
-     80,
-     780,
-     515,
-     1070
+     60,
+     655,
+     492,
+     1052
     ]
    ]
   },
@@ -134,22 +134,22 @@
    "label": "Typewriter spell keys and Ward orb; pipe replaces gauge",
    "rects": [
     [
-     480,
-     662,
-     1480,
+     560,
+     735,
+     1345,
      1080
     ],
     [
-     1480,
-     885,
-     1920,
-     1080
+     1340,
+     700,
+     1535,
+     965
     ],
     [
-     1690,
-     840,
+     1500,
+     848,
      1920,
-     885
+     1080
     ]
    ]
   }
@@ -167,5 +167,5 @@
   "PLT-007",
   "PLT-008"
  ],
- "build_note_v2": "Stage 2 (D-096) edits are made on the stage-1 clean plate and composited onto it in this order; PLT-008 last so the desk corner wins over the shelf base."
+ "build_note_v2": "Stage 2 (D-096) edits are made on the stage-1 clean plate and composited onto it in this order; PLT-008 last so the desk corner wins over the shelf base. Regions measured from where each approved edit actually changed the plate (diff > 30 levels)."
 }
