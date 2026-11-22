@@ -12,7 +12,7 @@ Lifecycle: PLANNED → REQUESTED → GENERATED → UNDER REVIEW → APPROVED →
 
 ## Summary
 
-UNDER REVIEW: 5 · PLANNED: 13
+UNDER REVIEW: 5 · REQUESTED: 7 · PLANNED: 12 · REJECTED: 1
 
 | ID | Name | Batch | Status | Category | Format | Size | Transparency / loop |
 |---|---|---|---|---|---|---|---|
@@ -21,6 +21,13 @@ UNDER REVIEW: 5 · PLANNED: 13
 | PLT-003 | Clean typewriter and desk region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-003 | opaque (region composite) |
 | PLT-004 | Empty shelf region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-004 | opaque (region composite) |
 | SCR-001 | Plain word scroll (blank) | 1 | **UNDER REVIEW** | visual/gameplay-target | PNG 16:9 on #FF00FF | ships 229×67 (+2×), capL/capR re-measured | alpha (chroma key); 3-slice |
+| PLT-005 | Title removed from the arch top | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-005 | opaque (region composite) |
+| PLT-006 | Shorter shelf + TYPEL title + blank stage banner | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-006 | opaque (region composite) |
+| PLT-007 | Rune conveyor display | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-007 | opaque (region composite) |
+| PLT-008 | Spell-key row, Ward orb, desk pipe | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-008 | opaque (region composite) |
+| RIB-001 | Shelf ribbon markers ×8 | 1b | **REQUESTED** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~22×80 each | alpha; sheet split |
+| KEY-001 | Spell gems ×8 | 1b | **REQUESTED** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~30 px each | alpha; sheet split |
+| MIX-001 | Hardcore lock bar, Normal/Hardcore seals, Ward orb liquid | 1b | **REQUESTED** | visual/hud-part | PNG 16:9 sheet on #FF00FF | 4 sprites | alpha; sheet split |
 | SCR-002 | Elemental spell scrolls ×8 | 2 | **PLANNED** | visual/gameplay-target | PNG sheet on #FF00FF | matches SCR-001 | alpha |
 | SCR-003 | CATCH! stamp | 2 | **PLANNED** | visual/feedback | PNG on #FF00FF | ~123×60 | alpha |
 | RCK-002 | Shelf scrolls ×8 (isolated) | 2 | **PLANNED** | visual/hud-part | PNG sheet on #FF00FF | 257×80–91 each | alpha; sheet split |
@@ -28,7 +35,7 @@ UNDER REVIEW: 5 · PLANNED: 13
 | HND-001 | Hands pose sheet | 3 | **PLANNED** | visual/character-part | PNG sheet on #FF00FF | hand_l 269×229 / hand_r 309×229 | alpha |
 | MED-001 | Rune medals by category × tier | 4 | **PLANNED** | visual/reward | PNG sheet on #FF00FF | ~100×100 each | alpha |
 | FX-001 | Spell effect sprites | 4 | **PLANNED** | visual/effect | PNG sheets on black (additive) or magenta | varies | alpha/additive |
-| WRD-001 | Ward gauge face + needle | 4 | **PLANNED** | visual/hud | PNG on #FF00FF (2 parts) | needle 80×80, face ~170×200 | alpha |
+| WRD-001 | Ward gauge face + needle | 4 | **REJECTED** | visual/hud | PNG on #FF00FF (2 parts) | needle 80×80, face ~170×200 | alpha |
 | UI-002 | Menu panels (parchment + walnut) | 5 | **PLANNED** | visual/ui | PNG | TBD | alpha |
 | AUD-VO-001 | Grand Wizard recorded lines (65) | owner | **PLANNED** | audio/voice | WAV 48 kHz/24-bit → MP3 | per line | one-shot |
 | AUD-MUS-001 | Final score production | later | **PLANNED** | audio/music | WAV 48 kHz/24-bit stems | loops | seamless loops + stems |
@@ -61,7 +68,7 @@ UNDER REVIEW: 5 · PLANNED: 13
 - **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** `public/assets/typel/keyart/plate.jpg / front.webp`
-- **Integration notes:** As PLT-001.
+- **Integration notes:** As PLT-001. Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.
 - **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
 - **Known limitations:** Model may rewrite text instead of removing it.
 
@@ -75,7 +82,7 @@ UNDER REVIEW: 5 · PLANNED: 13
 - **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** `public/assets/typel/keyart/front.webp`
-- **Integration notes:** Key letters become live text on blank caps (rendering change at integration). Paper top edge must not move (Ward line).
+- **Integration notes:** Key letters become live text on blank caps (rendering change at integration). Paper top edge must not move (Ward line). Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.
 - **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
 - **Known limitations:** Invented keys under the hands may misalign.
 
@@ -89,7 +96,7 @@ UNDER REVIEW: 5 · PLANNED: 13
 - **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** `public/assets/typel/keyart/plate.jpg / front.webp`
-- **Integration notes:** As PLT-001.
+- **Integration notes:** As PLT-001. Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.
 - **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
 - **Known limitations:** Flying-scroll remnants on shelf 4.
 
@@ -106,6 +113,104 @@ UNDER REVIEW: 5 · PLANNED: 13
 - **Integration notes:** Replaces the cut-from-painting scroll; keyart.json capL/capR updated.
 - **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
 - **Known limitations:** May come back with a word or curl.
+
+### PLT-005 · Title removed from the arch top
+
+- **Game function:** Frees the top of the field (field +10 %, D-096)
+- **Category:** visual/plate-edit · **Batch:** 1b · **Priority:** 1 · **Depends on:** PLT-001
+- **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-005 · **Transparency/looping:** opaque (region composite)
+- **Source reference:** clean plate v1
+- **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
+- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Approved source file:** —
+- **Final integrated path:** TBD
+- **Integration notes:** Stage-2 plate build (plate-build-v2.json).
+- **Test status:** not tested
+- **Known limitations:** Ghost plaque, letter-like runes.
+
+### PLT-006 · Shorter shelf + TYPEL title + blank stage banner
+
+- **Game function:** Title above the shelf; banner shows trial · level (live) and a Normal/Hardcore seal
+- **Category:** visual/plate-edit · **Batch:** 1b · **Priority:** 1 · **Depends on:** PLT-004
+- **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-006 · **Transparency/looping:** opaque (region composite)
+- **Source reference:** clean plate v1
+- **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
+- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Approved source file:** —
+- **Final integrated path:** TBD
+- **Integration notes:** rack_<spell> layers re-placed and scaled to the new compartments; rackCount positions re-measured.
+- **Test status:** not tested
+- **Known limitations:** Shelf count; TYPEL spelling.
+
+### PLT-007 · Rune conveyor display
+
+- **Game function:** Rune medals ride a conveyor in the score machine; Rune name on the strip; desk tray removed
+- **Category:** visual/plate-edit · **Batch:** 1b · **Priority:** 1 · **Depends on:** PLT-002
+- **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-007 · **Transparency/looping:** opaque (region composite)
+- **Source reference:** clean plate v1
+- **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
+- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Approved source file:** —
+- **Final integrated path:** TBD
+- **Integration notes:** Replaces tray slots (keyart.json tray) with a conveyor path; level text moves to the stage banner.
+- **Test status:** not tested
+- **Known limitations:** Objects on the belt; window too small.
+
+### PLT-008 · Spell-key row, Ward orb, desk pipe
+
+- **Game function:** 8 spell keys (1–8), Ward orb on the typewriter, pipe instead of the gauge
+- **Category:** visual/plate-edit · **Batch:** 1b · **Priority:** 1 · **Depends on:** PLT-003
+- **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-008 · **Transparency/looping:** opaque (region composite)
+- **Source reference:** clean plate v1
+- **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
+- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Approved source file:** —
+- **Final integrated path:** TBD
+- **Integration notes:** keys re-measured; spell keys cut live and pressed; needle/gauge code replaced by the orb; pipe smoke = existing steam emitter.
+- **Test status:** not tested
+- **Known limitations:** Key count, paper top must not move.
+
+### RIB-001 · Shelf ribbon markers ×8
+
+- **Game function:** Spell-colour ribbon per shelf, visible once that spell is learned
+- **Category:** visual/hud-part · **Batch:** 1b · **Priority:** 1 · **Depends on:** PLT-006
+- **Required format:** PNG 16:9 sheet on #FF00FF · **Dimensions/duration:** ~22×80 each · **Transparency/looping:** alpha; sheet split
+- **Source reference:** REF-001-C4
+- **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
+- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Approved source file:** —
+- **Final integrated path:** TBD
+- **Integration notes:** Shown when learned, regardless of charges.
+- **Test status:** not tested
+- **Known limitations:** Colour order; pink/violet keying.
+
+### KEY-001 · Spell gems ×8
+
+- **Game function:** Set into spell-key crystals; lit with charges, flash on cast, dim when empty/Hardcore
+- **Category:** visual/hud-part · **Batch:** 1b · **Priority:** 1 · **Depends on:** PLT-008
+- **Required format:** PNG 16:9 sheet on #FF00FF · **Dimensions/duration:** ~30 px each · **Transparency/looping:** alpha; sheet split
+- **Source reference:** REF-001-C2
+- **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
+- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Approved source file:** —
+- **Final integrated path:** TBD
+- **Integration notes:** Additive glow drawn in code.
+- **Test status:** not tested
+- **Known limitations:** Facets/rims vary.
+
+### MIX-001 · Hardcore lock bar, Normal/Hardcore seals, Ward orb liquid
+
+- **Game function:** Lock bar over spell keys in Hardcore; seal on stage banner; liquid masked in the orb by Ward level, scar shown as dead cap
+- **Category:** visual/hud-part · **Batch:** 1b · **Priority:** 1 · **Depends on:** PLT-008
+- **Required format:** PNG 16:9 sheet on #FF00FF · **Dimensions/duration:** 4 sprites · **Transparency/looping:** alpha; sheet split
+- **Source reference:** REF-001-C2
+- **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
+- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED
+- **Approved source file:** —
+- **Final integrated path:** TBD
+- **Integration notes:** Orb liquid level = Ward stability; scar = dark cracked cap above the recoverable maximum (code).
+- **Test status:** not tested
+- **Known limitations:** Skull tone; soft sphere edge.
 
 ### SCR-002 · Elemental spell scrolls ×8
 
@@ -212,7 +317,7 @@ UNDER REVIEW: 5 · PLANNED: 13
 - **Required format:** PNG on #FF00FF (2 parts) · **Dimensions/duration:** needle 80×80, face ~170×200 · **Transparency/looping:** alpha
 - **Source reference:** REF-001 gauge
 - **Prompt:** not yet written
-- **Status:** **PLANNED** — history: 2026-11-21 PLANNED
+- **Status:** **REJECTED** — history: 2026-11-21 PLANNED; 2026-11-21 REJECTED (superseded by the Ward orb on the typewriter (D-096))
 - **Approved source file:** —
 - **Final integrated path:** TBD
 - **Integration notes:** PLT-003 may already deliver an acceptable face; then only the needle is needed.

@@ -45,3 +45,10 @@ _Append-only. Records which assets were added, what code changed, which systems 
   - Middle parchment `#f0d9af` (std 1.4, very even) is lighter than the painting's scrolls (`#d4bb95`). A toned variant matching the painting was prepared for comparison (`assets-src/work/SCR-001_compare_v1.png`).
 - **Resolution note:** the edits are 1344×756, so the clean areas are upscaled 1.43× to 1920×1080. They are a little softer than the D-093 layers cut from the 5376×3024 original, but sharper than the filled patches they replace. A 2K/4K download of the same edits would drop straight in (same geometry).
 - **Game:** unchanged. Nothing integrated; waiting for owner approval.
+
+## 2026-11-21 · Entry 3 — HUD revision requested (D-096); nothing integrated
+
+- The owner asked for layout changes before integrating batch 01 (D-096). They are planned in `guides/G-HUD-REV1_plan_labelled.png`, requested as batch 01b, and set up for a stage-2 plate build (`plate-regions.json` PLT-005…008, `build_order_v2`, `plate-build-v2.json`; `build_plate.py` takes an `order` key).
+- WRD-001 (gauge) is rejected and replaced by the orb.
+- Batch 01 assets remain UNDER REVIEW: approval of PLT-001 and SCR-001 (and which scroll tone) is still open.
+- **Game:** unchanged.

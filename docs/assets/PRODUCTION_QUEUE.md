@@ -20,6 +20,21 @@ Request: `requests/BATCH-01_clean-plate-and-scroll.md`
 
 Integration when approved: align → diff → composite each region onto a new clean plate (`tools/assets/prep.py`), re-run the D-093 slicing (`tools/keyart/`) on it so `plate.jpg` and `front.webp` are rebuilt, swap `scroll_plain.png`, print key letters live on blank caps (PLT-003), run `npm run check`, smoke-test in the browser at typing speed, verify the preview build.
 
+## Batch 01b — HUD revision (D-096) · **REQUESTED 2026-11-21**
+Request: `requests/BATCH-01b_hud-revision.md` · plan: `guides/G-HUD-REV1_plan_labelled.png`
+
+| Order | ID | Asset | Depends on |
+|---|---|---|---|
+| 1 | PLT-008 | Spell-key row, Ward orb, desk pipe (hardest edit; start early) | clean plate v1 |
+| 2 | PLT-006 | Shorter shelf, TYPEL title, blank stage banner | clean plate v1 |
+| 3 | PLT-005 | Title removed from the arch | clean plate v1 |
+| 4 | PLT-007 | Rune conveyor display | clean plate v1 |
+| 5 | MIX-001 | Lock bar, Normal/Hardcore seals, orb liquid | — |
+| 6 | KEY-001 | Spell gems ×8 | — |
+| 7 | RIB-001 | Shelf ribbons ×8 | — |
+
+Batch 01 and 01b are integrated together in one step (plate stage 1 + stage 2, new layout constants, field +10 %, banner, conveyor, orb, spell keys, ribbons), then tested at typing speed in Normal and Hardcore.
+
 ## Batch 02 — Spell scrolls and the shelf · PLANNED
 SCR-002 elemental spell scrolls ×8 (needs SCR-001; must follow **D-095**: calm, a light wash of the spell colour and a wax seal, not busy flames/lightning frames — Fire keeps a small flame on its rolled end, Ice its frost) · RCK-002 shelf scrolls ×8 incl. a real Barrier scroll (needs PLT-004) · SCR-003 CATCH! stamp (only if the current one looks soft).
 
@@ -27,7 +42,7 @@ SCR-002 elemental spell scrolls ×8 (needs SCR-001; must follow **D-095**: calm,
 CHR-001 Grand Wizard pose sheet · HND-001 hands pose sheet (needs PLT-003).
 
 ## Batch 04 — Rewards, effects, gauge · PLANNED
-MED-001 Rune medals · FX-001 spell effect sprites · WRD-001 gauge face + needle.
+MED-001 Rune medals · FX-001 spell effect sprites · ~~WRD-001 gauge~~ (replaced by the Ward orb, D-096).
 
 ## Batch 05 — Menus · PLANNED
 UI-002 menu panels.

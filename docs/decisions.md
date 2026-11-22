@@ -1287,3 +1287,28 @@ _2026-11-21 · Owner decisions (chat); implemented on dev. Numbered D-095 becaus
   - a **wax seal** in the spell's colour bearing its glyph;
   - for Fire only, a small, slowly breathing painted flame on the rolled end.
 - **Unchanged:** plain scrolls, targeting and plunge visuals.
+
+
+### D-096 — HUD revision: larger field, title above the shelf with a stage banner, Rune conveyor, Ward orb, spell keys, shelf ribbons (2026-11-21)
+_2026-11-21 · Owner decisions (chat, on reviewing batch 01); art requested as batch 01b; not yet built_
+
+**Owner decisions:**
+- **Field 10 % larger.**
+- **Title:** remove the TYPEL title from the top of the screen and put it above the spell shelf. Under it, a small banner shows the stage (e.g. "Flame · Level 2") and whether the session is Normal or Hardcore.
+- **Score machine:** the medal tray moves up into the machine, where the level plate was, and becomes an arcane display for a **Rune conveyor**.
+- **Typewriter and desk:**
+  - a large smoking wizard's pipe on the desk;
+  - the Ward Strength meter is integrated into the typewriter as an **arcane orb** that starts full and empties as the Ward is damaged;
+  - **8 spell keys** in the number-row position, with indicators for casting, and a clear sign that they don't work in Hardcore (D-049: Hardcore casts by typing spell names).
+- **Shelf:** a **ribbon in each spell's colour** on its shelf, so an empty slot still shows its spell; visible only once that spell is unlocked.
+
+**Prototype choices (reversible):**
+- **Field:** x 548–1582, y 0–655 (was 610–1550, y 60–655): 10 % wider and 10 % taller. The Ward line (paper top) is unchanged.
+- **Banner text:** `<trial short name> · Level N` (e.g. FLAME · LEVEL 2; boss name on boss levels). A blue quill seal means Normal, a red skull seal means Hardcore.
+- **Ward orb:** liquid level = Ward stability; the scarred maximum shows as a dark, cracked cap at the top of the orb. The rune arch keeps showing the Ward (D-093). The desk gauge is removed and the pipe takes its place.
+- **Spell keys:**
+  - Each key carries a spell-coloured gem: lit when that spell has charges, flashing on a cast, dim when empty.
+  - Number labels show in Normal.
+  - In Hardcore an iron locking bar with a padlock lies across the row, and the gems are dark.
+- **Ribbons:** show when the spell is learned in the current mode, whether or not it has charges.
+- **Art (batch 01b):** four region edits of the batch-01 clean plate (title off the arch; shorter shelf with title and blank banner; conveyor display; spell keys, orb and pipe) and three sprite sheets (ribbons, gems, lock bar + seals + orb liquid). All text stays live.

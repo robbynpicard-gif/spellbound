@@ -7,7 +7,8 @@ Build the clean background plate from the approved region edits (D-094).
 plate-build.json lists the chosen source file per region, e.g.
   {"base": "assets-src/reference/REF-001_typel-concept-primary_v1_1920x1080.png",
    "edits": {"PLT-001": "assets-src/flow/PLT-001/PLT-001_clean-sky_v1_a.png", ...}}
-Regions and their order come from docs/assets/plate-regions.json. Every edit is
+Regions and their order come from docs/assets/plate-regions.json ("order" in
+the config picks which build order list, default "build_order"). Every edit is
 aligned to the base first (tools/assets/prep.py align), then composited.
 """
 import json, subprocess, sys, tempfile
@@ -30,7 +31,7 @@ def main():
     regions = json.loads((ROOT / 'docs/assets/plate-regions.json').read_text())
     tmp = Path(tempfile.mkdtemp())
     cur = ROOT / cfg['base']
-    for i, name in enumerate(regions['build_order']):
+    for i, name in enumerate(regions[cfg.get('order', 'build_order')]):
         src = cfg['edits'].get(name)
         if not src:
             print(f'{name}: no edit chosen, keeping base')

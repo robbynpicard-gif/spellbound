@@ -97,7 +97,7 @@
    ],
    "approved_source": null,
    "final_path": "public/assets/typel/keyart/plate.jpg / front.webp",
-   "integration_notes": "As PLT-001.",
+   "integration_notes": "As PLT-001. Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.",
    "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
    "known_limitations": "Model may rewrite text instead of removing it."
   },
@@ -136,7 +136,7 @@
    ],
    "approved_source": null,
    "final_path": "public/assets/typel/keyart/front.webp",
-   "integration_notes": "Key letters become live text on blank caps (rendering change at integration). Paper top edge must not move (Ward line).",
+   "integration_notes": "Key letters become live text on blank caps (rendering change at integration). Paper top edge must not move (Ward line). Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.",
    "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
    "known_limitations": "Invented keys under the hands may misalign."
   },
@@ -175,7 +175,7 @@
    ],
    "approved_source": null,
    "final_path": "public/assets/typel/keyart/plate.jpg / front.webp",
-   "integration_notes": "As PLT-001.",
+   "integration_notes": "As PLT-001. Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.",
    "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
    "known_limitations": "Flying-scroll remnants on shelf 4."
   },
@@ -217,6 +217,230 @@
    "integration_notes": "Replaces the cut-from-painting scroll; keyart.json capL/capR updated.",
    "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
    "known_limitations": "May come back with a word or curl."
+  },
+  {
+   "id": "PLT-005",
+   "name": "Title removed from the arch top",
+   "function": "Frees the top of the field (field +10 %, D-096)",
+   "category": "visual/plate-edit",
+   "delivery_format": "PNG 16:9 edit of clean plate v1",
+   "dimensions": "region PLT-005",
+   "transparency_or_loop": "opaque (region composite)",
+   "source_reference": "clean plate v1",
+   "batch": "1b",
+   "priority": 1,
+   "depends_on": [
+    "PLT-001"
+   ],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Stage-2 plate build (plate-build-v2.json).",
+   "test_status": "not tested",
+   "known_limitations": "Ghost plaque, letter-like runes."
+  },
+  {
+   "id": "PLT-006",
+   "name": "Shorter shelf + TYPEL title + blank stage banner",
+   "function": "Title above the shelf; banner shows trial · level (live) and a Normal/Hardcore seal",
+   "category": "visual/plate-edit",
+   "delivery_format": "PNG 16:9 edit of clean plate v1",
+   "dimensions": "region PLT-006",
+   "transparency_or_loop": "opaque (region composite)",
+   "source_reference": "clean plate v1",
+   "batch": "1b",
+   "priority": 1,
+   "depends_on": [
+    "PLT-004"
+   ],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "rack_<spell> layers re-placed and scaled to the new compartments; rackCount positions re-measured.",
+   "test_status": "not tested",
+   "known_limitations": "Shelf count; TYPEL spelling."
+  },
+  {
+   "id": "PLT-007",
+   "name": "Rune conveyor display",
+   "function": "Rune medals ride a conveyor in the score machine; Rune name on the strip; desk tray removed",
+   "category": "visual/plate-edit",
+   "delivery_format": "PNG 16:9 edit of clean plate v1",
+   "dimensions": "region PLT-007",
+   "transparency_or_loop": "opaque (region composite)",
+   "source_reference": "clean plate v1",
+   "batch": "1b",
+   "priority": 1,
+   "depends_on": [
+    "PLT-002"
+   ],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Replaces tray slots (keyart.json tray) with a conveyor path; level text moves to the stage banner.",
+   "test_status": "not tested",
+   "known_limitations": "Objects on the belt; window too small."
+  },
+  {
+   "id": "PLT-008",
+   "name": "Spell-key row, Ward orb, desk pipe",
+   "function": "8 spell keys (1–8), Ward orb on the typewriter, pipe instead of the gauge",
+   "category": "visual/plate-edit",
+   "delivery_format": "PNG 16:9 edit of clean plate v1",
+   "dimensions": "region PLT-008",
+   "transparency_or_loop": "opaque (region composite)",
+   "source_reference": "clean plate v1",
+   "batch": "1b",
+   "priority": 1,
+   "depends_on": [
+    "PLT-003"
+   ],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "keys re-measured; spell keys cut live and pressed; needle/gauge code replaced by the orb; pipe smoke = existing steam emitter.",
+   "test_status": "not tested",
+   "known_limitations": "Key count, paper top must not move."
+  },
+  {
+   "id": "RIB-001",
+   "name": "Shelf ribbon markers ×8",
+   "function": "Spell-colour ribbon per shelf, visible once that spell is learned",
+   "category": "visual/hud-part",
+   "delivery_format": "PNG 16:9 sheet on #FF00FF",
+   "dimensions": "~22×80 each",
+   "transparency_or_loop": "alpha; sheet split",
+   "source_reference": "REF-001-C4",
+   "batch": "1b",
+   "priority": 1,
+   "depends_on": [
+    "PLT-006"
+   ],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Shown when learned, regardless of charges.",
+   "test_status": "not tested",
+   "known_limitations": "Colour order; pink/violet keying."
+  },
+  {
+   "id": "KEY-001",
+   "name": "Spell gems ×8",
+   "function": "Set into spell-key crystals; lit with charges, flash on cast, dim when empty/Hardcore",
+   "category": "visual/hud-part",
+   "delivery_format": "PNG 16:9 sheet on #FF00FF",
+   "dimensions": "~30 px each",
+   "transparency_or_loop": "alpha; sheet split",
+   "source_reference": "REF-001-C2",
+   "batch": "1b",
+   "priority": 1,
+   "depends_on": [
+    "PLT-008"
+   ],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Additive glow drawn in code.",
+   "test_status": "not tested",
+   "known_limitations": "Facets/rims vary."
+  },
+  {
+   "id": "MIX-001",
+   "name": "Hardcore lock bar, Normal/Hardcore seals, Ward orb liquid",
+   "function": "Lock bar over spell keys in Hardcore; seal on stage banner; liquid masked in the orb by Ward level, scar shown as dead cap",
+   "category": "visual/hud-part",
+   "delivery_format": "PNG 16:9 sheet on #FF00FF",
+   "dimensions": "4 sprites",
+   "transparency_or_loop": "alpha; sheet split",
+   "source_reference": "REF-001-C2",
+   "batch": "1b",
+   "priority": 1,
+   "depends_on": [
+    "PLT-008"
+   ],
+   "prompt": {
+    "version": 1,
+    "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
+    "style_block": "TYPEL SHARED STYLE v1"
+   },
+   "status": "REQUESTED",
+   "status_history": [
+    {
+     "status": "REQUESTED",
+     "date": "2026-11-21"
+    }
+   ],
+   "approved_source": null,
+   "final_path": null,
+   "integration_notes": "Orb liquid level = Ward stability; scar = dark cracked cap above the recoverable maximum (code).",
+   "test_status": "not tested",
+   "known_limitations": "Skull tone; soft sphere edge."
   },
   {
    "id": "SCR-002",
@@ -423,11 +647,16 @@
     "PLT-003"
    ],
    "prompt": null,
-   "status": "PLANNED",
+   "status": "REJECTED",
    "status_history": [
     {
      "status": "PLANNED",
      "date": "2026-11-21"
+    },
+    {
+     "status": "REJECTED",
+     "date": "2026-11-21",
+     "note": "superseded by the Ward orb on the typewriter (D-096)"
     }
    ],
    "approved_source": null,

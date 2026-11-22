@@ -96,6 +96,62 @@
      885
     ]
    ]
+  },
+  "PLT-005": {
+   "label": "Title removed from the top of the arch",
+   "rects": [
+    [
+     740,
+     0,
+     1180,
+     150
+    ]
+   ]
+  },
+  "PLT-006": {
+   "label": "Shorter shelf, TYPEL title above, blank stage banner",
+   "rects": [
+    [
+     1560,
+     0,
+     1920,
+     885
+    ]
+   ]
+  },
+  "PLT-007": {
+   "label": "Rune conveyor display; medal tray removed",
+   "rects": [
+    [
+     90,
+     770,
+     505,
+     1065
+    ]
+   ]
+  },
+  "PLT-008": {
+   "label": "Typewriter spell keys and Ward orb; pipe replaces gauge",
+   "rects": [
+    [
+     480,
+     662,
+     1480,
+     1080
+    ],
+    [
+     1480,
+     885,
+     1920,
+     1080
+    ],
+    [
+     1690,
+     840,
+     1920,
+     885
+    ]
+   ]
   }
  },
  "build_order": [
@@ -104,5 +160,12 @@
   "PLT-004",
   "PLT-002"
  ],
- "build_note": "Later regions win where they overlap. PLT-003 first so the sky edit (PLT-001) cleans the stamp area above the paper; PLT-004 after PLT-001 so the shelf edit wins over the sky edit; PLT-003 starts at the paper top (y 662) and only the feather crosses it. PLT-004 stops above the note and gauge (y 862) so it cannot restore them."
+ "build_note": "Later regions win where they overlap. PLT-003 first so the sky edit (PLT-001) cleans the stamp area above the paper; PLT-004 after PLT-001 so the shelf edit wins over the sky edit; PLT-003 starts at the paper top (y 662) and only the feather crosses it. PLT-004 stops above the note and gauge (y 862) so it cannot restore them.",
+ "build_order_v2": [
+  "PLT-005",
+  "PLT-006",
+  "PLT-007",
+  "PLT-008"
+ ],
+ "build_note_v2": "Stage 2 (D-096) edits are made on the stage-1 clean plate and composited onto it in this order; PLT-008 last so the desk corner wins over the shelf base."
 }
