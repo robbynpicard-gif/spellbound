@@ -101,13 +101,16 @@ export interface EngineOptions {
 export const ICE_FOCUS_STEPS: readonly number[] = [2, 4, 8];
 
 /**
- * Catch loop (D-086, PROVISIONAL): a mistype sends the aimed word into a
- * plunge at one of three urgency tiers (speed ×). A word already plunging
- * escalates one tier. Catch it to recover.
+ * Catch loop (D-086, PROVISIONAL; D-092): a wrong *submission* sends the one
+ * word the player most likely meant into a plunge at one of three urgency
+ * tiers (speed ×). Mistyped letters alone never plunge anything. A word
+ * already plunging escalates one tier on the next wrong submission. Catch
+ * it to recover.
  */
 export const PLUNGE_SPEED: readonly number[] = [1, 2.2, 3.2, 4.5];
-/** Seeded tier odds for a fresh plunge: brisk, urgent, desperate. */
-export const PLUNGE_ODDS: readonly number[] = [0.5, 0.35, 0.15];
+/** Seeded tier odds for a fresh plunge (D-092): mostly fair, sometimes a
+ * challenge, now and then a real surprise. Brisk, urgent, desperate. */
+export const PLUNGE_ODDS: readonly number[] = [0.72, 0.22, 0.06];
 /** Ice melt (D-086): once the field is cleared during a freeze, it ends after this many ticks (2 s). */
 export const ICE_MELT_TICKS = 120;
 
@@ -725,7 +728,12 @@ export class GameEngine {
           if (this.hardcore) this.endAllIn('mistake');
         }
       } else this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
-      if (attempted) this.penalize(attempted);
+      // Typel (D-092): a wrong letter costs the word its Perfect bonus, but
+      // the plunge waits for a wrong submission, and only ever hits one word.
+      if (attempted) {
+        if (this.experimentalScoring) attempted.errors++;
+        else this.penalize(attempted);
+      }
     }
     this.events.emit('typingError', { wordId: attempted?.id ?? this.s.targetId, char });
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
@@ -755,7 +763,9 @@ export class GameEngine {
     // 3. Anything else is an incomplete or misspelled word:
     // guess what the player meant and treat it as a missed submission.
     // A word already penalised for a typo in this same entry isn't penalised again.
-    const guess = pinned ?? guessIntendedWord(s.words, input);
+    // Typel (D-092): if the entry is too garbled to guess, the word the player
+    // was aiming at is the one that plunges: always exactly one word.
+    const guess = pinned ?? guessIntendedWord(s.words, input) ?? (this.experimentalScoring ? (this.target ?? null) : null);
     // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
     this.setCombo(this.experimentalScoring ? 0 : comboAfterWrongEntry(s.combo));
     if (this.experimentalScoring) {

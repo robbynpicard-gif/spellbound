@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GameEngine, ICE_MELT_TICKS, PLUNGE_SPEED } from '../src/core/GameEngine';
+import { GameEngine, ICE_MELT_TICKS, PLUNGE_SPEED, PLUNGE_ODDS } from '../src/core/GameEngine';
 import { SeededRandom } from '../src/core/Random';
 import type { DifficultyConfig } from '../src/difficulty/DifficultyConfig';
 import { combustionChain, FIRE_TUNING, shockChain } from '../src/gameplay/SpellChains';
@@ -87,7 +87,7 @@ describe('D-086 engine changes', () => {
   const mk = (extra = {}) => new GameEngine({ config: CFG, seed: 9, words: WORDS, experimentalScoring: true, ...extra });
   const fill = (e: GameEngine, n: number) => { for (let i = 0; i < 9000 && e.state.words.length < n; i++) e.step(); };
 
-  it('a mistype makes the aimed word plunge, and catching it earns a Rune', () => {
+  it('a wrong submission (not a wrong letter) makes the meant word plunge, and catching it earns a Rune', () => {
     const e = mk();
     fill(e, 3);
     const w = [...e.state.words].sort((a, b) => b.y - a.y)[0]!;
@@ -96,14 +96,36 @@ describe('D-086 engine changes', () => {
     e.events.on('wordPlunged', (p) => (tier = p.tier));
     e.typeChar(w.match[0]!);
     e.typeChar('z');
+    expect(w.plunge ?? 0).toBe(0);
+    expect(w.speed).toBe(before);
+    e.submit();
     expect(w.plunge).toBe(tier);
     expect(w.speed).toBeCloseTo(before * PLUNGE_SPEED[tier]!);
     const runes: string[] = [];
     e.events.on('runeAwarded', ({ id }) => runes.push(id));
-    e.backspace();
-    for (const c of w.match.slice(1)) e.typeChar(c);
+    for (const c of w.match) e.typeChar(c);
     e.submit();
     expect(runes.some((r) => r === 'saving-grace' || r === 'daring-rescue')).toBe(true);
+  });
+
+  it('one wrong submission plunges exactly one word, even when several share the opening letters', () => {
+    const e = new GameEngine({ config: CFG, seed: 4, words: ['lamp', 'lark', 'lime', 'loft', 'lute'], experimentalScoring: true });
+    fill(e, 4);
+    let plunges = 0;
+    e.events.on('wordPlunged', () => plunges++);
+    e.typeChar('l');
+    e.typeChar('q');
+    e.typeChar('x');
+    expect(plunges).toBe(0);
+    e.submit();
+    expect(plunges).toBe(1);
+    expect(e.state.words.filter((w) => (w.plunge ?? 0) > 0).length).toBe(1);
+  });
+
+  it('plunges lean gentle: mostly brisk, sometimes urgent, rarely desperate', () => {
+    expect(PLUNGE_ODDS[0]! + PLUNGE_ODDS[1]! + PLUNGE_ODDS[2]!).toBeCloseTo(1);
+    expect(PLUNGE_ODDS[0]!).toBeGreaterThan(0.65);
+    expect(PLUNGE_ODDS[2]!).toBeLessThan(0.1);
   });
 
   it('Shock always strikes the 3 words nearest the Ward', () => {

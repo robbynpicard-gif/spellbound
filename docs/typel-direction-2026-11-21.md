@@ -137,3 +137,17 @@ This supersedes §9's wizard and §10's parchment-slip Rune notice. Details in D
 - **Flawless Perfection:** start at level 1, never fall, and every level Flawless.
 - **The voice:** a synthesized babble, not text-to-speech (D-052), with the words shown on the Rune tray. He speaks only for Runes, one line at a time, with priority rules. His praise grows warmer as the player's Rune collection grows.
 - **The script:** `docs/grand-wizard-voice-script.md` (65 lines with IDs). Recordings plug in by ID through `src/data/voice-manifest.json`.
+
+## 13. Update — D-092 (2026-11-21): relaxed Renaissance music; catch on submission
+**Owner decisions:**
+- Replace the music: relaxed fantasy Renaissance while things go well; faster and stressful only when the situation demands it; echoey and magical like the typing. The sound effects stay.
+- Catch loop: mostly gentle plunges, occasionally urgent, rarely desperate.
+- A plunge happens only on a wrong submission, and only one word plunges.
+
+**Prototype choices:**
+- **Music:**
+  - a lute, recorder and viol dance in 6/8, with a stereo echo and a stone hall;
+  - the tempo (about 50 to 90 beats per minute), drums, crumhorn and trembling strings follow danger (words near the Ward, a crowded field, Ward damage), not level progress;
+  - Arcane Rush adds a shimmering harp instead of speed.
+- **Catch odds:** 72/22/6.
+- This supersedes §4's music row and the catch-loop trigger and odds in §4 and O-4. Details in D-092.

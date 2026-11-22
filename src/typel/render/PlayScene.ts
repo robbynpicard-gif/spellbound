@@ -792,9 +792,16 @@ export class TypelPlayScene extends Phaser.Scene {
     this.pressureTimer -= delta;
     if (this.pressureTimer <= 0) {
       this.pressureTimer = 400;
+      // D-092: the music relaxes while play goes well and only hurries when the
+      // situation demands it: words near the Ward, a crowded field, a hurt Ward.
       const crowd = s.words.length / Math.max(4, e.config.maxActiveWords);
-      const prog = e.config.requiredWords ? s.completed / e.config.requiredWords : 0.6;
-      sound.setPressure(crowd * 0.65 + prog * 0.35, 1 - ward.stability / 100, hot ? Math.min(1, (v - 1) / 4) : 0);
+      let lowest = 0;
+      for (const w of s.words) lowest = Math.max(lowest, w.y / FIELD.height);
+      const near = Math.max(0, Math.min(1, (lowest - 0.5) / 0.42));
+      const crowded = Math.max(0, Math.min(1, (crowd - 0.45) / 0.55));
+      const hurt = 1 - ward.stability / 100;
+      const stress = Math.min(1, Math.max(near * 0.55 + crowded * 0.45, hurt * 1.1));
+      sound.setPressure(stress, hurt, hot ? Math.min(1, (v - 1) / 4) : 0);
     }
   }
 

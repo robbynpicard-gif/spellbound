@@ -1187,3 +1187,54 @@ _2026-11-21 · Owner decisions (chat); implemented on dev_
   - "HA! FAIL!" on 40% of Generational Fumbles.
 - **Recordings plug in later:** list a line's ID in `src/data/voice-manifest.json` and put the file at `public/assets/voice/<id>.mp3`, and that line plays the recording instead of the babble.
 - **Script:** `docs/grand-wizard-voice-script.md` is generated from `src/typel/voiceLines.ts`. It has 65 placeholder lines with IDs and direction: callouts, praise, mockery, specials, and optional menu lines (the menu lines aren't voiced in play, per the Rune-only rule).
+
+
+### D-092 — Relaxed Renaissance score that hurries only under danger; the catch loop plunges on submission, gentler odds (2026-11-21)
+_2026-11-21 · Owner decisions (chat); implemented on dev. Numbered D-092 because two other sessions already used D-091 (key art; the Ward hub)._
+
+**Owner decisions:**
+- **Music, replaced entirely.** The old score was a little too fast and stressful. While a level is starting and going well, it should be a slightly more relaxed fantasy Renaissance world. When the situation demands it, the tempo rises and the music turns fast and stressful. It should match the magical, echoey sound of the typing. The sound effects stay as they are.
+- **Catch loop:** plunges lean towards the slower tier: varied, but not annoying. Mostly fair, occasionally a challenge, and now and then one catches the player off guard.
+- **The catch triggers only on a submission attempt,** never on a mistyped character.
+- **Bug:** a mistype could send several words that share opening letters plunging at once. Fixed.
+
+**Prototype choices (reversible):**
+- **Score (all original, synthesized stand-ins):**
+  - Gameplay is a lilting 6/8 dance in D Dorian, 16 bars: lute arpeggios, a recorder melody, a soft viol consort and a bass viol.
+  - The menu is a slow 3/4 air in G Mixolydian.
+  - The boss uses the dance in a darker key (B♭, phrygian-leaning chords) with a higher floor of stress.
+- **Echo:** the music has its own tempo-synced stereo ping-pong echo (a dotted eighth, each repeat a little darker) and a 4.2 s stone hall. Effects keep the study room.
+- **Stress comes from danger, not progress.** It's set from:
+  - how close the lowest word is to the Ward;
+  - how crowded the field is;
+  - Ward damage.
+
+  Stress rises within about a second and a half and relaxes over about six. Level progress no longer speeds the music up (the old score sped up as you advanced).
+- **How the music escalates with stress:**
+
+  | Situation | Tempo (dotted-quarter beats per minute) | What changes |
+  |---|---|---|
+  | Calm | ~50 | — |
+  | Stress 0.22+ | rising | Hand drum enters |
+  | Stress 0.5+ | rising | Tambourine; the bass drives the off-beats; a nasal crumhorn doubles the tune |
+  | Stress 0.68+ | rising | Lute picks sixteenths |
+  | Ward below 40% | rising | Trembling viols |
+  | Ward below 40% | rising | Dorian darkens to B♭ |
+  | Full stress | ~90 | — |
+  | Boss | 56–94 | — |
+  | Menu | ~62 (3/4) | — |
+
+- **Arcane Rush** adds a shimmering harp climbing through the chord, a high glockenspiel and more echo; the tempo rises only slightly (+3). Rush feels magical, not stressful.
+- **Catch loop (Typel scoring only; legacy and duels unchanged):**
+  - A wrong letter still costs Perfect, Combo and so on, but no longer plunges anything.
+  - A wrong submission plunges exactly one word: the word the entry most resembles, or the aimed word if the entry is too garbled to guess.
+  - A further wrong submission escalates that word one tier.
+  - A wrong letter fixed with Backspace never plunges.
+  - The odds change from 50/35/15 to **72/22/6** (brisk ×2.2, urgent ×3.2, desperate ×4.5; the speeds are unchanged).
+  - The help text is updated.
+- **Tests:**
+  - a wrong letter doesn't plunge, but the submission does;
+  - one submission plunges exactly one word among five words starting with "l";
+  - the odds lean gentle.
+
+**Conflict to resolve:** the unpushed D-091 key-art patch (`dev/typel-keyart-20261121`) adds a clockwork layer scheduled by the old scherzo in `audio.ts`. It will need adapting to this score when it lands.

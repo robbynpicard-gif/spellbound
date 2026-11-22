@@ -394,7 +394,7 @@ export class TypelApp {
         btn('Hardcore rules', () => ((sb.mode = 'hardcore'), this.showSandboxSetup()), sb.mode === 'hardcore' ? 'primary small' : 'small')),
       el('div', { class: 't-row' }, ...[1, 2, 3, 4, 5].map((n) => btn(`Pace ${n}`, () => ((sb.tier = n), this.showSandboxSetup()), sb.tier === n ? 'primary small' : 'small'))),
       el('div', { class: 't-row' }, btn('Start', () => this.startSandbox(), 'primary'), btn('Back', () => this.showTitle())),
-      el('p', { class: 't-small' }, 'Try: Wind at full Ward then Harvest · Ice and type perfectly · Shock into a crowd · Fire on a cluster · Barrier then slip and correct · mistype on purpose and catch the plunge.'),
+      el('p', { class: 't-small' }, 'Try: Wind at full Ward then Harvest · Ice and type perfectly · Shock into a crowd · Fire on a cluster · Barrier then slip and correct · submit a wrong word on purpose and catch the plunge.'),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
   }
 
@@ -523,7 +523,7 @@ export class TypelApp {
         p('In the Apprenticeship the machine shows your total and each word’s base, Combo and Rush, but never the exact points a single capture earned: that stays a mystery. The Sandbox shows them for practice.'),
         h3('Precision Combo'), p('Every perfectly typed capture adds 1 (Ice Focus adds more). Every 10 Combo raises the multiplier by ×1. A typo, a wrong Enter or a missed word breaks it. A Barrier layer can save it from one slip you correct.'),
         h3('Arcane Rush'), p('Your flow state (called Arcane Volley in older notes). Your first perfect capture opens a timing window (the gold bar on the Rush column); a second inside it starts the Rush at ×1.2. Keep capturing in time and it climbs +0.2 per capture to ×5 (Mastery), then +0.1 per ever-harder step. Longer words get longer windows. An empty field pauses the window. Slow gives it 25% more time. Harvest spends it.'),
-        h3('Catch it!'), p('A mistype sends the word you were aiming at into a plunge: brisk, urgent or desperate. Catch it before it reaches the Ward to earn Saving Grace (Daring Rescue for the fastest). Another mistype on a plunging word makes it fall faster still.'),
+        h3('Catch it!'), p('Submitting a wrong word sends the word you meant into a plunge. Most plunges are brisk, some urgent, and now and then one is desperate. Catch it before it reaches the Ward to earn Saving Grace (Daring Rescue for the fastest). Another wrong submission on a plunging word makes it fall faster still. A wrong letter you fix with Backspace never causes a plunge.'),
         h3('Backspace'), p('Backspace un-inks letters from the paper and the scroll. Fixing a slip is always allowed; the slip itself still broke your Combo unless a Barrier layer caught it.'),
         h3('The Ward'), p(`Words that reach the bottom crack the Ward. At 0% you fall. Wind at your Ward’s current maximum goes All-In: the Ward drops to ${WARD_TUNING.wagerStability}%, its maximum is scarred (−${WARD_TUNING.firstScar}, then ${WARD_TUNING.scarGrowth} more each time), and for ${WARD_TUNING.allInTicks / 60} seconds your score is ×${WARD_TUNING.allInMultiplier}. Healing never rises above the scar. A breach ends All-In; in Hardcore any slip does.`),
         h3('Normal and Hardcore'), p('Normal: number keys 1–8 cast; the Ward is fresh every level. Hardcore: spells are typed (a clean typed spell earns Combo and points); the Ward and its scars carry through the apprenticeship, with small recoveries after levels 4 and 8.'),
