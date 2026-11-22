@@ -48,6 +48,7 @@ import {
 import { commonPrefixLength, guessIntendedWord, mostUrgent, wordsMatching } from '../gameplay/TargetManager';
 import { lengthClassOf, type WordState } from '../gameplay/Word';
 import { WordGenerator } from '../gameplay/WordGenerator';
+import { DifficultyDirector, type Envelope, type SpawnPlan } from '../difficulty/DifficultyDirector';
 import type { SpellContext } from '../spells/BaseSpell';
 import { dropWeights, SPELLS } from '../spells/SpellRegistry';
 import { EventBus } from './EventBus';
@@ -220,6 +221,9 @@ export class GameEngine {
   private endlessWaveActive = false;
   /** Short respite after a campaign surge, without lowering the level's baseline. */
   private recoveryUntilTick = 0;
+  /** Difficulty Director (D-097 prototype): present only when the level's config carries a director spec. */
+  private director: DifficultyDirector | null = null;
+  private lastPlan: SpawnPlan | null = null;
 
   constructor(options: EngineOptions) {
     this.config = options.config;
@@ -229,6 +233,7 @@ export class GameEngine {
     this.generator = options.experimentalWordGenerator
       ? options.experimentalWordGenerator(options.words, options.config, this.rng, options.seed)
       : new WordGenerator(options.words, options.config, this.rng);
+    if (options.config.director) this.director = new DifficultyDirector(options.config.director, options.seed, this.generator.lengthCounts());
     this.hardcore = options.hardcore === true;
     this.experimentalScoring = options.experimentalScoring === true;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
@@ -327,6 +332,11 @@ export class GameEngine {
   continueIntoEndless(config: DifficultyConfig): void {
     if (this.s.status !== 'won' || !isSurvival(this.config)) return;
     this.config = config;
+    // The director keeps its stream and history; only the encounter changes.
+    if (config.director) {
+      if (this.director) this.director.setSpec(config.director);
+      else this.director = new DifficultyDirector(config.director, this.seed, this.generator.lengthCounts());
+    } else this.director = null;
     this.endlessStartedTick = this.s.tick;
     this.endlessWaveActive = false;
     this.s.status = 'playing';
@@ -394,7 +404,27 @@ export class GameEngine {
       pace = { ...pace, spawnInterval: pace.spawnInterval * wave.spawnFactor,
         maxActiveWords: Math.max(4, Math.min(16, pace.maxActiveWords + wave.extraWords)) };
     }
+    if (this.director) {
+      // Director (D-097): per-word speeds come from its joint plan, so the
+      // pace's fall speed is only a reference. Spawn interval keeps every
+      // classic supporting lever above and is rescaled so letters arrive at a
+      // comparable rate for the director's expected word length.
+      const env = this.director.envelope(this.directorContext());
+      pace = { ...pace, fallSpeed: this.field.height / env.referenceFallSeconds, spawnInterval: pace.spawnInterval * env.spawnScale };
+    }
     return pace;
+  }
+
+  private directorContext(): { progress: number; endlessSeconds: number } {
+    return {
+      progress: this.progress,
+      endlessSeconds: ((this.s.tick - (this.endlessStartedTick ?? 0)) * SIMULATION_STEP_MS) / 1000,
+    };
+  }
+
+  /** Development inspection (simulation, console): the director's current envelope and last plan. Null without a director. */
+  get directorSnapshot(): { envelope: Envelope; lastPlan: SpawnPlan | null } | null {
+    return this.director ? { envelope: this.director.envelope(this.directorContext()), lastPlan: this.lastPlan } : null;
   }
 
   /** How far through the level we are (0–1): share of the quota, or of the boss timer. */
@@ -956,7 +986,11 @@ export class GameEngine {
 
   private spawn(fallSpeed: number, startY = 0): void {
     const s = this.s;
-    const text = s.easyTicks > 0 && this.easyGenerator ? this.easyGenerator.next() : this.generator.next();
+    // Director (D-097): plan length and time-to-Ward first (its own stream). Alter's easy window still decides the text.
+    const plan = this.director ? this.director.next({ ...this.directorContext(), opening: startY > 0 }) : null;
+    this.lastPlan = plan;
+    const easy = s.easyTicks > 0 && this.easyGenerator;
+    const text = easy ? this.easyGenerator!.next() : plan ? this.generator.nextOfLength(plan.length) : this.generator.next();
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;
@@ -985,7 +1019,7 @@ export class GameEngine {
       available.length > 0 && this.rng.chance(this.config.spellDropChance)
         ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
         : null;
-    const speed = this.spawnSpeed(fallSpeed);
+    const speed = plan ? this.field.height / plan.fallSeconds : this.spawnSpeed(fallSpeed);
 
     const word: WordState = {
       id: s.nextWordId++,
@@ -1340,7 +1374,8 @@ export class GameEngine {
       wind: (heal) => this.castWindSpell(heal),
       resetWordSpeeds: () => {
         const speed = this.pace.fallSpeed;
-        const cap = speed * (1 + (this.config.speedVariance ?? SPEED_VARIANCE));
+        // Director words have their own planned speeds: Wind returns each to its spawn speed, never below it.
+        const cap = this.director ? Infinity : speed * (1 + (this.config.speedVariance ?? SPEED_VARIANCE));
         for (const word of this.s.words) word.speed = Math.min(word.speed, word.baseSpeed, cap);
       },
       ticks: (ms) => Math.max(1, Math.round(ms / SIMULATION_STEP_MS)),

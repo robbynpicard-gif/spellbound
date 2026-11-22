@@ -1,4 +1,5 @@
 import { isSpellId, type SpellId } from '../gameplay/SpellManager';
+import { validateDirectorSpec, type DirectorSpec } from './DifficultyDirector';
 
 /**
  * Everything that makes one level harder or easier than another.
@@ -93,6 +94,14 @@ export interface DifficultyConfig {
    * level's base values to these.
    */
   ramp?: Readonly<{ initialFallSpeed: number; spawnInterval: number; maxActiveWords: number }> | null;
+  /**
+   * Difficulty Director (D-097, development preview only). When present, the
+   * engine plans each new word's length and fall speed with the shared
+   * director instead of the classic length weights, speed variance and speed
+   * ramps. Absent everywhere else, so classic levels, duels and replays are
+   * unchanged. See src/difficulty/DifficultyDirector.ts.
+   */
+  director?: DirectorSpec | null;
 }
 
 /** True for a boss level (survive a timer instead of reaching a quota). */
@@ -182,6 +191,8 @@ export function validateLevels(data: unknown): DifficultyConfig[] {
         for (const key of ['initialFallSpeed', 'spawnInterval', 'maxActiveWords'] as const)
           if (!isNum(ramp[key]) || (ramp[key] as number) <= 0) fail(`ramp.${key} must be a positive number`);
     }
+    if (raw.director !== undefined && raw.director !== null)
+      for (const problem of validateDirectorSpec(raw.director)) fail(problem);
   });
 
   if (problems.length > 0) throw new Error(`Invalid level data:\n${problems.join('\n')}`);

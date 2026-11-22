@@ -7,7 +7,8 @@
  * climb into 12 levels plus a spell boss, and its starting point rises along
  * the old stage 1 → 5 curve. Masters, names and every line are PLACEHOLDERS.
  */
-import type { DifficultyConfig } from '../difficulty/DifficultyConfig';
+import { averageWordLength, type DifficultyConfig } from '../difficulty/DifficultyConfig';
+import { lengthBandsAt, type DirectorSpec, type EncounterKind } from '../difficulty/DifficultyDirector';
 import { endlessConfig, stageLevel, type StageMode } from '../difficulty/Stages';
 import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
 
@@ -212,4 +213,52 @@ export function trialEndless(mode: Mode, trialIndex: number): DifficultyConfig {
 
 export function sandboxConfig(mode: Mode, tier: number): DifficultyConfig {
   return { ...endlessConfig(mode, tier), name: `Sandbox · Tier ${tier}`, availableSpells: [...SPELL_ORDER], introducesSpell: null };
+}
+
+// ───────────── Difficulty Director variants (D-097 prototype, preview flag only) ─────────────
+//
+// Same apprenticeships, levels, quotas, bosses, surges, spells and Endless as
+// the classic functions above. Only word length and fall speed change: the
+// shared director plans them jointly instead of each level's length bracket
+// and speed ramp. The classic functions are untouched and remain the default.
+
+/** Normalized apprenticeship progression: trial 1 → 0, trial 9 → 1. */
+export const apprenticeshipPosition = (trialIndex: number) => (Math.min(TRIALS.length, Math.max(1, trialIndex)) - 1) / (TRIALS.length - 1);
+
+function withDirector(classic: DifficultyConfig, mode: Mode, a: number, arcPosition: number, kind: EncounterKind): DifficultyConfig {
+  const director: DirectorSpec = {
+    version: 1,
+    mode,
+    apprenticeship: a,
+    arcPosition,
+    kind,
+    referenceLength: averageWordLength(classic),
+    surges: kind === 'endless' ? [] : (classic.surges ?? []).map((s) => s.at),
+  };
+  const rest: DifficultyConfig = { ...classic };
+  delete rest.wordLengthWeights;
+  return {
+    ...rest,
+    // The director chooses lengths, so the generator may hold every band's words.
+    minWordLength: lengthBandsAt(a).short[0],
+    maxWordLength: lengthBandsAt(a).long[1],
+    // Endless keeps its spawn escalation and waves; fall speed no longer compounds (bounded overdrive instead).
+    ...(classic.escalation ? { escalation: { ...classic.escalation, speed: 0 } } : {}),
+    director,
+  };
+}
+
+export function directorTrialLevel(mode: Mode, trialIndex: number, level: number): DifficultyConfig {
+  const boss = level >= BOSS_LEVEL;
+  const arc = boss ? 1 : (level - 1) / LEVELS_PER_TRIAL;
+  return withDirector(trialLevel(mode, trialIndex, level), mode, apprenticeshipPosition(trialIndex), arc, boss ? 'boss' : 'level');
+}
+
+export function directorTrialEndless(mode: Mode, trialIndex: number): DifficultyConfig {
+  return withDirector(trialEndless(mode, trialIndex), mode, apprenticeshipPosition(trialIndex), 1, 'endless');
+}
+
+/** Sandbox pace tiers 1–5 map onto the apprenticeship journey (tier 1 = first, tier 5 = last). */
+export function directorSandboxConfig(mode: Mode, tier: number): DifficultyConfig {
+  return withDirector(sandboxConfig(mode, tier), mode, (Math.min(5, Math.max(1, tier)) - 1) / 4, 1, 'endless');
 }
