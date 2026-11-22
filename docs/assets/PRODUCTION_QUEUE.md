@@ -7,7 +7,7 @@ Essential gameplay visuals first; decoration only after, unless the owner change
 
 Since D-093 the game is the owner's painting cut into layers (`public/assets/typel/keyart/`, positions in `src/typel/render/keyart.json`). Each batch **replaces those layers one by one, keeping file name, size and position**, so the game never stops being playable.
 
-## Batch 01 — Clean plate and word scroll · **REQUESTED 2026-11-21**
+## Batch 01 — Clean plate and word scroll · **INTEGRATED 2026-11-22** (preview check pending)
 Request: `requests/BATCH-01_clean-plate-and-scroll.md`
 
 | Order | ID | Asset | Why now |
@@ -20,7 +20,7 @@ Request: `requests/BATCH-01_clean-plate-and-scroll.md`
 
 Integration when approved: align → diff → composite each region onto a new clean plate (`tools/assets/prep.py`), re-run the D-093 slicing (`tools/keyart/`) on it so `plate.jpg` and `front.webp` are rebuilt, swap `scroll_plain.png`, print key letters live on blank caps (PLT-003), run `npm run check`, smoke-test in the browser at typing speed, verify the preview build.
 
-## Batch 01b — HUD revision (D-096) · **REQUESTED 2026-11-21**
+## Batch 01b — HUD revision (D-096, D-098) · **INTEGRATED 2026-11-22** (preview check pending)
 Request: `requests/BATCH-01b_hud-revision.md` · plan: `guides/G-HUD-REV1_plan_labelled.png`
 
 | Order | ID | Asset | Depends on |

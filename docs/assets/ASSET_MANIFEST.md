@@ -12,22 +12,22 @@ Lifecycle: PLANNED → REQUESTED → GENERATED → UNDER REVIEW → APPROVED →
 
 ## Summary
 
-UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
+INTEGRATED: 12 · PLANNED: 12 · REJECTED: 1
 
 | ID | Name | Batch | Status | Category | Format | Size | Transparency / loop |
 |---|---|---|---|---|---|---|---|
-| PLT-001 | Clean sky plate region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | used at 1920×1080, region PLT-001 | opaque (region composite) |
-| PLT-002 | Clean score-engine region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-002 | opaque (region composite) |
-| PLT-003 | Clean typewriter and desk region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-003 | opaque (region composite) |
-| PLT-004 | Empty shelf region | 1 | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-004 | opaque (region composite) |
-| SCR-001 | Plain word scroll (blank) | 1 | **UNDER REVIEW** | visual/gameplay-target | PNG 16:9 on #FF00FF | ships 229×67 (+2×), capL/capR re-measured | alpha (chroma key); 3-slice |
-| PLT-005 | Title removed from the arch top | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-005 | opaque (region composite) |
-| PLT-006 | Shorter shelf + TYPEL title + blank stage banner | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-006 | opaque (region composite) |
-| PLT-007 | Rune display (Halo-medal style) | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-007 | opaque (region composite) |
-| PLT-008 | Spell-key row, Ward orb, desk pipe | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-008 | opaque (region composite) |
-| RIB-001 | Shelf ribbon markers ×8 | 1b | **UNDER REVIEW** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~22×80 each | alpha; sheet split |
-| KEY-001 | Spell gems ×8 | 1b | **UNDER REVIEW** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~30 px each | alpha; sheet split |
-| MIX-001 | Hardcore lock bar, Normal/Hardcore seals, Ward orb liquid | 1b | **UNDER REVIEW** | visual/hud-part | PNG 16:9 sheet on #FF00FF | 4 sprites | alpha; sheet split |
+| PLT-001 | Clean sky plate region | 1 | **INTEGRATED** | visual/plate-edit | PNG 16:9 edit of REF-001 | used at 1920×1080, region PLT-001 | opaque (region composite) |
+| PLT-002 | Clean score-engine region | 1 | **INTEGRATED** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-002 | opaque (region composite) |
+| PLT-003 | Clean typewriter and desk region | 1 | **INTEGRATED** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-003 | opaque (region composite) |
+| PLT-004 | Empty shelf region | 1 | **INTEGRATED** | visual/plate-edit | PNG 16:9 edit of REF-001 | region PLT-004 | opaque (region composite) |
+| SCR-001 | Plain word scroll (blank) | 1 | **INTEGRATED** | visual/gameplay-target | PNG 16:9 on #FF00FF | ships 229×67 (+2×), capL/capR re-measured | alpha (chroma key); 3-slice |
+| PLT-005 | Title removed from the arch top | 1b | **INTEGRATED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-005 | opaque (region composite) |
+| PLT-006 | Shorter shelf + TYPEL title + blank stage banner | 1b | **INTEGRATED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-006 | opaque (region composite) |
+| PLT-007 | Rune display (Halo-medal style) | 1b | **INTEGRATED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-007 | opaque (region composite) |
+| PLT-008 | Spell-key row, Ward orb, desk pipe | 1b | **INTEGRATED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-008 | opaque (region composite) |
+| RIB-001 | Shelf ribbon markers ×8 | 1b | **INTEGRATED** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~22×80 each | alpha; sheet split |
+| KEY-001 | Spell gems ×8 | 1b | **INTEGRATED** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~30 px each | alpha; sheet split |
+| MIX-001 | Hardcore lock bar, Normal/Hardcore seals, Ward orb liquid | 1b | **INTEGRATED** | visual/hud-part | PNG 16:9 sheet on #FF00FF | 4 sprites | alpha; sheet split |
 | SCR-002 | Elemental spell scrolls ×8 | 2 | **PLANNED** | visual/gameplay-target | PNG sheet on #FF00FF | matches SCR-001 | alpha |
 | SCR-003 | CATCH! stamp | 2 | **PLANNED** | visual/feedback | PNG on #FF00FF | ~123×60 | alpha |
 | RCK-002 | Shelf scrolls ×8 (isolated) | 2 | **PLANNED** | visual/hud-part | PNG sheet on #FF00FF | 257×80–91 each | alpha; sheet split |
@@ -51,11 +51,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of REF-001 · **Dimensions/duration:** used at 1920×1080, region PLT-001 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** REF-001
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** `public/assets/typel/keyart/plate.jpg (+ front.webp re-sliced)`
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/PLT-001/PLT-001_clean-sky_v1_a.png`
+- **Final integrated path:** `public/assets/typel/keyart/plate.jpg + front.webp + arch.png`
 - **Integration notes:** align → diff → composite region onto plate; re-run tools/keyart slicing on the clean plate.
-- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Ghost outlines; missed items need a second pass.
 
 ### PLT-002 · Clean score-engine region
@@ -65,11 +65,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of REF-001 · **Dimensions/duration:** region PLT-002 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** REF-001
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** `public/assets/typel/keyart/plate.jpg / front.webp`
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/PLT-002/PLT-002_clean-engine_v1.png`
+- **Final integrated path:** `plate.jpg`
 - **Integration notes:** As PLT-001. Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.
-- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Model may rewrite text instead of removing it.
 
 ### PLT-003 · Clean typewriter and desk region
@@ -79,11 +79,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of REF-001 · **Dimensions/duration:** region PLT-003 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** REF-001
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** `public/assets/typel/keyart/front.webp`
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/PLT-003/PLT-003_clean-desk_v1.png`
+- **Final integrated path:** `plate.jpg + front.webp`
 - **Integration notes:** Key letters become live text on blank caps (rendering change at integration). Paper top edge must not move (Ward line). Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.
-- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Invented keys under the hands may misalign.
 
 ### PLT-004 · Empty shelf region
@@ -93,11 +93,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of REF-001 · **Dimensions/duration:** region PLT-004 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** REF-001
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** `public/assets/typel/keyart/plate.jpg / front.webp`
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/PLT-004/PLT-004_empty-shelf_v1.png`
+- **Final integrated path:** `plate.jpg`
 - **Integration notes:** As PLT-001. Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.
-- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Flying-scroll remnants on shelf 4.
 
 ### SCR-001 · Plain word scroll (blank)
@@ -107,11 +107,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 on #FF00FF · **Dimensions/duration:** ships 229×67 (+2×), capL/capR re-measured · **Transparency/looping:** alpha (chroma key); 3-slice
 - **Source reference:** REF-001-C3 (TRANSMUTE/ALAKAZAM)
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** `public/assets/typel/keyart/scroll_plain.png`
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload 2026-11-21); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/SCR-001/SCR-001_word-scroll_v1.png`
+- **Final integrated path:** `public/assets/typel/keyart/scroll_plain.png (toned to the painting, 2x)`
 - **Integration notes:** Replaces the cut-from-painting scroll; keyart.json capL/capR updated.
-- **Test status:** checked by Claude: see INTEGRATION_LOG entry 2
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** May come back with a word or curl.
 
 ### PLT-005 · Title removed from the arch top
@@ -121,11 +121,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-005 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** clean plate v1
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: PLT-005_no-title_v1.png); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** TBD
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: PLT-005_no-title_v1.png); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/PLT-005/PLT-005_no-title_v1.png`
+- **Final integrated path:** `plate.jpg + arch.png`
 - **Integration notes:** Stage-2 plate build (plate-build-v2.json).
-- **Test status:** not tested
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Ghost plaque, letter-like runes.
 
 ### PLT-006 · Shorter shelf + TYPEL title + blank stage banner
@@ -135,11 +135,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-006 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** clean plate v1
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: PLT-006_shelf-title_v1_a.png + _b); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** TBD
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: PLT-006_shelf-title_v1_a.png + _b); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/PLT-006/PLT-006_shelf-title_v2.png`
+- **Final integrated path:** `plate.jpg`
 - **Integration notes:** rack_<spell> layers re-placed and scaled to the new compartments; rackCount positions re-measured.
-- **Test status:** not tested
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Shelf count; TYPEL spelling.
 
 ### PLT-007 · Rune display (Halo-medal style)
@@ -149,11 +149,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-007 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** clean plate v1
 - **Prompt:** v2 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 REQUESTED (v2 prompt: conveyor concept replaced by Rune display (D-098)); 2026-11-21 GENERATED (owner upload PLT-007_rune-display_v2.png); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** TBD
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 REQUESTED (v2 prompt: conveyor concept replaced by Rune display (D-098)); 2026-11-21 GENERATED (owner upload PLT-007_rune-display_v2.png); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/PLT-007/PLT-007_rune-display_v2.png`
+- **Final integrated path:** `plate.jpg + front.webp`
 - **Integration notes:** Replaces keyart tray slots and the level plate; level name moves to the stage banner. Medals keep the D-093 cut-outs until MED-001.
-- **Test status:** not tested
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Pane ~310×140 at 1080p, smaller than asked; the two tubes were shortened by ~60 px, so tube coordinates must be re-measured at integration.
 
 ### PLT-008 · Spell-key row, Ward orb, desk pipe
@@ -163,11 +163,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-008 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** clean plate v1
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: PLT-008_spell-keys-orb-pipe_v1_a.png + _b); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** TBD
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: PLT-008_spell-keys-orb-pipe_v1_a.png + _b); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/PLT-008/PLT-008_spell-keys-orb-pipe_v1_a.png`
+- **Final integrated path:** `plate.jpg + front.webp`
 - **Integration notes:** keys re-measured; spell keys cut live and pressed; needle/gauge code replaced by the orb; pipe smoke = existing steam emitter.
-- **Test status:** not tested
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Key count, paper top must not move.
 
 ### RIB-001 · Shelf ribbon markers ×8
@@ -177,11 +177,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 sheet on #FF00FF · **Dimensions/duration:** ~22×80 each · **Transparency/looping:** alpha; sheet split
 - **Source reference:** REF-001-C4
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: RIB-001_shelf-ribbons_v1.png); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** TBD
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: RIB-001_shelf-ribbons_v1.png); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/RIB-001/RIB-001_shelf-ribbons_v1.png`
+- **Final integrated path:** `public/assets/typel/keyart/ribbon_<spell>.png`
 - **Integration notes:** Shown when learned, regardless of charges.
-- **Test status:** not tested
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Colour order; pink/violet keying.
 
 ### KEY-001 · Spell gems ×8
@@ -191,11 +191,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 sheet on #FF00FF · **Dimensions/duration:** ~30 px each · **Transparency/looping:** alpha; sheet split
 - **Source reference:** REF-001-C2
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: KEY-001_spell-gems_v1.png); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** TBD
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: KEY-001_spell-gems_v1.png); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/KEY-001/KEY-001_spell-gems_v1.png`
+- **Final integrated path:** `public/assets/typel/keyart/gem_<spell>.png (Shock hue-shifted toward lemon)`
 - **Integration notes:** Additive glow drawn in code.
-- **Test status:** not tested
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Facets/rims vary.
 
 ### MIX-001 · Hardcore lock bar, Normal/Hardcore seals, Ward orb liquid
@@ -205,11 +205,11 @@ UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 sheet on #FF00FF · **Dimensions/duration:** 4 sprites · **Transparency/looping:** alpha; sheet split
 - **Source reference:** REF-001-C2
 - **Prompt:** v1 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: MIX-001_lock-seals-orb_v1.png); 2026-11-21 UNDER REVIEW
-- **Approved source file:** —
-- **Final integrated path:** TBD
+- **Status:** **INTEGRATED** — history: 2026-11-21 REQUESTED; 2026-11-21 GENERATED (owner upload: MIX-001_lock-seals-orb_v1.png); 2026-11-21 UNDER REVIEW; 2026-11-22 APPROVED (owner: "everything we've got from flow is an approved asset"); 2026-11-22 INTEGRATED (commit 75fd2e8; CI typecheck+tests+build green)
+- **Approved source file:** `assets-src/flow/MIX-001/MIX-001_lock-seals-orb_v1.png`
+- **Final integrated path:** `public/assets/typel/keyart/lockbar_bar.png, lockbar_lock.png, seal_normal.png, seal_hardcore.png, orb_liquid.png`
 - **Integration notes:** Orb liquid level = Ward stability; scar = dark cracked cap above the recoverable maximum (code).
-- **Test status:** not tested
+- **Test status:** CI green (typecheck, tests, build); browser check pending the preview deploy
 - **Known limitations:** Skull tone; soft sphere edge.
 
 ### SCR-002 · Elemental spell scrolls ×8

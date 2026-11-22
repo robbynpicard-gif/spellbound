@@ -36,7 +36,9 @@ As soon as an asset is approved, it replaces the concept crop as the first refer
 |---|---|---|
 | REF-001 | `assets-src/reference/REF-001_typel-concept-primary_v1.png` | Everything (primary visual reference) |
 
-_(Rows are added as assets are approved.)_
+| PLT-001…008 (via the clean plate) | `assets-src/work/PLT/clean-plate_v2_1920.png` | Any further plate edit: attach this as the image to edit |
+| SCR-001 | `assets-src/flow/SCR-001/SCR-001_word-scroll_v1.png` | Spell-scroll variants (SCR-002) |
+| RIB-001, KEY-001, MIX-001 | `assets-src/flow/<ID>/…_v1.png` | Small brass/wax/satin props |
 
 ## 4. Processing recipes (`tools/assets/prep.py`)
 

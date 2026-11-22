@@ -40,7 +40,7 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -54,12 +54,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": "public/assets/typel/keyart/plate.jpg (+ front.webp re-sliced)",
+   "approved_source": "assets-src/flow/PLT-001/PLT-001_clean-sky_v1_a.png",
+   "final_path": "public/assets/typel/keyart/plate.jpg + front.webp + arch.png",
    "integration_notes": "align → diff → composite region onto plate; re-run tools/keyart slicing on the clean plate.",
-   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Ghost outlines; missed items need a second pass."
   },
   {
@@ -79,7 +89,7 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -93,12 +103,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": "public/assets/typel/keyart/plate.jpg / front.webp",
+   "approved_source": "assets-src/flow/PLT-002/PLT-002_clean-engine_v1.png",
+   "final_path": "plate.jpg",
    "integration_notes": "As PLT-001. Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.",
-   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Model may rewrite text instead of removing it."
   },
   {
@@ -118,7 +138,7 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -132,12 +152,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": "public/assets/typel/keyart/front.webp",
+   "approved_source": "assets-src/flow/PLT-003/PLT-003_clean-desk_v1.png",
+   "final_path": "plate.jpg + front.webp",
    "integration_notes": "Key letters become live text on blank caps (rendering change at integration). Paper top edge must not move (Ward line). Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.",
-   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Invented keys under the hands may misalign."
   },
   {
@@ -157,7 +187,7 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -171,12 +201,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": "public/assets/typel/keyart/plate.jpg / front.webp",
+   "approved_source": "assets-src/flow/PLT-004/PLT-004_empty-shelf_v1.png",
+   "final_path": "plate.jpg",
    "integration_notes": "As PLT-001. Owner (D-096) asked for further changes, made as stage-2 edits PLT-006/007/008 on top of this result.",
-   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Flying-scroll remnants on shelf 4."
   },
   {
@@ -196,7 +236,7 @@
     "file": "docs/assets/requests/BATCH-01_clean-plate-and-scroll.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -210,12 +250,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": "public/assets/typel/keyart/scroll_plain.png",
+   "approved_source": "assets-src/flow/SCR-001/SCR-001_word-scroll_v1.png",
+   "final_path": "public/assets/typel/keyart/scroll_plain.png (toned to the painting, 2x)",
    "integration_notes": "Replaces the cut-from-painting scroll; keyart.json capL/capR updated.",
-   "test_status": "checked by Claude: see INTEGRATION_LOG entry 2",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "May come back with a word or curl."
   },
   {
@@ -237,7 +287,7 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -251,12 +301,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": null,
+   "approved_source": "assets-src/flow/PLT-005/PLT-005_no-title_v1.png",
+   "final_path": "plate.jpg + arch.png",
    "integration_notes": "Stage-2 plate build (plate-build-v2.json).",
-   "test_status": "not tested",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Ghost plaque, letter-like runes."
   },
   {
@@ -278,7 +338,7 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -292,12 +352,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": null,
+   "approved_source": "assets-src/flow/PLT-006/PLT-006_shelf-title_v2.png",
+   "final_path": "plate.jpg",
    "integration_notes": "rack_<spell> layers re-placed and scaled to the new compartments; rackCount positions re-measured.",
-   "test_status": "not tested",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Shelf count; TYPEL spelling."
   },
   {
@@ -319,7 +389,7 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -338,12 +408,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": null,
+   "approved_source": "assets-src/flow/PLT-007/PLT-007_rune-display_v2.png",
+   "final_path": "plate.jpg + front.webp",
    "integration_notes": "Replaces keyart tray slots and the level plate; level name moves to the stage banner. Medals keep the D-093 cut-outs until MED-001.",
-   "test_status": "not tested",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Pane ~310×140 at 1080p, smaller than asked; the two tubes were shortened by ~60 px, so tube coordinates must be re-measured at integration."
   },
   {
@@ -365,7 +445,7 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -379,12 +459,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": null,
+   "approved_source": "assets-src/flow/PLT-008/PLT-008_spell-keys-orb-pipe_v1_a.png",
+   "final_path": "plate.jpg + front.webp",
    "integration_notes": "keys re-measured; spell keys cut live and pressed; needle/gauge code replaced by the orb; pipe smoke = existing steam emitter.",
-   "test_status": "not tested",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Key count, paper top must not move."
   },
   {
@@ -406,7 +496,7 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -420,12 +510,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": null,
+   "approved_source": "assets-src/flow/RIB-001/RIB-001_shelf-ribbons_v1.png",
+   "final_path": "public/assets/typel/keyart/ribbon_<spell>.png",
    "integration_notes": "Shown when learned, regardless of charges.",
-   "test_status": "not tested",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Colour order; pink/violet keying."
   },
   {
@@ -447,7 +547,7 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -461,12 +561,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": null,
+   "approved_source": "assets-src/flow/KEY-001/KEY-001_spell-gems_v1.png",
+   "final_path": "public/assets/typel/keyart/gem_<spell>.png (Shock hue-shifted toward lemon)",
    "integration_notes": "Additive glow drawn in code.",
-   "test_status": "not tested",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Facets/rims vary."
   },
   {
@@ -488,7 +598,7 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "UNDER REVIEW",
+   "status": "INTEGRATED",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -502,12 +612,22 @@
     {
      "status": "UNDER REVIEW",
      "date": "2026-11-21"
+    },
+    {
+     "status": "APPROVED",
+     "date": "2026-11-22",
+     "note": "owner: \"everything we've got from flow is an approved asset\""
+    },
+    {
+     "status": "INTEGRATED",
+     "date": "2026-11-22",
+     "note": "commit 75fd2e8; CI typecheck+tests+build green"
     }
    ],
-   "approved_source": null,
-   "final_path": null,
+   "approved_source": "assets-src/flow/MIX-001/MIX-001_lock-seals-orb_v1.png",
+   "final_path": "public/assets/typel/keyart/lockbar_bar.png, lockbar_lock.png, seal_normal.png, seal_hardcore.png, orb_liquid.png",
    "integration_notes": "Orb liquid level = Ward stability; scar = dark cracked cap above the recoverable maximum (code).",
-   "test_status": "not tested",
+   "test_status": "CI green (typecheck, tests, build); browser check pending the preview deploy",
    "known_limitations": "Skull tone; soft sphere edge."
   },
   {

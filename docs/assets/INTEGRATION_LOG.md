@@ -86,3 +86,42 @@ _Append-only. Records which assets were added, what code changed, which systems 
 - **Size:** the pane is about 310×140 px at 1080p, smaller than asked. That still works if the newest Rune shows centred and large, then shrinks into the recent row.
 - **Tubes:** the Combo and Rush tubes were shortened by about 60 px, so their coordinates get re-measured at integration.
 - **Status:** UNDER REVIEW. The only open art item is the shelf count (PLT-006).
+
+## 2026-11-22 · Entry 6 — Batch 01 + 01b approved and integrated (commit 75fd2e8)
+
+- **Approval:** the owner approved every asset received from Flow.
+- **Choices still open, settled with my recommended defaults** (to be confirmed in review):
+  - PLT-008 candidate **a**;
+  - SCR-001 **toned** to the painting's parchment;
+  - PLT-006 **v2** (it has 8 shelves, so no rebuild was needed).
+- **Plate:**
+  - Stage 1 is `clean-plate_v1`. Stage 2 is the PLT-005/006/007/008 composites, built by `build_plate.py`.
+  - Each stage-2 region was measured from where its edit actually changed the plate.
+  - The leftover top of the gauge and the shelf base were fixed by widening the PLT-008 desk area.
+- **New layers:** `tools/assets/integrate_hud_rev1.py` (re-runnable) writes:
+  - `plate.jpg`, `front.webp`, and `arch.png` (re-cut so the arch runs unbroken where the title was);
+  - `scroll_plain.png`: SCR-001 toned, at 2× resolution, 3-slice caps 47 px;
+  - ribbons ×8, gems ×8, the lock bar split into a stretchable bar plus a separate padlock, both seals, and the orb liquid.
+  - `prep.py key` now also clears enclosed magenta pockets, such as inside the padlock shackle.
+- **`keyart.json` changes:**
+  - field changed to x 548–1582 × y 0–655;
+  - tube bottoms re-measured;
+  - new blocks: `shelf` (8 boards), `rackCount`, `spellKeys`, `orb`, `runeDisplay`, `banner`, `pool`, `pipe`.
+  - The keyart slicer (`tools/keyart`) must not be re-run over these values: it would restore the D-093 layout.
+- **Code (rendering only):**
+  - `keyart.ts`: new layers, shelf and ribbon placement, pipe smoke, menu dressing.
+  - `PlayScene.ts`:
+    - stage banner and seal; progress on the banner;
+    - Rune display, Halo-style, replacing the tray (D-098);
+    - Ward orb with a liquid level, slosh, and a cracked scar cap, replacing the needle and gauge;
+    - spell keys with gems lit by charges, a press and flare on cast, and numbers in Normal;
+    - Hardcore lock bar with gems dark;
+    - ribbons for learned spells;
+    - shelf scrolls at 0.56 scale on the new boards; counts and pool text moved; Rush state label moved inside the tube.
+  - `app.ts`: a `stage` label (e.g. "Flame · Level 2", the boss name, "Endless", "Sandbox · Pace N").
+- **Unchanged:** the engine, rules, scoring, audio, saves, hitboxes and fall timing. The field enlargement changes only how the logical field maps to the screen.
+- **Tested:**
+  - GitHub Actions on 75fd2e8: typecheck, all tests and the production build pass. Claude can't install packages in its own workspace, so CI is the check of record.
+  - A static mock-up of every new element's position (`/home/claude/work/mock_*`, not committed) was checked by eye.
+- **Not verified:** the live preview. Claude's attempt to run the Pages deploy (`deploy.yml`, workflow_dispatch) was refused by its permissions. It needs the owner to start it.
+- **Status:** INTEGRATED, not VERIFIED.
