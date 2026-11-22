@@ -160,3 +160,12 @@ This supersedes §9's wizard and §10's parchment-slip Rune notice. Details in D
 - The field sits between the score engine and the shelf; the paper is the Ward.
 
 Details, gaps and the asset list for better art are in `docs/typel-keyart-reconstruction-2026-11-21.md`.
+
+## 14. Update — D-095 (2026-11-21): larger, calmer scrolls
+**Owner decisions:**
+- Scrolls about 15% larger.
+- Spell scrolls less distracting, but still clearly their spell.
+
+**Prototype:**
+- Spell scrolls keep a light wash of the spell's colour, a steady glow and a wax seal with the spell's glyph; Fire keeps a small flame.
+- Nothing pulses, sweeps or twinkles, which supersedes D-089's shimmer.

@@ -72,10 +72,11 @@ const RUBRIC = '#b3261e';
 const OXBLOOD = '#7a1410';
 const SMUDGE = '#1a1212';
 /** D-089: handwritten BLOCK capitals, slightly spaced, for legibility at speed. */
-const WORD_STYLE = { fontFamily: FONT_WORD, fontSize: '25px', fontStyle: '700', color: INK, letterSpacing: 1 };
+const WORD_STYLE = { fontFamily: FONT_WORD, fontSize: '29px', fontStyle: '700', color: INK, letterSpacing: 1.2 };
 const PLUNGE_COLOR = [0, 0xffd60a, 0xff8a1a, 0xff2a3a];
 const SCROLL = KA.sprites['scroll_plain']!;
-const SCROLL_SCALE = 0.86;
+/** D-095: scrolls ~15% larger than D-093 for readability. */
+const SCROLL_SCALE = 0.99;
 const SCROLL_H = SCROLL.h * SCROLL_SCALE;
 const PAPER = { x: KA.paper.strikeX, y: KA.paper.baseline - 20 };
 const PAPER_FONT = 56;
@@ -102,7 +103,7 @@ class ScrollView extends Phaser.GameObjects.Container {
     super(scene, toX(word.x), toY(word.y));
     this.rest = scene.add.text(0, 0, word.text.toUpperCase(), WORD_STYLE).setOrigin(0, 0.5);
     this.done = scene.add.text(0, 0, '', { ...WORD_STYLE, color: RUBRIC, stroke: '#ffe08a', strokeThickness: 2 }).setOrigin(0, 0.5);
-    this.scrollWidth = Math.ceil((this.rest.width + 66 + (word.spell ? 28 : 0)) / 8) * 8;
+    this.scrollWidth = Math.ceil((this.rest.width + 76 + (word.spell ? 36 : 0)) / 8) * 8;
     this.glow = scene.add.image(0, 0, 'typel-glow-gold').setDisplaySize(this.scrollWidth + 90, 130).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
     // the CATCH! halo: a red glow behind the falling scroll (as in the painting)
     this.ring = scene.add.image(0, 4, 'typel-glow-gold').setDisplaySize(this.scrollWidth * 1.5, 200).setTint(0xff2a3a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
@@ -138,33 +139,32 @@ class ScrollView extends Phaser.GameObjects.Container {
   }
 
   /**
-   * Spell scrolls (D-089 shimmer, D-093 painted look): a breathing aura in the
-   * spell's colour, a sweeping sheen, motes, the spell's glyph, and the
-   * element itself where the painting shows one (Fire's flame, Ice's frost).
+   * Spell scrolls (D-095): calm but unmistakable. A steady, soft glow in the
+   * spell's colour and a wax seal bearing its glyph; Fire keeps a small, slow
+   * flame and Ice its frosted parchment. Nothing pulses, sweeps or twinkles,
+   * so spell scrolls never pull the eye off the word being typed.
    */
   private adorn(scene: Phaser.Scene, spell: SpellId): void {
     const hue = hexNum(SPELL_HUE[spell]);
     const w = this.scrollWidth;
-    const aura = scene.add.image(0, 0, 'typel-glow-gold').setDisplaySize(w + 70, 104).setTint(hue).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
+    const aura = scene.add.image(0, 0, 'typel-glow-gold').setDisplaySize(w + 60, SCROLL_H + 54).setTint(hue).setAlpha(0.5).setBlendMode(Phaser.BlendModes.ADD);
     this.addAt(aura, 0);
-    scene.tweens.add({ targets: aura, alpha: 0.65, duration: 700 + Math.random() * 300, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    if (spell === 'ice') this.img.setTint(0xd6f3ff);
-    const sheen = scene.add.image(-w / 2, 0, 'typel-sheen').setDisplaySize(34, 44).setTint(hue).setAlpha(0.8).setBlendMode(Phaser.BlendModes.ADD).setAngle(14);
-    this.add(sheen);
-    scene.tweens.add({ targets: sheen, x: w / 2 - 20, duration: 900, repeat: -1, repeatDelay: 900 + Math.random() * 700, ease: 'Sine.easeInOut' });
-    for (let i = 0; i < 3; i++) {
-      const m = scene.add.image((Math.random() - 0.5) * (w - 30), (Math.random() - 0.5) * 34, 'typel-spark').setScale(0.25).setTint(spell === 'ice' ? 0xffffff : hue).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
-      this.add(m);
-      scene.tweens.add({ targets: m, alpha: 1, scale: 0.45, duration: 380, yoyo: true, repeat: -1, delay: i * 420, repeatDelay: 600 + Math.random() * 600 });
-    }
+    this.img.setTint(this.parchmentTint());
     if (spell === 'fire') {
-      // the painting's flame, licking up from the rolled end
-      const f = scene.add.image(-w / 2 + 6, -SCROLL_H / 2 + 2, 'ka-flame').setOrigin(0.4, 0.9).setScale(0.9).setBlendMode(Phaser.BlendModes.SCREEN);
+      const f = scene.add.image(-w / 2 + 10, -SCROLL_H / 2 + 16, 'ka-flame').setOrigin(0.4, 0.7).setScale(0.7).setBlendMode(Phaser.BlendModes.SCREEN);
       this.add(f);
-      scene.tweens.add({ targets: f, scaleY: { from: 0.8, to: 1.05 }, scaleX: { from: 0.95, to: 0.85 }, duration: 140, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+      scene.tweens.add({ targets: f, scaleY: { from: 0.66, to: 0.76 }, duration: 420, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     }
-    const glyph = scene.add.text(w / 2 - 34, 1, SPELL_GLYPH[spell], { fontFamily: 'serif', fontSize: '22px', color: SPELL_HUE[spell], stroke: '#2a1408', strokeThickness: 3 }).setOrigin(0.5);
-    this.add(glyph);
+    // the wax seal: the spell's colour and glyph, pressed onto the parchment's right end
+    const sx = w / 2 - 42;
+    const seal = scene.add.graphics();
+    const dark = Phaser.Display.Color.IntegerToColor(hue).darken(35).color;
+    seal.fillStyle(0x000000, 0.25).fillCircle(sx + 1.5, 2.5, 16);
+    seal.fillStyle(dark, 1).fillCircle(sx, 1, 16);
+    seal.fillStyle(hue, 1).fillCircle(sx, 0, 13);
+    seal.lineStyle(1.5, 0xffffff, 0.35).strokeCircle(sx - 2, -2, 10);
+    const glyph = scene.add.text(sx, 0, SPELL_GLYPH[spell], { fontFamily: 'serif', fontSize: '17px', color: '#fff8e8', stroke: Phaser.Display.Color.IntegerToColor(dark).rgba, strokeThickness: 2 }).setOrigin(0.5);
+    this.add([seal, glyph]);
   }
 
   /** Returns where a letter was un-inked if the typed count went down. */
@@ -173,7 +173,7 @@ class ScrollView extends Phaser.GameObjects.Container {
     const prev = this.typedCount;
     this.typedCount = n;
     const full = this.word.text.toUpperCase();
-    const shift = this.word.spell ? -13 : 0;
+    const shift = this.word.spell ? -20 : 0;
     this.done.setText(full.slice(0, n));
     this.rest.setText(full.slice(n));
     const total = this.done.width + this.rest.width;
@@ -190,9 +190,18 @@ class ScrollView extends Phaser.GameObjects.Container {
     this.setDepth(on ? 12 : this.plunge ? 11 : 10);
   }
 
+  /** Spell scrolls' parchment is lightly washed in the spell's colour (D-095); plain scrolls stay plain. */
+  private parchmentTint(): number {
+    const spell = this.word.spell;
+    if (!spell) return 0xffffff;
+    if (spell === 'ice') return 0xd6f3ff;
+    const c = Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.ValueToColor(0xffffff), Phaser.Display.Color.ValueToColor(hexNum(SPELL_HUE[spell])), 100, 30);
+    return Phaser.Display.Color.GetColor(c.r, c.g, c.b);
+  }
+
   setFrozen(on: boolean): void {
     if (on) this.img.setTint(0xbff6ff);
-    else if (this.word.spell === 'ice') this.img.setTint(0xd6f3ff);
+    else if (this.word.spell) this.img.setTint(this.parchmentTint());
     else this.img.clearTint();
   }
 

@@ -1271,3 +1271,19 @@ _2026-11-21 · Owner decisions (workflow brief in chat); system set up on dev; n
 - **Clean plates come from edits, not redraws.** Because the D-093 game is laid out exactly as the painting (keyart.json is the painting's 1920×1080 space), clean plates are made by asking Flow to *edit* the painting (remove only the live content in one region). The edit is aligned back to the painting, and only that region is composited in. The D-093 slicing then runs on the clean plate.
 - New isolated objects are generated on flat magenta and keyed. Originals stay untouched in `assets-src/`; replacement layers keep the D-093 file names, sizes and positions.
 - **Batch 01 requested:** four region edits (sky, score engine, typewriter and desk, shelf) and the plain scroll kit.
+### D-095 — Larger scrolls; calmer spell scrolls that still show their spell (2026-11-21)
+_2026-11-21 · Owner decisions (chat); implemented on dev. Numbered D-095 because another session used D-094 for the asset production system._
+
+**Owner decisions:**
+- Scrolls about **15% larger** for readability.
+- Spell scrolls on the field must be **less visually distracting**, but still **visually represent their spell**.
+
+**Prototype choices (reversible):**
+- **Size:** the scroll art scale goes from 0.86 to 0.99 and the word font from 25 px to 29 px.
+- **Removed:** the pulsing aura, sweeping sheen and twinkling motes (D-089's shimmer, superseded).
+- **Spell scrolls now have:**
+  - parchment washed lightly in the spell's colour (Ice keeps its frosted look);
+  - a steady, soft glow in that colour;
+  - a **wax seal** in the spell's colour bearing its glyph;
+  - for Fire only, a small, slowly breathing painted flame on the rolled end.
+- **Unchanged:** plain scrolls, targeting and plunge visuals.
