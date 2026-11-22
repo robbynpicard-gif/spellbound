@@ -1370,3 +1370,7 @@ _2026-11-22 · Numbered D-100 because another session used D-099 for the TypeL r
 **Not done, per D-097:** no player-skill adaptation, and no hidden assistance.
 
 **Open for the owner:** ramp intensity, breather cadence, how the late floor rises, lesson-1 long+fast tolerance, and boss and Endless shapes.
+
+
+### D-098 — Apprenticeship-specific dominant word-length windows and rare outliers (2026-11-22)
+**Owner-approved refinement to D-097.** Preserve the recognizable original progression feel: each apprenticeship has a **dominant soft word-length range**, with rare words outside it. At **Slow level 1**, the illustrative normal range is **3–6 letters**; seven-letter words should be extremely uncommon, particularly at the start. By **Harvest**, **6+ letters** should dominate and shorter words appear only rarely as relief. Intermediate apprenticeship ranges transition naturally. This **does not restore hard stage length gates**: the Difficulty Director uses weighted distributions with low-probability tails, escalating pressure and fall-speed variation. All four length/speed situations may occur, but not with equal frequency; early long-fast combinations must be rare. Exact percentages, intermediate windows and upper caps are exploratory, not decided. See `docs/apprenticeship-difficulty-director-2026-11-21.md` D-098 addendum.
