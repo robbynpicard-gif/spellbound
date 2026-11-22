@@ -208,3 +208,7 @@ The dev preview now runs an integrated Typel prototype (new procedural workstati
 
 # DIRECTION ADDENDUM — D-086 (2026-11-21)
 Owner playtest of the D-085 prototype retired the dark/gritty look in favour of a bright, saturated "Peggle × Bejeweled Blitz × Balatro" identity, renamed Arcane Volley to **Arcane Rush**, fixed the screen layout zones, and added the catch loop, Shock/Alter/Ice changes and orchestral whimsical music. Where Pillar 2 text above implies a darker Renaissance palette, D-086 takes precedence. Full record: `docs/typel-direction-2026-11-21.md`.
+
+
+# CORE GAMEPLAY UPDATE — D-097 (2026-11-21)
+**Decided:** The same shared difficulty loop spans first to last apprenticeship; both word length and fall speed define the experience from the beginning. Apprenticeship progression slowly raises the **statistical difficulty floor**; each encounter has an exponential-feeling nonlinear rise, with recoveries and peaks. Four length/speed quadrants exist from the outset. **Exploratory:** exact curves, probabilities, caps, recovery frequency, adaptive difficulty. **Superseded as final design:** fixed stage word-length brackets and linear WPM alone as the progression identity. **Current implementation does not yet satisfy this direction.** See `docs/apprenticeship-difficulty-director-2026-11-21.md` and D-097 in `docs/decisions.md`. This decision does not supersede D-086–096 art, audio, Arcane Rush, catch-loop or HUD directions.
