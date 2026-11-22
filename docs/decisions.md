@@ -1237,4 +1237,4 @@ _2026-11-21 · Owner decisions (chat); implemented on dev. Numbered D-092 becaus
   - one submission plunges exactly one word among five words starting with "l";
   - the odds lean gentle.
 
-**Conflict to resolve:** the unpushed D-091 key-art patch (`dev/typel-keyart-20261121`) adds a clockwork layer scheduled by the old scherzo in `audio.ts`. It will need adapting to this score when it lands.
+**Resolved (owner, 2026-11-21): remove the clockwork sound.** When the unpushed D-091 key-art patch (`dev/typel-keyart-20261121`) lands, drop its clockwork music layer (it was scheduled by the old scherzo and sped up with Rush and Combo). Its other new sound effects stay. The Slow spell's ticking is a sound effect, not this layer, and is kept.
