@@ -12,8 +12,10 @@ import { RUNES, RUNE_BY_ID } from '../gameplay/runes/RuneCatalogue';
 import { WARD_TUNING } from '../gameplay/WardScar';
 import {
   BOSS_LEVEL, LEVELS_PER_TRIAL, learnedSpells, sandboxConfig, SPELL_ORDER, startingCharges, TRIALS, trialEndless, trialLevel,
+  directorSandboxConfig, directorTrialEndless, directorTrialLevel,
   type Mode, type Trial,
 } from './apprenticeship';
+import { difficultyLabel, directorEnabled, setDirectorEnabled } from './directorFlag';
 import { sound, type AudioSettings } from './audio';
 import { prefs } from './prefs';
 import { TypeLPlayScene, type Carry, type PlaySetup } from './render/PlayScene';
@@ -58,7 +60,12 @@ interface Run {
   startLevel: number;
   flawlessLevels: number;
   fell: boolean;
+  /** D-097 prototype: this run uses the Difficulty Director (fixed when the run starts). */
+  director: boolean;
 }
+
+/** Director runs keep their own records so classic and director scores never mix. */
+const recordKey = (mode: Mode, trial: number, director: boolean) => `${mode}:${trial}${director ? ':director' : ''}`;
 
 const HARDCORE_RECOVERY: Record<number, number> = { 4: 25, 8: 25 };
 
@@ -139,7 +146,7 @@ export class TypeLApp {
     for (const t of TRIALS) {
       const pick = el('select', { class: 't-levelpick', 'aria-label': `Start ${t.title} at level` });
       for (let l = 1; l <= BOSS_LEVEL; l++) pick.append(el('option', { value: String(l) }, l === BOSS_LEVEL ? 'Boss' : `Level ${l}`));
-      const best = prefs.data.bestTrialScore[`${this.mode}:${t.index}`];
+      const best = prefs.data.bestTrialScore[recordKey(this.mode, t.index, directorEnabled())];
       list.append(
         el('article', { class: `t-trial${done.has(t.index) ? ' done' : ''}`, style: t.spell ? `--hue:${SPELL_HUE[t.spell]}` : '--hue:#d9a441' },
           el('div', { class: 't-trial-glyph' }, t.spell ? SPELL_GLYPH[t.spell] : '✶'),
@@ -161,6 +168,9 @@ export class TypeLApp {
           : 'Hardcore expects mastery: spells are typed, the Ward carries between levels. (Unlocked for testing; it will require Normal.)'),
       ),
       list,
+      el('p', { class: 't-small' }, `Difficulty: ${difficultyLabel()}. ${directorEnabled()
+        ? 'Development preview of the shared Difficulty Director (D-097): short, long, slow and fast words in every apprenticeship; numbers are experimental. Best scores are kept separately.'
+        : 'The classic difficulty. The experimental Difficulty Director can be switched on in Options.'}`),
       el('p', { class: 't-small' }, `Each apprenticeship: ${LEVELS_PER_TRIAL} levels and a spell boss, then Endless. Spells you have learned come with you. All unlocked for testing; the level picker is a testing tool.`),
       el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
@@ -171,7 +181,7 @@ export class TypeLApp {
     this.run = {
       mode: this.mode, trial: index, level: startLevel, score: 0, levelScores: [], combo: 0,
       spells: startingCharges(trial), instability: 0, words: [], peakVolley: 1, runes: {}, endless: false,
-      startLevel, flawlessLevels: 0, fell: false,
+      startLevel, flawlessLevels: 0, fell: false, director: directorEnabled(),
     };
     if (startLevel === 1) {
       this.backdrop();
@@ -214,7 +224,7 @@ export class TypeLApp {
     const run = this.run!;
     const trial = TRIALS[run.trial - 1]!;
     const boss = run.level >= BOSS_LEVEL;
-    const config = trialLevel(run.mode, run.trial, run.level);
+    const config = run.director ? directorTrialLevel(run.mode, run.trial, run.level) : trialLevel(run.mode, run.trial, run.level);
     const hint = trial.hints[run.level];
     this.startPlay({
       config,
@@ -227,7 +237,7 @@ export class TypeLApp {
       scoreOffset: run.score,
       spells: learnedSpells(run.trial),
       title: boss ? trial.bossName : trial.title,
-      subtitle: `${run.mode === 'hardcore' ? 'Hardcore' : 'Normal'} · ${boss ? 'Spell boss' : `Level ${run.level} of ${LEVELS_PER_TRIAL}`}`,
+      subtitle: `${run.mode === 'hardcore' ? 'Hardcore' : 'Normal'} · ${boss ? 'Spell boss' : `Level ${run.level} of ${LEVELS_PER_TRIAL}`}${run.director ? ' · Director' : ''}`,
       // D-096 stage banner: "FLAME · LEVEL 2", or the boss's name
       stage: `${trial.title.replace(/^The Apprenticeship of /, '')} · ${boss ? trial.bossName : run.endless ? 'Endless' : `Level ${run.level}`}`,
       lines: run.level === 1 ? trial.intro.slice(-1) : hint ? [hint] : undefined,
@@ -308,7 +318,7 @@ export class TypeLApp {
 
   private trialWon(trial: Trial, stats: GameStats): void {
     const run = this.run!;
-    const key = `${run.mode}:${run.trial}`;
+    const key = recordKey(run.mode, run.trial, run.director);
     const list = prefs.data.completed[run.mode];
     if (!list.includes(run.trial)) list.push(run.trial);
     prefs.data.lifetime.bosses++;
@@ -351,12 +361,12 @@ export class TypeLApp {
     const run = this.run!;
     run.endless = true;
     this.clearUi();
-    this.play.continueEndless(trialEndless(run.mode, run.trial), `Endless · ${TRIALS[run.trial - 1]!.title}`);
+    this.play.continueEndless(run.director ? directorTrialEndless(run.mode, run.trial) : trialEndless(run.mode, run.trial), `Endless · ${TRIALS[run.trial - 1]!.title}`);
   }
 
   private endlessOver(stats: GameStats): void {
     const run = this.run!;
-    const key = `${run.mode}:${run.trial}`;
+    const key = recordKey(run.mode, run.trial, run.director);
     const best = prefs.data.bestEndless[key] ?? 0;
     const total = stats.score;
     if (total > best) prefs.data.bestEndless[key] = total;
@@ -395,6 +405,10 @@ export class TypeLApp {
         btn('Normal rules', () => ((sb.mode = 'normal'), this.showSandboxSetup()), sb.mode === 'normal' ? 'primary small' : 'small'),
         btn('Hardcore rules', () => ((sb.mode = 'hardcore'), this.showSandboxSetup()), sb.mode === 'hardcore' ? 'primary small' : 'small')),
       el('div', { class: 't-row' }, ...[1, 2, 3, 4, 5].map((n) => btn(`Pace ${n}`, () => ((sb.tier = n), this.showSandboxSetup()), sb.tier === n ? 'primary small' : 'small'))),
+      el('div', { class: 't-row' },
+        btn('Classic difficulty', () => (setDirectorEnabled(false), this.showSandboxSetup()), !directorEnabled() ? 'primary small' : 'small'),
+        btn('Director (experimental)', () => (setDirectorEnabled(true), this.showSandboxSetup()), directorEnabled() ? 'primary small' : 'small'),
+        el('span', { class: 't-small' }, directorEnabled() ? `Director: pace ${sb.tier} stands for apprenticeship ${1 + (sb.tier - 1) * 2} of 9.` : 'Classic: the Endless pace of old stage ' + sb.tier + '.')),
       el('div', { class: 't-row' }, btn('Start', () => this.startSandbox(), 'primary'), btn('Back', () => this.showTitle())),
       el('p', { class: 't-small' }, 'Try: Wind at full Ward then Harvest · Ice and type perfectly · Shock into a crowd · Fire on a cluster · Barrier then slip and correct · submit a wrong word on purpose and catch the plunge.'),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
@@ -404,7 +418,7 @@ export class TypeLApp {
     const sb = this.sandbox;
     const charges: Partial<SpellCharges> = Object.fromEntries(SPELL_ORDER.map((s) => [s, s === 'wind' ? 6 : 4]));
     this.startPlay({
-      config: sandboxConfig(sb.mode, sb.tier),
+      config: directorEnabled() ? directorSandboxConfig(sb.mode, sb.tier) : sandboxConfig(sb.mode, sb.tier),
       hardcore: sb.mode === 'hardcore',
       initialSpells: charges,
       poolLimitOverride: 60,
@@ -412,7 +426,7 @@ export class TypeLApp {
       title: 'Sandbox',
       showSequenceScore: true,
       stage: `Sandbox · Pace ${sb.tier}`,
-      subtitle: `${sb.mode === 'hardcore' ? 'Hardcore' : 'Normal'} rules · pace ${sb.tier} · not recorded`,
+      subtitle: `${sb.mode === 'hardcore' ? 'Hardcore' : 'Normal'} rules · pace ${sb.tier}${directorEnabled() ? ' · Director' : ''} · not recorded`,
       lines: [{ who: 'The Grand Wizard', text: 'Here nothing is at stake. Experiment. Combine. Break things.' }],
       onPause: () => this.pauseMenu(() => this.startSandbox()),
       onEnd: (_r, stats) => this.show(this.panel('Sandbox results',
@@ -530,6 +544,9 @@ export class TypeLApp {
         h3('Backspace'), p('Backspace un-inks letters from the paper and the scroll. Fixing a slip is always allowed; the slip itself still broke your Combo unless a Barrier layer caught it.'),
         h3('The Ward'), p(`Words that reach the bottom crack the Ward. At 0% you fall. Wind at your Ward’s current maximum goes All-In: the Ward drops to ${WARD_TUNING.wagerStability}%, its maximum is scarred (−${WARD_TUNING.firstScar}, then ${WARD_TUNING.scarGrowth} more each time), and for ${WARD_TUNING.allInTicks / 60} seconds your score is ×${WARD_TUNING.allInMultiplier}. Healing never rises above the scar. A breach ends All-In; in Hardcore any slip does.`),
         h3('Normal and Hardcore'), p('Normal: number keys 1–8 cast; the Ward is fresh every level. Hardcore: spells are typed (a clean typed spell earns Combo and points); the Ward and its scars carry through the apprenticeship, with small recoveries after levels 4 and 8.'),
+        h3(`Difficulty · ${difficultyLabel()}`), p(directorEnabled()
+          ? 'Every apprenticeship plays the same loop. Each one has its own familiar range of word lengths (about 3–6 letters in the Apprenticeship of Time, 6 and up by Harvest), with the occasional longer or shorter word. Within that range, words can be shorter or longer, and slower or faster: short and slow give you breathing room, long and slow test precision, short and fast test reactions, and long and fast are the rare spikes. Each level builds pressure faster toward its end, swells during surges and eases after them. Later apprenticeships start from a higher floor and see the hard combinations more often, but slower, shorter words never disappear. Nothing watches how well you type: the same seed and the same play give the same words. Every number behind this is an experimental prototype value.'
+          : 'Classic difficulty: each apprenticeship has its own range of word lengths, and words fall a little faster as each level goes on. The experimental Difficulty Director can be switched on in Options.'),
         h3('Rune sequences'), p('Some Runes belong to spells. Casting opens that spell’s opportunity window; only what you type inside it counts. Casting alone never earns a Rune.'),
         p('Every number on this page is a prototype value.'),
       );
@@ -582,9 +599,12 @@ export class TypeLApp {
     this.backdrop();
     const rm = el('input', { type: 'checkbox', checked: prefs.reducedMotion() }) as HTMLInputElement;
     rm.addEventListener('change', () => ((prefs.data.reducedMotion = rm.checked), prefs.save()));
+    const dd = el('input', { type: 'checkbox', checked: directorEnabled() }) as HTMLInputElement;
+    dd.addEventListener('change', () => setDirectorEnabled(dd.checked));
     this.show(this.panel('Options',
       this.audioControls(),
       el('label', { class: 't-audio' }, rm, el('span', null, 'Reduced motion (no shakes, tilts or large bursts)')),
+      el('label', { class: 't-audio' }, dd, el('span', null, 'Experimental Difficulty Director (D-097 development preview; off = classic difficulty)')),
       el('div', { class: 't-row' },
         btn('Back', () => this.showTitle(), 'primary'),
         btn('Reset prototype progress', () => {

@@ -67,7 +67,30 @@ export class WordGenerator {
     this.window = Math.max(1, (config.maxActiveWords ?? 5) - 1);
   }
 
+  /** Words available per length (after the length and complexity filters). */
+  lengthCounts(): Record<number, number> {
+    return Object.fromEntries([...this.byLength].map(([len, words]) => [len, words.length]));
+  }
+
+  /**
+   * Difficulty Director (D-097): a word of exactly `length` letters (the
+   * nearest available length if none), with the same fairness rules as
+   * next(). Only called when a level has a director; next() is unchanged.
+   */
+  nextOfLength(length: number): string {
+    let len = length;
+    if (!this.byLength.has(len)) {
+      const lengths = [...this.byLength.keys()].sort((a, b) => Math.abs(a - length) - Math.abs(b - length) || a - b);
+      len = lengths[0]!;
+    }
+    return this.choose(() => len);
+  }
+
   next(): string {
+    return this.choose(() => Number(this.rng.weighted(this.lengthWeights)));
+  }
+
+  private choose(pickLength: () => number): string {
     // All comparisons ignore case ("Merlin" and "merlin" are the same word).
     const usedText = new Set(this.recent);
     const usedFirst = new Set(this.recent.map((w) => w[0]));
@@ -75,7 +98,7 @@ export class WordGenerator {
     let fallback: string | null = null;
 
     for (let attempt = 0; attempt < MAX_ATTEMPTS && !chosen; attempt++) {
-      const length = Number(this.rng.weighted(this.lengthWeights));
+      const length = pickLength();
       const word = this.rng.pick(this.byLength.get(length)!);
       const lower = word.toLowerCase();
       if (usedText.has(lower)) continue;
@@ -85,9 +108,7 @@ export class WordGenerator {
     // Crowded first letters: accept a shared first letter.
     // Exhausted attempts must still respect the configured length distribution.
     // Previously this always fell back to the shortest bucket (often 2 letters).
-    const word = chosen ?? fallback ?? this.rng.pick(
-      this.byLength.get(Number(this.rng.weighted(this.lengthWeights)))!,
-    );
+    const word = chosen ?? fallback ?? this.rng.pick(this.byLength.get(pickLength())!);
     this.recent.push(word.toLowerCase());
     if (this.recent.length > this.window) this.recent.shift();
     return word;
