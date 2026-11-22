@@ -3,7 +3,7 @@ import type { SpellId } from '../gameplay/SpellManager';
 /** Display and tuning data for a spell, loaded from src/data/spells.json. */
 export interface SpellData {
   id: SpellId;
-  /** Wizzy Type name, e.g. "Incineration". */
+  /** TypeL name, e.g. "Incineration". */
   name: string;
   /** Short book name, e.g. "Fire". The word typed to cast it is the id ("fire"). */
   book: string;

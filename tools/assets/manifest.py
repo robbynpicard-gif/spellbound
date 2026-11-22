@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Typel asset manifest: docs/assets/asset-manifest.json is the source of truth;
+TypeL asset manifest: docs/assets/asset-manifest.json is the source of truth;
 docs/assets/ASSET_MANIFEST.md is generated from it. Never edit the .md by hand.
 
     python3 tools/assets/manifest.py render
@@ -23,7 +23,7 @@ def load():
 
 
 def render(m) -> str:
-    L = ['# Typel — Asset Manifest', '',
+    L = ['# TypeL — Asset Manifest', '',
          '_Generated from `docs/assets/asset-manifest.json` by `tools/assets/manifest.py render`. Do not edit by hand._', '',
          'Lifecycle: ' + ' → '.join(m['lifecycle'][:7]) + ' (also REJECTED, NEEDS REVISION). An upload is GENERATED/UNDER REVIEW until the owner explicitly approves it.', '',
          '## References', '', '| ID | Name | File | Status | Provenance |', '|---|---|---|---|---|']

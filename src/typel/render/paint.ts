@@ -1,5 +1,5 @@
 /**
- * Typel procedural painting (prototype, D-085/D-086/D-087). Canvas 2D at 1920×1080.
+ * TypeL procedural painting (prototype, D-085/D-086/D-087). Canvas 2D at 1920×1080.
  * D-087: grounded, mature fantasy look (supersedes D-086's bright funland palette).
  *
  * D-086 art direction (owner, 2026-11-21): loud, saturated, timeless and

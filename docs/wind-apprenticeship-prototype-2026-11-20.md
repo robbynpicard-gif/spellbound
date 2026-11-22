@@ -19,7 +19,7 @@ Status key: **Approved** (owner design) · **Experimental** (prototype value, tu
 **Contradictions found:**
 1. *Ice Focus vs Arcane typo rule.* The handoff says a typo "breaks the Focus sequence but already earned Combo remains", but the current Arcane rule resets Combo on any typo. I kept the existing Arcane rule (Focus never adds a penalty of its own). Barrier insurance is the way to keep Combo through a slip. **Owner decision needed.**
 2. *Wind name.* The spell's display name is still "Arcane Purge", and its cast banner says so. Not changed.
-3. *Production preview marker.* After the dev→main merge, `index.html` on main carries the "TYPAL · DEV PREVIEW" badge, so production shows it too. Not changed on main without approval.
+3. *Production preview marker.* After the dev→main merge, `index.html` on main carries the "TYPEL · DEV PREVIEW" badge, so production shows it too. Not changed on main without approval.
 4. `docs/sandbox-interactions.md` and older `docs/design.md` describe superseded Wind/Harvest/Ice/Alter rules (annotated, not rewritten).
 
 ## 2. What changed

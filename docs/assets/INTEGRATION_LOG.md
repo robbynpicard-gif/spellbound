@@ -1,4 +1,4 @@
-# Typel — Integration Log
+# TypeL — Integration Log
 
 _Append-only. Records which assets were added, what code changed, which systems were affected, and what was actually tested. Nothing is called integrated or deployed without verification._
 

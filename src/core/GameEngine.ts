@@ -210,7 +210,7 @@ export class GameEngine {
   private insuredEntry = false;
   private readonly poolOverride: number | null;
   private readonly allIn = { wagers: 0, points: 0, harvests: 0, shocks: 0, typedPoints: 0 };
-  /** Typel Runes earned this level (id → count). Arcane preview only. */
+  /** TypeL Runes earned this level (id → count). Arcane preview only. */
   private readonly runeCounts: Record<string, number> = {};
   private runePoints = 0;
   private runeTracker: RuneTracker | null = null;
@@ -728,7 +728,7 @@ export class GameEngine {
           if (this.hardcore) this.endAllIn('mistake');
         }
       } else this.setCleanStreak(streakAfterTypo(s.cleanStreak), 'typo');
-      // Typel (D-092): a wrong letter costs the word its Perfect bonus, but
+      // TypeL (D-092): a wrong letter costs the word its Perfect bonus, but
       // the plunge waits for a wrong submission, and only ever hits one word.
       if (attempted) {
         if (this.experimentalScoring) attempted.errors++;
@@ -763,7 +763,7 @@ export class GameEngine {
     // 3. Anything else is an incomplete or misspelled word:
     // guess what the player meant and treat it as a missed submission.
     // A word already penalised for a typo in this same entry isn't penalised again.
-    // Typel (D-092): if the entry is too garbled to guess, the word the player
+    // TypeL (D-092): if the entry is too garbled to guess, the word the player
     // was aiming at is the one that plunges: always exactly one word.
     const guess = pinned ?? guessIntendedWord(s.words, input) ?? (this.experimentalScoring ? (this.target ?? null) : null);
     // A wrong entry drops the multiplier one tier (D-040) and ends the Clean Streak (D-046).
@@ -1268,7 +1268,7 @@ export class GameEngine {
 
   private end(result: GameResult): void {
     if (result === 'won') this.runeTracker?.levelWon();
-    // Legacy end-of-level bonuses are superseded in Arcane/Typel scoring (four-pillar register).
+    // Legacy end-of-level bonuses are superseded in Arcane/TypeL scoring (four-pillar register).
     if (result === 'won' && !this.experimentalScoring) {
       const bonuses = this.levelBonuses();
       if (bonuses.length > 0) {
@@ -1510,7 +1510,7 @@ export class GameEngine {
    */
   private transmute(minLength: number): void {
     const s = this.s;
-    // Typel (D-086): every word longer than 3 letters is rewritten; legacy keeps its length gate.
+    // TypeL (D-086): every word longer than 3 letters is rewritten; legacy keeps its length gate.
     const long = s.words.filter((w) => w.text.length >= (this.experimentalScoring ? 4 : minLength));
     if (long.length === 0 || this.shortWords.length === 0) return;
     const rng = new SeededRandom((this.seed ^ Math.imul(s.tick + 1, 0x9e3779b1)) >>> 0);

@@ -31,11 +31,11 @@ export interface GameEvents {
   levelBonuses: { bonuses: Bonus[]; total: number };
   wordMissed: { word: WordState; instability: number };
   /** Words destroyed by Incineration (not typed; no points, no progress). */
-  /** Fire. Typel prototype adds each word's spread generation and the flame links. */
+  /** Fire. TypeL prototype adds each word's spread generation and the flame links. */
   wordsBurned: { words: WordState[]; points: number; depths?: number[]; links?: { from: number; to: number; depth: number }[] };
   /** Words destroyed by Chain Lightning, in strike order (first = the most urgent). */
   wordsShocked: { words: WordState[]; points: number; links?: { from: number; to: number; depth: number }[] };
-  /** A Typel Rune (prototype) was earned. */
+  /** A TypeL Rune (prototype) was earned. */
   /** Catch loop: a mistype sent this word plunging. */
   wordPlunged: { word: WordState; tier: number };
   /** Ice melt: the cleared field thaws early. */

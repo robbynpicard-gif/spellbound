@@ -1,5 +1,5 @@
 /**
- * Typel Rune catalogue (prototype, D-085). Runes recognize moment-to-moment
+ * TypeL Rune catalogue (prototype, D-085). Runes recognize moment-to-moment
  * feats that a player can learn to reproduce. They never alter word
  * generation (D-058). Names, thresholds and point values are PROVISIONAL.
  *

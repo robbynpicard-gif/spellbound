@@ -1,5 +1,5 @@
 /**
- * Typel audio (prototype, D-085). Everything is synthesized live with Web
+ * TypeL audio (prototype, D-085). Everything is synthesized live with Web
  * Audio; no recorded or older-build sound is used. Character: warm wood and
  * brass mechanics, magical resonance, music with a sense of wonder that
  * layers up with pressure. All timbres and mixes are EXPLORATORY.
@@ -101,7 +101,7 @@ class Music {
   private echoSend!: GainNode;
   private delays: DelayNode[] = [];
 
-  constructor(private readonly a: TypelAudio) {}
+  constructor(private readonly a: TypeLAudio) {}
 
   /** The music's own echo and hall, so it rings like the typewriter does. */
   private fx(): GainNode {
@@ -302,7 +302,7 @@ class Music {
   }
 }
 
-export class TypelAudio {
+export class TypeLAudio {
   ctx: AudioContext | null = null;
   private master!: GainNode;
   private buses: Partial<Record<Channel, GainNode>> = {};
@@ -1094,4 +1094,4 @@ export class TypelAudio {
   }
 }
 
-export const sound = new TypelAudio();
+export const sound = new TypeLAudio();

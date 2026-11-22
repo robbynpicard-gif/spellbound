@@ -1,9 +1,9 @@
-# 🧙 Wizzy Type
+# 🧙 TypeL
 
 A wizard-themed arcade typing game for the browser. Words fall toward your
 tower; type them to cast counterspells before they land.
 
-**▶ Play it:** https://robbynpicard-gif.github.io/spellbound/
+**▶ Play it:** https://robbynpicard-gif.github.io/TypeL/
 
 Every push to `main` is tested, built and published automatically
 (`.github/workflows/deploy.yml`). The multiplayer server isn't hosted yet,

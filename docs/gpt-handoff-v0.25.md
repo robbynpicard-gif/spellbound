@@ -1,6 +1,6 @@
-# WIZZY TYPE — Complete design summary for ChatGPT (v0.25.0, 2026-11-18)
+# TYPEL — Complete design summary for ChatGPT (v0.25.0, 2026-11-18)
 
-**Paste this whole document.** It describes what is **live now** at https://robbynpicard-gif.github.io/spellbound/ and **replaces every older handoff**. Earlier summaries (v0.17–v0.22) describe a 20-level/4-chapter campaign, boss reward picks, a six-wizard roster or older speed numbers; all of that is superseded.
+**Paste this whole document.** It describes what is **live now** at https://robbynpicard-gif.github.io/TypeL/ and **replaces every older handoff**. Earlier summaries (v0.17–v0.22) describe a 20-level/4-chapter campaign, boss reward picks, a six-wizard roster or older speed numbers; all of that is superseded.
 
 ## How to work with the owner
 - The owner is the creative director and makes the decisions. They are a beginner programmer. Claude builds the game; ChatGPT is a design partner.
@@ -34,7 +34,7 @@
 - **Current focus: gameplay feel and the gameplay loop.** Art is parked; the
   owner will make mockups later.
 - Mystical tone. No gambling mechanics and no dark patterns.
-- **WPM** always means in-game Wizzy Type WPM (5 letters = 1 word).
+- **WPM** always means in-game TypeL WPM (5 letters = 1 word).
 
 ## 2. Structure — Confirmed (D-047)
 

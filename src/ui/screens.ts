@@ -443,7 +443,7 @@ export function creditsScreen(onBack: () => void): Screen {
     h('p', null, `${GAME_TITLE} — an original wizard-themed typing game.`),
     h('p', null, 'Gameplay inspired by classic falling-word typing games.'),
     h('p', null, 'Built with Phaser, TypeScript and Vite.'),
-    h('p', { class: 'footnote' }, 'Pixel art from the Wizzy Type art direction. Fonts: Atkinson Hyperlegible and Pixelify Sans (SIL Open Font License). Music and sound are synthesised live in your browser.'),
+    h('p', { class: 'footnote' }, 'Pixel art from the TypeL art direction. Fonts: Atkinson Hyperlegible and Pixelify Sans (SIL Open Font License). Music and sound are synthesised live in your browser.'),
     h('div', { class: 'button-row' }, back),
   );
   return {

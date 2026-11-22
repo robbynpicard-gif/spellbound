@@ -1,4 +1,4 @@
-# Wizzy Type — next gameplay playtest (unreleased)
+# TypeL — next gameplay playtest (unreleased)
 
 Status: development branch only. No Pages deployment authorized.
 

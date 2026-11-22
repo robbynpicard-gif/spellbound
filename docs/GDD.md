@@ -1,9 +1,9 @@
-# WIZZY TYPE
+# TYPEL
 ## Game Design Document & Claude Code Development Instructions
 
 **Document version:** 1.0  
 **Project status:** Pre-development  
-**Working title:** Wizzy Type  
+**Working title:** TypeL  
 **Genre:** Arcade Typing / Fantasy / Multiplayer  
 **Platform:** Web browser (desktop-first)  
 **Development environment:** Claude Code + VS Code  
@@ -53,7 +53,7 @@ These principles should guide all development decisions.
 
 ## 3. Working title and identity
 
-Working title: **Wizzy Type**
+Working title: **TypeL**
 
 Theme:
 - Wizardry
@@ -126,7 +126,7 @@ Avoid placing all game logic inside a single Phaser scene or JavaScript file.
 ### Proposed project structure
 
 ```text
-spellbound/
+typel/
 │
 ├── index.html
 ├── package.json
@@ -1051,7 +1051,7 @@ Implement:
 
 ## 29. Your role
 
-You are the lead software engineer responsible for implementing Wizzy Type.
+You are the lead software engineer responsible for implementing TypeL.
 
 The user is the project owner and has limited programming experience.
 

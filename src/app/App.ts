@@ -329,7 +329,7 @@ export class App {
   /** Testing toggle on the Campaign screen (D-055): everything open, or real progress. */
   private get unlockAll(): boolean {
     try {
-      const v = localStorage.getItem('spellbound.preview.wizzytype.unlockAll');
+      const v = localStorage.getItem('typel.preview.typel.unlockAll');
       return v === null ? CAMPAIGN_UNLOCK_ALL : v === '1';
     } catch {
       return CAMPAIGN_UNLOCK_ALL;
@@ -338,7 +338,7 @@ export class App {
 
   private setUnlockAll(on: boolean): void {
     try {
-      localStorage.setItem('spellbound.preview.wizzytype.unlockAll', on ? '1' : '0');
+      localStorage.setItem('typel.preview.typel.unlockAll', on ? '1' : '0');
     } catch {
       /* storage blocked: the toggle lasts this visit only */
     }

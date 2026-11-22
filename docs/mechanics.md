@@ -1,4 +1,4 @@
-# Wizzy Type — Game mechanics (v0.27.0)
+# TypeL — Game mechanics (v0.27.0)
 
 Generated from the game's own numbers (the same source as the in-game **Codex** on the main menu), so it matches what you play.
 

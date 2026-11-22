@@ -6,11 +6,11 @@ Milestone 3)._
 
 ## Ground rules
 - The original is a **mechanics reference only**. No artwork, audio, text,
-  logos or code from it is copied into Wizzy Type (decisions.md D-009).
+  logos or code from it is copied into TypeL (decisions.md D-009).
 - Only screenshots/notes needed to describe a mechanic are kept, and only
   where legally appropriate.
 - Anything that cannot be verified is marked **Unknown** with a proposed
-  Wizzy Type adaptation.
+  TypeL adaptation.
 
 ## Sources
 | Source | Notes |
@@ -24,7 +24,7 @@ Milestone 3)._
 ## Research checklist
 Legend: ✅ Verified · 📜 Historical description only · ❓ Unknown
 
-| # | Topic | Status | Finding | Wizzy Type adaptation |
+| # | Topic | Status | Finding | TypeL adaptation |
 |---|---|---|---|---|
 | 1 | Word movement | 📜 | Words fall from top | — |
 | 2 | Word targeting | ❓ | | Implemented (M1): auto-target lowest word by first letter, locked until done; click to select (decisions D-010) |

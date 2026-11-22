@@ -1,4 +1,4 @@
-# Typel — Art Bible
+# TypeL — Art Bible
 
 _Version 1 · 2026-11-21 · Owner: creative director (the owner) · Maintained by Claude · Status of this document: **PROPOSED**, derived from the approved reference. The owner's approval of individual assets is recorded in `ASSET_MANIFEST.md`._
 
@@ -14,7 +14,7 @@ _Version 1 · 2026-11-21 · Owner: creative director (the owner) · Maintained b
 
 This paragraph is pasted, unchanged, into every Flow prompt. Changing it is a versioned decision (record it in the change log at the end).
 
-> **TYPEL SHARED STYLE v1:** Hand-painted digital fantasy illustration that matches the attached Typel concept art exactly in technique: painterly brushwork with soft blended gradients and fine visible brush texture, confident dark-umber (never pure black) contour lines on object edges, warm saturated colour, storybook-meets-premium-indie-game finish. World: an Arcane Renaissance alchemist-wizard's workshop. Materials: aged polished brass with warm cream highlights and deep umber shadows, round rivets and engraved filigree; dark walnut and mahogany wood with visible grain; warm cream parchment with soft stains; ivory; clear glass with bright rim highlights; dark blackened iron. Lighting: cool blue-violet moonlight from the upper left as a rim light, warm amber candlelight from below on both sides as the fill, strong readable value contrast, soft shadows in crevices. Mood: whimsical, grounded, quietly satirical, mature; neither childish cartoon nor grim and dark.
+> **TYPEL SHARED STYLE v1:** Hand-painted digital fantasy illustration that matches the attached TypeL concept art exactly in technique: painterly brushwork with soft blended gradients and fine visible brush texture, confident dark-umber (never pure black) contour lines on object edges, warm saturated colour, storybook-meets-premium-indie-game finish. World: an Arcane Renaissance alchemist-wizard's workshop. Materials: aged polished brass with warm cream highlights and deep umber shadows, round rivets and engraved filigree; dark walnut and mahogany wood with visible grain; warm cream parchment with soft stains; ivory; clear glass with bright rim highlights; dark blackened iron. Lighting: cool blue-violet moonlight from the upper left as a rim light, warm amber candlelight from below on both sides as the fill, strong readable value contrast, soft shadows in crevices. Mood: whimsical, grounded, quietly satirical, mature; neither childish cartoon nor grim and dark.
 
 ## 2. Rendering characteristics
 

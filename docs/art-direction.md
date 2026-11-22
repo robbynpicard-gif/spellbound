@@ -1,11 +1,11 @@
-# WIZZY TYPE — VISUAL ART DIRECTION
+# TYPEL — VISUAL ART DIRECTION
 
 > Status: proposed (2026-11-16), not yet built. Reference: `mockups/gothic-reference.png`; in-code pixel mockup: `mockups/gothic-play-screen.png`. Planned at 640×360 shown 2×. The source text ends partway through section 10.
 **Visual Reference & Design Specification**
 
 ## 1. Overall Art Direction
 
-Wizzy Type should use **gritty, dark gothic fantasy pixel art**.
+TypeL should use **gritty, dark gothic fantasy pixel art**.
 
 The atmosphere should feel mysterious, aged, atmospheric and slightly ominous. Think of a dark medieval fantasy RPG combined with a carefully crafted pixel-art indie game.
 
@@ -157,7 +157,7 @@ The physical parchment is the visual representation; the progress bar and numeri
 
 The spell inventory should be a vertical rack of physical parchment scrolls positioned on the right side of the gameplay screen.
 
-This is an important and defining feature of Wizzy Type.
+This is an important and defining feature of TypeL.
 
 ### Scroll design
 

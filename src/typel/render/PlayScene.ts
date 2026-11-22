@@ -1,5 +1,5 @@
 /**
- * Typel play scene. Rendering only reacts to engine events; cosmetic motion
+ * TypeL play scene. Rendering only reacts to engine events; cosmetic motion
  * never changes positions, speeds or hit tests.
  *
  * D-093: the scene is built on the owner's key-art painting (see keyart.ts).
@@ -217,7 +217,7 @@ class ScrollView extends Phaser.GameObjects.Container {
   }
 }
 
-export class TypelPlayScene extends Phaser.Scene {
+export class TypeLPlayScene extends Phaser.Scene {
   static readonly KEY = 'typel-play';
   private setup!: PlaySetup;
   engine!: GameEngine;
@@ -280,7 +280,7 @@ export class TypelPlayScene extends Phaser.Scene {
   private time0 = 0;
 
   constructor() {
-    super(TypelPlayScene.KEY);
+    super(TypeLPlayScene.KEY);
   }
 
   init(setup: PlaySetup): void {

@@ -1,10 +1,10 @@
 /**
- * Typel prototype storage (D-085): progress, records, Runes, Triumph totals
+ * TypeL prototype storage (D-085): progress, records, Runes, Triumph totals
  * and accessibility. Its own keys, so it never touches older saves.
  */
 const KEY = 'typel.progress.v1';
 
-export interface TypelProgress {
+export interface TypeLProgress {
   /** Completed apprenticeships per mode (trial indices). */
   completed: { normal: number[]; hardcore: number[] };
   bestTrialScore: Record<string, number>;
@@ -15,7 +15,7 @@ export interface TypelProgress {
   reducedMotion: boolean | null;
 }
 
-const fresh = (): TypelProgress => ({
+const fresh = (): TypeLProgress => ({
   completed: { normal: [], hardcore: [] },
   bestTrialScore: {},
   bestEndless: {},
@@ -25,9 +25,9 @@ const fresh = (): TypelProgress => ({
   reducedMotion: null,
 });
 
-function load(): TypelProgress {
+function load(): TypeLProgress {
   try {
-    const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<TypelProgress> | null;
+    const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<TypeLProgress> | null;
     const f = fresh();
     if (!raw) return f;
     return {
@@ -43,7 +43,7 @@ function load(): TypelProgress {
 }
 
 class Prefs {
-  data: TypelProgress = load();
+  data: TypeLProgress = load();
 
   save(): void {
     try {

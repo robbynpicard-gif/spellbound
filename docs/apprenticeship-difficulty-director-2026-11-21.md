@@ -1,4 +1,4 @@
-# Typel — Shared Apprenticeship Difficulty Director
+# TypeL — Shared Apprenticeship Difficulty Director
 _2026-11-21 · D-097 · owner-approved CORE GAMEPLAY DIRECTION; algorithm and balance remain PROTOTYPE DESIGN, not yet implemented._
 
 ## The owner's intent

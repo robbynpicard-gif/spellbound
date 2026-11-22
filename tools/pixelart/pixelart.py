@@ -1,4 +1,4 @@
-"""Wizzy Type pixel art (decisions.md D-028).
+"""TypeL pixel art (decisions.md D-028).
 
 Everything is drawn at 1x on a 320x180 grid with a limited, gritty palette;
 the game scales it up 4x with nearest-neighbour filtering. Run build.py to

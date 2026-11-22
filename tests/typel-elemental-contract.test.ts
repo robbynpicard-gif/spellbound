@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { resolveElementalReaction, type Element } from '../src/gameplay/ElementalReactions';
 
-describe('Typal elemental interaction contract', () => {
+describe('TypeL elemental interaction contract', () => {
   it.each([
     ['fire', 'water', 'extinguish', 1.25, true],
     ['water', 'fire', 'steam', 0.75, true],

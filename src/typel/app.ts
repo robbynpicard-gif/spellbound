@@ -1,5 +1,5 @@
 /**
- * Typel prototype app (D-085): menus and mode flow. Production `main` is not
+ * TypeL prototype app (D-085): menus and mode flow. Production `main` is not
  * affected; this is the dev preview's entry point.
  */
 import type Phaser from 'phaser';
@@ -16,9 +16,9 @@ import {
 } from './apprenticeship';
 import { sound, type AudioSettings } from './audio';
 import { prefs } from './prefs';
-import { TypelPlayScene, type Carry, type PlaySetup } from './render/PlayScene';
+import { TypeLPlayScene, type Carry, type PlaySetup } from './render/PlayScene';
 import { SPELL_GLYPH, SPELL_HUE } from './render/paint';
-import { TypelMenuScene } from './render/study';
+import { TypeLMenuScene } from './render/study';
 import { medalDataUrl } from './render/medal';
 import { voice } from './voice';
 import { RUNE_CALLOUTS, SPECIAL } from './voiceLines';
@@ -62,7 +62,7 @@ interface Run {
 
 const HARDCORE_RECOVERY: Record<number, number> = { 4: 25, 8: 25 };
 
-export class TypelApp {
+export class TypeLApp {
   private run: Run | null = null;
   private mode: Mode = 'normal';
   private sandbox = { mode: 'normal' as Mode, tier: 3 };
@@ -89,19 +89,19 @@ export class TypelApp {
   }
 
   private backdrop(): void {
-    this.game.scene.stop(TypelPlayScene.KEY);
-    if (!this.game.scene.isActive(TypelMenuScene.KEY)) this.game.scene.start(TypelMenuScene.KEY);
+    this.game.scene.stop(TypeLPlayScene.KEY);
+    if (!this.game.scene.isActive(TypeLMenuScene.KEY)) this.game.scene.start(TypeLMenuScene.KEY);
     sound.setMood('menu');
   }
 
-  private get play(): TypelPlayScene {
-    return this.game.scene.getScene(TypelPlayScene.KEY) as TypelPlayScene;
+  private get play(): TypeLPlayScene {
+    return this.game.scene.getScene(TypeLPlayScene.KEY) as TypeLPlayScene;
   }
 
   private startPlay(setup: PlaySetup): void {
     this.clearUi();
-    this.game.scene.stop(TypelMenuScene.KEY);
-    this.game.scene.start(TypelPlayScene.KEY, setup);
+    this.game.scene.stop(TypeLMenuScene.KEY);
+    this.game.scene.start(TypeLPlayScene.KEY, setup);
   }
 
   private panel(title: string, ...kids: Child[]): HTMLElement {
@@ -588,7 +588,7 @@ export class TypelApp {
       el('div', { class: 't-row' },
         btn('Back', () => this.showTitle(), 'primary'),
         btn('Reset prototype progress', () => {
-          if (window.confirm('Reset all Typel prototype progress, records and Runes?')) (prefs.reset(), this.showOptions());
+          if (window.confirm('Reset all TypeL prototype progress, records and Runes?')) (prefs.reset(), this.showOptions());
         })),
       el('p', { class: 't-small' }, 'The Grand Wizard speaks only when you earn a Rune. His voice is a placeholder babble until real recorded lines replace it; his words always appear as text in his speech bubble.'),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });

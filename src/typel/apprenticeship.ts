@@ -1,5 +1,5 @@
 /**
- * Typel Apprenticeship (prototype, D-085). Replaces the 5 × 20 campaign as
+ * TypeL Apprenticeship (prototype, D-085). Replaces the 5 × 20 campaign as
  * the main mode. Nine apprenticeships: one per spell, then the Grand Wizard.
  *
  * Difficulty is *extracted* from the old 5-stage curve (docs/decisions D-047,

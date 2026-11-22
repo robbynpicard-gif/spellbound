@@ -37,9 +37,12 @@ import {
   type PlayMode,
 } from './LifetimeStats';
 
-export const SAVE_KEY = 'wizzytype.save';
-/** Save written before the game was renamed (read once, then rewritten under SAVE_KEY). */
-export const LEGACY_SAVE_KEY = 'spellbound.save';
+export const SAVE_KEY = 'typel.save';
+/**
+ * Save written under the Wizzy Type name (read once, then rewritten under SAVE_KEY).
+ * storage/legacyKeys.ts also copies it, and older `spellbound.*` keys, on start-up.
+ */
+export const LEGACY_SAVE_KEY = 'wizzytype.save';
 /** v5 (D-047): the Campaign became 2 modes × 5 stages × 20 levels. */
 export const SAVE_VERSION = 5;
 
@@ -320,7 +323,7 @@ export function parseSave(raw: string | null, totalLevels: number): SaveData {
 export function browserStorage(): StorageLike | null {
   try {
     const storage = window.localStorage;
-    const probe = '__wizzytype_probe__';
+    const probe = '__typel_probe__';
     storage.setItem(probe, '1');
     storage.removeItem(probe);
     return storage;

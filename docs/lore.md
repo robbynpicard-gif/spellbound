@@ -1,4 +1,4 @@
-# Wizzy Type — lore (world bible, never shown as text)
+# TypeL — lore (world bible, never shown as text)
 
 > Per D-034 the game never tells this story in words. It is a reference for
 > the art, sound and naming, so the world is felt through play and pictures.
@@ -35,7 +35,7 @@ Text lives in `src/data/lore.json`.
 
 ---
 
-## Proposal (not built): Wizzy Type as a typing roguelite
+## Proposal (not built): TypeL as a typing roguelite
 
 **Core loop:** choose a wizard → play a run of chapters → between levels, choose
 upgrades → bosses → the run ends → knowledge carries over to unlock more.

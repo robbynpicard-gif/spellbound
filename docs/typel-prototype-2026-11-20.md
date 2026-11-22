@@ -1,4 +1,4 @@
-# Typel integrated prototype — status, four-pillar map and playtest script
+# TypeL integrated prototype — status, four-pillar map and playtest script
 _2026-11-20 · Claude · branch `dev/apprenticeship-prototype-20261119` · decision D-085_
 
 > **Updated by D-086 (2026-11-21):** new layout, bright art, Arcane Rush, catch loop, Shock/Alter/Ice changes, orchestral music. See `docs/typel-direction-2026-11-21.md`; where they differ, that file wins.
@@ -6,7 +6,7 @@ _2026-11-20 · Claude · branch `dev/apprenticeship-prototype-20261119` · decis
 Status words: **Decided** (owner) · **Prototype choice** (Claude, reversible) · **Built** · **Tested** (automated) · **Smoke-checked** (headless browser) · **Deployed** · **Owner-playtested**. Nothing below is owner-playtested yet.
 
 ## What the preview now is
-The dev preview boots a **new Typel front end**: none of the old visuals or sounds are used. Production `main` still runs the older front end. The deterministic `GameEngine` (Arcane scoring, D-084 Wind/Harvest/Ice/Barrier/Alter rules) is reused.
+The dev preview boots a **new TypeL front end**: none of the old visuals or sounds are used. Production `main` still runs the older front end. The deterministic `GameEngine` (Arcane scoring, D-084 Wind/Harvest/Ice/Barrier/Alter rules) is reused.
 
 | Area | What exists | Status |
 |---|---|---|
@@ -35,7 +35,7 @@ The dev preview boots a **new Typel front end**: none of the old visuals or soun
 | Trial starting charges | 3 of the new spell + 1 each of up to 5 recent others | `startingCharges` |
 | Wind / Harvest / Ice / Barrier / Alter | as D-084 | `WARD_TUNING`, engine |
 
-Legacy end-of-level bonuses (Flawless, Under Par, Comeback) are now off in Arcane/Typel scoring only; legacy and duel scoring keep them.
+Legacy end-of-level bonuses (Flawless, Under Par, Comeback) are now off in Arcane/TypeL scoring only; legacy and duel scoring keep them.
 
 ## Known limitations
 - Characters are silhouettes and text; Masters have no portraits or voices. Grand Wizard announcer is text only (D-052).
@@ -58,4 +58,4 @@ Legacy end-of-level bonuses (Flawless, Under Par, Comeback) are now off in Arcan
 9. **Typing Trial:** a 30 s run. Does it feel like a proper speed test?
 10. **Codex:** can you find any rule you wondered about during play?
 
-Feedback questions: what felt best? What felt wrong or confusing? Which spell did you *want* to use offensively? Did any Rune surprise you? Does the world look like Typel, or what should change first?
+Feedback questions: what felt best? What felt wrong or confusing? Which spell did you *want* to use offensively? Did any Rune surprise you? Does the world look like TypeL, or what should change first?

@@ -1,4 +1,4 @@
-# Spellbound — Physical Sandbox Interactions
+# TypeL — Physical Sandbox Interactions
 _2026-11-20 · Working design assumptions under D-069. Only Temporal Flow is newly implemented in code._
 
 > **Superseded in part (D-083/D-084):** Wind, Harvest, Ice and Alter descriptions below are older. Current prototype rules: `docs/wind-apprenticeship-prototype-2026-11-20.md` and the in-game Codex.

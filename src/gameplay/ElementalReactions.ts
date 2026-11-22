@@ -1,5 +1,5 @@
 /**
- * Typal elemental reaction rules.
+ * TypeL elemental reaction rules.
  * Pure, deterministic gameplay logic: callers apply the returned effects to
  * enemies, spell visuals and sound. No rendering or timing dependencies.
  */

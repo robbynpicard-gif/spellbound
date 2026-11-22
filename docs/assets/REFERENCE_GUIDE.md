@@ -1,4 +1,4 @@
-# Typel — Reference Guide
+# TypeL — Reference Guide
 
 _How references, sources and processed files are organised, and which images to attach to Flow for each kind of asset._
 

@@ -1,6 +1,6 @@
 > **Superseded (2026-11-17, D-047).** Kept for history. The current design is docs/design.md.
 
-# Wizzy Type — Campaign v2 plan (implemented)
+# TypeL — Campaign v2 plan (implemented)
 
 _Agreed with the project owner and implemented, 2026-11-16 (decisions.md D-025/D-026). Replaces the 10-level campaign (D-014/D-016) once approved for implementation. Spell details: [spells-v2.md](spells-v2.md)._
 

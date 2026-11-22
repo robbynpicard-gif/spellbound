@@ -1,8 +1,8 @@
-# Typel D-093: the key art becomes the game
+# TypeL D-093: the key art becomes the game
 _2026-11-21 · recorded by Claude · branch `dev/apprenticeship-prototype-20261119` · supersedes the look of D-087, D-088 and D-089, and the unpushed D-091 patch_
 
 ## The decision
-The owner's key-art painting is the **source of truth for how Typel looks**: painterly fantasy, whimsical Renaissance machinery, theatrical magical light, slightly satirical. Owner, 2026-11-21:
+The owner's key-art painting is the **source of truth for how TypeL looks**: painterly fantasy, whimsical Renaissance machinery, theatrical magical light, slightly satirical. Owner, 2026-11-21:
 - "This is literally a picture of what I want to play."
 - Clip it up and use it as the reference; inferences are allowed.
 - It doesn't need to be this exact picture.

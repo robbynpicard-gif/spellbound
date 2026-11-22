@@ -1,4 +1,4 @@
-# Typel — Asset Production System
+# TypeL — Asset Production System
 
 _Established 2026-11-21 (D-094, building on D-093). **Claude specifies and integrates. The owner generates and approves. Flow produces the visual assets.**_
 
@@ -18,9 +18,9 @@ Tools: `tools/assets/guides.py` (layout maps), `tools/assets/prep.py` (keying, c
 
 ## Audit of the current rendering (dev branch at D-093 `2eef6be`, 2026-11-21)
 
-**How the Typel preview draws today**
+**How the TypeL preview draws today**
 
-- `src/main.ts` boots Phaser 3.90 at a fixed **1920×1080** canvas, scaled to fit the window. Two scenes: `TypelMenuScene` (`src/typel/render/study.ts`, the world behind the HTML menus) and `TypelPlayScene` (`src/typel/render/PlayScene.ts`). Menus, Codex and options are HTML/CSS (`src/typel/app.ts`, `typel.css`).
+- `src/main.ts` boots Phaser 3.90 at a fixed **1920×1080** canvas, scaled to fit the window. Two scenes: `TypeLMenuScene` (`src/typel/render/study.ts`, the world behind the HTML menus) and `TypeLPlayScene` (`src/typel/render/PlayScene.ts`). Menus, Codex and options are HTML/CSS (`src/typel/app.ts`, `typel.css`).
 - **D-093 (landed while this system was being set up):** the owner's painting is cut into layers by `tools/keyart/` (OpenCV) and loaded by `src/typel/render/keyart.ts` from `public/assets/typel/keyart/`: `plate.jpg` (background with live content removed and filled), `front.webp` (desk, typewriter, lower machine and shelf in front of the scrolls), `arch.png` (the Ward), `wisps.webp`, `wizard.png`, `hand_l/hand_r.png`, `medal_1–3.png`, `rack_<spell>.png` ×8, `scroll_plain.png` (3-slice), `flame.png`, `catch.png`, `hammer.png`, `needle.png`, `gear.png`, Combo/Rush tube parts. Every position is in `src/typel/render/keyart.json`, which is the painting's own space scaled to 1920×1080.
 - **Live on top:** score drum digits, plate values, level name, typed letters on the paper, keys (cut from the plate and pressed), tube liquids, medals by tier, shelf counts, gauge needle and scar, the Master's lines, Grand Wizard remarks. Words and their scrolls are positioned from engine state in the field (x 610–1550, y 60–655); **the paper's top edge is the Ward line**.
 - **The renderer only reacts to engine events** and reads `GameEngine` state; cosmetic motion never changes hitboxes or speeds. The art pipeline keeps this property.

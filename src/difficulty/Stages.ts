@@ -10,7 +10,7 @@ import { validateLevels, type DifficultyConfig } from './DifficultyConfig';
  * Levels are generated from a speed target per stage rather than written by
  * hand. Every number that sets difficulty is in STAGE_TUNING below.
  *
- * Speeds are **Wizzy Type gameplay WPM**: the in-game WPM a player must keep
+ * Speeds are **TypeL gameplay WPM**: the in-game WPM a player must keep
  * up (letters arriving per minute ÷ 5), not typing-test WPM.
  */
 export type StageMode = 'normal' | 'hardcore';

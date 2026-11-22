@@ -1338,3 +1338,12 @@ _2026-11-21 · Owner decision (chat); refines D-096; art requested (PLT-007 v2);
 - **Queueing and play:** awards in quick succession queue about 0.5 s apart (D-089), and each still gets its moment. Nothing pauses play, takes focus or covers words (D-089). The Grand Wizard's remarks (D-090) are unchanged.
 - **Art:** the medals are the D-093 cut-outs until MED-001.
 - **Supersedes:** D-096's conveyor wording and D-089's three-slot tray roll.
+
+### D-099 — The game is renamed TypeL everywhere (2026-11-22)
+
+**Owner decision:** the game, the repository and every in-code name become **TypeL**, replacing Spellbound, Wizzy Type, Typal and Typel.
+
+- **Repository:** `robbynpicard-gif/spellbound` → `robbynpicard-gif/TypeL`. Live site: https://robbynpicard-gif.github.io/TypeL/ (preview at `/TypeL/preview/`).
+- **Code and docs:** titles, package name, class names (`TypeLApp`, `TypeLPlayScene`…), debug globals (`typelGame`, `typelApp`, `typelEngine`), CI artifact names and file names now say TypeL / `typel`. This log and development-log.md keep their historical wording.
+- **Saves:** storage keys move to `typel.*` (`typel.save`, `typel.preview.*`). `src/storage/legacyKeys.ts` copies any `spellbound.*` / `wizzytype.*` key to its `typel.*` name on start-up without overwriting, and leaves the old keys in place, so no progress is lost.
+- **Unchanged:** the falling word "spellbound" stays in words.json.

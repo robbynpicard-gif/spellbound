@@ -1,4 +1,4 @@
-# Typel — Asset Manifest
+# TypeL — Asset Manifest
 
 _Generated from `docs/assets/asset-manifest.json` by `tools/assets/manifest.py render`. Do not edit by hand._
 
@@ -8,7 +8,7 @@ Lifecycle: PLANNED → REQUESTED → GENERATED → UNDER REVIEW → APPROVED →
 
 | ID | Name | File | Status | Provenance |
 |---|---|---|---|---|
-| REF-001 | Typel concept art (primary visual reference) | `assets-src/reference/REF-001_typel-concept-primary_v1.png` | APPROVED by owner 2026-11-21 | Supplied by the owner in chat, 2026-11-21 (generated image, "download_1.png") |
+| REF-001 | TypeL concept art (primary visual reference) | `assets-src/reference/REF-001_typel-concept-primary_v1.png` | APPROVED by owner 2026-11-21 | Supplied by the owner in chat, 2026-11-21 (generated image, "download_1.png") |
 
 ## Summary
 

@@ -1,11 +1,11 @@
-# TYPAL — current design authority and Claude continuation briefing
+# TYPEL — current design authority and Claude continuation briefing
 _2026-11-20 · living bridge document; update before Claude handoff_
 
 ## Read this first
 
 **The deployed game is a prototype, NOT the artistic target, gameplay authority, or visual reference.** Preserve the feel and game identity agreed with the owner, not the accidents of existing code. Use the code as selectively reusable infrastructure. If a historical decision or implementation conflicts with the current approved direction, follow this document and the newer decision record, then ask before changing core principles. Do not assume all D-001–D-059 are simultaneously current. The historical log is context, not a checklist.
 
-**Product fantasy:** Typal is a magical arcade typing game. The player's own accurate, fast typing feels like charging and operating a living arcane typewriter. The game should have an intuitive, physically coherent elemental world and compelling high-skill flow, with spectacular but readable audiovisual rewards. Don't manufacture rare rewards by rigging word generation.
+**Product fantasy:** TypeL is a magical arcade typing game. The player's own accurate, fast typing feels like charging and operating a living arcane typewriter. The game should have an intuitive, physically coherent elemental world and compelling high-skill flow, with spectacular but readable audiovisual rewards. Don't manufacture rare rewards by rigging word generation.
 
 ## Design commitments (owner-approved)
 
@@ -20,7 +20,7 @@ _2026-11-20 · living bridge document; update before Claude handoff_
 
 ## Latest engineering state and caveats
 
-Repo `robbynpicard-gif/spellbound`; production `main` → `https://robbynpicard-gif.github.io/spellbound/`; dev branch `dev/apprenticeship-prototype-20261119` → `/spellbound/preview/` when a **main-origin Pages workflow** packages the dev build. **Never deploy Pages directly from dev** (github-pages environment rejects it). `.github/workflows/deploy.yml` on main packages production and dev preview together; changes to dev alone do not publish until a new main Pages run.
+Repo `robbynpicard-gif/TypeL`; production `main` → `https://robbynpicard-gif.github.io/TypeL/`; dev branch `dev/apprenticeship-prototype-20261119` → `/typel/preview/` when a **main-origin Pages workflow** packages the dev build. **Never deploy Pages directly from dev** (github-pages environment rejects it). `.github/workflows/deploy.yml` on main packages production and dev preview together; changes to dev alone do not publish until a new main Pages run.
 
 New **experimental** Arcane Volley code in `src/gameplay/ArcaneVolley.ts` uses fixed-tick, word-length-scaled capture windows; first clean capture arms a short timing window at ×1; second timely clean capture earns ×1.2, then +0.2 per qualifying capture to ×5, then +0.1 with progressively more captures per step. Pauses decay the displayed multiplier, late captures start over, errors reset. This is a **playtest hypothesis, not final balance**. It is wired only to solo `experimentalScoring` in `GameEngine`; duels and other legacy paths still use old scoring. Current implementation does not yet check whether a viable word is available before allowing momentum to decay; that fairness concern remains open. HUD has Kindle/Surge/Mastery labels; the first capture now displays a short 'VOLLEY · LINK NEXT!' brass fuse meter that drains with the actual two-word timing window. Solo legacy two-second Volley callouts and meter are suppressed, but other legacy audio/scoring paths still require future consolidation. No art overhaul yet.
 

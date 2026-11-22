@@ -1,4 +1,4 @@
-# Typel — Production Queue
+# TypeL — Production Queue
 
 _Updated 2026-11-21. Statuses live in `ASSET_MANIFEST.md`; this file holds order, dependencies, priorities and open questions._
 

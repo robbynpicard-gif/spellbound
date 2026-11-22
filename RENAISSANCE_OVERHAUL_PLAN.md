@@ -1,4 +1,4 @@
-# Spellbound — Renaissance Workstation Visual/Audio Overhaul
+# TypeL — Renaissance Workstation Visual/Audio Overhaul
 
 Status: approved scope for the development preview; implementation and deployment verification are separate milestones. Production `main` is frozen.
 

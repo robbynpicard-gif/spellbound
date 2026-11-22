@@ -1,5 +1,5 @@
 /**
- * D-093: Typel's look is the owner's key-art painting. The painting is cut
+ * D-093: TypeL's look is the owner's key-art painting. The painting is cut
  * into layers (tools/keyart/*.py → public/assets/typel/keyart/) and every
  * element that shows game state is a live object on top of it. This module
  * loads the layers and builds the living world: the rune arch (the Ward made

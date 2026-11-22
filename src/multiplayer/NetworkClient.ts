@@ -25,7 +25,7 @@ export function serverUrl(): string {
   return `${secure ? 'wss' : 'ws'}://${location.hostname || 'localhost'}:${DEFAULT_SERVER_PORT}`;
 }
 
-/** Browser WebSocket connection to the Wizzy Type server (no libraries needed). */
+/** Browser WebSocket connection to the TypeL server (no libraries needed). */
 export class NetworkClient {
   readonly events = new EventBus<NetworkEvents>();
   private socket: WebSocket | null = null;

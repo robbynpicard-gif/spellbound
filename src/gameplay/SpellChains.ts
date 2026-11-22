@@ -1,5 +1,5 @@
 /**
- * Spatial spell chains (Typel prototype, D-085). Pure and deterministic.
+ * Spatial spell chains (TypeL prototype, D-085). Pure and deterministic.
  *
  * EXPLORATORY: D-079 (Fire Combustion Chain) and D-080 (Shock seeded chain)
  * are approved *directions* only. Every number here is a provisional

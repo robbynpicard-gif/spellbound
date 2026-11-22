@@ -1,13 +1,13 @@
-/** Typel Triumphs (prototype, D-085): long-term tiered milestones. Values PROVISIONAL. */
+/** TypeL Triumphs (prototype, D-085): long-term tiered milestones. Values PROVISIONAL. */
 import { RUNES } from '../gameplay/runes/RuneCatalogue';
-import type { TypelProgress } from './prefs';
+import type { TypeLProgress } from './prefs';
 
 export interface Triumph {
   id: string;
   name: string;
   what: string;
   tiers: [number, number, number];
-  value(p: TypelProgress): number;
+  value(p: TypeLProgress): number;
   format?: (v: number) => string;
 }
 
@@ -24,7 +24,7 @@ export const TRIUMPHS: readonly Triumph[] = [
   { id: 'swift', name: 'Swift Hand', what: 'Best Typing Trial WPM', tiers: [40, 70, 100], value: (p) => Math.max(0, ...Object.values(p.typing.bestWpm)) },
 ];
 
-export function tierOf(t: Triumph, p: TypelProgress): number {
+export function tierOf(t: Triumph, p: TypeLProgress): number {
   const v = t.value(p);
   return t.tiers.filter((x) => v >= x).length;
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Typel asset production: composition guide images for Flow (docs/assets/guides/).
+TypeL asset production: composition guide images for Flow (docs/assets/guides/).
 
 Each guide is a flat-colour layout map attached to Flow next to the concept art,
 so a generated asset comes back with the proportions the game layout needs.

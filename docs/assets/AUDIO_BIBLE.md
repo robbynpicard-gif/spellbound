@@ -1,4 +1,4 @@
-# Typel — Audio Bible
+# TypeL — Audio Bible
 
 _Version 1 · 2026-11-21 · Status: **documentation of what exists**, plus specifications for future audio requests. Nothing here changes the current sound. Any change to a cue's character needs the owner's approval._
 
@@ -14,13 +14,13 @@ _Version 1 · 2026-11-21 · Status: **documentation of what exists**, plus speci
 
 | Item | Where | Notes |
 |---|---|---|
-| Engine | `src/typel/audio.ts` (`TypelAudio`, exported as `sound`) | Web Audio API. **Everything is synthesized live**; there are no audio files in the Typel build. |
+| Engine | `src/typel/audio.ts` (`TypeLAudio`, exported as `sound`) | Web Audio API. **Everything is synthesized live**; there are no audio files in the TypeL build. |
 | Unlock | `src/main.ts` | First `pointerdown`/`keydown` creates/resumes the `AudioContext` (browser autoplay rule). |
 | Channels | `music`, `sfx`, `voice` buses → master → compressor (−14 dB threshold, 3:1) → output | Music bus runs at 0.55 × its slider. |
 | Room | Convolver "warm stone-and-wood study", 2.4 s synthetic impulse, 3.8 kHz low-pass, send 0.28 | Shared by all buses. The music adds its own echo (below). |
 | Settings | `localStorage` key `typel.audio.v1`; defaults music 0.6, sfx 0.8, voice 0.8, all on | Options screen in `src/typel/app.ts`. |
 | Voice | `src/typel/voice.ts`, lines in `src/typel/voiceLines.ts`, script `docs/grand-wizard-voice-script.md` | Recorded lines plug in via `src/data/voice-manifest.json` (currently `[]`) + `public/assets/voice/<id>.mp3`. |
-| Legacy | `src/audio/Audio.ts`, `Music.ts`, `synth.ts` | Production/legacy game audio. **Not used by the Typel preview.** Leave alone. |
+| Legacy | `src/audio/Audio.ts`, `Music.ts`, `synth.ts` | Production/legacy game audio. **Not used by the TypeL preview.** Leave alone. |
 
 ## 2. Sound-effect cue map (current, all synthesized)
 

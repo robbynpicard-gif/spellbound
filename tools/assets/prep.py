@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Typel asset preparation (docs/assets/REFERENCE_GUIDE.md, "Processing").
+TypeL asset preparation (docs/assets/REFERENCE_GUIDE.md, "Processing").
 
 Turns an approved Flow output (kept untouched in assets-src/) into a game-ready
 file in public/assets/typel/. Every step is non-destructive: it reads one file
@@ -133,7 +133,7 @@ def cmd_key(a) -> None:
     border = border[border > 0]
     connected = np.isin(lab, border)
     # enclosed pockets of near-exact key colour (e.g. inside a padlock shackle) are background too:
-    # pure magenta never occurs in Typel art, so a strict threshold is safe there
+    # pure magenta never occurs in TypeL art, so a strict threshold is safe there
     pocket = (~connected) & (dist < a.tol * 0.8)
     pocket = ndimage.binary_dilation(pocket, iterations=1) & (dist < a.tol + a.soft)
     alpha = np.where(connected | pocket, t, 1.0) * (arr[..., 3] / 255)

@@ -1,4 +1,4 @@
-/** Shared Typel textures and the room (prototype, D-085/D-086). */
+/** Shared TypeL textures and the room (prototype, D-085/D-086). */
 import Phaser from 'phaser';
 import { H, paintFlame, paintGlow, paintStar, W } from './paint';
 import { buildWorld, dressForMenu, preloadKeyart } from './keyart';
@@ -43,10 +43,10 @@ export function ensureTextures(scene: Phaser.Scene): void {
 }
 
 /** Menus: the same painted world at rest, under a gentle veil. */
-export class TypelMenuScene extends Phaser.Scene {
+export class TypeLMenuScene extends Phaser.Scene {
   static readonly KEY = 'typel-menu';
   constructor() {
-    super(TypelMenuScene.KEY);
+    super(TypeLMenuScene.KEY);
   }
   private wizard?: ReturnType<typeof buildWorld>['wizard'];
   preload(): void {
