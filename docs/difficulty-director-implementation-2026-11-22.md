@@ -75,14 +75,14 @@ Lengths are classed **relative to the director's D-098 window** for that apprent
 | 1 Slow | 12 | director | 3–6 | 98% / 1% / 1% | 3 / 4 / 6 | 9.8 / 14.6 / 18.1 | 40% | 7% | 6% | 1% | 0.8 | 2.6 | 100% | 0.0 |
 | 1 Slow | Boss | classic | 3–6 | 97% / 0% / 3% | 3 / 4 / 4 | 10.9 / 13.1 / 16.3 | 45% | 0% | 1% | 0% | 0.6 | 1.4 | 100% | 0.0 |
 | 1 Slow | Boss | director | 3–6 | 98% / 1% / 1% | 3 / 4 / 6 | 9.5 / 14.5 / 18.0 | 39% | 7% | 7% | 2% | 0.8 | 1.8 | 100% | 0.0 |
-| 5 Shock | 1 | classic | 5–8 | 82% / 0% / 18% | 4 / 5 / 5 | 8.8 / 11.8 / 16.5 | 28% | 0% | 28% | 0% | 1.1 | 2.0 | 100% | 0.0 |
-| 5 Shock | 1 | director | 5–8 | 92% / 2% / 6% | 5 / 6 / 8 | 8.7 / 13.8 / 17.4 | 36% | 7% | 11% | 2% | 1.4 | 1.9 | 100% | 0.0 |
-| 5 Shock | 6 | classic | 5–8 | 80% / 0% / 20% | 4 / 5 / 6 | 8.6 / 11.7 / 16.2 | 25% | 0% | 29% | 0% | 1.6 | 1.5 | 100% | 0.0 |
-| 5 Shock | 6 | director | 5–8 | 93% / 2% / 5% | 5 / 6 / 8 | 8.5 / 13.7 / 17.4 | 34% | 8% | 11% | 4% | 1.7 | 1.8 | 100% | 0.0 |
-| 5 Shock | 12 | classic | 5–8 | 72% / 0% / 28% | 4 / 5 / 6 | 7.6 / 10.7 / 17.3 | 28% | 0% | 42% | 0% | 4.0 | 0.1 | 100% | 0.0 |
-| 5 Shock | 12 | director | 5–8 | 92% / 3% / 6% | 5 / 6 / 8 | 8.4 / 13.4 / 17.3 | 30% | 9% | 11% | 6% | 2.6 | 1.4 | 100% | 0.0 |
-| 5 Shock | Boss | classic | 5–8 | 70% / 0% / 30% | 4 / 5 / 6 | 9.3 / 11.3 / 14.0 | 16% | 0% | 25% | 0% | 3.7 | 0.4 | 100% | 0.0 |
-| 5 Shock | Boss | director | 5–8 | 91% / 4% / 5% | 5 / 6 / 8 | 8.3 / 13.1 / 17.1 | 27% | 10% | 12% | 7% | 6.1 | 0.1 | 100% | 0.8 |
+| 5 Storms | 1 | classic | 5–8 | 82% / 0% / 18% | 4 / 5 / 5 | 8.8 / 11.8 / 16.5 | 28% | 0% | 28% | 0% | 1.1 | 2.0 | 100% | 0.0 |
+| 5 Storms | 1 | director | 5–8 | 92% / 2% / 6% | 5 / 6 / 8 | 8.7 / 13.8 / 17.4 | 36% | 7% | 11% | 2% | 1.4 | 1.9 | 100% | 0.0 |
+| 5 Storms | 6 | classic | 5–8 | 80% / 0% / 20% | 4 / 5 / 6 | 8.6 / 11.7 / 16.2 | 25% | 0% | 29% | 0% | 1.6 | 1.5 | 100% | 0.0 |
+| 5 Storms | 6 | director | 5–8 | 93% / 2% / 5% | 5 / 6 / 8 | 8.5 / 13.7 / 17.4 | 34% | 8% | 11% | 4% | 1.7 | 1.8 | 100% | 0.0 |
+| 5 Storms | 12 | classic | 5–8 | 72% / 0% / 28% | 4 / 5 / 6 | 7.6 / 10.7 / 17.3 | 28% | 0% | 42% | 0% | 4.0 | 0.1 | 100% | 0.0 |
+| 5 Storms | 12 | director | 5–8 | 92% / 3% / 6% | 5 / 6 / 8 | 8.4 / 13.4 / 17.3 | 30% | 9% | 11% | 6% | 2.6 | 1.4 | 100% | 0.0 |
+| 5 Storms | Boss | classic | 5–8 | 70% / 0% / 30% | 4 / 5 / 6 | 9.3 / 11.3 / 14.0 | 16% | 0% | 25% | 0% | 3.7 | 0.4 | 100% | 0.0 |
+| 5 Storms | Boss | director | 5–8 | 91% / 4% / 5% | 5 / 6 / 8 | 8.3 / 13.1 / 17.1 | 27% | 10% | 12% | 7% | 6.1 | 0.1 | 100% | 0.8 |
 | 8 Harvest | 1 | classic | 6–9 | 81% / 0% / 19% | 5 / 6 / 6 | 7.9 / 10.8 / 14.9 | 17% | 0% | 39% | 0% | 1.8 | 1.5 | 100% | 0.0 |
 | 8 Harvest | 1 | director | 6–9 | 89% / 4% / 8% | 6 / 7 / 9 | 7.7 / 12.6 / 16.7 | 27% | 7% | 10% | 6% | 2.8 | 1.1 | 100% | 0.0 |
 | 8 Harvest | 6 | classic | 6–9 | 81% / 0% / 19% | 5 / 6 / 7 | 7.5 / 10.2 / 14.0 | 12% | 0% | 47% | 0% | 4.0 | 0.1 | 100% | 0.0 |
@@ -112,14 +112,14 @@ Lengths are classed **relative to the director's D-098 window** for that apprent
 | 1 Slow | 12 | director | 3–6 | 98% / 1% / 1% | 3 / 4 / 6 | 8.4 / 13.1 / 16.2 | 31% | 6% | 11% | 3% | 1.3 | 2.4 | 100% | 0.0 |
 | 1 Slow | Boss | classic | 3–6 | 100% / 0% / 0% | 3 / 4 / 5 | 9.3 / 11.3 / 14.0 | 10% | 0% | 16% | 0% | 1.2 | 2.2 | 100% | 0.0 |
 | 1 Slow | Boss | director | 3–6 | 98% / 1% / 1% | 3 / 4 / 6 | 8.3 / 12.7 / 16.1 | 29% | 6% | 13% | 4% | 1.3 | 2.2 | 100% | 0.0 |
-| 5 Shock | 1 | classic | 5–8 | 97% / 0% / 3% | 5 / 6 / 6 | 7.5 / 10.4 / 14.3 | 12% | 0% | 41% | 0% | 2.1 | 2.0 | 100% | 0.0 |
-| 5 Shock | 1 | director | 5–8 | 92% / 2% / 6% | 5 / 6 / 8 | 7.6 / 12.1 / 15.6 | 30% | 7% | 12% | 5% | 2.3 | 1.9 | 100% | 0.0 |
-| 5 Shock | 6 | classic | 5–8 | 98% / 0% / 2% | 5 / 6 / 7 | 7.2 / 9.8 / 13.4 | 8% | 0% | 44% | 0% | 3.1 | 0.9 | 100% | 0.0 |
-| 5 Shock | 6 | director | 5–8 | 92% / 3% / 6% | 5 / 6 / 8 | 7.6 / 11.9 / 15.5 | 29% | 7% | 12% | 6% | 2.8 | 1.6 | 100% | 0.0 |
-| 5 Shock | 12 | classic | 5–8 | 99% / 0% / 1% | 5 / 6 / 7 | 6.3 / 8.9 / 14.7 | 8% | 0% | 37% | 0% | 9.5 | 0.0 | 100% | 0.0 |
-| 5 Shock | 12 | director | 5–8 | 91% / 3% / 6% | 5 / 6 / 8 | 7.6 / 11.7 / 15.4 | 26% | 8% | 11% | 7% | 4.7 | 0.8 | 100% | 0.0 |
-| 5 Shock | Boss | classic | 5–8 | 99% / 0% / 1% | 5 / 6 / 7 | 7.8 / 9.4 / 11.7 | 0% | 0% | 38% | 0% | 7.5 | 0.3 | 100% | 0.3 |
-| 5 Shock | Boss | director | 5–8 | 91% / 4% / 5% | 5 / 7 / 8 | 7.5 / 11.5 / 15.3 | 24% | 8% | 12% | 9% | 9.8 | 0.0 | 100% | 1.3 |
+| 5 Storms | 1 | classic | 5–8 | 97% / 0% / 3% | 5 / 6 / 6 | 7.5 / 10.4 / 14.3 | 12% | 0% | 41% | 0% | 2.1 | 2.0 | 100% | 0.0 |
+| 5 Storms | 1 | director | 5–8 | 92% / 2% / 6% | 5 / 6 / 8 | 7.6 / 12.1 / 15.6 | 30% | 7% | 12% | 5% | 2.3 | 1.9 | 100% | 0.0 |
+| 5 Storms | 6 | classic | 5–8 | 98% / 0% / 2% | 5 / 6 / 7 | 7.2 / 9.8 / 13.4 | 8% | 0% | 44% | 0% | 3.1 | 0.9 | 100% | 0.0 |
+| 5 Storms | 6 | director | 5–8 | 92% / 3% / 6% | 5 / 6 / 8 | 7.6 / 11.9 / 15.5 | 29% | 7% | 12% | 6% | 2.8 | 1.6 | 100% | 0.0 |
+| 5 Storms | 12 | classic | 5–8 | 99% / 0% / 1% | 5 / 6 / 7 | 6.3 / 8.9 / 14.7 | 8% | 0% | 37% | 0% | 9.5 | 0.0 | 100% | 0.0 |
+| 5 Storms | 12 | director | 5–8 | 91% / 3% / 6% | 5 / 6 / 8 | 7.6 / 11.7 / 15.4 | 26% | 8% | 11% | 7% | 4.7 | 0.8 | 100% | 0.0 |
+| 5 Storms | Boss | classic | 5–8 | 99% / 0% / 1% | 5 / 6 / 7 | 7.8 / 9.4 / 11.7 | 0% | 0% | 38% | 0% | 7.5 | 0.3 | 100% | 0.3 |
+| 5 Storms | Boss | director | 5–8 | 91% / 4% / 5% | 5 / 7 / 8 | 7.5 / 11.5 / 15.3 | 24% | 8% | 12% | 9% | 9.8 | 0.0 | 100% | 1.3 |
 | 8 Harvest | 1 | classic | 6–9 | 97% / 0% / 3% | 6 / 7 / 7 | 6.4 / 8.8 / 12.0 | 3% | 0% | 66% | 0% | 3.5 | 0.2 | 100% | 0.0 |
 | 8 Harvest | 1 | director | 6–9 | 88% / 4% / 8% | 6 / 7 / 9 | 7.0 / 10.9 / 14.7 | 19% | 5% | 17% | 9% | 3.9 | 0.5 | 100% | 0.0 |
 | 8 Harvest | 6 | classic | 6–9 | 98% / 0% / 2% | 6 / 7 / 8 | 6.1 / 8.2 / 11.2 | 1% | 0% | 66% | 0% | 17.2 | 0.0 | 100% | 2.1 |
@@ -156,7 +156,7 @@ A mutation check confirmed the tests fail if Slow's window widens to 3–7 or Ha
 
 **Reading it.**
 - **Slow:** classic and director now share the recognizable 3–6 feel. The director uses the whole window (classic barely leaves 3–4), has ≈ 1 % 7+ words, and adds speed variety, with rare 5–6-letter fast words as its "long/fast". Levels run ~20–25 % longer than classic, down from ~35 % before D-098.
-- **Middle (Shock):** the director's 5–8 window holds ~92 %; classic still lives around 4–6.
+- **Middle (Storms):** the director's 5–8 window holds ~92 %; classic still lives around 4–6.
 - **Harvest:** ~85–89 % inside 6–9 (or 6–10 at the boss), a median of 7–8, and rare shorter relief (≈ 8 % below 6, under 2 % ≤ 4). Classic sits at 5–7.
 - **Grand Wizard:** the director's 6–10 window. Classic is uniformly long and fast and turns into a wall; the director stays harder than Slow on every axis but keeps relief. For the 60-WPM measuring typist, director levels there are gentler than classic. Director bosses at Harvest are *harder* than classic (31 % vs 84 % clears, Normal). The late-game balance is the main tuning question.
 - **Pressure:** demand still rises convexly toward each level's end, with dips after surges.
