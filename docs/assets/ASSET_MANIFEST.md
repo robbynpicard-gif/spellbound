@@ -12,7 +12,7 @@ Lifecycle: PLANNED → REQUESTED → GENERATED → UNDER REVIEW → APPROVED →
 
 ## Summary
 
-UNDER REVIEW: 11 · REQUESTED: 1 · PLANNED: 12 · REJECTED: 1
+UNDER REVIEW: 12 · PLANNED: 12 · REJECTED: 1
 
 | ID | Name | Batch | Status | Category | Format | Size | Transparency / loop |
 |---|---|---|---|---|---|---|---|
@@ -23,7 +23,7 @@ UNDER REVIEW: 11 · REQUESTED: 1 · PLANNED: 12 · REJECTED: 1
 | SCR-001 | Plain word scroll (blank) | 1 | **UNDER REVIEW** | visual/gameplay-target | PNG 16:9 on #FF00FF | ships 229×67 (+2×), capL/capR re-measured | alpha (chroma key); 3-slice |
 | PLT-005 | Title removed from the arch top | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-005 | opaque (region composite) |
 | PLT-006 | Shorter shelf + TYPEL title + blank stage banner | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-006 | opaque (region composite) |
-| PLT-007 | Rune display (Halo-medal style) | 1b | **REQUESTED** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-007 | opaque (region composite) |
+| PLT-007 | Rune display (Halo-medal style) | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-007 | opaque (region composite) |
 | PLT-008 | Spell-key row, Ward orb, desk pipe | 1b | **UNDER REVIEW** | visual/plate-edit | PNG 16:9 edit of clean plate v1 | region PLT-008 | opaque (region composite) |
 | RIB-001 | Shelf ribbon markers ×8 | 1b | **UNDER REVIEW** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~22×80 each | alpha; sheet split |
 | KEY-001 | Spell gems ×8 | 1b | **UNDER REVIEW** | visual/hud-part | PNG 16:9 sheet on #FF00FF | ~30 px each | alpha; sheet split |
@@ -149,12 +149,12 @@ UNDER REVIEW: 11 · REQUESTED: 1 · PLANNED: 12 · REJECTED: 1
 - **Required format:** PNG 16:9 edit of clean plate v1 · **Dimensions/duration:** region PLT-007 · **Transparency/looping:** opaque (region composite)
 - **Source reference:** clean plate v1
 - **Prompt:** v2 in `docs/assets/requests/BATCH-01b_hud-revision.md` (TYPEL SHARED STYLE v1)
-- **Status:** **REQUESTED** — history: 2026-11-21 REQUESTED; 2026-11-21 REQUESTED (v2 prompt: conveyor concept replaced by Rune display (D-098))
+- **Status:** **UNDER REVIEW** — history: 2026-11-21 REQUESTED; 2026-11-21 REQUESTED (v2 prompt: conveyor concept replaced by Rune display (D-098)); 2026-11-21 GENERATED (owner upload PLT-007_rune-display_v2.png); 2026-11-21 UNDER REVIEW
 - **Approved source file:** —
 - **Final integrated path:** TBD
 - **Integration notes:** Replaces keyart tray slots and the level plate; level name moves to the stage banner. Medals keep the D-093 cut-outs until MED-001.
 - **Test status:** not tested
-- **Known limitations:** Objects on the belt; window too small.
+- **Known limitations:** Pane ~310×140 at 1080p, smaller than asked; the two tubes were shortened by ~60 px, so tube coordinates must be re-measured at integration.
 
 ### PLT-008 · Spell-key row, Ward orb, desk pipe
 

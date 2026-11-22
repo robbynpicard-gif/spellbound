@@ -319,7 +319,7 @@
     "file": "docs/assets/requests/BATCH-01b_hud-revision.md",
     "style_block": "TYPEL SHARED STYLE v1"
    },
-   "status": "REQUESTED",
+   "status": "UNDER REVIEW",
    "status_history": [
     {
      "status": "REQUESTED",
@@ -329,13 +329,22 @@
      "status": "REQUESTED",
      "date": "2026-11-21",
      "note": "v2 prompt: conveyor concept replaced by Rune display (D-098)"
+    },
+    {
+     "status": "GENERATED",
+     "date": "2026-11-21",
+     "note": "owner upload PLT-007_rune-display_v2.png"
+    },
+    {
+     "status": "UNDER REVIEW",
+     "date": "2026-11-21"
     }
    ],
    "approved_source": null,
    "final_path": null,
    "integration_notes": "Replaces keyart tray slots and the level plate; level name moves to the stage banner. Medals keep the D-093 cut-outs until MED-001.",
    "test_status": "not tested",
-   "known_limitations": "Objects on the belt; window too small."
+   "known_limitations": "Pane ~310×140 at 1080p, smaller than asked; the two tubes were shortened by ~60 px, so tube coordinates must be re-measured at integration."
   },
   {
    "id": "PLT-008",

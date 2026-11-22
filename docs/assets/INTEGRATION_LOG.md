@@ -76,3 +76,13 @@ _Append-only. Records which assets were added, what code changed, which systems 
   - **RIB-001:** 8 ribbons in the correct order and colours. Good.
 - **PLT-007 re-requested (v2) as a Rune display** (D-098); its region is widened to the machine below the tubes plus the old tray area.
 - **Game:** unchanged.
+
+## 2026-11-21 · Entry 5 — PLT-007 v2 received
+
+- **Registration:** exact, against the clean plate.
+- **What came back:**
+  - a dark scrying pane in a brass frame, with an intake lens at the top and a blank strip below;
+  - the desk tray removed, and the pane empty.
+- **Size:** the pane is about 310×140 px at 1080p, smaller than asked. That still works if the newest Rune shows centred and large, then shrinks into the recent row.
+- **Tubes:** the Combo and Rush tubes were shortened by about 60 px, so their coordinates get re-measured at integration.
+- **Status:** UNDER REVIEW. The only open art item is the shelf count (PLT-006).
