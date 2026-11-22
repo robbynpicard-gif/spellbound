@@ -21,7 +21,7 @@ Request: `requests/BATCH-01_clean-plate-and-scroll.md`
 Integration when approved: align → diff → composite each region onto a new clean plate (`tools/assets/prep.py`), re-run the D-093 slicing (`tools/keyart/`) on it so `plate.jpg` and `front.webp` are rebuilt, swap `scroll_plain.png`, print key letters live on blank caps (PLT-003), run `npm run check`, smoke-test in the browser at typing speed, verify the preview build.
 
 ## Batch 02 — Spell scrolls and the shelf · PLANNED
-SCR-002 elemental spell scrolls ×8 (needs SCR-001) · RCK-002 shelf scrolls ×8 incl. a real Barrier scroll (needs PLT-004) · SCR-003 CATCH! stamp (only if the current one looks soft).
+SCR-002 elemental spell scrolls ×8 (needs SCR-001; must follow **D-095**: calm, a light wash of the spell colour and a wax seal, not busy flames/lightning frames — Fire keeps a small flame on its rolled end, Ice its frost) · RCK-002 shelf scrolls ×8 incl. a real Barrier scroll (needs PLT-004) · SCR-003 CATCH! stamp (only if the current one looks soft).
 
 ## Batch 03 — Characters in motion · PLANNED
 CHR-001 Grand Wizard pose sheet · HND-001 hands pose sheet (needs PLT-003).
