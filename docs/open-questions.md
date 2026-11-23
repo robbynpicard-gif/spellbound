@@ -20,9 +20,9 @@ the repo is wrong.
 
 **Q-2 · Bringing `main` and dev back together**
 Dev is 49 commits ahead of `main`. `main` has one gameplay-data commit that
-dev lacks (`81bedb5`, 44 new words in `src/data/words.json`). Should that
-word-bank change be brought into dev? And when should dev's TypeL replace
-`main`'s legacy campaign as the stable game?
+dev lacks (`81bedb5`, 44 new words in `src/data/words.json`). The Bible says to preserve the approved word additions, so they come into
+dev in M1 (D-106). Still open: when should dev's TypeL replace `main`'s legacy campaign as
+the stable game?
 
 **Q-3 · Shared docs on `main`**
 The shared-context PR targets the dev branch, where the current decisions
@@ -34,20 +34,6 @@ also go to `main` now?
 `/preview/` workflow without an owner decision. D-060 and
 `.github/workflows/deploy.yml` show one in use. Please confirm the preview
 workflow is approved, so it can be recorded as a decision.
-
-**Q-5 · Normal quick-cast**
-Owner direction recorded as D-105 says Hardcore's typed casting is the
-preferred model for normal play. Today Normal also allows number keys 1–8,
-in a fixed order (Slow, Fire, Ice, Barrier, Shock, Alter, Wind, Harvest).
-The legacy game let players remap the keys (D-049 Spellbook); the preview
-does not. Should Normal keep quick-cast, keep it with remapping, or drop it?
-No change is made until you decide.
-
-**Q-6 · Difficulty baseline and spell cadence (D-105)**
-D-105 records your brief: the early game is too forgiving, late-game
-pressure should inform the new baseline, the gentle opening may become an
-intro phase, and casting roughly every 10–15 s is a balancing hypothesis.
-Is that wording right, and should it now drive Director tuning?
 
 **Q-7 · Missing decision entries**
 Code or docs cite decisions that aren't in `docs/decisions.md`: D-024
@@ -80,6 +66,35 @@ receive the same pushes. Should the second be retired so there is one dev line?
 by D-093). The legacy campaign code is compiled and tested on dev but not
 reached by the preview. Keep both until dev is promoted, or plan a cleanup?
 
+**Q-12 · Number-key casting as an option** (from D-106 / GAME-001)
+Default Normal loses number-key casting. Should it stay available as an
+opt-in setting (e.g. for accessibility), or be removed entirely?
+
+**Q-13 · Challenge before lesson** (GAME-004)
+The Bible's order is challenge → lesson → examination. Today each
+apprenticeship runs lesson (Learn) → Master → Boss. Should each
+apprenticeship open with a challenge, or does the spell-free opening trial
+(GAME-002) play that role once for the whole Academy?
+
+**Q-14 · Where advanced spawn behaviours live** (SCOPE-001/002, GAME-006)
+D-103 put new scroll types and spawn behaviours in the Arcade Campaign,
+which the Bible replaces with Arcane Trials (exploratory). Should they appear
+in the Academy, in Arcade & Practice, or only in Arcane Trials?
+
+**Q-15 · Volley or Arcane Rush**
+The Bible says "Combo and Volley"; D-086 renamed Volley to **Arcane Rush**
+for players. Which name do players see?
+
+**Q-16 · Missing source records** (GAME-006, Bible §10)
+The "six previously discussed spawning behaviours" and the "prior approved
+Game Bible" aren't in the repository. Please add them (or the ChatGPT
+conversation they came from) so they can be recovered exactly, not guessed.
+
 ## Resolved
 
-_None yet._
+**Q-5 · Normal quick-cast:** resolved by D-106 (GAME-001). Default Normal
+drops number-key casting. Whether an opt-in setting stays is Q-12.
+
+**Q-6 · Difficulty baseline and spell cadence:** resolved by D-106. The
+Bible §3 confirms the cadence hypothesis (10–15 s, maybe 5–10 s, not a
+quota) and difficulty from spawning variety, not just speed. D-105 is absorbed.

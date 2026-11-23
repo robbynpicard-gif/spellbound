@@ -1,6 +1,6 @@
 # TypeL — system map (where each mechanic lives)
 
-_Verified against `dev/apprenticeship-prototype-20261119` at `cb41e71` and `main`
+_Design intent for each row: `production-bible.md` (D-106). Verified against `dev/apprenticeship-prototype-20261119` at `cb41e71` and `main`
 at `81bedb5` on 2026-11-22, by reading source and tests and tracing imports
 from `src/main.ts`. CI (`npm run check`) was green on both commits. Not
 play-tested for this audit. Update the row you touch in the same change
@@ -30,7 +30,7 @@ by anything.
 |---|---|---|---|---|---|
 | Simulation core: fixed 60 Hz tick, command log, replay | `src/core/GameEngine.ts`, `GameState.ts`, `GameEvents.ts`, `EventBus.ts`, `Random.ts` | Live | Implemented, Verified | `tests/GameEngine.test.ts`, `tests/Random.test.ts`, `tests/EventBus.test.ts` | D-003–D-005, D-013 |
 | Typing console and targeting (Enter submits, click to aim) | `GameEngine.ts` (`typeChar`, `submit`, `selectTarget`), `src/gameplay/TargetManager.ts`; keys in `src/typel/render/PlayScene.ts` `bindInput` | Live | Implemented, Verified | `tests/GameEngine.test.ts`, `tests/gameplay.test.ts` | D-020, D-022 |
-| Spell casting: typed name + Enter (both modes); keys 1–8 in Normal only, fixed order Slow…Harvest | `GameEngine.ts` `applySubmit`, `quickCast`, `castSpell`; `PlayScene.ts` `bindInput` | Live | Implemented, Verified | `tests/spells.test.ts` (Hardcore `quickCast` returns false) | D-049, D-072 |
+| Spell casting: typed name + Enter (both modes); keys 1–8 in Normal only, fixed order Slow…Harvest | `GameEngine.ts` `applySubmit`, `quickCast`, `castSpell`; `PlayScene.ts` `bindInput` | Live | Implemented, Verified | `tests/spells.test.ts` (Hardcore `quickCast` returns false) | D-049, D-072. **GAME-001 (Approved): no number-key casting in default Normal; planned for M1** |
 | Hardcore typed-spell precision points | `GameEngine.ts` `castSpell` (`hardcore && cleanTyped`) | Live | Implemented; **no dedicated test found** | — | D-072 |
 | Spell names reserved in the word bank | `src/data/wordList.ts` `clashesWithCastWord` | Live | Implemented, Verified | `tests/spells.test.ts` | D-049 |
 | Word generation (seeded, never reacts to play) | `src/gameplay/WordGenerator.ts`, `src/data/words.json` | Live | Implemented, Verified | `tests/gameplay.test.ts` | D-036, D-058 |
@@ -50,9 +50,12 @@ by anything.
 | Elemental status and reactions | `src/gameplay/ElementalStatus.ts`, `ElementalReactions.ts` | Live (one workshop status only) | Implemented in part; no per-scroll elements | `tests/typel-elemental-*.test.ts`, `tests/elementalReactions.test.ts` | D-058 gate: `scroll-elemental-design-gate.md` |
 | Typing Trials | `src/typel/typingTrial.ts` | Live | Implemented | — | D-085 |
 | Rendering (key-art scene, typewriter Ward, HUD) | `src/typel/render/PlayScene.ts`, `keyart.ts`, `paint.ts`, `study.ts` | Live | Implemented, art placeholder | — | D-093–D-096, D-098 · `typel-keyart-reconstruction-2026-11-21.md` |
-| Audio (synthesized score and effects) | `src/typel/audio.ts` | Live | Implemented, placeholder | — | D-085, D-092 · `assets/AUDIO_BIBLE.md` |
+| Audio (synthesized score and effects; volume groups music/sfx/voice) | `src/typel/audio.ts` | Live | Implemented, placeholder. AUD-001 (Approved) replaces danger-driven music with performance-responsive layers and six mix groups; AUDIO-EXP-001 approved experiment | — | D-085, D-092, D-106 · `assets/AUDIO_BIBLE.md` |
 | Grand Wizard voice (babble placeholder, recording hooks) | `src/typel/voice.ts`, `voiceLines.ts`, `src/data/voice-manifest.json` | Live | Implemented, placeholder | — | D-090 · `grand-wizard-voice-script.md` |
-| Teacher-boss examinations, graduation, Arcade Campaign | — | — | Approved direction, **not implemented** | — | D-103 · `academy-campaign-canonical-gameplay-2026-11-22.md` |
+| Spell-free opening trial (Academy start) | — | — | Approved (GAME-002), **not implemented** | — | D-106 · `production-bible-reconciliation-2026-11-23.md` |
+| Chronomancer `SLOW` lesson, Temporal Trial, teacher examinations, Grandmaster, graduation | Today: `src/typel/apprenticeship.ts` ("Master of Time", "Grand Wizard") | Live (old names) | Approved (GAME-003, GAME-004), **renames and structure not implemented** | — | D-103, D-106 |
+| Arcade & Practice; Arcane Trials; relics | Partial precursors: Sandbox/Endless, `src/typel/typingTrial.ts` | — | Approved scope (SCOPE-001, SCOPE-002); relics Deferred (RELIC-001); **not implemented** | — | D-106 |
+| Desktop build (Tauri 2) | — (`index.html` loads fonts from Google's servers, which blocks offline desktop use) | — | Approved objective (TECH-001); Tauri Recommended — not approved (TECH-002) | — | D-106 |
 | Old wizard figure and hands | `src/typel/render/Wizard.ts`, `Hands.ts` | Orphan | Superseded by D-093 | — | D-087, D-089 |
 | Legacy campaign, Practice, menus, HUD, Codex, Spellbook | `src/app/App.ts`, `src/modes/*`, `src/scenes/*`, `src/ui/*`, `src/render/*`, `src/audio/*`, `src/storage/SaveManager.ts`, `LifetimeStats.ts` | Legacy | Implemented on `main` | `tests/campaign.test.ts`, `practice.test.ts`, `lifetime.test.ts`, `cleanStreak.test.ts`, `balance-audit.test.ts` | D-047–D-057 |
 | Wind Master lesson slice (pre-D-085) | `src/app/Apprenticeship.ts`, `src/ui/apprenticeshipScreens.ts` | Legacy | Superseded by D-085 | `tests/wind-apprenticeship.test.ts` | D-084 |

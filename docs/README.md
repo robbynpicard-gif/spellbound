@@ -4,9 +4,16 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-105
+Decision log current through: D-106
 
-## Current state (2026-11-22)
+## Current state (2026-11-23)
+
+- **Design source of truth:** [`production-bible.md`](production-bible.md),
+  adopted by the owner on 2026-11-23 (D-106). How it maps to the code, plus
+  the staged plan awaiting approval:
+  [`production-bible-reconciliation-2026-11-23.md`](production-bible-reconciliation-2026-11-23.md).
+- **Preserved baselines:** branches `baseline/main-2026-11-23` and
+  `baseline/dev-2026-11-23`.
 
 - **Repository:** `robbynpicard-gif/spellbound`. Pages:
   `https://robbynpicard-gif.github.io/spellbound/`, with the preview at
@@ -23,8 +30,10 @@ Decision log current through: D-105
   Difficulty Director (D-097, D-101, D-102), Arcane Rush, Runes, key-art
   presentation (D-093), Sandbox and Typing Trials.
   `dev/continuous-apprenticeship-20261122` currently points at the same commit.
-- **Approved but not built:** teacher-boss examinations, graduation and the
-  Arcade Campaign (D-103).
+- **Approved but not built:** see the reconciliation plan. Highlights: no
+  number-key casting in default Normal, a spell-free opening trial, the
+  Chronomancer/Temporal Trial/Grandmaster structure, teacher examinations and
+  graduation, Arcade & Practice, the audio split, and the desktop (Tauri) path.
 - **Where each mechanic lives:** [`system-map.md`](system-map.md).
 - **Waiting on the owner:** [`open-questions.md`](open-questions.md).
 
@@ -32,9 +41,10 @@ Decision log current through: D-105
 
 1. **What is implemented:** the code on the branch in question, then its
    tests, then observed play. Documents never prove implementation.
-2. **What is intended:** the latest explicit owner decision, recorded in
-   [`decisions.md`](decisions.md). A newer entry beats an older one it
-   contradicts, even without saying "supersedes".
+2. **What is intended:** the latest explicit owner decision, then the
+   Production Bible (D-106), then [`decisions.md`](decisions.md) entries the
+   Bible doesn't contradict (a newer entry beats an older one). Where the
+   Bible is silent, existing decisions and mechanics stay as they are.
 3. **The current documents below** expand on decisions. If one disagrees
    with a newer decision, the decision wins; fix the document.
 4. **Historical documents** are context only. Each one carries a
@@ -66,13 +76,15 @@ Every Markdown file in the repository root and `docs/` is listed here;
 | `docs/README.md` | This index |
 | `docs/system-map.md` | Gameplay systems → source files, status, tests |
 | `docs/open-questions.md` | Questions waiting for the owner |
-| `docs/decisions.md` | The decision log (authoritative for intent; newest wins) |
+| `docs/production-bible.md` | **Design source of truth** (D-106): scope, gameplay philosophy, production, visuals, audio, desktop/Steam |
+| `docs/production-bible-reconciliation-2026-11-23.md` | Each Bible item vs the code: conflicts, classification, proposed milestones |
+| `docs/decisions.md` | Append-only decision log; entries the Bible contradicts are superseded |
 
 ### Current — design and implementation references
 
 | Document | What it governs |
 |---|---|
-| `docs/academy-campaign-canonical-gameplay-2026-11-22.md` | Current gameplay and progression direction: Academy, teachers, Arcade Campaign (D-103) |
+| `docs/academy-campaign-canonical-gameplay-2026-11-22.md` | D-103 Academy and teacher-examination detail. Its Arcade Campaign and "Headmaster" are superseded by the Bible (D-106) |
 | `docs/continuous-apprenticeship-2026-11-22.md` | The implemented continuous run, Director and Endless (D-102) |
 | `docs/apprenticeship-difficulty-director-2026-11-21.md` | Difficulty specification (D-097, D-101) |
 | `docs/arcane-volley-design-goal.md` | Arcane Rush (formerly Volley) emotional arc (D-059) |
@@ -89,7 +101,7 @@ Every Markdown file in the repository root and `docs/` is listed here;
 | `docs/assets/requests/BATCH-01_clean-plate-and-scroll.md` | Asset request batch 01 |
 | `docs/assets/requests/BATCH-01b_hud-revision.md` | Asset request batch 01b |
 | `docs/grand-wizard-voice-script.md` | Recording script, generated from `src/typel/voiceLines.ts` |
-| `docs/lore.md` | World bible, never shown as text (D-034) |
+| `docs/lore.md` | World bible, never shown as text (D-034). Its Chronomancer (Rewind) entry is superseded: the Chronomancer now teaches `SLOW` (GAME-003) |
 
 ### Reference — dated reports, accurate for their scope
 

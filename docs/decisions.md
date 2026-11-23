@@ -1470,3 +1470,24 @@ _2026-11-22 · Owner statements, recorded verbatim in substance · **Spellcastin
 - Arcade progression gives replayability and mastery.
 - Accuracy, consistency, flow, tactical choices and spell knowledge all matter.
 - Difficulty should not rely only on faster spawning or longer words.
+
+### D-106 — Production Bible adopted as the design source of truth (2026-11-23)
+_2026-11-23 · **Owner decision** ("Treat the bible as your source of truth") · Design status: **Approved** · Implementation: documents only; gameplay changes are staged for approval in `docs/production-bible-reconciliation-2026-11-23.md` · Deployment: none_
+
+**Decision:** `docs/production-bible.md` (TypeL Production Bible v1.0, Eighteen Ninjas, 2026-11-22) is the authoritative design document. Its item IDs (PROD-, SCOPE-, RELIC-, GAME-, VIS-, AUD-, TECH-, GOV-) are cited alongside D-numbers. This log remains the single append-only record of changes. Changes to the Bible need owner approval and a new entry here.
+
+**Precedence:**
+- Where the Bible conflicts with an earlier decision, the Bible wins.
+- Where the Bible is silent, existing decisions and mechanics stay unchanged (its integrity note). Hardcore, Runes, the Ward, Wind/All-In, the Difficulty Director, Endless and Arcane Rush's built mechanics all carry on.
+- The Bible states intent; code still proves implementation.
+- Approved items aren't built until a staged plan is approved (Bible §8).
+
+**Superseded in part by this decision:**
+- **D-103:** the "Arcade Campaign" as a committed graduation mode. Its ideas move to the Arcane Trials exploration (SCOPE-002). "Headmaster" becomes Grandmaster (GAME-004).
+- **D-085 and D-090:** the "Grand Wizard" name for the final figure becomes Grandmaster.
+- **D-042 / `docs/lore.md`:** "Chronomancer" no longer means the removed Rewind wizard. It is the teacher of `SLOW` (GAME-003).
+- **D-049 (as applied to TypeL Normal):** default Normal no longer offers number-key casting (GAME-001). Not yet implemented.
+- **D-092:** music that follows danger is to be replaced by restrained atmosphere with performance-responsive layers, tested through AUDIO-EXP-001 (AUD-001, AUD-002). Not yet implemented.
+- **D-105:** confirmed and absorbed; its spellcasting, cadence and philosophy notes match Bible §3.
+
+**Also adopted:** the Bible's status labels (Deferred; Recommended — not approved; Needs audit verification), now in `AGENTS.md` §3. A preserved baseline (Bible §8 step 1) exists as the branches `baseline/main-2026-11-23` (`81bedb5`) and `baseline/dev-2026-11-23` (`cb41e71`); tag pushes are blocked from the session that made them.

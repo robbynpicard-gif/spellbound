@@ -13,8 +13,11 @@ the game in a conversation or handoff: the repository is the shared memory.
    - `dev/apprenticeship-prototype-20261119` — the TypeL apprenticeship
      prototype, published at `/preview/` by the `main` Pages workflow.
      Almost all current design work lands here.
-2. Read [`docs/README.md`](docs/README.md): which documents are current,
-   which are historical, and the current-state snapshot.
+2. Read [`docs/production-bible.md`](docs/production-bible.md), the
+   owner-approved design source of truth (D-106), and its reconciliation
+   plan, which says what is built, what conflicts and what comes next.
+   Then read [`docs/README.md`](docs/README.md): which documents are
+   current, which are historical, and the current-state snapshot.
 3. Read [`docs/system-map.md`](docs/system-map.md) for where each
    mechanic lives in code and its status.
 4. Read the newest entries of [`docs/decisions.md`](docs/decisions.md)
@@ -25,7 +28,7 @@ the game in a conversation or handoff: the repository is the shared memory.
 | Question | Authority (highest first) |
 |---|---|
 | What is implemented? | Source code on the branch in question → automated tests → observed play on the deployed build. Never assume a branch, its tests and its deployment agree without checking. |
-| What is intended? | Latest explicit owner decision → newer accepted entries in `docs/decisions.md` (a newer entry supersedes an older one it contradicts) → the current documents listed in `docs/README.md`. |
+| What is intended? | Latest explicit owner decision → `docs/production-bible.md` (D-106) → accepted entries in `docs/decisions.md` that the Bible doesn't contradict (newer beats older) → the current documents listed in `docs/README.md`. Where the Bible is silent, existing decisions and mechanics stay unchanged. |
 | Context only | Documents marked **HISTORICAL**, dated handoffs, prototypes, old conversations. They never override the two rows above. |
 
 A proposal is not approved because it is written down. Code is evidence of
@@ -41,6 +44,12 @@ Label every significant claim or proposal with one or more of:
 - **Proposed** — awaiting owner approval.
 - **Experimental** — built for evaluation, not permanently adopted.
 - **Superseded** — replaced by a newer decision (cite it).
+- **Deferred** — accepted as an idea, deliberately not scheduled.
+- **Recommended — not approved** — advice awaiting an owner decision.
+- **Needs audit verification** — claimed somewhere, not yet checked
+  against code or records.
+
+Cite Production Bible item IDs (e.g. GAME-001) next to D-numbers.
 
 They combine: "Approved, not implemented" and "Implemented, not verified" are
 both normal. For deployment, say **not deployed / preview verified /
@@ -70,11 +79,16 @@ it. Search the code first.
 ## 5. Standing constraints
 
 - Don't redesign existing functionality without first verifying how it works
-  now and getting owner approval (D-058).
+  now and getting owner approval (D-058). Don't invent scoring formulas,
+  spell lists or difficulty curves where an approved specification exists;
+  recover it instead (Bible §3, §10).
+- Material design changes, including any change to the Production Bible,
+  need the owner's approval and a new `docs/decisions.md` entry.
 - Don't bias word generation to make rewards happen (D-058). Keep the
   simulation deterministic: fixed tick, seeded RNG, replayable (D-004, D-005).
-- Spell commands: typing the spell name + Enter casts in every mode. Number
-  keys 1–8 quick-cast in Normal only. Spell names are reserved, so no falling
+- Spell commands are fixed words (GAME-001). Typing the spell name + Enter
+  casts in every mode. Number keys 1–8 still quick-cast in Normal today, but
+  GAME-001 removes them from default Normal (planned, M1). Spell names are reserved, so no falling
   word may equal, start with, or prefix one (`src/data/wordList.ts`). Don't
   add a new casting mode (e.g. Tab) or change targeting without a verified reason.
 - Don't change production (`main`) or merge into it without explicit owner
