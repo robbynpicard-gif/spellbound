@@ -1491,3 +1491,16 @@ _2026-11-23 · **Owner decision** ("Treat the bible as your source of truth") ·
 - **D-105:** confirmed and absorbed; its spellcasting, cadence and philosophy notes match Bible §3.
 
 **Also adopted:** the Bible's status labels (Deferred; Recommended — not approved; Needs audit verification), now in `AGENTS.md` §3. A preserved baseline (Bible §8 step 1) exists as the branches `baseline/main-2026-11-23` (`81bedb5`) and `baseline/dev-2026-11-23` (`cb41e71`); tag pushes are blocked from the session that made them.
+
+### D-107 — Owner answers Q-12 to Q-15: typing is the only input, Academy opens with a challenge, spawn variety lives in Arcane Trials, Volley becomes Rush (2026-11-23)
+_2026-11-23 · **Owner decision** · Design status: **Approved** · Amends the Production Bible (recorded in its §12) · Implementation: none yet; planned in M1 and M3 of `docs/production-bible-reconciliation-2026-11-23.md`_
+
+**Q-12: number-key casting is removed completely.** It isn't kept as an opt-in setting. "This is a typing game and typing should always be the input." This applies to Normal and every other mode; Hardcore already has none. Relics, when they exist, are also expected to be used by typing their names. *Supersedes D-049's number keys (quick-cast slots) for TypeL.* Whether clicking a word to pin it as the target also goes is still open (Q-17).
+
+**Q-13: the challenge is the starting stage.** The Academy opens with a spell-free challenge (GAME-002). It establishes the loop: type to claim a scroll and earn score. Its chaos escalates naturally until spells are clearly needed. The apprenticeships then give the tools and lessons for managing that chaos, and teachers examine them (GAME-004). Apprenticeships do not each open with their own challenge. GAME-004's "challenge → lesson → examination → Grandmaster" is read as: opening challenge → apprenticeship lessons and examinations → Grandmaster.
+
+**Q-14: advanced spawn behaviours belong to Arcane Trials** (SCOPE-002, GAME-006). This may change if testing shows that spawn variety helps apprenticeships teach their spells. The Academy's pressure comes from natural escalation, so that spells become the answer to the chaos.
+
+**Q-15: the name "Volley" is retired.** The flow multiplier is **Rush** (shown to players as "Arcane Rush" since D-086). Remaining "Volley" wording should be renamed: the apprenticeship hints in the UI, the code (`src/gameplay/ArcaneVolley.ts` and `volley` fields) and the Bible §3, §6 and GAME-005. The mechanics stay unchanged.
+
+**Q-16:** the owner has asked ChatGPT for the six spawn behaviours and the prior approved Game Bible. Still open until they're in the repository.

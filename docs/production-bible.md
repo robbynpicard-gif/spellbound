@@ -202,3 +202,11 @@ After completion:
 ---
 
 **Integrity note:** This document consolidates known conversation decisions and recommendations. It is not a verified audit of the current source code, and should not replace the existing Game Bible until reconciled. Any unlisted mechanic should remain unchanged pending review.
+
+## 12. Amendments (owner-approved, recorded in `docs/decisions.md`)
+
+- **2026-11-23 · D-107:**
+  - **Number-key casting is removed completely**, in every mode. Typing is always the input; relics are also expected to use typed names (refines GAME-001, §3).
+  - **The Academy opens with the spell-free challenge.** Its chaos escalates until spells are needed. Apprenticeships provide the tools and lessons, and are not each preceded by a challenge (refines GAME-002 and GAME-004).
+  - **Advanced spawn behaviours belong to Arcane Trials**, subject to change if testing shows apprenticeships benefit (refines GAME-006, SCOPE-002).
+  - **"Volley" is renamed Rush** (player-facing "Arcane Rush"). Read "Volley" in §3, §6 and GAME-005 as Rush (refines GAME-005, AUD-002).

@@ -66,29 +66,17 @@ receive the same pushes. Should the second be retired so there is one dev line?
 by D-093). The legacy campaign code is compiled and tested on dev but not
 reached by the preview. Keep both until dev is promoted, or plan a cleanup?
 
-**Q-12 · Number-key casting as an option** (from D-106 / GAME-001)
-Default Normal loses number-key casting. Should it stay available as an
-opt-in setting (e.g. for accessibility), or be removed entirely?
-
-**Q-13 · Challenge before lesson** (GAME-004)
-The Bible's order is challenge → lesson → examination. Today each
-apprenticeship runs lesson (Learn) → Master → Boss. Should each
-apprenticeship open with a challenge, or does the spell-free opening trial
-(GAME-002) play that role once for the whole Academy?
-
-**Q-14 · Where advanced spawn behaviours live** (SCOPE-001/002, GAME-006)
-D-103 put new scroll types and spawn behaviours in the Arcade Campaign,
-which the Bible replaces with Arcane Trials (exploratory). Should they appear
-in the Academy, in Arcade & Practice, or only in Arcane Trials?
-
-**Q-15 · Volley or Arcane Rush**
-The Bible says "Combo and Volley"; D-086 renamed Volley to **Arcane Rush**
-for players. Which name do players see?
-
-**Q-16 · Missing source records** (GAME-006, Bible §10)
+**Q-16 · Missing source records** (GAME-006, Bible §10). *Owner has asked ChatGPT (2026-11-23).*
 The "six previously discussed spawning behaviours" and the "prior approved
 Game Bible" aren't in the repository. Please add them (or the ChatGPT
 conversation they came from) so they can be recovered exactly, not guessed.
+
+**Q-17 · Clicking a word to target it** (from D-107)
+Today, clicking a falling word pins it as the target and clears the typing
+line (`src/typel/render/PlayScene.ts` `gameobjectdown` →
+`GameEngine.selectTarget` / `applySelect`; dates from D-020/D-022). D-107
+says typing is always the input. Should click-to-pin be removed too? Typing a
+word already targets it.
 
 ## Resolved
 
@@ -98,3 +86,14 @@ drops number-key casting. Whether an opt-in setting stays is Q-12.
 **Q-6 · Difficulty baseline and spell cadence:** resolved by D-106. The
 Bible §3 confirms the cadence hypothesis (10–15 s, maybe 5–10 s, not a
 quota) and difficulty from spawning variety, not just speed. D-105 is absorbed.
+
+**Q-12 · Number-key casting as an option:** resolved by D-107. Removed
+completely; typing is always the input.
+
+**Q-13 · Challenge before lesson:** resolved by D-107. The spell-free
+opening challenge is the challenge; apprenticeships teach the tools.
+
+**Q-14 · Where advanced spawn behaviours live:** resolved by D-107. Arcane
+Trials, to be revisited if testing shows apprenticeships benefit.
+
+**Q-15 · Volley or Arcane Rush:** resolved by D-107. Rush; "Volley" is retired.

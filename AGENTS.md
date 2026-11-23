@@ -87,8 +87,9 @@ it. Search the code first.
 - Don't bias word generation to make rewards happen (D-058). Keep the
   simulation deterministic: fixed tick, seeded RNG, replayable (D-004, D-005).
 - Spell commands are fixed words (GAME-001). Typing the spell name + Enter
-  casts in every mode. Number keys 1–8 still quick-cast in Normal today, but
-  GAME-001 removes them from default Normal (planned, M1). Spell names are reserved, so no falling
+  casts in every mode. Typing is the only gameplay input (D-107): number-key
+  casting still exists in Normal today but is being removed completely (M1).
+  Never add a non-typing way to act. Spell names are reserved, so no falling
   word may equal, start with, or prefix one (`src/data/wordList.ts`). Don't
   add a new casting mode (e.g. Tab) or change targeting without a verified reason.
 - Don't change production (`main`) or merge into it without explicit owner

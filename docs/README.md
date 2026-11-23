@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-106
+Decision log current through: D-107
 
 ## Current state (2026-11-23)
 
@@ -30,8 +30,9 @@ Decision log current through: D-106
   Difficulty Director (D-097, D-101, D-102), Arcane Rush, Runes, key-art
   presentation (D-093), Sandbox and Typing Trials.
   `dev/continuous-apprenticeship-20261122` currently points at the same commit.
-- **Approved but not built:** see the reconciliation plan. Highlights: no
-  number-key casting in default Normal, a spell-free opening trial, the
+- **Approved but not built:** see the reconciliation plan. Highlights: typing
+  as the only input, with number-key casting removed (D-107); a spell-free
+  opening challenge; the
   Chronomancer/Temporal Trial/Grandmaster structure, teacher examinations and
   graduation, Arcade & Practice, the audio split, and the desktop (Tauri) path.
 - **Where each mechanic lives:** [`system-map.md`](system-map.md).
