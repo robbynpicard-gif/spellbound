@@ -12,6 +12,7 @@ import {
   apprenticeshipEndless, apprenticeshipRun, BOSS_LEVEL, LEARN_CHECKPOINTS, OPENING, openingRun, sandboxRunConfig, SPELL_ORDER, TRIALS,
   type Mode, type StartPhase, type Trial,
 } from './apprenticeship';
+import { arcaneTrialConfig, CROSSWIND, type TrialAdaptation } from './arcaneTrials';
 import { hardcoreSeed, lockReason, openingUnlocked, repertoire, startingBank, trialUnlocked } from './progression';
 import { SPELL_CAP_CANDIDATES } from '../gameplay/SpellManager';
 import { clearRun, loadRun, RUN_RULESET, runRecordKey, saveRun, type SavedRun } from './runSave';
@@ -120,6 +121,7 @@ export class TypeLApp {
         btn('Apprenticeship', () => this.showApprenticeship(), 'primary'),
         btn('Typing Trials', () => this.showTypingSetup()),
         btn('Sandbox', () => this.showSandboxSetup()),
+        btn('Arcane Trial · prototype', () => this.showArcaneTrial()),
         btn('Codex', () => this.showCodex('rules')),
         btn('Options', () => this.showOptions()),
       ),
@@ -436,6 +438,75 @@ export class TypeLApp {
   }
 
   // ───────────────────────── sandbox ─────────────────────────
+
+  /** D-120 prototype: one representative Arcane Trial, playable from the title for evaluation. */
+  private arcane: { seed: number; adaptation: TrialAdaptation } = { seed: Math.floor(Math.random() * 2 ** 31), adaptation: 'off' };
+
+  private showArcaneTrial(): void {
+    const t = CROSSWIND;
+    const a = this.arcane;
+    const best = prefs.data.bestTrialScore[`arcane:${t.id}:${a.adaptation}`];
+    const label: Record<TrialAdaptation, string> = { off: 'Authored (fixed)', both: 'Academy-style adaptive', up: 'Rising only' };
+    this.backdrop();
+    this.show(this.panel(t.title,
+      el('p', null, t.identity),
+      el('p', { class: 't-small' }, `Survive ${t.quota} scrolls in one continuous trial (about 8 to 12 minutes; no checkpoints, no breaks). All eight spells can drop; you start with one of each. The Ward is not restored. Prototype: every number is experimental.`),
+      el('div', { class: 't-row' }, ...(['off', 'both', 'up'] as TrialAdaptation[]).map((m) =>
+        btn(label[m], () => ((a.adaptation = m), this.showArcaneTrial()), a.adaptation === m ? 'primary small' : 'small'))),
+      el('p', { class: 't-small' }, a.adaptation === 'off'
+        ? 'Authored: the same pressure profile for everyone. It does not ease when you struggle (the prototype default).'
+        : a.adaptation === 'both'
+          ? 'For comparison only: the Academy’s controller, easing when you struggle and pressing when you cruise.'
+          : 'For comparison only: adds pressure when you cruise, never eases.'),
+      el('p', { class: 't-small' }, `Seed ${a.seed}${best ? ` · best ${best.toLocaleString()}` : ''}`),
+      el('div', { class: 't-row' },
+        btn('Begin', () => this.launchArcaneTrial(), 'primary'),
+        btn('New seed', () => ((a.seed = Math.floor(Math.random() * 2 ** 31)), this.showArcaneTrial()), 'small'),
+        btn('Back', () => this.showTitle()))),
+    { onKey: (e) => e.key === 'Enter' && this.launchArcaneTrial() });
+  }
+
+  private launchArcaneTrial(): void {
+    const t = CROSSWIND;
+    const a = { ...this.arcane };
+    this.run = null;
+    this.clearUi();
+    this.startPlay({
+      config: arcaneTrialConfig(t, a.adaptation),
+      seed: a.seed,
+      hardcore: false,
+      initialSpells: { ...t.startingBank },
+      spells: [...SPELL_ORDER],
+      title: t.title,
+      subtitle: `Arcane Trial · prototype · seed ${a.seed}`,
+      trialName: 'Crosswind',
+      onPause: () => this.pauseMenu(() => this.launchArcaneTrial(), () => this.showArcaneTrial()),
+      onEnd: (result, stats) => this.arcaneTrialEnded(a, result === 'won', stats),
+    });
+  }
+
+  private arcaneTrialEnded(a: { seed: number; adaptation: TrialAdaptation }, survived: boolean, stats: GameStats): void {
+    const key = `arcane:${CROSSWIND.id}:${a.adaptation}`;
+    const isBest = stats.score > (prefs.data.bestTrialScore[key] ?? 0);
+    if (isBest) prefs.data.bestTrialScore[key] = stats.score;
+    this.record(stats, 0);
+    if (survived) sound.victory();
+    const minutes = Math.floor(stats.elapsedMs / 60000);
+    const seconds = Math.floor((stats.elapsedMs % 60000) / 1000);
+    this.show(this.panel(survived ? 'Trial survived' : 'The Ward has fallen',
+      el('div', { class: 't-bigscore' }, stats.score.toLocaleString()),
+      isBest ? el('p', { class: 't-small' }, 'New best') : null,
+      el('div', { class: 't-stats' },
+        stat('Time', `${minutes}:${String(seconds).padStart(2, '0')}`), stat('Scrolls', `${stats.completed} / ${CROSSWIND.quota}`),
+        stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`), stat('WPM', String(Math.round(stats.wpm))),
+        stat('Best Combo', String(stats.maxCombo)), stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`)),
+      el('p', { class: 't-small' }, `Seed ${a.seed}. "Same seed" replays the same sky.`),
+      el('div', { class: 't-row' },
+        btn('Same seed', () => ((this.arcane = { ...a }), this.launchArcaneTrial()), 'primary'),
+        btn('New seed', () => ((this.arcane = { ...a, seed: Math.floor(Math.random() * 2 ** 31) }), this.launchArcaneTrial())),
+        btn('Title', () => this.showTitle()))),
+    { overlay: true });
+  }
 
   showSandboxSetup(): void {
     this.run = null;

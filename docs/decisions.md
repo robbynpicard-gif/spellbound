@@ -1796,3 +1796,33 @@ Where D-115/D-116 left a choice to the implementation, the preview does this (ea
   - The Ward-heal and scar text.
   - The run ruleset is now `run-3` (old checkpoint saves can't resume; records start a new table, and old ones are kept). The progress schema is v2.
 - **Not done:** Arcane Trials (Yellow scope, Q-28); graduation; tuning against human play (Q-26, Q-27).
+
+### D-119 — Typing mastery is the paramount player skill (2026-11-23)
+_Recorded in PR #21 (21:23 UTC), before PR #22's Arcane Trials entry, so it keeps D-119; PR #22's entry is renumbered D-120 (D-101 rule)._
+_2026-11-23 · Explicit owner approval in TypeL design discussion · Design status: **Approved** · Implementation: design principle, not a new gameplay mechanic · Amends Production Bible §12 (GAME-001, GAME-005, GAME-006, SCOPE-002)_
+
+**Player promise:** TypeL is first and foremost an enjoyable typing game that gives players repeated opportunities to improve real typing accuracy, speed, consistency, reading, and target selection. The core gameplay must promote development of typing skill; spell-system knowledge must not routinely let players bypass the act of typing. Expert players may naturally rely more on tactical mastery after their typing has developed, but that is not the baseline design target.
+
+**Design hierarchy:**
+1. **Typing is paramount:** accurate, consistent, timely word capture and target selection are the principal player actions and principal expressions of mastery.
+2. **Spells are tactical:** they manage chaos, enable recovery and create expressive decisions; they do not routinely replace typing as the primary source of success or score.
+3. **Encounters vary the typing challenge:** spawn geometry, density, timing, scroll properties and trial conditions create different readable, learnable typing problems. Variety is controlled, not arbitrary; keep deterministic fairness and meaningful agency.
+4. **Scoring rewards earned execution:** spell interactions may reward knowledge and timing, but automatic clears, passive effects or degenerate combinations must not routinely outscore skilled, sustained typing. Do not silently change existing scoring formulas to enforce this principle; audit and propose any required adjustment separately.
+
+**Arcane Trials application:** a flexible shared encounter system can selectively spotlight a featured spell or shift emphasis back to raw typing and battlefield management. Do not require every encounter to showcase the featured spell. Trials retain recognizable identities with authored difficulty envelopes and controlled seeded variation; they are not a collection of rigid spell-casting scripts. The Academy teaches, Arcane Trials explore application and mastery, Endless ultimately overwhelms. Trial-specific conditions precede any need for a collectible relic system; relics remain optional/deferred.
+
+**Design guardrails:** avoid (a) spells clearing most threats with little typing, (b) unreadable or unfair randomness, (c) excessive tactical interruptions that break typing flow, and (d) trial modifiers that repeatedly invalidate learned typing controls or muscle memory. Do not require every individual spell to directly train typing or every challenge to be beatable without spells; judge the overall game experience.
+
+**Validation requirement (future playtests, not a claim of current verification):** assess whether repeated play rewards improvements in typing accuracy, WPM, consistency and target prioritization, including when spell use is held constant; compare earned typing contribution against automatic spell scoring; inspect whether players can succeed or score highly primarily by bypassing typing. No numerical pass/fail thresholds or mechanics are authorized by this decision. Preserve current spell implementation work; any code changes require the normal AGENTS.md audit and approval workflow.
+
+### D-120 — Arcane Trials: compact continuous controlled chaos, no mandatory three-phase structure (2026-11-23; renumbered from D-119)
+_Renumbered from PR #22's "D-119", which collided with PR #21's typing-mastery D-119 recorded two hours earlier (D-101 rule: the newer is renumbered)._
+_2026-11-23 · Owner-approved design refinement · Initial run duration: **Experimental** · Implementation: **Not verified** · Refines D-114, SCOPE-002 and any earlier 15–20 minute / three-phase trial proposal_
+
+**Decision:** Arcane Trials should initially be prototyped as **compact, approximately 8–12 minute encounters**, subject to human playtesting. The previous **15–20 minute default target is superseded**. A **mandatory three-phase encounter structure is rejected** for the initial mode: do not force establish/complicate/prove or other fixed phase boundaries, artificial lulls, intermissions, or waiting for a wave to end. Keep the core typing-and-spellcasting loop continuously active. Pressure should evolve organically via concurrent urgency, scroll arrival timing, speed, positioning, and meaningful spell decisions, with peaks and recovery earned through play or naturally varying pressure. Readability, fairness, seeded determinism, and existing gameplay/scoring rules remain authoritative.
+
+**Distinctive authored trial identities remain approved:** a trial can emphasize a spell, tactical condition, or spawn composition and use controlled randomness without imposing a shared three-act structure. Do not confuse a trial's *identity* or optional authored events with mandatory global phases. Advanced spawn patterns remain primarily Arcane Trials territory (D-107/D-109). Academy mastery, Arcane Trials survival, and Endless eventual defeat (D-114) remain unchanged.
+
+**Scope and caution:** Arcane Trials remain Yellow/experimental; do not treat ~8–12 minutes as a fixed timer or a guarantee, and do not cut off an otherwise meaningful encounter solely to hit a duration. Future longer runs and optional phase-based variants can be explored separately, but are not the baseline or required prototype. Do not erase historical decision entries: mark their old duration/phase prescriptions as superseded by D-120 in current authority documents. Audit actual code before claiming this is implemented.
+
+**Prototype acceptance:** test uninterrupted engagement, naturally fluctuating pressure, spell usefulness, average and outlier duration, readability, fairness, and replayability across representative player abilities. Prefer a minimal reversible tuning experiment using the existing Director; report differences and request owner feedback before expanding scope.

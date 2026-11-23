@@ -29,6 +29,7 @@ import {
 import { wordComplexity } from '../gameplay/WordGenerator';
 import { precisionComboMultiplier } from '../gameplay/PrecisionComboPrototype';
 import { sustainedVolleyMultiplier, type FlowCapture } from '../gameplay/SustainedVolley';
+import { SpawnFormation, type FormationSpec } from '../difficulty/SpawnFormation';
 import { PRESSURE_CONTROL, PressureController, type ControllerSnapshot } from '../difficulty/PressureController';
 import { combustionChain, shockChain, type ChainLink } from '../gameplay/SpellChains';
 import { RuneTracker } from '../gameplay/runes/RuneTracker';
@@ -283,6 +284,9 @@ export class GameEngine {
   /** D-116: skill-responsive pressure inside the Director's bounds (null when off). */
   private controller: PressureController | null = null;
   private emptyTicks = 0;
+  /** D-120: an Arcane Trial's spawn formation (null elsewhere: placement unchanged). */
+  private formation: SpawnFormation | null = null;
+  private formationSpec: FormationSpec | null = null;
   private lastPlan: SpawnPlan | null = null;
   /** D-102 continuous run: the plan, which segment is live and where it began. */
   private readonly run: RunPlan | null;
@@ -305,6 +309,7 @@ export class GameEngine {
     if (options.config.director) this.director = new DifficultyDirector(options.config.director, options.seed, this.generator.lengthCounts());
     this.pressureControlAllowed = options.pressureControl !== false;
     this.syncController(options.config);
+    this.syncFormation(options.config);
     this.hardcore = options.hardcore === true;
     this.experimentalScoring = options.experimentalScoring === true;
     this.spellCaps = options.spellCaps ?? null;
@@ -398,6 +403,14 @@ export class GameEngine {
     const kind = spec.adaptiveBounds ?? (spec.kind === 'endless' ? 'endless' : 'run');
     if (this.controller) this.controller.setBounds(mode, kind, spec.apprenticeship);
     else this.controller = new PressureController(mode, kind, spec.apprenticeship);
+  }
+
+  /** D-120: an Arcane Trial's formation runs on its own stream, so other encounters keep their placement. */
+  private syncFormation(config: DifficultyConfig): void {
+    const spec = config.director?.kind === 'trial' ? config.director.trial?.formation ?? null : null;
+    if (spec === this.formationSpec) return;
+    this.formationSpec = spec;
+    this.formation = spec ? new SpawnFormation(spec, (this.seed ^ 0xf0a3f0a3) >>> 0) : null;
   }
 
   /** Development inspection (simulation, tests, debug HUD): the controller's state, or null when off. */
@@ -1154,14 +1167,16 @@ export class GameEngine {
 
   private spawn(fallSpeed: number, startY = 0): void {
     const s = this.s;
+    // D-120: a trial's formation picks the side and entry height first (its own stream).
+    const step = this.formation?.next() ?? null;
+    if (step && startY === 0 && step.startShare > 0) startY = Math.round(this.field.height * step.startShare);
     // Director (D-097): plan length and time-to-Ward first (its own stream). Alter's easy window still decides the text.
     const plan = this.director ? this.director.next({ ...this.directorContext(), opening: startY > 0 }) : null;
     this.lastPlan = plan;
     const easy = s.easyTicks > 0 && this.easyGenerator;
     const text = easy ? this.easyGenerator!.next() : plan ? this.generator.nextOfLength(plan.length) : this.generator.next();
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
-    const minX = this.field.sideMargin + halfWidth;
-    const maxX = this.field.width - this.field.sideMargin - halfWidth;
+    const [minX, maxX] = SpawnFormation.band(step?.side ?? null, this.field.sideMargin + halfWidth, this.field.width - this.field.sideMargin - halfWidth, this.formationSpec?.band ?? 1);
     const H = this.field.height;
     let speed = plan ? H / plan.fallSeconds : this.spawnSpeed(fallSpeed);
     if (plan) speed = this.fairSpeed(speed, startY);
@@ -1173,10 +1188,12 @@ export class GameEngine {
     // Keep the spawn cadence and word count unchanged. Prefer a clear lane
     // near the top so crowded fields remain readable, even under stacked Slow.
     let x = Math.round(minX < maxX ? this.rng.range(minX, maxX) : this.field.width / 2);
-    if (minX < maxX && s.words.some((w) => w.y < 90 || overtakes(w))) {
+    // Staggered entries (D-120) check the lane at their own height as well as the top.
+    const near = (w: WordState) => w.y < 90 || (startY > 0 && Math.abs(w.y - startY) < 60);
+    if (minX < maxX && s.words.some((w) => near(w) || overtakes(w))) {
       const score = (candidate: number): number => s.words.reduce((penalty, w) => {
         const caught = overtakes(w);
-        if (w.y >= 90 && !caught) return penalty;
+        if (!near(w) && !caught) return penalty;
         const required = halfWidth + w.text.length * this.field.approxCharWidth / 2 + 12;
         const overlap = Math.max(0, required - Math.abs(candidate - w.x));
         return penalty + overlap * (caught ? SPAWN_FAIRNESS.overtakePenalty : w.y < 45 ? 2 : 1);
@@ -1216,7 +1233,7 @@ export class GameEngine {
     };
     word.baseSpeed = word.speed;
     s.words.push(word);
-    this.events.emit('wordSpawned', { word });
+    this.events.emit('wordSpawned', { word, ...(step ? { formation: { side: step.side, staggered: startY > 0, switched: step.switched } } : {}) });
     // A new word may match what is already typed.
     if (s.input !== '' && s.pinnedId === null) {
       this.retarget();

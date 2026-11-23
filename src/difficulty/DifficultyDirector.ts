@@ -1,4 +1,5 @@
 import { SeededRandom } from '../core/Random';
+import type { FormationSpec } from './SpawnFormation';
 
 /**
  * TypeL Difficulty Director — the living, continuous version (D-102).
@@ -34,7 +35,27 @@ import { SeededRandom } from '../core/Random';
 
 export type DirectorMode = 'normal' | 'hardcore';
 /** 'run' = Learn + Master of one apprenticeship; 'boss' = the examination; 'endless'. */
-export type EncounterKind = 'run' | 'boss' | 'endless';
+export type EncounterKind = 'run' | 'boss' | 'endless' | 'trial';
+
+/**
+ * D-120: an Arcane Trial's authored pressure profile. Fixed and reproducible
+ * (no automatic easing by default), continuous (no phases or intermissions):
+ * a rising baseline, a slow organic swell, and the shared event schedule's
+ * bursts and recoveries. EXPERIMENTAL values.
+ */
+export interface TrialProfile {
+  /** Baseline pressure at the start and the end of the trial (progress = quota share). */
+  baseline: readonly [number, number];
+  /** Rise curve exponent (>1: most of the rise comes later). */
+  k: number;
+  /** A slow seeded-phase swell in seconds: dangerous peaks and natural recovery between events. */
+  swell: { period: number; amplitude: number };
+  /** Multipliers on the shared events' strength and on their recovery depth. */
+  eventScale: number;
+  recoveryScale: number;
+  /** Optional D-109 spawn formation (the trial's tactical identity). */
+  formation?: FormationSpec;
+}
 export type RunPhase = 'learn' | 'master' | 'boss' | 'endless';
 export const LENGTH_BANDS = ['short', 'medium', 'long'] as const;
 export const SPEED_BANDS = ['slow', 'medium', 'fast'] as const;
@@ -66,6 +87,8 @@ export interface DirectorSpec {
   adaptive?: 'both' | 'up' | 'off';
   /** Which authored bounds the controller uses. Defaults from `kind`. */
   adaptiveBounds?: 'run' | 'opening' | 'endless';
+  /** D-120: required when kind is 'trial'. */
+  trial?: TrialProfile;
 }
 
 export interface DirectorContext {
@@ -301,6 +324,15 @@ export function bossBaseline(spec: Pick<DirectorSpec, 'mode' | 'apprenticeship'>
   return clamp01(start + b.rise * convexRise(p, b.k) + climax);
 }
 
+/** D-120 trial baseline: authored rise plus a slow swell (continuous, no phases). */
+export function trialBaseline(spec: Pick<DirectorSpec, 'trial'>, progress: number, seconds: number, phase = 0): number {
+  const tp = spec.trial;
+  if (!tp) return 0;
+  const [b0, b1] = tp.baseline;
+  const swell = tp.swell.period > 0 ? tp.swell.amplitude * Math.sin(2 * Math.PI * (Math.max(0, seconds) / tp.swell.period + phase)) : 0;
+  return clamp01(lerp(b0, b1, convexRise(clamp01(progress), tp.k)) + swell);
+}
+
 /** The boss's maximum (its final second). */
 export const bossPeak = (spec: Pick<DirectorSpec, 'mode' | 'apprenticeship'>, t: DirectorTuning = DIRECTOR_TUNING) => bossBaseline(spec, 1, t);
 
@@ -491,7 +523,11 @@ export function validateDirectorSpec(raw: unknown): string[] {
   const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
   if (r.version !== 2) problems.push('director.version must be 2');
   if (r.mode !== 'normal' && r.mode !== 'hardcore') problems.push('director.mode must be normal or hardcore');
-  if (r.kind !== 'run' && r.kind !== 'boss' && r.kind !== 'endless') problems.push('director.kind must be run, boss or endless');
+  if (r.kind !== 'run' && r.kind !== 'boss' && r.kind !== 'endless' && r.kind !== 'trial') problems.push('director.kind must be run, boss, endless or trial');
+  if (r.kind === 'trial') {
+    const tp = r.trial as Record<string, unknown> | undefined;
+    if (!tp || !Array.isArray(tp.baseline) || tp.baseline.length !== 2 || !num(tp.k) || !num(tp.eventScale) || !num(tp.recoveryScale)) problems.push('director.trial profile is required for a trial');
+  }
   if (!num(r.apprenticeship) || (r.apprenticeship as number) < 0 || (r.apprenticeship as number) > 1) problems.push('director.apprenticeship must be in [0, 1]');
   if (!num(r.referenceLength) || (r.referenceLength as number) <= 0) problems.push('director.referenceLength must be positive');
   if (r.vocabulary !== undefined && (!num(r.vocabulary) || (r.vocabulary as number) < 0 || (r.vocabulary as number) > 1)) problems.push('director.vocabulary must be in [0, 1]');
@@ -510,6 +546,8 @@ interface EventEffect { boost: number; dip: number; spawn: number; extra: number
 export class DifficultyDirector {
   private readonly rng: SeededRandom;
   private readonly runEvents: EventSchedule;
+  /** D-120: the trial swell's seeded phase (fixed per seed, so a replay swells identically). */
+  private readonly swellPhase: number;
   private endlessEvents: EventSchedule | null = null;
   private spawnIndex = 0;
   private lastSpike = -Infinity;
@@ -525,6 +563,7 @@ export class DifficultyDirector {
     if (problems.length) throw new Error(`Invalid director spec: ${problems.join('; ')}`);
     this.rng = new SeededRandom((seed ^ 0xd1ec7041) >>> 0);
     this.runEvents = new EventSchedule((seed ^ 0x5eed1234) >>> 0, tuning);
+    this.swellPhase = new SeededRandom((seed ^ 0x7a1a7a1a) >>> 0).next();
   }
 
   get currentSpec(): DirectorSpec {
@@ -553,7 +592,8 @@ export class DifficultyDirector {
     const t = this.tuning;
     const kind = this.spec.kind;
     const hard = this.spec.mode === 'hardcore';
-    const scale = (hard ? t.hardcore.eventScale : 1) * (ctx.phase === 'learn' ? t.learnEventScale : 1);
+    const trial = kind === 'trial' ? this.spec.trial : undefined;
+    const scale = (hard ? t.hardcore.eventScale : 1) * (ctx.phase === 'learn' ? t.learnEventScale : 1) * (trial?.eventScale ?? 1);
     let sStr = 0;
     let mStr = 0;
     let rec = 0;
@@ -589,7 +629,7 @@ export class DifficultyDirector {
     }
     const sb = t.short.boost * sStr;
     const mb = t.major.boost * mStr;
-    let dip = t.recovery.depth * rec * (hard ? t.hardcore.recoveryScale : 1);
+    let dip = t.recovery.depth * rec * (hard ? t.hardcore.recoveryScale : 1) * (trial?.recoveryScale ?? 1);
     if (endless) {
       const L = endlessLevel(this.spec, seconds, t);
       dip /= 1 + Math.max(0, L - endlessLevel(this.spec, 0, t));
@@ -632,7 +672,8 @@ export class DifficultyDirector {
       reliefEvery = Math.min(e.reliefEveryMax, Math.round(t.reliefEvery + 2 * over));
       extraAbove = Math.min(e.aboveTailMax, e.aboveTailPerLevel * over);
     } else {
-      baseline = spec.kind === 'boss' ? bossBaseline(spec, ctx.progress, t) : runBaseline(spec, ctx.progress, t);
+      baseline = spec.kind === 'trial' ? trialBaseline(spec, ctx.progress, ctx.seconds, this.swellPhase)
+        : spec.kind === 'boss' ? bossBaseline(spec, ctx.progress, t) : runBaseline(spec, ctx.progress, t);
       mixBase = baseline;
     }
     const pressure = clamp01(mixBase + fx.boost - fx.dip + (ctx.bias ?? 0));
@@ -641,7 +682,7 @@ export class DifficultyDirector {
     const raw = mixAt(pressure, t, reliefReserve) as unknown as number[][];
     const rowW = [1, lerp(t.lengths.mediumWeight[0], t.lengths.mediumWeight[1], smoothstep(vocab)), lerp(t.lengths.longWeight[0], t.lengths.longWeight[1], smoothstep(vocab))];
     const mix = normalizeMix(raw.map((row, i) => row.map((v) => v * rowW[i]!)));
-    const drift = spec.kind === 'run' ? clamp01(ctx.progress) : 1;
+    const drift = spec.kind === 'run' || spec.kind === 'trial' ? clamp01(ctx.progress) : 1;
     const lengthWindow = lengthWindowAt({ apprenticeship: vocab, arcPosition: drift }, pressure, t, extraAbove);
     const speedBands = speedBandsAt(spec, overdrive, t);
     const mid = (lengthWindow.lo + lengthWindow.hi) / 2;

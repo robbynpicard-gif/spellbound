@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-118
+Decision log current through: D-120
 
 ## Current state (2026-11-23)
 
@@ -29,6 +29,10 @@ Decision log current through: D-118
   Learn → Master → Boss run with optional Endless (D-085, D-102), a living
   Difficulty Director (D-097, D-101, D-102), Arcane Rush, Runes, key-art
   presentation (D-093), Sandbox and Typing Trials.
+- **Arcane Trial prototype (2026-11-23):** one representative trial, The
+  Crosswind Trial, is built on branch `dev/arcane-trial-prototype-20261123` (D-120; Yellow
+  scope, Experimental, not human-playtested):
+  [`arcane-trial-prototype-report-2026-11-23.md`](arcane-trial-prototype-report-2026-11-23.md).
 - **Playable D-115/D-116 build (2026-11-23):** branch `dev/canonical-playable-20261123`
   implements the eight canonical spells in the D-115 order, Academy unlocks
   (Normal opens the next apprenticeship and that stage's Hardcore), repertoire
@@ -98,6 +102,7 @@ Every Markdown file in the repository root and `docs/` is listed here;
 |---|---|
 | `docs/academy-campaign-canonical-gameplay-2026-11-22.md` | D-103 Academy and teacher-examination detail. Its Arcade Campaign and "Headmaster" are superseded by the Bible (D-106) |
 | `docs/continuous-apprenticeship-2026-11-22.md` | The implemented continuous run, Director and Endless (D-102) |
+| `docs/arcane-trial-prototype-report-2026-11-23.md` | Dated report: Arcane Trials audit, the Crosswind Trial prototype, the adaptation comparison and simulations (D-119, D-120) |
 | `docs/controlled-chaos-report-2026-11-23.md` | Dated report: D-115/D-116 implementation audit, removed legacy mechanics and controlled-chaos simulations (D-118) |
 | `docs/battlefield-pressure-report-2026-11-23.md` | Dated report: battlefield-pressure audit, first tuning pass and before/after simulations (D-113, D-114) |
 | `docs/apprenticeship-difficulty-director-2026-11-21.md` | Difficulty specification (D-097, D-101) |
@@ -175,3 +180,7 @@ dated audit, simulation or playtest), add it to the right table above in the
 same change. To retire one, move its row to Historical and add the banner
 (copy it from any historical file). Never delete a historical record without
 the owner's approval.
+
+## Arcane Trials current design override (D-120, 2026-11-23)
+
+The initial Arcane Trials prototype targets **~8–12 minutes experimentally**, with **continuous controlled chaos and no mandatory three-phase template**. Any 15–20 minute default or prescribed three-phase encounter in older docs is historical/superseded for this mode. Longer or phase-based variants are potential future experiments, not the baseline. See `docs/production-bible.md` and D-120 in `docs/decisions.md`. Arcane Trials remain Yellow scope; implementation is not verified.
