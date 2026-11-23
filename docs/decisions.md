@@ -1470,3 +1470,32 @@ _2026-11-22 · Owner statements, recorded verbatim in substance · **Spellcastin
 - Arcade progression gives replayability and mastery.
 - Accuracy, consistency, flow, tactical choices and spell knowledge all matter.
 - Difficulty should not rely only on faster spawning or longer words.
+
+### D-106 — Academy opening loop: fair typing trial, Chronomancer, Temporal Trial (2026-11-22)
+_2026-11-22 · Owner-approved design direction · Approved, not verified as implemented · Extends D-103; no gameplay changes in this documentation PR_
+
+The Academy begins with a **real, spell-free typing examination**, not a scripted failure or disposable tutorial. Falling scrolls introduce targeting, typing, Enter submission, score, Combo and Arcane Rush/Volley within the established rules. Pressure rises naturally and fairly; an exceptionally skilled player can succeed. Do not force failure, fake difficulty, or suppress score. The outcome may vary without blocking the learning arc.
+
+After the first trial, the **Chronomancer** introduces the fixed, memorable command **SLOW**. The lesson makes its utility legible and allows practice; the following **Temporal Trial** tests typing under escalating pressure with SLOW available, but **never requires a mandatory cast**. The Academy's larger pattern is **challenge → teacher lesson → practical examination**, building on previous spell knowledge and culminating in the Headmaster/Grandmaster examination and graduation (D-103). Teacher bosses should make the player's accumulated spell bank feel valuable, while allowing skilled typing and multiple viable solutions.
+
+Preserve D-102's continuous apprenticeship intent where applicable; the precise mapping between this opening sequence and existing Learn/Master/Boss checkpoints, rewards, failure/retry, Ward handling and score continuity must be specified before implementation. No claims of existing implementation are made here.
+
+### D-107 — Commercial production and Steam release scope (2026-11-22)
+_2026-11-22 · Owner-approved production direction · Planning only; no Steam deployment or release readiness verified_
+
+**Product:** TypeL is a **paid, complete Steam release**, published under the public-facing indie studio name **Eighteen Ninjas** (without “Dev Co.”). The owner is a solo developer with **variable ~20–35 hours/week** available; estimates and milestones must account for variable capacity, testing, integration, asset work, polish and release overhead. Do not equate prototype completion with commercial readiness.
+
+**Scope gates:**
+- **GREEN — release commitment:** polished **Academy** plus **Arcade/Practice**, coherent teaching and mastery loop, accessible readable typing, robust scoring/records, appropriate sound and visual feedback, stability, settings, onboarding, packaging and Steam-facing release work. This is the smallest *complete* paid product, not an early-access placeholder.
+- **YELLOW — experimental / optional:** **Arcane Trials**, potentially curated ~15–20 minute authored replayable runs with distinctive stages and controlled variability. Prototype and playtest; include at launch only if it meets quality, schedule and cohesion gates without threatening green scope.
+- **RED — future:** an expanding systemic playground, broad procedural/world expansions and other ambitious features. Not launch dependencies.
+- **Future commercial extensibility:** a **small number of curated base-game relics** may demonstrate the design language for future themed DLC, but DLC is not needed for launch and should not make the base game feel incomplete.
+
+**Recommended production order (planning framework, not implementation authorization):** (1) finish repository/context audit and reconcile design against code; (2) validate the core typing, score, spell and pressure loop; (3) prototype and test Academy opening and teacher examinations; (4) complete Academy progression/graduation; (5) develop Arcade/Practice mastery loop; (6) integrate cohesive art, audio, UX, accessibility and performance; (7) conduct repeated external playtests, balancing and regression tests; (8) Steam integration, store assets, compliance, build/release QA; (9) release candidate and launch; (10) post-launch support, then revisit yellow/red scope. These are dependencies, not promised dates.
+
+**Guardrails:** protect green scope from feature creep; avoid unnecessary rewrites; preserve deterministic gameplay and existing approved mechanics; use measurable playtests and explicit acceptance gates; track actual progress and capacity. Legal/business registration, Steamworks onboarding, tax and store requirements remain operational tasks to verify, not accomplished milestones.
+
+### D-108 — Audio experiment: restrained baseline versus hybrid melodic capture (2026-11-22)
+_2026-11-22 · Owner-approved exploration only · Experimental; no implementation or selection of a final sound system_
+
+Prototype **hybrid word-capture audio**: ordinary successful captures have crisp, legible, restrained feedback; sustained accurate performance may introduce **subtle melodic responses** that reinforce flow without becoming a rhythm-game obligation. Compare against a **restrained atmospheric baseline** with equivalent clarity and intensity. Keep identical gameplay, scoring, Combo/Arcane Rush, spawn timing and input responsiveness in both conditions. Avoid tying melody to a required typing cadence, masking error cues, creating audio clutter or imposing extra latency. Measure readability, perceived flow, fatigue, reward satisfaction, distraction and accessibility (including mute/reduced-intensity options) in controlled A/B playtests. Sound synthesis, mappings, thresholds and final adoption are **not approved**. Prototype behind an isolated flag; do not replace existing audio without review.
