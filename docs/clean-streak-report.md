@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Clean Streak report (v0.18); Clean Streak is being retired as a player-facing multiplier. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # Clean Streak — implementation report (v0.18.0)
 
 _2026-11-17. The response to "TypeL — Scoring System Redesign & Playtest Handoff". Live at https://robbynpicard-gif.github.io/TypeL/_

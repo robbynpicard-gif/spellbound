@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Last entry 2026-11-17; later history is in decisions.md and git. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # Development Log
 
 Newest entries at the top.

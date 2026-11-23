@@ -1409,3 +1409,64 @@ Details: `docs/continuous-apprenticeship-2026-11-22.md`. Supersedes, on the prev
 **Owner-approved gameplay direction; detailed tuning and content not yet implemented.** Keep current eight-spell apprenticeship order: Slow → Fire → Ice → Barrier → Shock → Alter → Wind → Harvest; Final Examination tests all. Academy apprenticeships remain continuous Learn → Master → Boss runs (D-102). Each featured spell is taught through naturally useful, recognizable encounter situations, not forced casting. **Apprenticeship bosses are the teachers themselves**, presenting a culminating examination that expects understanding of the featured spell **and previously learned spell bank**, with multiple viable solutions and no mandatory charge. Defeating the Headmaster graduates the wizard and **unlocks a distinct Arcade Campaign**. The Campaign assumes spell mastery and becomes the main home for additional scroll types, previously discussed spawn behavior variants including suspended scattered scrolls with variable hang times, and compound challenges. Academy may preview mechanics pedagogically. Preserve skill-based typing, score continuity, fairness, deterministic play, and Endless escalation. Teacher identities, exact encounter weights, campaign stages, elemental scroll contracts and numbers are exploratory, not approved implementations.
 
 **Cohesion review (recommendations, not yet owner-approved mechanical changes):** D-102's invisible Normal Ward full-heals at internal checkpoints and Barrier expiration at those checkpoints are inconsistent with continuous play; propose visible, learnable resource boundaries. Review Wind scar expiry, spell availability for teacher tests, Rush timing on empty fields, save/retry farming, and legible scoring communication before finalizing. Do not quietly change these rules. Full canonical consolidation, implementation distinctions, test matrix and unresolved choices: `docs/academy-campaign-canonical-gameplay-2026-11-22.md`.
+
+### D-104 — One shared context system for every assistant (2026-11-22)
+_2026-11-22 · Owner-requested (synchronization brief); structure proposed by Claude · **Design status: Proposed** until the owner merges the PR · Implementation: docs and CI only, branch `docs/shared-context-system` · no gameplay code changed_
+
+**Owner request:** ChatGPT and Claude must not keep separate, competing definitions of TypeL. Both read the same repository documents, record accepted decisions in this log, update docs when code changes, keep historical context, and verify the repository before substantial work.
+
+**Proposed structure:**
+- `AGENTS.md` holds the rules for every assistant: the source-of-truth hierarchy, status labels, the ten-step verification workflow and the doc-update duties. `CLAUDE.md` only imports it.
+- `docs/README.md` is the single entry point. It classifies every document as current, reference or historical, and holds the current-state snapshot.
+- `docs/system-map.md` maps each mechanic to its files, tests, status and decisions, verified from code.
+- `docs/open-questions.md` is the one register of questions for the owner.
+- Historical documents keep their content and get a "Document status: HISTORICAL" banner. Nothing is deleted.
+- `tools/check-docs.mjs` (`npm run docs:check`, CI `docs-check.yml`) fails on:
+  - unclassified docs;
+  - historical docs without the banner;
+  - broken links and paths in the current shared-context files;
+  - duplicate decision IDs;
+  - an index whose "current through" ID is behind this log.
+
+**Supersedes as entry points (documents kept):** `docs/current-game-model.md`, `docs/TYPEL-CURRENT-DESIGN-AND-CLAUDE-BRIDGE.md`, `docs/typel-four-pillar-decision-register-2026-11-20.md`, and README's claim that `docs/GDD.md` is the source of truth. Their remaining valid principles already live in this log (D-058, D-059, D-063 and later).
+
+**Audit findings that prompted this:**
+- seven documents each claimed to be the source of truth;
+- three different repository names were in use (see open question Q-1);
+- `main` and the dev branch run different games;
+- several decision IDs are missing (Q-7).
+
+Details: `docs/open-questions.md`.
+
+### D-105 — Owner gameplay direction from the synchronization brief (2026-11-22)
+_2026-11-22 · Owner statements, recorded verbatim in substance · **Spellcasting and gameplay philosophy: Approved direction. Difficulty and spell economy: balancing hypotheses, not quotas.** · Implementation: none · open questions Q-5, Q-6_
+
+**Spellcasting:**
+- Hardcore casts by typing a spell's name; number-key quick-cast is off in Hardcore and on in Normal.
+  - Verified in code: `GameEngine.quickCast`, `PlayScene.bindInput`, `tests/spells.test.ts`.
+- The owner prefers Hardcore's typed casting as the model for normal gameplay. Whether Normal keeps quick-cast is open (Q-5).
+- Spell commands must stay simple, recognizable and consistent.
+- The word bank keeps reserving spell commands (D-049).
+- Don't redesign spell targeting or add a Tab-style casting mode without a verified reason.
+
+**Difficulty:**
+- The current early-game baseline feels too forgiving.
+- The enjoyable late game, where spells become useful and necessary, should inform the new normal baseline.
+- The current gentler experience may become an introductory teaching phase.
+- The game stays primarily about typing.
+
+**Spell economy (hypotheses, to be tested):**
+- Initial target: a cast roughly every 10–15 s of active play.
+- A cast every ~5–10 s is a possible future direction, subject to playtesting.
+- Charge supply should allow meaningful spending without excessive hoarding.
+
+**Exploratory only, not approved for implementation:**
+- a campaign stage that replaces fixed spell commands with the captured scroll's word;
+- stages with longer incantations.
+
+**Philosophy:**
+- Apprenticeships teach mechanics.
+- Teacher-bosses test accumulated knowledge (consistent with D-103).
+- Arcade progression gives replayability and mastery.
+- Accuracy, consistency, flow, tactical choices and spell knowledge all matter.
+- Difficulty should not rely only on faster spawning or longer words.

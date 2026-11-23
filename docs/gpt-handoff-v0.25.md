@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. v0.25 ChatGPT handoff. ChatGPT now reads the same repository docs (AGENTS.md). Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TYPEL — Complete design summary for ChatGPT (v0.25.0, 2026-11-18)
 
 **Paste this whole document.** It describes what is **live now** at https://robbynpicard-gif.github.io/TypeL/ and **replaces every older handoff**. Earlier summaries (v0.17–v0.22) describe a 20-level/4-chapter campaign, boss reward picks, a six-wizard roster or older speed numbers; all of that is superseded.

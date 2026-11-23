@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Gothic pixel direction, superseded (D-093). Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TYPEL — VISUAL ART DIRECTION
 
 > Status: proposed (2026-11-16), not yet built. Reference: `mockups/gothic-reference.png`; in-code pixel mockup: `mockups/gothic-play-screen.png`. Planned at 640×360 shown 2×. The source text ends partway through section 10.

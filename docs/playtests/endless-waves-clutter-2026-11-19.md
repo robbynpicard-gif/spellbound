@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Playtest notes for the legacy Endless. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](../README.md), those win.
+
 # TypeL — next gameplay playtest (unreleased)
 
 Status: development branch only. No Pages deployment authorized.

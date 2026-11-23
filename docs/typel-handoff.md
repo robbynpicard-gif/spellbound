@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. v0.13 snapshot. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TypeL: full project handoff
 
 _Snapshot: 2026-11-17, version 0.13.0. Scoring is now tiered multipliers + bonuses + finale (D-040). Level word counts are 5 lower than the table below (D-039)._

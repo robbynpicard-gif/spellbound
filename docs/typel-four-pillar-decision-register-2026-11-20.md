@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Register through D-084; D-085 to D-105 supersede parts of it. Its repository name and URLs are wrong (see open question Q-1). Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TYPEL — FOUR-PILLAR CANONICAL DESIGN REGISTER AND CLAUDE HANDOFF
 **2026-11-20 | Comprehensive reconciliation of recoverable discussions, repository decisions D-001–D-084, prior handoffs and current prototype notes.**
 

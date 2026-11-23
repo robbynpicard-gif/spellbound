@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Per-level Director, superseded on the preview by D-102. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TypeL — Difficulty Director prototype: audit, implementation, simulation and playtest plan
 _2026-11-22 · D-097 implementation (Phases 0–4), **reconciled with the D-101 refinement** · branch `dev/difficulty-director-20261122` · **every number is EXPERIMENTAL**; production `main` untouched_
 

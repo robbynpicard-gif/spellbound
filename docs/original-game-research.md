@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Research plan, never started. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # Original Game Research — Typing Maniac (MetroGames)
 
 _Status: **Not started.** Research is planned before the mechanics it affects

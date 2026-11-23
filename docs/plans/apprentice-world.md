@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. 2026-11-16 concept. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](../README.md), those win.
+
 # Apprentice character world: technical audit and first concept
 
 _2026-11-16 · Step 1–2 of the production brief (audit, then concept). Nothing in the game has changed._

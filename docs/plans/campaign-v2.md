@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Superseded by D-047. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](../README.md), those win.
+
 > **Superseded (2026-11-17, D-047).** Kept for history. The current design is docs/design.md.
 
 # TypeL — Campaign v2 plan (implemented)
