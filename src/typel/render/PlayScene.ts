@@ -147,7 +147,6 @@ class ScrollView extends Phaser.GameObjects.Container {
     this.drawBrackets();
     this.stamp = scene.add.image(this.scrollWidth / 2 - 6, 26, 'ka-catch').setScale(0.8).setAngle(-8).setAlpha(0);
     this.add([this.glow, this.ring, this.img, this.done, this.rest, this.brackets, this.stamp]);
-    this.img.setInteractive({ useHandCursor: true }).setData('wordId', word.id);
     if (word.spell) this.adorn(scene, word.spell);
     this.setTyped(word.typed);
     scene.add.existing(this);
@@ -310,7 +309,7 @@ export class TypeLPlayScene extends Phaser.Scene {
   private rack = new Map<SpellId, { sprite: Phaser.GameObjects.Image; count: Phaser.GameObjects.Text; learned: boolean; home: { x: number; y: number } }>();
   private poolText!: Phaser.GameObjects.Text;
   private keys = new Map<string, Phaser.GameObjects.Image>();
-  /** D-096: spell keys 1–8 and their gems. */
+  /** D-096: the eight spell keys and their gems (charge indicators; not pressable, D-107). */
   private spellKeys = new Map<SpellId, Phaser.GameObjects.Image>();
   private gems = new Map<SpellId, Phaser.GameObjects.Image>();
   private trails = new Map<number, Phaser.GameObjects.Particles.ParticleEmitter>();
@@ -546,9 +545,10 @@ export class TypeLPlayScene extends Phaser.Scene {
   }
 
   /**
-   * D-096: spell keys 1–8 above the letter keys. A learned spell's gem glows
-   * while it has charges. In Hardcore spells are cast by typing their names
-   * (D-049), so an iron lock bar lies across the row and the gems stay dark.
+   * D-096: the eight spell keys above the letter keys. A learned spell's gem
+   * glows while it has charges. They show charges only: every spell is cast
+   * by typing its name (D-107), so the keys carry no number labels, and both
+   * modes show the gems the same way (the Hardcore lock bar was removed, D-111).
    */
   private buildSpellKeys(): void {
     const r = 30;
@@ -559,18 +559,7 @@ export class TypeLPlayScene extends Phaser.Scene {
       this.spellKeys.set(id, key);
       const learned = this.setup.spells.includes(id);
       this.gems.set(id, this.add.image(x, y - 2, `ka-gem_${id}`).setDisplaySize(30, 30).setDepth(22.6).setVisible(learned));
-      if (learned && !this.setup.hardcore) {
-        this.text(x, y + 19, String(i + 1), 13, '#ffe7b8', { fontFamily: FONT_ARCADE, fontStyle: '700', stroke: '#140a04', strokeThickness: 3 }).setOrigin(0.5).setDepth(22.7);
-      }
     });
-    if (this.setup.hardcore) {
-      const scale = 0.9;
-      const x0 = KA.spellKeys[0]![0] - 52;
-      const x1 = KA.spellKeys[7]![0] + 52;
-      const y = KA.spellKeys[0]![1];
-      this.add.nineslice((x0 + x1) / 2, y, 'ka-lockbar_bar', undefined, (x1 - x0) / scale, 72, 44, 44, 0, 0).setScale(scale).setDepth(22.8);
-      this.add.image((x0 + x1) / 2, y - (36 - 34) * scale, 'ka-lockbar_lock').setOrigin(0.5, 0).setScale(scale).setDepth(22.9);
-    }
   }
 
   /** The spell key presses and its gem flares when a spell is cast. */
@@ -926,21 +915,15 @@ export class TypeLPlayScene extends Phaser.Scene {
       if (this.paused || this.ended || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.key === 'Backspace') return this.erase();
       if (e.key === 'Enter') return this.engine.submit();
-      if (/^[1-8]$/.test(e.key) && !this.setup.hardcore) {
-        const spell = SPELL_ORDER[Number(e.key) - 1]!;
-        if (this.setup.spells.includes(spell)) this.engine.quickCast(spell);
-        return;
-      }
+      // D-107: typing is the only gameplay input. Spells are cast by typing
+      // their names; number keys do nothing.
       if (/^[a-zA-Z]$/.test(e.key) && this.engine.typeChar(e.key)) {
         sound.key(e.key);
         this.pressKey(e.key.toLowerCase());
         this.wizard.typed(e.key);
       }
     });
-    this.input.on('gameobjectdown', (_p: unknown, obj: Phaser.GameObjects.GameObject) => {
-      const id = obj.getData('wordId') as number | undefined;
-      if (typeof id === 'number' && !this.paused && !this.ended) this.engine.selectTarget(id);
-    });
+    // D-108: no clicking during gameplay. Typing a word is how it is targeted.
   }
 
   /**
@@ -1222,12 +1205,11 @@ export class TypeLPlayScene extends Phaser.Scene {
       if (n > 0) slot.sprite.clearTint().setAlpha(1);
       else slot.sprite.setTint(0x6a6a72).setAlpha(0.55);
       slot.count.setAlpha(n > 0 ? 1 : 0.55);
-      // D-096: the spell key's gem glows while that spell has charges (dark in Hardcore: keys don't cast)
+      // D-096: the spell key's gem glows while that spell has charges (both modes, D-111)
       const gem = this.gems.get(id);
       if (gem) {
-        const lit = n > 0 && !this.setup.hardcore;
-        if (lit) gem.clearTint().setAlpha(1);
-        else gem.setTint(0x5a5a62).setAlpha(this.setup.hardcore ? 0.45 : 0.6);
+        if (n > 0) gem.clearTint().setAlpha(1);
+        else gem.setTint(0x5a5a62).setAlpha(0.6);
       }
     }
     this.poolText.setText(`charges ${held} / ${this.engine.poolLimit}`);

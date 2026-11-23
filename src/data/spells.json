@@ -23,7 +23,7 @@
     "name": "Arcane Shield",
     "book": "Barrier",
     "summary": "Blocks 2 misses, or saves Combo from slips.",
-    "description": "Adds 2 shield layers. A layer is spent when a word reaches the ward line (it does no harm), or when you make a typo and fix it: your Combo and Arcane Rush are kept. That corrected word still isn't perfect, so it adds no Combo and never counts for Ice Focus. One layer covers every slip in one entry. Lasts until the end of the level.",
+    "description": "Adds 2 shield layers. A layer is spent when a word reaches the ward line (it does no harm), or when you make a typo and fix it: your Combo and Arcane Rush are kept. That corrected word still isn't perfect, so it adds no Combo and never counts for Ice Focus. One layer covers every slip in one entry. Lasts until your next checkpoint.",
     "dropWeight": 4,
     "blocks": 2
   },
@@ -32,7 +32,7 @@
     "name": "Chain Lightning",
     "book": "Shock",
     "summary": "Strikes the 3 lowest words, then may chain.",
-    "description": "Lightning rises from the Ward floor into the 3 words closest to the Ward, always. From each struck word it may leap to nearby words: closer words are likelier, and each leap makes the next less likely (seeded, so a replay strikes the same way). Up to 10 words. Struck words count toward the level and pay base points × your Combo (× All-In if active). Shock never adds Combo or Arcane Rush. The odds are provisional.",
+    "description": "Lightning rises from the Ward floor into the 3 words closest to the Ward, always. From each struck word it may leap to nearby words: closer words are likelier, and each leap makes the next less likely (seeded, so a replay strikes the same way). Up to 10 words. Struck words count toward your next checkpoint and pay base points × your Combo (× All-In if active). Shock never adds Combo or Arcane Rush. The odds are provisional.",
     "dropWeight": 3,
     "arcs": 3
   },
@@ -51,7 +51,7 @@
     "name": "Incineration",
     "book": "Fire",
     "summary": "Burns the low field; flames spread through crowds.",
-    "description": "Every word in the lower half of the field ignites, and flames leap to any word close enough to a burning one, generation after generation. Words in the top fifth are always spared. Each burned word pays its base points, +25% per generation of spread (a crowded field burns further and pays more). No Combo, Arcane Rush or level progress. Combustion Chain is a provisional prototype.",
+    "description": "Every word in the lower half of the field ignites, and flames leap to any word close enough to a burning one, generation after generation. Words in the top fifth are always spared. Each burned word pays its base points, +25% per generation of spread (a crowded field burns further and pays more). No Combo, Arcane Rush or checkpoint progress. Combustion Chain is a provisional prototype.",
     "dropWeight": 2
   },
   {
@@ -59,7 +59,7 @@
     "name": "Arcane Purge",
     "book": "Wind",
     "summary": "Mends the Ward, or wagers All-In at full.",
-    "description": "Below your Ward's current maximum, Wind heals it back to that maximum and removes the extra speed your mistakes gave words. At your current maximum, Wind goes ALL-IN: the Ward drops to 25%, its maximum is scarred (−15, then −20, −25 …), and for 10 seconds your typed words, Harvest and Shock score ×2. A Ward breach ends All-In (in Hardcore any mistake does), and healing with Wind ends it too. You can wager again whenever you're back at your maximum, as long as it would stay at 40% or more. Normal clears scars each level; Hardcore keeps them for the whole stage. Prototype values.",
+    "description": "Below your Ward's current maximum, Wind heals it back to that maximum and removes the extra speed your mistakes gave words. At your current maximum, Wind goes ALL-IN: the Ward drops to 25%, its maximum is scarred (−15, then −20, −25 …), and for 10 seconds your typed words, Harvest and Shock score ×2. A Ward breach ends All-In (in Hardcore any mistake does), and healing with Wind ends it too. You can wager again whenever you're back at your maximum, as long as it would stay at 40% or more. Normal clears scars at every checkpoint; Hardcore keeps them for the whole apprenticeship. Prototype values.",
     "dropWeight": 1.5,
     "heal": 50
   },
@@ -68,7 +68,7 @@
     "name": "Harvest",
     "book": "Harvest",
     "summary": "Claims every word, cashing in Combo and Rush.",
-    "description": "Claims every word on the field: they all count toward the level and pay their full base points × your Combo multiplier × your active Arcane Rush multiplier (× All-In if active). Your Combo stays; your Arcane Rush is spent. Harvest never adds Combo or Arcane Rush captures.",
+    "description": "Claims every word on the field: they all count toward your next checkpoint and pay their full base points × your Combo multiplier × your active Arcane Rush multiplier (× All-In if active). Your Combo stays; your Arcane Rush is spent. Harvest never adds Combo or Arcane Rush captures.",
     "dropWeight": 1
   }
 ]

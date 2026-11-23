@@ -158,7 +158,7 @@ export class TypeLApp {
         btn('Normal', () => ((this.mode = 'normal'), this.showApprenticeship()), this.mode === 'normal' ? 'primary small' : 'small'),
         btn('Hardcore', () => ((this.mode = 'hardcore'), this.showApprenticeship()), this.mode === 'hardcore' ? 'primary small' : 'small'),
         el('span', { class: 't-small' }, this.mode === 'normal'
-          ? 'Normal teaches: number keys 1–8 cast, and the Ward is restored at every checkpoint.'
+          ? 'Normal teaches: type a spell’s name and press Enter to cast it, and the Ward is restored at every checkpoint.'
           : 'Hardcore expects mastery: spells are typed, the Ward and its scars carry through the whole apprenticeship. (Unlocked for testing; it will require Normal.)'),
       ),
       list,
@@ -303,7 +303,7 @@ export class TypeLApp {
       this.mentor(trial.victory),
       perfection
         ? el('div', { class: 't-perfection' }, el('img', { class: 't-medal-big', src: medalDataUrl(perfectRune, 128), alt: '' }),
-            el('div', null, el('h3', null, 'Flawless Perfection'), el('p', null, `The Grand Wizard: “${SPECIAL.flawlessPerfection.text}”`)))
+            el('div', null, el('h3', null, 'Flawless Perfection'), el('p', null, `The Grandmaster: “${SPECIAL.flawlessPerfection.text}”`)))
         : null,
       el('div', { class: 't-bigscore' }, stats.score.toLocaleString(), isBest ? el('span', { class: 't-best' }, ' new best') : null),
       el('div', { class: 't-stats' }, stat('Scrolls', String(stats.completed)), stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Best Combo', String(stats.maxCombo)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`)),
@@ -383,7 +383,7 @@ export class TypeLApp {
       showSequenceScore: true,
       stage: `Sandbox · Pace ${sb.tier}`,
       subtitle: `${sb.mode === 'hardcore' ? 'Hardcore' : 'Normal'} rules · pace ${sb.tier} · not recorded`,
-      lines: [{ who: 'The Grand Wizard', text: 'Here nothing is at stake. Experiment. Combine. Break things.' }],
+      lines: [{ who: 'The Grandmaster', text: 'Here nothing is at stake. Experiment. Combine. Break things.' }],
       onPause: () => this.pauseMenu(() => this.startSandbox()),
       onEnd: (_r, stats) => this.show(this.panel('Sandbox results',
         el('div', { class: 't-bigscore' }, stats.score.toLocaleString()),
@@ -495,11 +495,11 @@ export class TypeLApp {
         h3('Score'), p('Each captured word pays letters × 10 × Combo × Arcane Rush × All-In, rounded once. Runes pay small fixed points on top. Nothing else multiplies your score.'),
         p('In the Apprenticeship the machine shows your total and each word’s base, Combo and Rush, but never the exact points a single capture earned: that stays a mystery. The Sandbox shows them for practice.'),
         h3('Precision Combo'), p('Every perfectly typed capture adds 1 (Ice Focus adds more). Every 10 Combo raises the multiplier by ×1. A typo, a wrong Enter or a missed word breaks it. A Barrier layer can save it from one slip you correct.'),
-        h3('Arcane Rush'), p('Your flow state (called Arcane Volley in older notes). Your first perfect capture opens a timing window (the gold bar on the Rush column); a second inside it starts the Rush at ×1.2. Keep capturing in time and it climbs +0.2 per capture to ×5 (Mastery), then +0.1 per ever-harder step. Longer words get longer windows. An empty field pauses the window. Slow gives it 25% more time. Harvest spends it.'),
+        h3('Arcane Rush'), p('Your flow state. Your first perfect capture opens a timing window (the gold bar on the Rush column); a second inside it starts the Rush at ×1.2. Keep capturing in time and it climbs +0.2 per capture to ×5 (Mastery), then +0.1 per ever-harder step. Longer words get longer windows. An empty field pauses the window. Slow gives it 25% more time. Harvest spends it.'),
         h3('Catch it!'), p('Submitting a wrong word sends the word you meant into a plunge. Most plunges are brisk, some urgent, and now and then one is desperate. Catch it before it reaches the Ward to earn Saving Grace (Daring Rescue for the fastest). Another wrong submission on a plunging word makes it fall faster still. A wrong letter you fix with Backspace never causes a plunge.'),
         h3('Backspace'), p('Backspace un-inks letters from the paper and the scroll. Fixing a slip is always allowed; the slip itself still broke your Combo unless a Barrier layer caught it.'),
         h3('The Ward'), p(`Words that reach the bottom crack the Ward. At 0% you fall. Wind at your Ward’s current maximum goes All-In: the Ward drops to ${WARD_TUNING.wagerStability}%, its maximum is scarred (−${WARD_TUNING.firstScar}, then ${WARD_TUNING.scarGrowth} more each time), and for ${WARD_TUNING.allInTicks / 60} seconds your score is ×${WARD_TUNING.allInMultiplier}. Healing never rises above the scar. A breach ends All-In; in Hardcore any slip does.`),
-        h3('Normal and Hardcore'), p('Normal: number keys 1–8 cast, and the Ward is restored at every checkpoint of the apprenticeship. Hardcore: spells are typed (a clean typed spell earns Combo and points); the Ward and its scars carry through the whole apprenticeship, with small recoveries at two checkpoints. Hardcore starts under more pressure, builds it faster and recovers less.'),
+        h3('Normal and Hardcore'), p('In every mode, spells are cast by typing their names and pressing Enter. Normal: the Ward is restored at every checkpoint of the apprenticeship. Hardcore: a clean typed spell also earns Combo and points; the Ward and its scars carry through the whole apprenticeship, with small recoveries at two checkpoints. Hardcore starts under more pressure, builds it faster and recovers less.'),
         h3('One continuous examination'), p('Each apprenticeship is a single run in three phases: Learn (meet the spell and build momentum), Master (more frequent and overlapping pressure), and the Boss Examination, which builds to its climax in the final seconds. Nothing resets between them: your score, Combo and Arcane Rush carry through, and so does the field. Endless follows the boss if you wish; it never stops getting harder.'),
         h3('Difficulty'), p('Every apprenticeship has its own familiar range of word lengths (about 3–6 letters in the Apprenticeship of Time, 6 and up by Harvest), with the occasional longer or shorter word. Words vary in length and speed together: short and slow give you room, long and slow test precision, short and fast test reactions, long and fast are the spikes. Pressure changes often: brief pressure moments every few seconds, bigger surges every half-minute or so, each followed by a short, kinder stretch that keeps words coming. Later apprenticeships start higher. Nothing watches how well you type: the same seed and the same play give the same game. Every number behind this is an experimental prototype value.'),
         h3('Rune sequences'), p('Some Runes belong to spells. Casting opens that spell’s opportunity window; only what you type inside it counts. Casting alone never earns a Rune.'),
@@ -547,7 +547,7 @@ export class TypeLApp {
       slider.addEventListener('input', () => sound.apply({ ...sound.settings, [ch]: { ...sound.settings[ch], volume: Number(slider.value) / 100 } }));
       return el('label', { class: 't-audio' }, box, el('span', null, label), slider);
     };
-    return el('div', { class: 't-audiobox' }, row('Music', 'music'), row('Sound effects', 'sfx'), row('Grand Wizard voice (placeholder babble)', 'voice'));
+    return el('div', { class: 't-audiobox' }, row('Music', 'music'), row('Sound effects', 'sfx'), row('Grandmaster voice (placeholder babble)', 'voice'));
   }
 
   showOptions(): void {
@@ -562,7 +562,7 @@ export class TypeLApp {
         btn('Reset prototype progress', () => {
           if (window.confirm('Reset all TypeL prototype progress, records and Runes?')) (prefs.reset(), this.showOptions());
         })),
-      el('p', { class: 't-small' }, 'The Grand Wizard speaks only when you earn a Rune. His voice is a placeholder babble until real recorded lines replace it; his words always appear as text in his speech bubble.'),
+      el('p', { class: 't-small' }, 'The Grandmaster speaks only when you earn a Rune. His voice is a placeholder babble until real recorded lines replace it; his words always appear as text in his speech bubble.'),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
   }
 }

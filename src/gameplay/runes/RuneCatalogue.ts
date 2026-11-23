@@ -53,7 +53,7 @@ export const RUNES: readonly RuneDef[] = [
   r({ id: 'alliterator', name: 'Alliterator', family: 'Letters', category: 'wordplay', points: 75, tier: 1, how: 'Capture 3 words in a row that start with the same letter.' , glyph: 'ℵ' }),
   r({ id: 'alphabetist', name: 'Alphabetist', family: 'Letters', category: 'wordplay', points: 100, tier: 2, how: 'Capture 4 words in a row in alphabetical order.' , glyph: 'Ω' }),
   // ── Spellcraft rune sequences ──
-  r({ id: 'borrowed-time', name: 'Borrowed Time', family: 'Slow', spell: 'slow', category: 'spellcraft', points: 150, tier: 2, how: 'During one Slow, raise Volley to ×2 or more.' , glyph: '⧗' }),
+  r({ id: 'borrowed-time', name: 'Borrowed Time', family: 'Slow', spell: 'slow', category: 'spellcraft', points: 150, tier: 2, how: 'During one Slow, raise Arcane Rush to ×2 or more.' , glyph: '⧗' }),
   r({ id: 'frost-3', name: 'Frostscribe', family: 'Ice', spell: 'ice', category: 'spellcraft', points: 50, tier: 1, how: '3 perfect captures during one freeze.' , glyph: '❄' }),
   r({ id: 'frost-5', name: 'Frostweaver', family: 'Ice', spell: 'ice', category: 'spellcraft', points: 150, tier: 2, how: '5 perfect captures during one freeze.' , glyph: '❅' }),
   r({ id: 'frost-8', name: 'Frostmaster', family: 'Ice', spell: 'ice', category: 'spellcraft', points: 400, tier: 3, how: '8 perfect captures during one freeze.' , glyph: '❆' }),
@@ -65,7 +65,7 @@ export const RUNES: readonly RuneDef[] = [
   r({ id: 'adaptation', name: 'Adaptation', family: 'Alter', spell: 'alter', category: 'spellcraft', points: 150, tier: 2, how: 'During one Alter, perfectly capture 4 words it changed.' , glyph: '✎' }),
   r({ id: 'final-wager', name: 'Final Wager', family: 'Wind', spell: 'wind', category: 'spellcraft', points: 250, tier: 2, how: 'Score 1,000 points inside one All-In.' , glyph: '⚜' }),
   r({ id: 'thrice-scarred', name: 'Thrice Scarred', family: 'Wind', spell: 'wind', category: 'spellcraft', points: 250, tier: 3, how: 'Go All-In a third time while carrying two scars.' , glyph: '✠' }),
-  r({ id: 'reap', name: 'Reap What You Sow', family: 'Harvest', spell: 'harvest', category: 'spellcraft', points: 400, tier: 3, how: 'Harvest during All-In with a Volley of ×2 or more.' , glyph: '❦' }),
+  r({ id: 'reap', name: 'Reap What You Sow', family: 'Harvest', spell: 'harvest', category: 'spellcraft', points: 400, tier: 3, how: 'Harvest during All-In with an Arcane Rush of ×2 or more.' , glyph: '❦' }),
   // ── Flawless (2026-11-19 Round 2): zero typing mistakes, zero scrolls reaching the Ward, zero damage ──
   r({ id: 'flawless', name: 'Flawless', family: 'Flawless', category: 'typing', points: 300, tier: 3, glyph: '✪', how: 'Clear a level with no typing mistakes and no scroll reaching the Ward.' }),
   r({ id: 'flawless-perfection', name: 'Flawless Perfection', family: 'Flawless', category: 'typing', points: 0, tier: 3, glyph: '✺', modeAwarded: true, how: 'Complete a whole apprenticeship with every level Flawless.' }),

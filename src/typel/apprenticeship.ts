@@ -1,6 +1,6 @@
 /**
  * TypeL Apprenticeship (prototype, D-085). Replaces the 5 × 20 campaign as
- * the main mode. Nine apprenticeships: one per spell, then the Grand Wizard.
+ * the main mode. Nine apprenticeships: one per spell, then the Grandmaster (GAME-004).
  *
  * Difficulty is *extracted* from the old 5-stage curve (docs/decisions D-047,
  * src/difficulty/Stages.ts): each apprenticeship compresses one stage-like
@@ -29,7 +29,7 @@ export interface Line {
 export interface Trial {
   index: number; // 1–9
   id: string;
-  spell: SpellId | null; // null for the Grand Wizard's final trial
+  spell: SpellId | null; // null for the Grandmaster's final trial
   title: string;
   master: string;
   bossName: string;
@@ -40,22 +40,22 @@ export interface Trial {
   victory: Line[];
 }
 
-const GW = 'The Grand Wizard';
+const GW = 'The Grandmaster';
 
 export const TRIALS: readonly Trial[] = [
   {
-    index: 1, id: 'slow', spell: 'slow', title: 'The Apprenticeship of Time', master: 'Master of Time', bossName: 'The Unwinding Clock',
+    index: 1, id: 'slow', spell: 'slow', title: 'The Apprenticeship of Time', master: 'The Chronomancer', bossName: 'The Temporal Trial',
     intro: [
       { who: GW, text: 'Every scroll that falls is a word someone could not hold. Catch them, apprentice. The Masters will teach you how.' },
-      { who: 'Master of Time', text: 'Time is a river. SLOW thickens it. Words drift, and your rhythm has room to breathe.' },
+      { who: 'The Chronomancer', text: 'Time is a river. SLOW thickens it. Words drift, and your rhythm has room to breathe.' },
     ],
     hints: {
-      3: { who: 'Master of Time', text: 'The field is gentle. Slow it anyway, and see how long your Volley lasts.' },
-      7: { who: 'Master of Time', text: 'Faster now. Slow can buy rhythm, or it can buy your life. Choose.' },
-      11: { who: 'Master of Time', text: 'Save a Slow for when the sky fills. You will know the moment.' },
+      3: { who: 'The Chronomancer', text: 'The field is gentle. Slow it anyway, and see how long your Arcane Rush lasts.' },
+      7: { who: 'The Chronomancer', text: 'Faster now. Slow can buy rhythm, or it can buy your life. Choose.' },
+      11: { who: 'The Chronomancer', text: 'Save a Slow for when the sky fills. You will know the moment.' },
     },
-    bossIntro: [{ who: 'Master of Time', text: 'The Clock unwinds. Survive it. Time is the only ally you were given.' }],
-    victory: [{ who: 'Master of Time', text: 'You bent time without breaking your rhythm. The next Master is waiting.' }],
+    bossIntro: [{ who: 'The Chronomancer', text: 'The Temporal Trial begins. Survive it. Time is the only ally you were given.' }],
+    victory: [{ who: 'The Chronomancer', text: 'You bent time without breaking your rhythm. The next Master is waiting.' }],
   },
   {
     index: 2, id: 'fire', spell: 'fire', title: 'The Apprenticeship of Flame', master: 'Master of Flame', bossName: 'The Pyre Tide',
@@ -106,7 +106,7 @@ export const TRIALS: readonly Trial[] = [
     intro: [{ who: 'Master of Ink', text: 'ALTER rewrites long words into short ones. They keep their full worth. For a while, new words come small and kind.' }],
     hints: {
       3: { who: 'Master of Ink', text: 'A long word made short is a fortune made easy. Rewrite the field and harvest the letters.' },
-      7: { who: 'Master of Ink', text: 'Short words are fast words. Fast words feed Volley.' },
+      7: { who: 'Master of Ink', text: 'Short words are fast words. Fast words feed your Arcane Rush.' },
       11: { who: 'Master of Ink', text: 'When the words are cruel, rewrite them. That is what ink is for.' },
     },
     bossIntro: [{ who: 'Master of Ink', text: 'The Tome writes itself. Edit it.' }],
@@ -128,9 +128,9 @@ export const TRIALS: readonly Trial[] = [
   },
   {
     index: 8, id: 'harvest', spell: 'harvest', title: 'The Apprenticeship of Harvest', master: 'Master of Harvest', bossName: 'The Fallow Field',
-    intro: [{ who: 'Master of Harvest', text: 'HARVEST gathers every word at once, at full worth, times all your hands have earned: Combo and Volley. The Volley is spent.' }],
+    intro: [{ who: 'Master of Harvest', text: 'HARVEST gathers every word at once, at full worth, times all your hands have earned: Combo and Arcane Rush. The Rush is spent.' }],
     hints: {
-      3: { who: 'Master of Harvest', text: 'Let the field ripen. Build your Volley high. Then reap.' },
+      3: { who: 'Master of Harvest', text: 'Let the field ripen. Build your Arcane Rush high. Then reap.' },
       7: { who: 'Master of Harvest', text: 'What else might multiply a harvest? Your other Masters have told you more than they meant to.' },
       11: { who: 'Master of Harvest', text: 'A harvest also clears the field. Sometimes that is all you need.' },
     },
@@ -138,7 +138,7 @@ export const TRIALS: readonly Trial[] = [
     victory: [{ who: 'Master of Harvest', text: 'You reaped what you sowed. Now go and sow more.' }],
   },
   {
-    index: 9, id: 'grand', spell: null, title: 'The Final Examination', master: GW, bossName: 'The Grand Wizard’s Stand',
+    index: 9, id: 'grand', spell: null, title: 'The Final Examination', master: GW, bossName: 'The Grandmaster’s Stand',
     intro: [{ who: GW, text: 'Eight Masters have taught you. Now you face me, with everything you have learned. Use all of it.' }],
     hints: {
       3: { who: GW, text: 'Every spell has two faces. Show me both.' },

@@ -1582,3 +1582,31 @@ Its ten-step production order is **superseded by the Bible's §4 phase sequence 
 - prototype behind an isolated flag.
 
 Sounds, thresholds and metrics are open (Q-20).
+
+### D-111 — M1 implemented: typing-only input, renames, word additions, spell text (2026-11-23)
+_2026-11-23 · Implements D-107 and D-108 and the M1 items of `docs/production-bible-reconciliation-2026-11-23.md` (approved by the owner 2026-11-23) · Implementation: branch `dev/m1-typing-only-20261123` · Verification: CI `npm run check` (see the PR) · Deployment: not deployed_
+
+**Typing only (GAME-001, D-107, D-108):**
+- TypeL's play scene no longer binds number keys or clicks; `src/typel/render/PlayScene.ts` `bindInput`, and scrolls are no longer interactive.
+- `tests/typel-typing-only.test.ts` guards the play scene against number-key, click or pointer input coming back.
+- The digit labels under the spell gems are gone.
+- At the owner's direction, the Hardcore iron lock bar over the spell gems is removed. It meant "keys don't cast here", which is now true in every mode. Gems glow while a spell has charges in both modes. The lock-bar art files stay in `public/assets/typel/keyart/`, unused. The gems remain as charge indicators.
+- Menu text now says spells are cast by typing their names in every mode.
+- **Kept on purpose:**
+  - The engine's `cast` and `select` commands still apply, so saved runs and replays recorded before this change replay exactly (`src/typel/runSave.ts` replays the command log).
+  - `GameEngine.quickCast` and `selectTarget` stay as engine hooks for tests, simulations, multiplayer and the legacy campaign. No TypeL input reaches them. Remove them when the legacy code is retired (Q-11).
+
+**Renames (GAME-003, GAME-004):**
+- "Master of Time" → **The Chronomancer**; "The Unwinding Clock" → **The Temporal Trial**.
+- "The Grand Wizard" → **The Grandmaster** in the TypeL apprenticeships, menus and Codex.
+- Player-facing "Volley" → **Arcane Rush** in hints, Rune descriptions and the Triumph label.
+- **Not renamed yet:** internal code identifiers (`ArcaneVolley.ts`, `volleyMultiplier`, event fields, the saved `peakVolley` stat). That is about 500 identifiers across 44 files, including a persisted save field that needs a migration, so it is split into its own behaviour-neutral PR (M1b). The legacy campaign's text is untouched.
+
+**Words:** `main`'s typing-culture additions (`81bedb5`, 44 words) are cherry-picked into dev. None duplicates an existing word or clashes with a spell name.
+
+**Spell text (Q-9):** `src/data/spells.json` now matches the continuous run as coded:
+- Barrier layers last until the next checkpoint;
+- captured, Shocked and Harvested words count toward the next checkpoint;
+- Normal clears Ward scars at every checkpoint, and Hardcore keeps them for the whole apprenticeship.
+
+Whether those lifetimes are the right *design* stays open in D-103's list.

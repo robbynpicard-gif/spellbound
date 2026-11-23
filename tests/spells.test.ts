@@ -470,7 +470,7 @@ describe('casting', () => {
     expect(engine.state.cleanStreak).toBe(15);
   });
 
-  it('Normal quick cast (number keys) casts without typing and keeps the console text; Hardcore refuses it', () => {
+  it('engine quickCast (legacy campaign hook; TypeL has no number-key casting, D-107) casts without typing; Hardcore refuses it', () => {
     const engine = makeEngine({}, { initialSpells: { ice: 1 } });
     stepUntilWords(engine, 1);
     engine.typeChar(engine.state.words[0]!.text[0]!);

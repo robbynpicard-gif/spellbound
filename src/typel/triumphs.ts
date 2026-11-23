@@ -19,7 +19,7 @@ export const TRIUMPHS: readonly Triumph[] = [
   { id: 'collector', name: 'Rune Collector', what: 'Different Runes earned', tiers: [5, 15, RUNES.length], value: (p) => Object.keys(p.runes).length },
   { id: 'apprentice', name: 'Apprentice', what: 'Apprenticeships completed (Normal)', tiers: [1, 4, 9], value: (p) => p.completed.normal.length },
   { id: 'hardened', name: 'Hardened', what: 'Apprenticeships completed (Hardcore)', tiers: [1, 4, 9], value: (p) => p.completed.hardcore.length },
-  { id: 'surge', name: 'Surgebearer', what: 'Highest Volley reached', tiers: [2, 3, 5], value: (p) => p.lifetime.peakVolley, format: (v) => `×${v.toFixed(1)}` },
+  { id: 'surge', name: 'Surgebearer', what: 'Highest Arcane Rush reached', tiers: [2, 3, 5], value: (p) => p.lifetime.peakVolley, format: (v) => `×${v.toFixed(1)}` },
   { id: 'scarred', name: 'Scarred Veteran', what: 'All-In wagers taken', tiers: [1, 10, 50], value: (p) => p.lifetime.wagers },
   { id: 'swift', name: 'Swift Hand', what: 'Best Typing Trial WPM', tiers: [40, 70, 100], value: (p) => Math.max(0, ...Object.values(p.typing.bestWpm)) },
 ];

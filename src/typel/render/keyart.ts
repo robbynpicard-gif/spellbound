@@ -30,7 +30,7 @@ export const KA = layout as unknown as {
   field: { x: number; y: number; w: number; h: number };
   /** D-096: the shorter shelf under the title; `boards` are the shelf surfaces, top to bottom. */
   shelf: { boards: number[]; top: number; left: number; right: number; scrollX: number; countX: number; ribbonX: number };
-  /** D-096: the eight spell keys (Normal 1–8) above the letter keys. */
+  /** D-096: the eight spell keys above the letter keys (charge indicators only, D-107). */
   spellKeys: Pt[];
   /** D-096: the Ward orb on the typewriter's right side. */
   orb: { x: number; y: number; r: number };
