@@ -214,3 +214,5 @@ After completion:
   - **No clicking during gameplay;** clicking is allowed only in menus. Typed menu navigation with an always-active typewriter is an idea to explore (refines GAME-001).
   - **The flow multiplier stays "Arcane Rush"** (refines D-107's rename).
 - **2026-11-23 · D-109:** the six spatial spawn behaviours and Suspended Scattered Spawning are recovered and recorded. They belong to Arcane Trials per D-107 (completes GAME-006's recovery; numbers stay Experimental).
+
+- **2026-11-23 · D-119:** **Typing mastery is paramount** (refines GAME-001, GAME-005, GAME-006 and SCOPE-002). TypeL should be a fun way to improve accuracy, speed, consistency, reading and target selection. Spells are tactical pressure-management tools; encounter variety creates different typing challenges; scoring should principally reward earned typing execution, not automated bypasses. Arcane Trials may spotlight a spell or return focus to raw typing through controlled, readable variability. Test this principle before changing formulas or mechanics; no new tuning numbers or code changes are implied.
