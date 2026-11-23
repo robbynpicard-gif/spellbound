@@ -53,7 +53,7 @@ Each milestone ships as its own PR, with `npm run check` and
 **M0 — Shared context and Bible adoption** (PR #12, this change). Accept by
 merging.
 
-**M1 — Small reconciliation fixes** (Bible phase 00). Do these on dev:
+**M1 — Small reconciliation fixes** (Bible phase 00). **Implemented in D-111** (PR from `dev/m1-typing-only-20261123`), except the code-identifier rename, which moved to M1b. Do these on dev:
 1. Merge the `81bedb5` word additions; test for spell-name clashes.
 2. Remove number-key casting completely (GAME-001, D-107), and remove
    click-to-target during gameplay (D-108). Update the HUD and Codex key
@@ -67,6 +67,8 @@ merging.
 number key or click acts during gameplay; replays and saves still load
 after the Rush rename. Old replays containing `select` commands must still
 replay.
+
+**M1b — Rush code rename.** Behaviour-neutral rename of the Volley identifiers (`ArcaneVolley.ts`, fields, events). Include a save migration for the `peakVolley` lifetime stat. *Accept when:* tests pass unchanged apart from names; old saves keep their stats.
 
 **M2 — Desktop foundations** (phase 01):
 1. Self-host the fonts.

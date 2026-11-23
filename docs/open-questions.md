@@ -20,8 +20,7 @@ the repo is wrong.
 
 **Q-2 · Bringing `main` and dev back together**
 Dev is 49 commits ahead of `main`. `main` has one gameplay-data commit that
-dev lacks (`81bedb5`, 44 new words in `src/data/words.json`). The Bible says to preserve the approved word additions, so they come into
-dev in M1 (D-106). Still open: when should dev's TypeL replace `main`'s legacy campaign as
+dev lacked (`81bedb5`, 44 new words in `src/data/words.json`); they're cherry-picked into dev in D-111. Still open: when should dev's TypeL replace `main`'s legacy campaign as
 the stable game?
 
 **Q-3 · Shared docs on `main`**
@@ -47,14 +46,6 @@ sources, or recorded as "not recoverable"?
 The server and client code exist and have tests, but no menu path reaches
 `src/app/MultiplayerFlow.ts` on either branch. The README says duels work
 locally. Keep the code as-is, wire it back in, or retire it?
-
-**Q-9 · Stale player-facing rule text**
-`src/data/spells.json` still says Barrier lasts "until the end of the level"
-and that Wind scars clear "each level" or "for the whole stage". The
-preview's apprenticeship hints say "Volley" where the player-facing name is
-Arcane Rush. Those words no longer match a continuous run. This is shipped
-game text, so it wasn't changed in this audit. It overlaps with D-103's
-Barrier and Wind questions.
 
 **Q-10 · Which dev branch is canonical**
 `dev/apprenticeship-prototype-20261119` (deployed as the preview) and
@@ -112,3 +103,7 @@ during gameplay; menus only.
 
 **Q-16 (first half) · The six spawn behaviours:** recovered by ChatGPT and
 recorded as D-109. The Game Bible PDF is still open (Q-16).
+
+**Q-9 · Stale player-facing rule text:** resolved by D-111. The spell text
+and hints now match the continuous run and the name Arcane Rush. Whether the
+Barrier and Wind lifetimes are the right design remains in D-103's list.
