@@ -87,9 +87,8 @@ const FIELD_RECT = KA.field;
 const WARD_Y = FIELD_RECT.y + FIELD_RECT.h;
 const CX = FIELD_RECT.x + FIELD_RECT.w / 2;
 const SX = FIELD_RECT.w / FIELD.width;
-const SY = FIELD_RECT.h / FIELD.height;
 const toX = (x: number) => FIELD_RECT.x + x * SX;
-const toY = (y: number) => FIELD_RECT.y + y * SY;
+
 const INK = '#1e1408';
 const RUBRIC = '#b3261e';
 /** Typewriter ink on the paper: oxblood, as in the painting. A wrong letter is a black smudge. */
@@ -102,11 +101,22 @@ const SCROLL = KA.sprites['scroll_plain']!;
 /** D-095: scrolls ~15% larger than D-093 for readability. SCR-001 (D-094) is painted at 2x, so half the scale gives the same size. */
 const SCROLL_SCALE = 0.99 * (67 / KA.sprites['scroll_plain']!.h);
 const SCROLL_H = SCROLL.h * SCROLL_SCALE;
+/**
+ * The field starts at the canvas's top edge. A word spawns at y = 0, so its
+ * scroll would be half off-screen. Engine y 0…H maps onto the strip from one
+ * full scroll below the top edge down to the Ward: every new word is wholly
+ * visible and readable the moment it appears, and the Ward line (where a word
+ * breaches) is exactly where it was. Gameplay timing is unchanged.
+ */
+const TOP_INSET = SCROLL_H / 2 + 10;
+const toY = (y: number) => FIELD_RECT.y + TOP_INSET + y * ((FIELD_RECT.h - TOP_INSET) / FIELD.height);
 const PAPER = { x: KA.paper.strikeX, y: KA.paper.baseline - 20 };
 const PAPER_FONT = 56;
 const DRUM_TEXT = { fontFamily: 'Georgia, "Times New Roman", serif', fontStyle: '700', fontSize: '66px', color: '#3a140a' };
 const DRUM_PITCH = 74;
 const COUNTER = { x: (KA.drums.cells[0]![0] + KA.drums.cells[5]![1]) / 2, y: KA.drums.y };
+/** How long a faded Rush takes to drain out of its tube. */
+const RUSH_DRAIN_MS = 750;
 const PLATE_TEXT = { fontFamily: FONT_ARCADE, fontStyle: '700', fontSize: '19px', color: '#2b1a0a' };
 const COMBO_TUBE = KA.tubes.combo;
 const RUSH_TUBE = KA.tubes.rush;
@@ -273,6 +283,13 @@ export class TypeLPlayScene extends Phaser.Scene {
   private rushBubbles!: Phaser.GameObjects.Particles.ParticleEmitter;
   private rushEruption!: Phaser.GameObjects.Particles.ParticleEmitter;
   private lastRush = 1;
+  /** Rush fade (natural end): the streak's peak, its Rush-earned extra points, and the tube's drain animation. */
+  private rushPeak = 1;
+  private rushBonus = 0;
+  private rushSpentTick = -1000;
+  private rushLevel = 0;
+  private drainFrom = 0;
+  private drainUntil = 0;
   private lastMult = 1;
   /** D-096: stage banner and the Ward orb. */
   private stageText!: Phaser.GameObjects.Text;
@@ -318,6 +335,11 @@ export class TypeLPlayScene extends Phaser.Scene {
     this.paused = false;
     this.ended = false;
     this.lastRush = 1;
+    this.rushPeak = 1;
+    this.rushBonus = 0;
+    this.rushSpentTick = -1000;
+    this.rushLevel = 0;
+    this.drainUntil = 0;
     this.archFlash = 0;
     this.reduced = prefs.reducedMotion();
     const options: EngineOptions = {
@@ -648,6 +670,7 @@ export class TypeLPlayScene extends Phaser.Scene {
     });
     ev.on('inputChanged', ({ input, valid }) => this.setPaper(input, valid));
     ev.on('wordCompleted', ({ word, points, combo, perfect, volley }) => {
+      if ((volley ?? 1) > 1) this.rushBonus += points * (1 - 1 / volley!);
       const at = this.posOf(word);
       this.lastCapture = at;
       this.stopTrail(word.id);
@@ -780,6 +803,8 @@ export class TypeLPlayScene extends Phaser.Scene {
       this.callout(cx, 420, words.length > 3 ? `CHAIN ×${words.length}!` : 'ZAP!', '#fff27a', 52, '#3a3000');
     });
     ev.on('wordsHarvested', ({ words, points, volley, allIn }) => {
+      // Harvest SPENDS the Rush: that ending keeps its celebration, not the fade.
+      if ((volley ?? 1) > 1) this.rushSpentTick = this.engine.state.tick;
       words.forEach((w, i) => this.time.delayedCall(i * 45, () => (this.stopTrail(w.id), this.collectView(w.id, true))));
       const parts = [this.setup.showSequenceScore ? `HARVEST +${points}` : 'HARVEST', allIn && allIn > 1 ? `ALL-IN ×${allIn}` : '', volley && volley > 1 ? `RUSH ×${volley.toFixed(1)} SPENT` : ''].filter(Boolean);
       this.callout(cx, 400, parts.join('  ·  '), '#ffd35a', 44, '#4a2a00');
@@ -1012,7 +1037,17 @@ export class TypeLPlayScene extends Phaser.Scene {
     const level = v > 1 ? Math.min(1, Math.log(v) / Math.log(6)) : armed * 0.06;
     const rt = RUSH_TUBE;
     const hot = v >= 2;
-    this.rushLiquid.height = (rt.bottom - rt.top - 4) * level;
+    // A faded Rush drains out of the tube, greying as it goes, instead of vanishing at once.
+    let shown = level;
+    if (this.drainUntil > this.time0) {
+      const k = 1 - (this.drainUntil - this.time0) / RUSH_DRAIN_MS;
+      shown = Math.max(level, this.drainFrom * (1 - k * k));
+      this.rushLiquid.setTint(0x8f9c98);
+    } else if (this.drainUntil > 0) {
+      this.drainUntil = 0;
+      this.rushLiquid.clearTint();
+    }
+    this.rushLiquid.height = (rt.bottom - rt.top - 4) * shown;
     this.rushLiquid.tilePositionY -= this.reduced ? 0 : delta * (0.03 + (v - 1) * 0.05);
     this.rushLiquid.setAlpha(hot ? 0.85 + 0.15 * Math.sin(this.time0 / 90) : 1);
     this.plates.rush.setText(`×RUSH: ${v.toFixed(1)}`);
@@ -1022,10 +1057,13 @@ export class TypeLPlayScene extends Phaser.Scene {
       if (v >= 2 && this.lastRush < 2) this.ignite('ARCANE RUSH!');
       if (v >= 5 && this.lastRush < 5) this.ignite('RUSH MASTERY!');
     } else if (v === 1 && this.lastRush >= 1.2) {
-      sound.volleyBreak();
-      if (this.lastRush >= 2) this.callout(rt.x + rt.w / 2, rt.top + 80, 'RUSH LOST', '#ffb0b0', 28, '#3a0010');
+      if (this.engine.state.tick - this.rushSpentTick > 3) this.rushFaded(this.rushPeak, this.rushBonus);
+      this.rushPeak = 1;
+      this.rushBonus = 0;
     }
+    if (v > 1) this.rushPeak = Math.max(this.rushPeak, v);
     this.lastRush = v;
+    this.rushLevel = level;
     if (!this.reduced) {
       if (v > 1 && !this.rushBubbles.emitting) this.rushBubbles.start();
       if (v <= 1 && this.rushBubbles.emitting) this.rushBubbles.stop();
@@ -1240,9 +1278,10 @@ export class TypeLPlayScene extends Phaser.Scene {
     if (this.engine.state.freezeTicks > 0) v.setFrozen(true);
     if (word.plunge) v.setPlunge(word.plunge);
     this.views.set(word.id, v);
+    // Readable from the first frame: no fade or grow-in to decipher, only a tiny settle.
     if (!this.reduced) {
-      v.setScale(0.3).setAlpha(0);
-      this.tweens.add({ targets: v, scale: 1, alpha: 1, duration: 220, ease: 'Back.easeOut' });
+      v.setScale(1.05);
+      this.tweens.add({ targets: v, scale: 1, duration: 120, ease: 'Quad.easeOut' });
     }
   }
 
@@ -1316,6 +1355,44 @@ export class TypeLPlayScene extends Phaser.Scene {
     const color = points >= 1000 ? '#ff5fa8' : points >= 300 ? '#ffd35a' : '#ffffff';
     const t = this.text(x, y - 10, `+${points}`, size, color, { fontFamily: FONT_ARCADE, stroke: '#2a0040', strokeThickness: 6 }).setOrigin(0.5).setDepth(45);
     this.tweens.add({ targets: t, y: y - 80, alpha: 0, duration: 650, ease: 'Quad.easeOut', onComplete: () => t.destroy() });
+  }
+
+  /**
+   * A Rush that ran out on its own: an opportunity that lost its value, not a
+   * punishment. The tube drains and greys, a soft falling tone plays, and a
+   * quiet readout names what it reached and that it stopped there. Nothing
+   * pops or bounces; Harvest's spending of a Rush keeps its celebration.
+   */
+  private rushFaded(peak: number, bonus: number): void {
+    const rt = RUSH_TUBE;
+    sound.rushFade(peak);
+    this.drainFrom = this.rushLevel;
+    this.drainUntil = this.time0 + RUSH_DRAIN_MS;
+    this.plates.rush.setAlpha(0.45);
+    this.tweens.add({ targets: this.plates.rush, alpha: 1, duration: 1100 });
+    if (peak < 2) return;
+    const x = rt.x + rt.w / 2;
+    const y = rt.top + 70;
+    // The Apprenticeship never shows exact points (D-088); the Sandbox does.
+    const banked = this.setup.showSequenceScore && bonus >= 1 ? `+${Math.round(bonus).toLocaleString()} from Rush` : `RUSH ×${peak.toFixed(1)} BANKED`;
+    const lines = [
+      this.text(x, y, banked, 20, '#e2c886', { fontFamily: FONT_ARCADE, stroke: '#2a1c06', strokeThickness: 5 }),
+      this.text(x, y + 26, this.setup.showSequenceScore ? `×${peak.toFixed(1)} slipped away` : '…and it slipped away', 17, '#b4bec3', { fontFamily: FONT_ARCADE, stroke: '#1a2226', strokeThickness: 4 }),
+    ];
+    for (const t of lines) {
+      t.setOrigin(0.5).setDepth(55).setAlpha(0);
+      this.tweens.add({ targets: t, alpha: 1, duration: 200 });
+      this.tweens.add({ targets: t, alpha: 0, y: this.reduced ? t.y : t.y + 28, delay: 1300, duration: 800, ease: 'Quad.easeIn', onComplete: () => t.destroy() });
+    }
+    if (!this.reduced) {
+      // a few dull embers fall from the tube instead of sparks rising
+      const em = this.add.particles(x, rt.top + 10, 'typel-spark', {
+        lifespan: 900, speedY: { min: 20, max: 90 }, speedX: { min: -40, max: 40 }, gravityY: 180,
+        scale: { start: 0.35, end: 0 }, alpha: { start: 0.55, end: 0 }, tint: 0x9aa3a6, emitting: false,
+      }).setDepth(31);
+      em.explode(Math.round(6 + Math.min(10, peak * 2)));
+      this.time.delayedCall(1200, () => em.destroy());
+    }
   }
 
   private callout(x: number, y: number, s: string, color: string, size: number, stroke = '#140c06'): void {

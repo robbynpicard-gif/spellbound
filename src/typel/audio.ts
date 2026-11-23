@@ -951,6 +951,19 @@ export class TypeLAudio {
     this.osc('triangle', midi(74), t, 0.3, 0.05, this.bus('sfx'), midi(62));
   }
 
+  /**
+   * A Rush that ran out: a soft, falling wind-down (two sines sliding down a
+   * little further the higher the Rush was), not a bright ding. Wistful, not
+   * punishing.
+   */
+  rushFade(peak: number): void {
+    if (!this.ok) return;
+    const t = this.now;
+    const drop = Math.min(9, 4 + Math.round(peak));
+    this.osc('sine', midi(67), t, 0.6, 0.035, this.bus('sfx'), midi(67 - drop), 0.03);
+    this.osc('sine', midi(60), t + 0.08, 0.7, 0.025, this.bus('sfx'), midi(60 - drop), 0.04);
+  }
+
   focus(gain: number): void {
     if (!this.ok) return;
     const t = this.now;
