@@ -671,6 +671,8 @@ export class TypeLPlayScene extends Phaser.Scene {
     ev.on('inputChanged', ({ input, valid }) => this.setPaper(input, valid));
     ev.on('wordCompleted', ({ word, points, combo, perfect, volley }) => {
       if ((volley ?? 1) > 1) this.rushBonus += points * (1 - 1 / volley!);
+      // Track the peak at each capture, so a step-up and an expiry in the same frame still report the true peak.
+      this.rushPeak = Math.max(this.rushPeak, this.engine.volleyMultiplier);
       const at = this.posOf(word);
       this.lastCapture = at;
       this.stopTrail(word.id);
