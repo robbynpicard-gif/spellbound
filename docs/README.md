@@ -8,6 +8,9 @@ Decision log current through: D-110
 
 ## Current state (2026-11-23)
 
+- **D-115 owner-approved spell direction:** eight spell identities, provisional SLOW → BARRIER → WIND → FIRE → ICE → SHOCK → ALTER → HARVEST curriculum, fixed-difficulty Normal replay and optional expanded-repertoire Hardcore. This is **design context only**, not verified implementation; see `docs/decisions.md` D-115 and Production Bible §12.
+
+
 - **Design source of truth:** [`production-bible.md`](production-bible.md),
   adopted by the owner on 2026-11-23 (D-106). How it maps to the code, plus
   the staged plan awaiting approval:
