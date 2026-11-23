@@ -1582,3 +1582,21 @@ Its ten-step production order is **superseded by the Bible's §4 phase sequence 
 - prototype behind an isolated flag.
 
 Sounds, thresholds and metrics are open (Q-20).
+
+
+### D-119 — Typing mastery is the paramount player skill (2026-11-23)
+_2026-11-23 · Explicit owner approval in TypeL design discussion · Design status: **Approved** · Implementation: design principle, not a new gameplay mechanic · Amends Production Bible §12 (GAME-001, GAME-005, GAME-006, SCOPE-002)_
+
+**Player promise:** TypeL is first and foremost an enjoyable typing game that gives players repeated opportunities to improve real typing accuracy, speed, consistency, reading, and target selection. The core gameplay must promote development of typing skill; spell-system knowledge must not routinely let players bypass the act of typing. Expert players may naturally rely more on tactical mastery after their typing has developed, but that is not the baseline design target.
+
+**Design hierarchy:**
+1. **Typing is paramount:** accurate, consistent, timely word capture and target selection are the principal player actions and principal expressions of mastery.
+2. **Spells are tactical:** they manage chaos, enable recovery and create expressive decisions; they do not routinely replace typing as the primary source of success or score.
+3. **Encounters vary the typing challenge:** spawn geometry, density, timing, scroll properties and trial conditions create different readable, learnable typing problems. Variety is controlled, not arbitrary; keep deterministic fairness and meaningful agency.
+4. **Scoring rewards earned execution:** spell interactions may reward knowledge and timing, but automatic clears, passive effects or degenerate combinations must not routinely outscore skilled, sustained typing. Do not silently change existing scoring formulas to enforce this principle; audit and propose any required adjustment separately.
+
+**Arcane Trials application:** a flexible shared encounter system can selectively spotlight a featured spell or shift emphasis back to raw typing and battlefield management. Do not require every encounter to showcase the featured spell. Trials retain recognizable identities with authored difficulty envelopes and controlled seeded variation; they are not a collection of rigid spell-casting scripts. The Academy teaches, Arcane Trials explore application and mastery, Endless ultimately overwhelms. Trial-specific conditions precede any need for a collectible relic system; relics remain optional/deferred.
+
+**Design guardrails:** avoid (a) spells clearing most threats with little typing, (b) unreadable or unfair randomness, (c) excessive tactical interruptions that break typing flow, and (d) trial modifiers that repeatedly invalidate learned typing controls or muscle memory. Do not require every individual spell to directly train typing or every challenge to be beatable without spells; judge the overall game experience.
+
+**Validation requirement (future playtests, not a claim of current verification):** assess whether repeated play rewards improvements in typing accuracy, WPM, consistency and target prioritization, including when spell use is held constant; compare earned typing contribution against automatic spell scoring; inspect whether players can succeed or score highly primarily by bypassing typing. No numerical pass/fail thresholds or mechanics are authorized by this decision. Preserve current spell implementation work; any code changes require the normal AGENTS.md audit and approval workflow.
