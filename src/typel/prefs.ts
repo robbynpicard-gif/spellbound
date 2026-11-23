@@ -12,6 +12,8 @@ export interface TypeLProgress {
   runes: Record<string, number>;
   lifetime: { words: number; perfect: number; peakVolley: number; wagers: number; levels: number; bosses: number };
   typing: { bestWpm: Record<string, number>; runs: number };
+  /** D-112: the spell-free Opening Trial, per mode. */
+  opening: { cleared: { normal: boolean; hardcore: boolean }; best: Record<string, number>; runs: number };
   reducedMotion: boolean | null;
 }
 
@@ -22,6 +24,7 @@ const fresh = (): TypeLProgress => ({
   runes: {},
   lifetime: { words: 0, perfect: 0, peakVolley: 1, wagers: 0, levels: 0, bosses: 0 },
   typing: { bestWpm: {}, runs: 0 },
+  opening: { cleared: { normal: false, hardcore: false }, best: {}, runs: 0 },
   reducedMotion: null,
 });
 
@@ -36,6 +39,7 @@ function load(): TypeLProgress {
       completed: { ...f.completed, ...(raw.completed ?? {}) },
       lifetime: { ...f.lifetime, ...(raw.lifetime ?? {}) },
       typing: { ...f.typing, ...(raw.typing ?? {}) },
+      opening: { ...f.opening, ...(raw.opening ?? {}), cleared: { ...f.opening.cleared, ...(raw.opening?.cleared ?? {}) } },
     };
   } catch {
     return fresh();

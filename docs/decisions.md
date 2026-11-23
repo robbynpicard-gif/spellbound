@@ -1610,3 +1610,29 @@ _2026-11-23 · Implements D-107 and D-108 and the M1 items of `docs/production-b
 - Normal clears Ward scars at every checkpoint, and Hardcore keeps them for the whole apprenticeship.
 
 Whether those lifetimes are the right *design* stays open in D-103's list.
+
+### D-112 — The spell-free Opening Trial (2026-11-23)
+_2026-11-23 · **Owner decisions** (2026-11-23: finite trial; separate stage; first in the menu, not a gate) implementing GAME-002 and D-107 · Design: **Approved** · Tuning: **Experimental** · Implementation: branch `dev/opening-trial-20261123` · Verification: `tests/opening-trial.test.ts` and CI · Deployment: not deployed until merged and redeployed · Answers Q-18 for the MVP_
+
+**What it is:**
+- The Academy opens with **The Opening Trial**, a real, spell-free typing examination given by the Grandmaster.
+- There are no spells, no spell scrolls and no charges. The player types each falling word and presses Enter to claim it, building score, Combo and Arcane Rush under the normal rules.
+- Pressure rises naturally until spells are clearly needed (D-107). It borrows the apprenticeships' own checkpoint configs along a rising path, so the same Difficulty Director, scoring and Ward apply (`src/typel/apprenticeship.ts`: `OPENING_TUNING`, `openingRun`).
+- Nothing is scripted to fail.
+
+**Owner choices:**
+- **Finite.** Capture 90 words over 7 hidden checkpoints, about 2½–3 minutes. Clearing it is a pass.
+- **If the Ward falls, the player still moves on.** The results screen always offers the Chronomancer's apprenticeship next, plus Try again.
+- **Separate stage.** It has its own results screen. The Chronomancer's run starts fresh, and score does not carry over.
+- **First in the menu, not a gate.** It's listed first in the Apprenticeship screen, marked "Start here" on a fresh save, and locks nothing. Its best score and cleared flag per mode are stored in `typel.progress.v1` under `opening`.
+
+**Measured on the simulator** (real engine, synthetic typist that never casts; 5 seeds; a yardstick, not a human prediction):
+
+| Mode | 45 WPM | 60 WPM | 80 WPM | 100+ WPM |
+|---|---|---|---|---|
+| Normal | falls at 150–176 s | clears in ~170 s | clears in ~160 s | clears in ~158 s |
+| Hardcore | falls at 65–89 s | falls at 105–115 s | clears 4 of 5 (~130 s) | clears in ~120 s |
+
+For comparison, the same typist clears the whole Chronomancer apprenticeship spell-free at 45 WPM. That bears out the Bible's note that the early game is too forgiving. Its rebalance is separate, later work.
+
+**Not decided yet:** the Opening Trial's real name, its art, and whether Hardcore offers it (it does now, because the mode toggle applies).

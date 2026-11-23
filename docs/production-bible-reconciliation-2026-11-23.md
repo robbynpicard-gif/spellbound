@@ -78,7 +78,7 @@ replay.
 *Accept when:* the same build plays offline in the browser and the desktop
 shell, with no measurable input-latency regression.
 
-**M3 — Vertical slice** (phase 02), the Bible §4 proposal. Spell-free
+**M3 — Vertical slice** (phase 02), the Bible §4 proposal. **Progress:** the Opening Trial is built (D-112); the Chronomancer lesson and Temporal Trial exist under their new names (D-111). Remaining: the audio split, and the teacher-examination rules (D-103). Spell-free
 opening challenge → Chronomancer `SLOW` lesson → Temporal Trial, integrated
 with visuals, audio and teaching. The opening challenge escalates naturally
 until Slow is clearly needed (D-107). *Prerequisite:* the six-channel audio

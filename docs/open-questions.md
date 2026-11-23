@@ -63,12 +63,6 @@ original "Wizzy Type — Game Bible for ChatGPT (v0.20.0)", a ten-page PDF
 that ChatGPT located but that isn't in the repository. Please upload it, so
 it can be added as a historical document and checked against newer decisions.
 
-**Q-18 · How the Academy opening fits the continuous run** (from PR #13, D-110)
-How do the spell-free opening challenge, the Chronomancer lesson and the
-Temporal Trial map onto D-102's continuous Learn → Master → Boss run? What
-are the pass/fail, retry, Ward, scoring and unlock rules? No silent Combo or
-Rush resets, and no scripted loss.
-
 **Q-19 · Green-scope acceptance criteria** (from PR #13, D-110)
 What are the release acceptance criteria, external playtest targets, release
 timing and Steamworks/business checklist? Which relics, if any, go in the
@@ -107,3 +101,7 @@ recorded as D-109. The Game Bible PDF is still open (Q-16).
 **Q-9 · Stale player-facing rule text:** resolved by D-111. The spell text
 and hints now match the continuous run and the name Arcane Rush. Whether the
 Barrier and Wind lifetimes are the right design remains in D-103's list.
+
+**Q-18 · How the Academy opening fits the continuous run:** resolved for the
+MVP by D-112. It is a separate, finite, spell-free stage with its own
+results; falling still moves you on; score doesn't carry over.
