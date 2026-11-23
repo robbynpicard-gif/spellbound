@@ -8,6 +8,9 @@ Decision log current through: D-112
 
 ## Current state (2026-11-23)
 
+- **Spell identity design (D-113):** SHOCK, WIND, SLOW, ICE and FIRE have approved conceptual roles, not implemented changes; scoring and survival economy are open in Q-21.
+
+
 - **Design source of truth:** [`production-bible.md`](production-bible.md),
   adopted by the owner on 2026-11-23 (D-106). How it maps to the code, plus
   the staged plan awaiting approval:
