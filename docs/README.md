@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-120
+Decision log current through: D-121
 
 ## Current state (2026-11-23)
 
@@ -31,7 +31,7 @@ Decision log current through: D-120
   presentation (D-093), Sandbox and Typing Trials.
 - **Arcane Trial prototype (2026-11-23):** one representative trial, The
   Crosswind Trial, is built on branch `dev/arcane-trial-prototype-20261123` (D-120; Yellow
-  scope, Experimental, not human-playtested):
+  scope, Experimental, not human-playtested; baseline choices approved in D-121):
   [`arcane-trial-prototype-report-2026-11-23.md`](arcane-trial-prototype-report-2026-11-23.md).
 - **Playable D-115/D-116 build (2026-11-23):** branch `dev/canonical-playable-20261123`
   implements the eight canonical spells in the D-115 order, Academy unlocks

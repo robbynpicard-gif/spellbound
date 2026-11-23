@@ -132,3 +132,11 @@ Command: `bun tools/arcane-trial-report.ts out.json` (6 seeds per row).
 - Behaviours 2, 3 and 6, and Suspended Scattered Spawning.
 - Challenge tiers, relics and Hardcore trials.
 - Any human playtest.
+
+## 6. Owner decisions after review (D-121)
+
+- **Q-29:** the fixed authored profile is the baseline; adaptation stays experimental.
+- **Q-30:** 90 WPM is the initial calibration reference, not a requirement. Challenge tiers come later.
+- **Q-31:** keep the 560-scroll quota.
+
+Playtest checks are tracked as Q-32. No further expansion until the owner has played the trial.

@@ -1826,3 +1826,15 @@ _2026-11-23 · Owner-approved design refinement · Initial run duration: **Exper
 **Scope and caution:** Arcane Trials remain Yellow/experimental; do not treat ~8–12 minutes as a fixed timer or a guarantee, and do not cut off an otherwise meaningful encounter solely to hit a duration. Future longer runs and optional phase-based variants can be explored separately, but are not the baseline or required prototype. Do not erase historical decision entries: mark their old duration/phase prescriptions as superseded by D-120 in current authority documents. Audit actual code before claiming this is implemented.
 
 **Prototype acceptance:** test uninterrupted engagement, naturally fluctuating pressure, spell usefulness, average and outlier duration, readability, fairness, and replayability across representative player abilities. Prefer a minimal reversible tuning experiment using the existing Director; report differences and request owner feedback before expanding scope.
+
+### D-121 — Crosswind Trial prototype: fixed baseline, 90 WPM reference, 560-scroll quota (2026-11-23)
+_2026-11-23 · Owner decision after reviewing PR #23 and its simulations · Design status: **Approved** for the prototype · Values: **Experimental** · Answers Q-29, Q-30 (in part) and Q-31_
+
+- **Q-29, adaptation:** the fixed, seeded, authored difficulty is the Arcane Trials baseline. Adaptation ('both', 'up') stays **Experimental**: selectable for comparison, not the default.
+- **Q-30, calibration:** 90 WPM is the **initial calibration reference**, not a universal skill requirement. **Challenge tiers** are to be explored later, because the 160 WPM simulations show too little pressure (Deferred).
+- **Q-31, ending:** keep the 560-scroll resolved quota for this prototype. Revisit time-based endings after human playtesting.
+- **To check in playtesting (not yet verified):**
+  - that the starting bank (one of each spell) doesn't hide an unsustainable spell economy;
+  - that staggered arrivals are readable and fair in real play;
+  - that the ending feels like surviving a trial, not finishing a word quota.
+- **Scope:** no further Arcane Trials feature expansion until the owner has played the trial and given feedback.

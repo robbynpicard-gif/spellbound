@@ -122,35 +122,18 @@ the existing Director with D-109 behaviours 4 and 5 (2026-11-23; see
 `arcane-trial-prototype-report-2026-11-23.md`). Whether to expand to more
 trials or behaviours waits on playtesting (Q-29 to Q-31).
 
-**Q-29 · Should Arcane Trials adapt at all?** (D-116, D-120)
-The prototype plays an authored, fixed profile.
-- Academy-style adaptation ('both') in the simulations: 45–60 WPM typists last 8–13 min instead of 1–5, but the trial's peaks almost disappear (0.1–0.2 per minute instead of 0.6–1.7) and casts fall to about 1 per minute. The trial loses its identity.
-- Upward-only adaptation ('up') keeps 160 WPM typists busy (8.8 scrolls instead of 1.1) but shortens their run to about 6 min.
-
-Options:
-- **(a)** fixed only;
-- **(b)** fixed, plus challenge tiers (Bible: "challenge tiers");
-- **(c)** upward-only adaptation.
-
-*Recommended — not approved:* (a) for the baseline, and (b) to serve experts.
-
-**Q-30 · Who should the Crosswind Trial stop?** (D-114, D-120)
-On the fixed profile:
-- Clean 90 WPM typists with spells survive every time.
-- 75 WPM typists rarely survive, and sloppy 90 WPM typists fall after 6–9 min.
-- Hands alone fails below 120 WPM.
-- At 160 WPM the field is often empty (28% idle).
-
-Is "a graduate around 90 WPM who uses spells well" the right target? And how
-should experts be served: by tiers, by a separate expert trial, or by
-upward-only adaptation?
-
-**Q-31 · How a trial ends** (D-120)
-The prototype ends after 560 resolved scrolls, not on a timer. Survivors take
-7.4–10.5 min (simulated), because spawning, not typing speed, sets the pace.
-Keep the quota, or end on survival time instead?
+**Q-32 · Crosswind playtest checks** (D-121)
+Questions for the owner's first play of the Crosswind Trial:
+- Is the spell economy sustainable without the starting bank (one of each spell)?
+- Are staggered arrivals readable and fair?
+- Does the ending feel like surviving a trial rather than finishing a quota?
+- Should challenge tiers serve 160 WPM players (D-121, Deferred)?
 
 ## Resolved
+
+- **Q-29 · Should Arcane Trials adapt?** Fixed, seeded authored difficulty is the baseline; adaptation stays experimental (D-121).
+- **Q-30 · Who should the Crosswind Trial stop?** 90 WPM is the initial calibration reference, not a requirement; challenge tiers deferred (D-121).
+- **Q-31 · How a trial ends.** Keep the 560-scroll quota for the prototype; revisit time endings after playtesting (D-121).
 
 **Q-5 · Normal quick-cast:** resolved by D-106 (GAME-001). Default Normal
 drops number-key casting. Whether an opt-in setting stays is Q-12.
