@@ -1589,7 +1589,8 @@ _2026-11-23 · Implements D-107 and D-108 and the M1 items of `docs/production-b
 **Typing only (GAME-001, D-107, D-108):**
 - TypeL's play scene no longer binds number keys or clicks; `src/typel/render/PlayScene.ts` `bindInput`, and scrolls are no longer interactive.
 - `tests/typel-typing-only.test.ts` guards the play scene against number-key, click or pointer input coming back.
-- The digit labels under the spell gems are gone. The gems remain as charge indicators.
+- The digit labels under the spell gems are gone.
+- At the owner's direction, the Hardcore iron lock bar over the spell gems is removed. It meant "keys don't cast here", which is now true in every mode. Gems glow while a spell has charges in both modes. The lock-bar art files stay in `public/assets/typel/keyart/`, unused. The gems remain as charge indicators.
 - Menu text now says spells are cast by typing their names in every mode.
 - **Kept on purpose:**
   - The engine's `cast` and `select` commands still apply, so saved runs and replays recorded before this change replay exactly (`src/typel/runSave.ts` replays the command log).

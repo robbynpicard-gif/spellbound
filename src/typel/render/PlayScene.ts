@@ -547,8 +547,8 @@ export class TypeLPlayScene extends Phaser.Scene {
   /**
    * D-096: the eight spell keys above the letter keys. A learned spell's gem
    * glows while it has charges. They show charges only: every spell is cast
-   * by typing its name (D-107), so the keys carry no number labels. Hardcore
-   * still lays its iron lock bar across the row and keeps the gems dark.
+   * by typing its name (D-107), so the keys carry no number labels, and both
+   * modes show the gems the same way (the Hardcore lock bar was removed, D-111).
    */
   private buildSpellKeys(): void {
     const r = 30;
@@ -560,14 +560,6 @@ export class TypeLPlayScene extends Phaser.Scene {
       const learned = this.setup.spells.includes(id);
       this.gems.set(id, this.add.image(x, y - 2, `ka-gem_${id}`).setDisplaySize(30, 30).setDepth(22.6).setVisible(learned));
     });
-    if (this.setup.hardcore) {
-      const scale = 0.9;
-      const x0 = KA.spellKeys[0]![0] - 52;
-      const x1 = KA.spellKeys[7]![0] + 52;
-      const y = KA.spellKeys[0]![1];
-      this.add.nineslice((x0 + x1) / 2, y, 'ka-lockbar_bar', undefined, (x1 - x0) / scale, 72, 44, 44, 0, 0).setScale(scale).setDepth(22.8);
-      this.add.image((x0 + x1) / 2, y - (36 - 34) * scale, 'ka-lockbar_lock').setOrigin(0.5, 0).setScale(scale).setDepth(22.9);
-    }
   }
 
   /** The spell key presses and its gem flares when a spell is cast. */
@@ -1213,12 +1205,11 @@ export class TypeLPlayScene extends Phaser.Scene {
       if (n > 0) slot.sprite.clearTint().setAlpha(1);
       else slot.sprite.setTint(0x6a6a72).setAlpha(0.55);
       slot.count.setAlpha(n > 0 ? 1 : 0.55);
-      // D-096: the spell key's gem glows while that spell has charges (dark in Hardcore: keys don't cast)
+      // D-096: the spell key's gem glows while that spell has charges (both modes, D-111)
       const gem = this.gems.get(id);
       if (gem) {
-        const lit = n > 0 && !this.setup.hardcore;
-        if (lit) gem.clearTint().setAlpha(1);
-        else gem.setTint(0x5a5a62).setAlpha(this.setup.hardcore ? 0.45 : 0.6);
+        if (n > 0) gem.clearTint().setAlpha(1);
+        else gem.setTint(0x5a5a62).setAlpha(0.6);
       }
     }
     this.poolText.setText(`charges ${held} / ${this.engine.poolLimit}`);
