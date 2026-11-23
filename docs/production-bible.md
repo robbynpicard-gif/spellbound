@@ -199,6 +199,10 @@ After completion:
 5. Establish a repeatable ChatGPT ↔ GitHub ↔ Claude workflow: changes proposed in chat, approved by human, committed in repository, then read by both assistants.
 6. Build desktop baseline and vertical slice; run AUDIO-EXP-001 as a controlled, reversible experiment.
 
+
+- **2026-11-23 · D-115:** Owner-approved canonical eight-spell identities and provisional Academy order: **SLOW → BARRIER → WIND → FIRE → ICE → SHOCK → ALTER → HARVEST**. SLOW slows descent; BARRIER blocks Ward breaches only for a limited duration; WIND physically repels scrolls (no healing or All-In); FIRE destroys for **zero points**; ICE freezes scrolls and spawns while typing continues; SHOCK uses seeded spatial chain capture for ordinary Combo-influenced points without building Rush/Combo; ALTER shortens only existing difficult words while retaining original base points; HARVEST captures the field using existing Combo and Rush, consumes Rush, and creates no new Combo/Rush. Existing contradictory prototype effects are **superseded**; unrelated approved mechanics remain. Apprenticeship Normal exams are challenging with currently unlocked spells, unlock the next apprenticeship plus optional stage-themed Hardcore, and remain fixed-difficulty on replay; Hardcore is tuned primarily for returning players with more spells but never gates progress. Shared bank remains baseline; per-spell caps, rarity and exact difficulty are experimental. Full detail, verification and migration requirements: D-115.
+
+
 ---
 
 **Integrity note:** This document consolidates known conversation decisions and recommendations. It is not a verified audit of the current source code, and should not replace the existing Game Bible until reconciled. Any unlisted mechanic should remain unchanged pending review.
@@ -214,3 +218,4 @@ After completion:
   - **No clicking during gameplay;** clicking is allowed only in menus. Typed menu navigation with an always-active typewriter is an idea to explore (refines GAME-001).
   - **The flow multiplier stays "Arcane Rush"** (refines D-107's rename).
 - **2026-11-23 · D-109:** the six spatial spawn behaviours and Suspended Scattered Spawning are recovered and recorded. They belong to Arcane Trials per D-107 (completes GAME-006's recovery; numbers stay Experimental).
+- **2026-11-23 · D-116:** **Continuous controlled chaos is a mandatory playable acceptance criterion, not a slogan.** Academy Normal must use a working, deterministic, bounded skill-responsive Difficulty Director so typists of different abilities face sustained meaningful decisions rather than long waits for scrolls. Evaluate rolling performance and battlefield urgency, regulate concurrent workload and spawn timing without erasing mastery, and preserve earned recovery and screen-clear Rush fairness. Hardcore retains a fixed, reproducible profile that rewards returning with more spells; Endless escalates toward eventual defeat; a representative Arcane Trials prototype, if built within Yellow scope, uses the same controlled-chaos loop with advanced tactical pressure. Test across skill levels and verify in the browser. Full specification and supersession: D-116.

@@ -75,3 +75,7 @@ by anything.
 | Deploy | `.github/workflows/deploy.yml` (runs on `main`): builds `main` at the root and the dev branch into `/preview/`, stamps the preview with the dev commit | Last run succeeded 2026-11-23 00:38 UTC; live content not inspected for this audit |
 | Validate branches | `.github/workflows/dev-check.yml`, `dev-validate.yml` | Green |
 | Repository | `robbynpicard-gif/spellbound`, Pages `https://robbynpicard-gif.github.io/spellbound/` (the GitHub API reports this name as of 2026-11-22; D-099's rename to `TypeL` has not happened on GitHub) | Verified via API |
+
+## Owner-approved target not yet verified (D-116)
+
+The active TypeL Difficulty Director and spawn scheduling require audit against D-116: sustained actionable scroll pressure, bounded skill responsiveness in Academy Normal, authored fixed Hardcore, Endless escalation, and representative Arcane Trials if in scope. Relevant code is identified elsewhere in this map; **this documentation change does not claim implementation, tests or deployment**. Update the affected rows with actual source paths and test evidence when implementing.
