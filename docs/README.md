@@ -8,7 +8,7 @@ Decision log current through: D-110
 
 ## Current state (2026-11-23)
 
-- **D-115 owner-approved spell direction:** eight spell identities, provisional SLOW → BARRIER → WIND → FIRE → ICE → SHOCK → ALTER → HARVEST curriculum, fixed-difficulty Normal replay and optional expanded-repertoire Hardcore. This is **design context only**, not verified implementation; see `docs/decisions.md` D-115 and Production Bible §12.
+- **D-115/D-116 owner-approved playable direction:** eight spell identities, provisional SLOW → BARRIER → WIND → FIRE → ICE → SHOCK → ALTER → HARVEST curriculum, fixed-difficulty Normal replay and optional expanded-repertoire Hardcore. Continuous controlled-chaos pressure, bounded skill-responsive Academy Normal, fixed Hardcore and eventual Endless overwhelm are required playable behaviors (D-116). This is **design context only**, not verified implementation; see `docs/decisions.md` D-115 and Production Bible §12.
 
 
 - **Design source of truth:** [`production-bible.md`](production-bible.md),
