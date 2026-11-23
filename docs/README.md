@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-105
+Decision log current through: D-108
 
 ## Current state (2026-11-22)
 
@@ -27,6 +27,7 @@ Decision log current through: D-105
   Arcade Campaign (D-103).
 - **Where each mechanic lives:** [`system-map.md`](system-map.md).
 - **Waiting on the owner:** [`open-questions.md`](open-questions.md).
+- **New approved direction (documentation only, not built):** Academy's spell-free opening trial and Chronomancer/Temporal Trial (D-106); complete paid Steam release scope under Eighteen Ninjas, with Academy + Arcade/Practice green, Arcane Trials yellow and future playground red (D-107); hybrid melodic-capture audio is experimental, not a selected implementation (D-108).
 
 ## How conflicts are resolved
 
