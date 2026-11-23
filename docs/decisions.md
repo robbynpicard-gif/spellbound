@@ -1374,5 +1374,32 @@ _2026-11-22 · Numbered D-100 because another session used D-099 for the TypeL r
 **Superseded on the preview (owner, 2026-11-22):** this prototype was replaced on `dev/apprenticeship-prototype-20261119` by the independently built director from `dev/difficulty-director-20261122`, reconciled with the D-098 length-window refinement below. Its code remains in history (`cfc8b0e`, `4cfc06f`). Current implementation: `docs/difficulty-director-implementation-2026-11-22.md`. The new director is behind a dev flag that is **off by default** (Options → Experimental Difficulty Director, or `?director=1`).
 
 
-### D-098 — Apprenticeship-specific dominant word-length windows and rare outliers (2026-11-22)
+### D-101 — Apprenticeship-specific dominant word-length windows and rare outliers (2026-11-22)
+
+_Renumbered 2026-11-22: first recorded as a second "D-098", which already identifies the Rune display decision (2026-11-21). Both decisions stand unchanged; only this identifier moved. References to "D-098" about word-length windows mean D-101._
 **Owner-approved refinement to D-097.** Preserve the recognizable original progression feel: each apprenticeship has a **dominant soft word-length range**, with rare words outside it. At **Slow level 1**, the illustrative normal range is **3–6 letters**; seven-letter words should be extremely uncommon, particularly at the start. By **Harvest**, **6+ letters** should dominate and shorter words appear only rarely as relief. Intermediate apprenticeship ranges transition naturally. This **does not restore hard stage length gates**: the Difficulty Director uses weighted distributions with low-probability tails, escalating pressure and fall-speed variation. All four length/speed situations may occur, but not with equal frequency; early long-fast combinations must be rare. Exact percentages, intermediate windows and upper caps are exploratory, not decided. See `docs/apprenticeship-difficulty-director-2026-11-21.md` D-098 addendum.
+
+
+### D-102 — Continuous apprenticeship, persistent scoring and the living Difficulty Director (2026-11-22)
+**Owner-approved direction** (handoff "Continuous Apprenticeship, Living Difficulty & Persistent Scoring"). Implemented on the development preview; numeric tuning is experimental.
+
+- Each apprenticeship is **one continuous run**: Phase I **Learn** (≈30 % of the non-boss progression), Phase II **Master** (≈70 %), Phase III the **Boss Examination**. The old 12 levels are internal checkpoints with no screens, buttons or resets.
+- **Score, Combo and Arcane Rush persist** through checkpoints, phases, the boss and Endless. Nothing is granted or ended at a boundary, and scoring formulas are unchanged.
+- **Established per-level rules map to checkpoints:**
+  - Normal's Ward is restored;
+  - Hardcore's Ward carries, with its recoveries;
+  - Barrier layers end;
+  - Flawless is judged per checkpoint.
+- **Living Director:**
+  - one baseline across the run;
+  - seeded short pressure events (~8–15 s) and major surges (~25–40 s);
+  - recoveries about half as deep and 40 % shorter, which keep words coming;
+  - spawn-timing variation;
+  - a boss climax, with the last recovery done by 85 % and the maximum at the final second;
+  - no adaptation to the player.
+- **Endless has no permanent ceiling.** An unbounded Endless level drives bounded levers, so every typist eventually falls. The physical plateau (field cap, spawn floor, speed bound) is documented as an owner decision.
+- **Checkpoint save/resume** uses deterministic replay. Records are versioned (`:run-1`); old records are kept.
+- **Classic/Director selection is removed.** There is one player-facing system; Normal and Hardcore remain.
+- **Spell order unchanged.** A separate proposal evaluates it: `docs/spell-order-proposal-2026-11-22.md`.
+
+Details: `docs/continuous-apprenticeship-2026-11-22.md`. Supersedes, on the preview, the per-level director described in D-100's note and in `docs/difficulty-director-implementation-2026-11-22.md`.

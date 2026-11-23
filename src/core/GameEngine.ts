@@ -1290,6 +1290,11 @@ export class GameEngine {
       this.s.instability = this.instability.add(-this.instability.value);
     }
     this.events.emit('instabilityChanged', { value: this.instability.value, stage: this.instability.stage });
+    // Barrier "lasts until the end of the level": a checkpoint is that boundary now.
+    if (this.s.barrier > 0) {
+      this.s.barrier = 0;
+      this.events.emit('barrierChanged', { remaining: 0 });
+    }
     this.segmentIndex++;
     const to = run.segments[this.segmentIndex]!;
     this.config = to.config;

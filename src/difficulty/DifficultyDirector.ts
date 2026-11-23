@@ -17,7 +17,7 @@ import { SeededRandom } from '../core/Random';
  *             fixed swells; its last recovery ends by 85 % and pressure then
  *             rises smoothly to the maximum at the final second.
  *   Joint mix a 3 × 3 grid of length part (short | medium | long of the
- *             apprenticeship's dominant D-098/D-101 window) × fall band
+ *             apprenticeship's dominant D-101 window) × fall band
  *             (slow | medium | fast), weighted by pressure. Short/slow relief
  *             is reserved; long/fast spikes are spaced.
  *   Endless   an endless level L that keeps rising with time and NO ceiling.
@@ -658,7 +658,7 @@ export class DifficultyDirector {
     const lengthBand = LENGTH_BANDS[li]!;
     const speedBand = SPEED_BANDS[si]!;
     const win = env.lengthWindow;
-    // D-098 tails: a rare word above the window (any cell), or a shorter
+    // D-101 tails: a rare word above the window (any cell), or a shorter
     // relief word below it (short cells only, scaled so the overall share
     // matches `below`). Openings never get an upper outlier.
     const shortShare = Math.max(1e-6, env.mix[0].reduce((sum, v) => sum + v, 0));

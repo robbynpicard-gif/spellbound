@@ -157,6 +157,17 @@ describe('D-102 persistent scoring', () => {
     }
   });
 
+  it('Barrier keeps its rule: its layers last until the end of the checkpoint (the old level)', () => {
+    const engine = new GameEngine({ ...options(4, 'normal', 2), initialSpells: { barrier: 1 } });
+    for (let i = 0; i < 30; i++) engine.step();
+    expect(engine.quickCast('barrier')).toBe(true);
+    expect(engine.state.barrier).toBeGreaterThan(0);
+    let atCheckpoint: number | null = null;
+    engine.events.on('checkpoint', () => (atCheckpoint ??= engine.state.barrier));
+    drive(engine, 60 * 200);
+    expect(atCheckpoint).toBe(0);
+  });
+
   it('records for the continuous ruleset are versioned and never overwrite the old level-based keys', () => {
     expect(runRecordKey('normal', 3)).toBe(`normal:3:${RUN_RULESET}`);
     expect(runRecordKey('normal', 3)).not.toBe('normal:3');

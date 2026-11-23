@@ -1,7 +1,9 @@
 # TypeL — Difficulty Director prototype: audit, implementation, simulation and playtest plan
-_2026-11-22 · D-097 implementation (Phases 0–4), **reconciled with the D-098 refinement** · branch `dev/difficulty-director-20261122` · **every number is EXPERIMENTAL**; production `main` untouched_
+_2026-11-22 · D-097 implementation (Phases 0–4), **reconciled with the D-101 refinement** · branch `dev/difficulty-director-20261122` · **every number is EXPERIMENTAL**; production `main` untouched_
 
-Spec: `docs/apprenticeship-difficulty-director-2026-11-21.md` (including its D-098 addendum). Decisions: D-097 (direction), D-098 (dominant soft length windows).
+Spec: `docs/apprenticeship-difficulty-director-2026-11-21.md` (including its D-101 addendum). Decisions: D-097 (direction), D-101 (dominant soft length windows).
+
+> **Superseded on the preview by D-102** (`docs/continuous-apprenticeship-2026-11-22.md`): the per-level director described here became the continuous one. This document stays as the record of the D-097/D-101 prototype.
 
 > **Parallel work:** a second session implemented its own director on `dev/apprenticeship-prototype-20261119` at the same time (commits `cfc8b0e`, `4cfc06f`, recorded there as D-100). This branch is an independent alternative and is **not merged** into it. No decision number is claimed here. The owner should choose one prototype, or combine them, before either is tuned further. Key differences: this one defaults **off**, keeps every classic supporting lever (quota, spawn interval, density caps, surges) and rescales only spawn interval, and reads no field state. The other defaults on in the preview, computes its own spawn interval and density, and limits stacked long/fast words using the field's contents.
 
@@ -28,7 +30,7 @@ Spec: `docs/apprenticeship-difficulty-director-2026-11-21.md` (including its D-0
 - **Nonlinear pressure:** none besides surges; every in-level curve is linear.
 
 **Findings that matter for D-097:**
-1. As D-097 described it, it is a staircase (D-098 has since asked to keep its *recognizable* length progression, but softly): apprenticeship 1 never spawns a word longer than 4 letters; apprenticeship 9 is 43–90 % long-and-fast with ~0 % short-and-slow (simulation below).
+1. As D-097 described it, it is a staircase (D-101 has since asked to keep its *recognizable* length progression, but softly): apprenticeship 1 never spawns a word longer than 4 letters; apprenticeship 9 is 43–90 % long-and-fast with ~0 % short-and-slow (simulation below).
 2. **Bug in the blend:** `trialLevel()` interpolates min/max length but copies the *lower* stage's length weights, so the upper end of odd apprenticeships' brackets never appears (e.g. Normal apprenticeship 4 is labelled 3–6 letters but only spawns 3–5). Not fixed here (classic is the comparison baseline); worth fixing if classic survives.
 3. Endless fall speed grows without bound.
 4. Changing `DifficultyConfig` globally would break duels (D-024: the word sequence depends only on seed), the legacy campaign tests and replays, so the director is opt-in per config.
@@ -44,13 +46,13 @@ Spec: `docs/apprenticeship-difficulty-director-2026-11-21.md` (including its D-0
 | `src/typel/apprenticeship.ts` | `directorTrialLevel / directorTrialEndless / directorSandboxConfig` wrap the classic configs. |
 | `src/typel/directorFlag.ts` + `app.ts` | Dev flag (default **off**): Options checkbox, Sandbox toggle, `?director=1/0` URL. Runs show "· Director"; director runs keep separate best scores; Codex → Rules describes the active system. |
 | `src/difficulty/DirectorSimulation.ts`, `tools/director-report.ts` | Real-engine simulation with a synthetic typist; classic vs director report. |
-| `tests/difficulty-director.test.ts` | 38 tests: D-097 acceptance plus D-098 Slow level 1, Harvest and intermediate-window tests. |
+| `tests/difficulty-director.test.ts` | 38 tests: D-097 acceptance plus D-101 Slow level 1, Harvest and intermediate-window tests. |
 
 **How it works.**
 - **Layer 1 — floor:** `floor(a) = F0 + (F1 − F0)·smoothstep(a)`, `a = (apprenticeship − 1)/8`. An encounter's base adds `levelLift × arcPosition` (level 1 → boss of one apprenticeship).
 - **Layer 2 — arc:** `pressure = base + (ceiling − base)·shape(p)`, `shape = (e^(kp) − 1)/(e^k − 1)` plus a swell at each surge and a recovery dip after it (a breather dip at mid-level when a level has no surges). `p` = quota share, or boss-timer share. Endless: the same 60 s wave as the engine's Endless wave, on a floor that saturates; speed overdrive capped at +18 %.
 - **Layer 3 — joint mix:** a 3 × 3 grid of length band × speed band. Cell weights interpolate from an opening mix to a peak mix with pressure. Short/slow keeps ≥ 10 % at any pressure, and one is guaranteed at least every 8 spawns. Long/fast spikes are spaced (≥ 6 spawns apart early, ≥ 2 late; otherwise one lever drops). Opening words (which start partway down) are never fast. The four combinations are deliberately unequal: at Slow level 1, about 45 % of words are short/slow and ≈ 1 % long/fast.
-- **D-098 — dominant, soft length windows.** Each apprenticeship has a dominant window: Slow ≈ 3–6, moving smoothly to Harvest ≈ 6–9, and 6–10 for the Grand Wizard. It also drifts gently from level 1 to the boss. "Short / medium / long" in the grid mean the lower, middle and upper part of *that* window. Window edges fade over 1.5 letters rather than cutting off. On top of that, a separate tail draw adds rare outliers:
+- **D-101 — dominant, soft length windows.** Each apprenticeship has a dominant window: Slow ≈ 3–6, moving smoothly to Harvest ≈ 6–9, and 6–10 for the Grand Wizard. It also drifts gently from level 1 to the boss. "Short / medium / long" in the grid mean the lower, middle and upper part of *that* window. Window edges fade over 1.5 letters rather than cutting off. On top of that, a separate tail draw adds rare outliers:
   - **above** the window: 0.3 % → 2 % at Slow (by pressure), 3 % → 6 % from Harvest on. Never for opening words;
   - **below** it: short relief words, 1 % at Slow, 7 % from Harvest on. Only in short cells.
 
@@ -61,7 +63,7 @@ Spec: `docs/apprenticeship-difficulty-director-2026-11-21.md` (including its D-0
 
 ## 3. Simulation: classic vs director
 Real `GameEngine`, 32 seeds per cell, apprenticeships 1/5/9 × levels 1/6/12/boss. The typist is a **measuring stick, not a human prediction**: never mistypes, never casts, aims at the lowest word. Reproduce: `npx tsx tools/director-report.ts 32`.
-Lengths are classed **relative to the director's D-098 window** for that apprenticeship and level (short = its two lowest lengths or below, long = its top length or above); speeds are absolute (slow ≥ 13.5 s to the Ward, fast ≤ 10 s). Both systems are measured against the same window. *Peak demand* = 95th-percentile typing rate needed to clear the field nearest-first. *Relief/min* = ≥ 2 s spans at or below half the run's own 80th-percentile demand, right after reaching it.
+Lengths are classed **relative to the director's D-101 window** for that apprenticeship and level (short = its two lowest lengths or below, long = its top length or above); speeds are absolute (slow ≥ 13.5 s to the Ward, fast ≤ 10 s). Both systems are measured against the same window. *Peak demand* = 95th-percentile typing rate needed to clear the field nearest-first. *Relief/min* = ≥ 2 s spans at or below half the run's own 80th-percentile demand, right after reaching it.
 
 **Normal** (typist 5 cps, 300 ms reaction)
 
@@ -138,7 +140,7 @@ Lengths are classed **relative to the director's D-098 window** for that apprent
 | 9 Grand Wizard | Boss | director | 6–10 | 88% / 4% / 8% | 6 / 8 / 10 | 6.7 / 10.3 / 14.6 | 14% | 4% | 15% | 9% | 35.6 | 0.9 | 0% | 7.0 |
 
 
-**D-098 anchors (deterministic sampling, 20,000 plans across each level, experimental tolerances in the tests):**
+**D-101 anchors (deterministic sampling, 20,000 plans across each level, experimental tolerances in the tests):**
 
 | | 3–6 | 7+ | 7+ in the first quarter | 6+ | ≤ 4 | ≤ 5 (relief) |
 |---|---|---|---|---|---|---|
@@ -155,7 +157,7 @@ Test tolerances (labelled experimental):
 A mutation check confirmed the tests fail if Slow's window widens to 3–7 or Harvest's relief share triples.
 
 **Reading it.**
-- **Slow:** classic and director now share the recognizable 3–6 feel. The director uses the whole window (classic barely leaves 3–4), has ≈ 1 % 7+ words, and adds speed variety, with rare 5–6-letter fast words as its "long/fast". Levels run ~20–25 % longer than classic, down from ~35 % before D-098.
+- **Slow:** classic and director now share the recognizable 3–6 feel. The director uses the whole window (classic barely leaves 3–4), has ≈ 1 % 7+ words, and adds speed variety, with rare 5–6-letter fast words as its "long/fast". Levels run ~20–25 % longer than classic, down from ~35 % before D-101.
 - **Middle (Storms):** the director's 5–8 window holds ~92 %; classic still lives around 4–6.
 - **Harvest:** ~85–89 % inside 6–9 (or 6–10 at the boss), a median of 7–8, and rare shorter relief (≈ 8 % below 6, under 2 % ≤ 4). Classic sits at 5–7.
 - **Grand Wizard:** the director's 6–10 window. Classic is uniformly long and fast and turns into a wall; the director stays harder than Slow on every axis but keeps relief. For the 60-WPM measuring typist, director levels there are gentler than classic. Director bosses at Harvest are *harder* than classic (31 % vs 84 % clears, Normal). The late-game balance is the main tuning question.
@@ -173,7 +175,7 @@ A mutation check confirmed the tests fail if Slow's window widens to 3–7 or Ha
 | `openingMix` / `peakMix` | see file (long/fast 2 % → 20 %; short/slow 36 % → 10 %) | Joint length × speed distribution |
 | `reliefReserve`, `reliefEvery` | 10 %, every 8 spawns | Guaranteed breathing room |
 | `spikeGap` | 6 → 2 spawns | Spacing of long/fast spikes |
-| `lengths.start / harvest / end` | 3–6 → 6–9 → 6–10 | D-098 dominant windows (Slow, Harvest, Grand Wizard) |
+| `lengths.start / harvest / end` | 3–6 → 6–9 → 6–10 | D-101 dominant windows (Slow, Harvest, Grand Wizard) |
 | `lengths.levelDrift`, `edge`, `bandSpread` | 0.5 step, 1.5 letters, 0.35 | In-apprenticeship drift, softness of window edges, overlap of short/medium/long parts |
 | `lengths.above` | 0.3 %→2 % (Slow), 3 %→6 % (Harvest+), by pressure | Rare longer outliers |
 | `lengths.below` | 1 % (Slow) → 7 % (Harvest+) | Shorter relief words |
@@ -191,8 +193,8 @@ A mutation check confirmed the tests fail if Slow's window widens to 3–7 or Ha
 3. **Late-game intensity.** For the measuring typist, the director's last apprenticeship is gentler than classic's wall (see §3). Raise `floor`, `peakMix` long/fast or the density lever if needed.
 4. **Field-aware fairness was deliberately not added.** "Never spawn an unwinnable situation" is approximated by sequence rules (spike spacing, guaranteed relief, never-fast openers), not by reading the field, because reading the field would amount to hidden assistance. A field-aware guard is a separate proposal.
 5. **Spike telegraphing** (spec: "telegraphed and survivable") is not visual yet. Plans are tagged (`directorSnapshot.lastPlan`), so a cue can be added if the owner wants one. No presentation was changed.
-6. **Decision number collision:** the owner's refinement is recorded as D-098, but D-098 already exists (the Rune display, 2026-11-21). Both entries now sit in `decisions.md`; consider renumbering the refinement (e.g. D-101).
-7. **What "long" means.** After D-098 the grid's long/short are relative to each apprenticeship's window. At Slow, a "long/fast" word is a fast 5–6-letter word; genuine 7+ fast words are below 0.3 %. Confirm that is the intended reading of "all four combinations remain possible".
+6. **Decision number collision (resolved):** the length-window refinement is now D-101; D-101 remains the Rune display.
+7. **What "long" means.** After D-101 the grid's long/short are relative to each apprenticeship's window. At Slow, a "long/fast" word is a fast 5–6-letter word; genuine 7+ fast words are below 0.3 %. Confirm that is the intended reading of "all four combinations remain possible".
 8. **Hardcore slow band in the last apprenticeship** is 16–13 s, so on the absolute 13.5 s scale relief there is mostly short/medium-speed. Decide whether relief should mean "slow" or "slower than the current band".
 
 Untouched: spell effects, scoring, Arcane Rush, the catch loop (plunges multiply the planned speed exactly as before), Ice Focus, Wind/Harvest, audio, art, Runes, unlocks and progress saves. Director best scores use `…:director` keys.
