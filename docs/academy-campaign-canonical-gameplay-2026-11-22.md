@@ -82,3 +82,27 @@ Do not merge to production without owner authorization.
 - **Boss loss/retry:** retry boss from a checkpoint with preserved earned score/charges vs restart run; avoid farming and misleading records.
 - **Campaign scope:** stage count, scroll types, exact six spawn behaviors and elemental interaction contracts.
 - **Endless:** where to expose entry (after each teacher, after campaign, or both), and whether it shares the score run or begins a distinct leaderboard run.
+
+
+## M3 dependency recovery — spatial spawning (owner-approved direction; implementation unverified)
+
+Six spatial behaviours were explicitly accepted in the November 22 design discussions. They are **design requirements**, not claims of implemented spawn algorithms:
+
+1. **Even Distribution:** distribute spawn positions relatively evenly across the play area.
+2. **Uneven Distribution:** favour selected regions, creating asymmetric pressure.
+3. **Clustered Spawning:** generate local groups of scrolls, creating concentrated target-choice pressure.
+4. **Alternating Edges:** shift emphasis between opposing edges in recognizable phases.
+5. **Staggered Vertical Pressure:** vary vertical threat and urgency so arrivals are not one uniform front.
+6. **Controlled Spatial Chaos:** combine spatial patterns within bounded fairness and readability limits.
+
+**Approved constraints:** Use short, flexible behaviour phases spanning several spawns; select phases with seeded weighted variability; permit certain apprenticeships to feature a behaviour without making it exclusive; allow higher difficulty to adjust frequency, intensity and limited combinations. Do not abruptly reposition already spawned scrolls at phase transitions. Preserve readability, deterministic replay, fair target access and Combo/Arcane Rush flow, especially after a skilled player clears the screen. Exact distributions, weights, phase lengths and pairing rules remain **Experimental / not approved numerically**.
+
+**Separately approved — Suspended Scattered Spawning:** spawn scrolls at scattered positions in the play area; each may remain suspended for a variable independently determined interval before falling. Scrolls remain capturable while suspended; release should be clearly telegraphed. Respect legibility, overlapping text, ward timing, deterministic RNG and solvability. This is additional to the six behaviours, not a seventh name silently substituted into their list.
+
+**M3 implementation gate:** before coding, map these behaviours to the current Difficulty Director, existing spawn position and speed logic, and Academy encounter families. Write deterministic tests for seed replay, valid coordinates, non-overlap/readability constraints, phase transitions, suspended-scroll capture, empty-screen Rush protection, and difficulty bounds. Do not invent final tuning values.
+
+## Historical Game Bible recovery — provenance and authority
+
+An earlier owner-supplied source exists: **“Wizzy Type — Game Bible for ChatGPT (v0.20.0)”**, a ten-page PDF from the legacy game. It documents the original falling-scroll/Enter-capture/ward loop, eight named spells, legacy 5-stage × 20-level structure, older three-layer Combo/Clean Streak scoring and bonuses, audiovisual ideas, and open questions. It is **HISTORICAL CONTEXT ONLY**, not the current approved TypeL ruleset. Later decisions D-059 onward, D-102, D-103 and D-105–D-108 supersede portions of its structure, scoring, and production assumptions. The PDF is not yet committed to this repository; **do not claim this section reproduces the full Game Bible**. Recover the exact source artifact from the owner before treating any of its detailed tables or numbers as a historical transcription. Existing historical `docs/GDD.md`, `docs/design.md`, and handoffs are also context, not replacements for that specific PDF.
+
+**M3 dependency:** use the current decision log and canonical Academy specification as authority; compare any recovered legacy rule against newer decisions before implementation. Missing historical details must be flagged, not reconstructed as approved mechanics.
