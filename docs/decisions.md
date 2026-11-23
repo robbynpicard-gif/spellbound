@@ -1796,3 +1796,14 @@ Where D-115/D-116 left a choice to the implementation, the preview does this (ea
   - The Ward-heal and scar text.
   - The run ruleset is now `run-3` (old checkpoint saves can't resume; records start a new table, and old ones are kept). The progress schema is v2.
 - **Not done:** Arcane Trials (Yellow scope, Q-28); graduation; tuning against human play (Q-26, Q-27).
+
+### D-119 — Arcane Trials: compact continuous controlled chaos, no mandatory three-phase structure (2026-11-23)
+_2026-11-23 · Owner-approved design refinement · Initial run duration: **Experimental** · Implementation: **Not verified** · Refines D-114, SCOPE-002 and any earlier 15–20 minute / three-phase trial proposal_
+
+**Decision:** Arcane Trials should initially be prototyped as **compact, approximately 8–12 minute encounters**, subject to human playtesting. The previous **15–20 minute default target is superseded**. A **mandatory three-phase encounter structure is rejected** for the initial mode: do not force establish/complicate/prove or other fixed phase boundaries, artificial lulls, intermissions, or waiting for a wave to end. Keep the core typing-and-spellcasting loop continuously active. Pressure should evolve organically via concurrent urgency, scroll arrival timing, speed, positioning, and meaningful spell decisions, with peaks and recovery earned through play or naturally varying pressure. Readability, fairness, seeded determinism, and existing gameplay/scoring rules remain authoritative.
+
+**Distinctive authored trial identities remain approved:** a trial can emphasize a spell, tactical condition, or spawn composition and use controlled randomness without imposing a shared three-act structure. Do not confuse a trial's *identity* or optional authored events with mandatory global phases. Advanced spawn patterns remain primarily Arcane Trials territory (D-107/D-109). Academy mastery, Arcane Trials survival, and Endless eventual defeat (D-114) remain unchanged.
+
+**Scope and caution:** Arcane Trials remain Yellow/experimental; do not treat ~8–12 minutes as a fixed timer or a guarantee, and do not cut off an otherwise meaningful encounter solely to hit a duration. Future longer runs and optional phase-based variants can be explored separately, but are not the baseline or required prototype. Do not erase historical decision entries: mark their old duration/phase prescriptions as superseded by D-119 in current authority documents. Audit actual code before claiming this is implemented.
+
+**Prototype acceptance:** test uninterrupted engagement, naturally fluctuating pressure, spell usefulness, average and outlier duration, readability, fairness, and replayability across representative player abilities. Prefer a minimal reversible tuning experiment using the existing Director; report differences and request owner feedback before expanding scope.
