@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-118
+Decision log current through: D-119
 
 ## Current state (2026-11-23)
 
@@ -175,3 +175,7 @@ dated audit, simulation or playtest), add it to the right table above in the
 same change. To retire one, move its row to Historical and add the banner
 (copy it from any historical file). Never delete a historical record without
 the owner's approval.
+
+## Arcane Trials current design override (D-119, 2026-11-23)
+
+The initial Arcane Trials prototype targets **~8–12 minutes experimentally**, with **continuous controlled chaos and no mandatory three-phase template**. Any 15–20 minute default or prescribed three-phase encounter in older docs is historical/superseded for this mode. Longer or phase-based variants are potential future experiments, not the baseline. See `docs/production-bible.md` and D-119 in `docs/decisions.md`. Arcane Trials remain Yellow scope; implementation is not verified.
