@@ -80,6 +80,16 @@ receive the same pushes. Should the second be retired so there is one dev line?
 by D-093). The legacy campaign code is compiled and tested on dev but not
 reached by the preview. Keep both until dev is promoted, or plan a cleanup?
 
+
+**Q-12 · Academy opening integration (D-106)**  
+How does the initial spell-free trial and Chronomancer/Temporal sequence map onto the existing continuous apprenticeship structure (D-102), and what are the exact pass/fail, retry, Ward, scoring and unlock rules? Do not silently reset Combo/Rush or script an unavoidable loss.
+
+**Q-13 · Production milestones and commercial readiness (D-107)**  
+What are the green-scope acceptance criteria, external playtest targets, release timing and Steamworks/business onboarding checklist? Which specific relics, if any, are appropriate for the base game? Arcane Trials remain yellow until separately approved for launch.
+
+**Q-14 · Audio experiment parameters (D-108)**  
+Which prototype sounds, performance thresholds, comparison sessions, accessibility settings and success metrics should be used before deciding whether melodic responses belong in the shipped experience?
+
 ## Resolved
 
 _None yet._
