@@ -53,6 +53,12 @@ export interface DirectorSpec {
   kind: EncounterKind;
   /** Average length of the classic level this replaces (spawn-interval scaling). */
   referenceLength: number;
+  /**
+   * D-113: where on the journey the WORDS come from (0 = Slow's vocabulary).
+   * Defaults to `apprenticeship`. The Opening Trial borrows later pressure
+   * but keeps Slow's short and medium words.
+   */
+  vocabulary?: number;
 }
 
 export interface DirectorContext {
@@ -87,6 +93,8 @@ export interface SpawnPlan {
 export interface LengthWindow {
   lo: number;
   hi: number;
+  /** D-113: how strongly pressure leans toward the longer end (grows with the vocabulary position). */
+  tilt: number;
   dominant: Range;
   above: number;
   below: number;
@@ -159,6 +167,13 @@ export interface DirectorTuning {
   spikeGap: Range;
   lengths: {
     start: Range; harvest: Range; end: Range; harvestAt: number; levelDrift: number; edge: number; bandSpread: number;
+    /** D-113: >1 keeps early apprenticeships near Slow's window for longer (windows rise later). */
+    earlyCurve: number;
+    /** D-113: weight of the window's long and medium parts, first → last vocabulary (early play mostly short and medium). */
+    longWeight: Range;
+    mediumWeight: Range;
+    /** D-113: share of the pressure-to-length tilt, first → last vocabulary. */
+    tiltShare: Range;
     above: { start: Range; harvest: Range };
     below: Range;
     tailDecay: number;
@@ -170,6 +185,12 @@ export interface DirectorTuning {
   /** Spawn interval × lerp(from, to, pressure). */
   density: Range;
   letterRateMatch: number;
+  /** D-113: spawn interval × this, first → last apprenticeship (more scrolls later, not only longer ones). */
+  academyDensity: Range;
+  /** D-113: share of the event spawn compression, first → last apprenticeship. */
+  burstShare: Range;
+  /** D-114 Endless: events compress spawning harder as L rises (bounded), after speed and density limits. */
+  endlessBurst: { perLevel: number; max: number; spawnCap: number };
   /** Each spawn's following gap × a value in this range (deterministic). */
   gapJitter: Range;
 }
@@ -179,8 +200,9 @@ export const DIRECTOR_TUNING: DirectorTuning = {
   floor: { normal: [0, 0.36], hardcore: [0.15, 0.55] },
   run: { span: { normal: 0.4, hardcore: 0.4 }, k: 1.6 },
   boss: { rise: 0.22, k: 1.8, surges: [0.22, 0.47, 0.68], surgeLength: 0.07, recoveryLength: 0.05, climaxFrom: 0.85, climaxBoost: 0.36, shortEventsUntil: 0.8 },
-  short: { gap: [8, 15], duration: [3, 7], intensity: [0.5, 1], boost: 0.13, spawn: 0.18, extraWords: 1, firstAt: 6, learnSkip: 0.3 },
-  major: { gap: [25, 40], duration: [5, 8], intensity: [0.75, 1], boost: 0.3, spawn: 0.34, extraWords: 3, firstAt: 18 },
+  // D-113: events are bursts of competing threats (more scrolls, sooner), not just a little more pressure.
+  short: { gap: [8, 15], duration: [3, 7], intensity: [0.5, 1], boost: 0.15, spawn: 0.4, extraWords: 2, firstAt: 6, learnSkip: 0.3 },
+  major: { gap: [25, 40], duration: [5, 8], intensity: [0.75, 1], boost: 0.3, spawn: 0.55, extraWords: 4, firstAt: 18 },
   // D-102: about half the old recovery depth (0.45 → 0.22) and ~40 % shorter (≈ 5 s → ≈ 3 s); words keep coming.
   recovery: { duration: [2.5, 3.5], depth: 0.22, spawn: 0.12, extraWords: -1 },
   hardcore: { eventScale: 1.15, recoveryScale: 0.75, speedScale: 0.9 },
@@ -216,6 +238,7 @@ export const DIRECTOR_TUNING: DirectorTuning = {
   spikeGap: [6, 2],
   lengths: {
     start: [3, 6], harvest: [6, 9], end: [6, 10], harvestAt: 7 / 8, levelDrift: 0.5, edge: 1.5, bandSpread: 0.35,
+    earlyCurve: 1.5, longWeight: [0.5, 1], mediumWeight: [0.85, 1], tiltShare: [0.3, 1],
     above: { start: [0.003, 0.02], harvest: [0.03, 0.06] },
     below: [0.01, 0.07],
     tailDecay: 0.3,
@@ -229,6 +252,9 @@ export const DIRECTOR_TUNING: DirectorTuning = {
   speedTilt: 1,
   density: [1.12, 0.9],
   letterRateMatch: 0.6,
+  academyDensity: [1, 0.72],
+  burstShare: [0.55, 1],
+  endlessBurst: { perLevel: 0.2, max: 0.8, spawnCap: 0.75 },
   gapJitter: [0.7, 1.3],
 };
 
@@ -336,6 +362,8 @@ export class EventSchedule {
 
 // ───────────────────────── joint length × speed ─────────────────────────
 
+const normalizeMix = (cells: number[][]): Mix => normalize(cells);
+
 function normalize(cells: number[][]): Mix {
   const total = cells.flat().reduce((s, v) => s + v, 0);
   return cells.map((row) => row.map((v) => (total > 0 ? v / total : 0))) as unknown as Mix;
@@ -372,13 +400,14 @@ function windowProgress(a: number, arcPosition: number, t: DirectorTuning): numb
 export function lengthWindowAt(spec: Pick<DirectorSpec, 'apprenticeship'> & { arcPosition: number }, pressure = 0, t: DirectorTuning = DIRECTOR_TUNING, extraAbove = 0): LengthWindow {
   const L = t.lengths;
   const w = windowProgress(spec.apprenticeship, spec.arcPosition, t);
-  const s = smoothstep(Math.min(1, w));
+  const s = smoothstep(Math.pow(Math.min(1, w), L.earlyCurve));
   const [lo, hi] = w <= 1
     ? [lerp(L.start[0], L.harvest[0], s), lerp(L.start[1], L.harvest[1], s)]
     : [lerp(L.harvest[0], L.end[0], w - 1), lerp(L.harvest[1], L.end[1], w - 1)];
   const p = clamp01(pressure);
   const above = lerp(lerp(L.above.start[0], L.above.harvest[0], s), lerp(L.above.start[1], L.above.harvest[1], s), p);
-  return { lo, hi, dominant: [Math.round(lo), Math.round(hi)], above: above + extraAbove, below: lerp(L.below[0], L.below[1], s) };
+  const tilt = lerp(L.tiltShare[0], L.tiltShare[1], smoothstep(spec.apprenticeship));
+  return { lo, hi, tilt, dominant: [Math.round(lo), Math.round(hi)], above: above + extraAbove, below: lerp(L.below[0], L.below[1], s) };
 }
 
 /** Soft window membership of a length: 1 well inside, fading to 0 over `edge` letters past each bound. */
@@ -400,7 +429,7 @@ function lengthWeights(band: LengthBand, win: LengthWindow, pressure: number, co
     if (m <= 0.001) continue;
     const pos = (len - win.lo) / width;
     const affinity = Math.exp(-(((pos - BAND_PEAK[band]) / t.lengths.bandSpread) ** 2));
-    const w = Math.sqrt(n) * m * affinity * Math.exp(t.lengthTilt * clamp01(pressure) * clamp01(pos));
+    const w = Math.sqrt(n) * m * affinity * Math.exp(t.lengthTilt * win.tilt * clamp01(pressure) * clamp01(pos));
     if (w > 1e-6) out.push([len, w]);
   }
   return out;
@@ -456,6 +485,7 @@ export function validateDirectorSpec(raw: unknown): string[] {
   if (r.kind !== 'run' && r.kind !== 'boss' && r.kind !== 'endless') problems.push('director.kind must be run, boss or endless');
   if (!num(r.apprenticeship) || (r.apprenticeship as number) < 0 || (r.apprenticeship as number) > 1) problems.push('director.apprenticeship must be in [0, 1]');
   if (!num(r.referenceLength) || (r.referenceLength as number) <= 0) problems.push('director.referenceLength must be positive');
+  if (r.vocabulary !== undefined && (!num(r.vocabulary) || (r.vocabulary as number) < 0 || (r.vocabulary as number) > 1)) problems.push('director.vocabulary must be in [0, 1]');
   return problems;
 }
 
@@ -539,6 +569,13 @@ export class DifficultyDirector {
     }
     sStr *= scale;
     mStr *= scale;
+    // D-114 Endless: after the physical limits, bursts keep getting denser (bounded).
+    // D-113: bursts start gentler in the first apprenticeships (manageable opening, rising baseline).
+    let burst = lerp(t.burstShare[0], t.burstShare[1], smoothstep(this.spec.apprenticeship));
+    if (endless) {
+      const over = Math.max(0, endlessLevel(this.spec, seconds, t) - endlessLevel(this.spec, 0, t));
+      burst *= 1 + Math.min(t.endlessBurst.max, t.endlessBurst.perLevel * over);
+    }
     const sb = t.short.boost * sStr;
     const mb = t.major.boost * mStr;
     let dip = t.recovery.depth * rec * (hard ? t.hardcore.recoveryScale : 1);
@@ -550,7 +587,8 @@ export class DifficultyDirector {
     return {
       boost: Math.max(sb, mb) + 0.3 * Math.min(sb, mb),
       dip,
-      spawn: (1 - t.short.spawn * Math.min(1, sStr)) * (1 - t.major.spawn * Math.min(1, mStr)) * (1 + t.recovery.spawn * rec),
+      spawn: (1 - Math.min(t.endlessBurst.spawnCap, t.short.spawn * Math.min(1, sStr) * burst))
+        * (1 - Math.min(t.endlessBurst.spawnCap, t.major.spawn * Math.min(1, mStr) * burst)) * (1 + t.recovery.spawn * rec),
       extra: t.short.extraWords * sStr + t.major.extraWords * mStr + t.recovery.extraWords * rec,
       event: mStr > 0.05 ? 'surge' : climax ? 'climax' : sStr > 0.05 ? 'pressure' : rec > 0.05 ? 'recovery' : 'calm',
     };
@@ -587,9 +625,13 @@ export class DifficultyDirector {
       mixBase = baseline;
     }
     const pressure = clamp01(mixBase + fx.boost - fx.dip);
-    const mix = mixAt(pressure, t, reliefReserve);
+    const vocab = clamp01(spec.vocabulary ?? spec.apprenticeship);
+    // D-113: early vocabulary leans to the window's short and medium parts; pressure shows up as speed and count first.
+    const raw = mixAt(pressure, t, reliefReserve) as unknown as number[][];
+    const rowW = [1, lerp(t.lengths.mediumWeight[0], t.lengths.mediumWeight[1], smoothstep(vocab)), lerp(t.lengths.longWeight[0], t.lengths.longWeight[1], smoothstep(vocab))];
+    const mix = normalizeMix(raw.map((row, i) => row.map((v) => v * rowW[i]!)));
     const drift = spec.kind === 'run' ? clamp01(ctx.progress) : 1;
-    const lengthWindow = lengthWindowAt({ apprenticeship: spec.apprenticeship, arcPosition: drift }, pressure, t, extraAbove);
+    const lengthWindow = lengthWindowAt({ apprenticeship: vocab, arcPosition: drift }, pressure, t, extraAbove);
     const speedBands = speedBandsAt(spec, overdrive, t);
     const mid = (lengthWindow.lo + lengthWindow.hi) / 2;
     let expectedLength = 0;
@@ -600,7 +642,8 @@ export class DifficultyDirector {
     const [d0, d1] = t.density;
     return {
       pressure, baseline, event: fx.event, mix, lengthWindow, speedBands, expectedLength,
-      spawnScale: Math.pow(expectedLength / spec.referenceLength, t.letterRateMatch) * lerp(d0, d1, pressure) * fx.spawn * endlessSpawn,
+      spawnScale: Math.pow(expectedLength / spec.referenceLength, t.letterRateMatch) * lerp(d0, d1, pressure) * fx.spawn * endlessSpawn
+        * lerp(t.academyDensity[0], t.academyDensity[1], smoothstep(spec.apprenticeship)),
       spawnFloorMs: spec.kind === 'endless' ? t.endless.spawnFloorMs[spec.mode] : 120,
       extraWords: Math.round(fx.extra) + endlessExtra,
       referenceFallSeconds: (speedBands.medium[0] + speedBands.medium[1]) / 2,

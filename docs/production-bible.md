@@ -214,3 +214,10 @@ After completion:
   - **No clicking during gameplay;** clicking is allowed only in menus. Typed menu navigation with an always-active typewriter is an idea to explore (refines GAME-001).
   - **The flow multiplier stays "Arcane Rush"** (refines D-107's rename).
 - **2026-11-23 · D-109:** the six spatial spawn behaviours and Suspended Scattered Spawning are recovered and recorded. They belong to Arcane Trials per D-107 (completes GAME-006's recovery; numbers stay Experimental).
+- **2026-11-23 · D-113:** **battlefield pressure is the primary difficulty** ("controlled chaos, mastered through typing and magic"). Difficulty comes first from simultaneous scrolls, then from descent speed and response time, then from spawn timing and overlap, and only then from word length, which matters more later. Early play mostly uses short and medium words. Density must stay readable and fair, with no unavoidable simultaneous impacts. Refines §3 "Spawning as difficulty", GAME-002 (the Opening Trial's escalation) and the Difficulty Director (D-097, D-101, D-102).
+- **2026-11-23 · D-114:** **distinct mode objectives (Option C).**
+  - **Academy — master the chaos:** finite, fair, learnable, and conquered through skill, prioritization and spells.
+  - **Arcane Trials — survive the chaos:** authored ~15–20 min encounters with advanced spawn behaviours, winnable with the full spell bank.
+  - **Endless — defy the inevitable:** no victory; its rising workload eventually overwhelms everyone, while each scroll stays readable and fair, with no uncapped speed.
+  - No new systems only to differentiate modes. Numbers are experimental. Refines SCOPE-001 and SCOPE-002.
+

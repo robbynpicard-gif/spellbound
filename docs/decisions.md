@@ -1636,3 +1636,64 @@ _2026-11-23 · **Owner decisions** (2026-11-23: finite trial; separate stage; fi
 For comparison, the same typist clears the whole Chronomancer apprenticeship spell-free at 45 WPM. That bears out the Bible's note that the early game is too forgiving. Its rebalance is separate, later work.
 
 **Not decided yet:** the Opening Trial's real name, its art, and whether Hardcore offers it (it does now, because the mode toggle applies).
+
+### D-113 — Battlefield pressure is TypeL's primary difficulty: controlled chaos, mastered through typing and magic (2026-11-23)
+_2026-11-23 · **Owner decision** ("Battlefield Pressure and Difficulty Identity Update") · Design: **Approved** · Tuning: **Experimental** · Implementation: branch `dev/battlefield-pressure-20261123` (first tuning pass) · Report: `docs/battlefield-pressure-report-2026-11-23.md`_
+
+**Identity:** controlled chaos, mastered through typing and magic. Preserve the current layout and presentation.
+
+**New difficulty hierarchy (highest first):**
+1. Simultaneous scrolls competing for attention.
+2. Descent speed and the limited time to respond.
+3. Spawn timing, composition and overlapping threats.
+4. Word length and complexity, more important later in progression.
+
+- Word length stays variable everywhere, but it does **not** define early-game difficulty. Early play mostly uses short and medium words. Later play increasingly combines longer words with demanding field conditions.
+- The player should be overwhelmed by tactical decisions before being overwhelmed by typing individual words.
+- **Measurement:** difficulty is judged by the typing work competing within a limited time window (active scrolls, urgent scrolls, time to the Ward, arrival overlap, required throughput), not by the maximum number of scrolls. `src/difficulty/BattlefieldPressure.ts` measures it for simulations only; gameplay never reads it.
+- **Readability and fairness:** more density must not bring unreadable overlaps, ambiguous targets, unavoidable simultaneous impacts, untelegraphed spikes, reliance on long words, or situations that invalidate spell effects.
+
+**Opening Trial (D-112, structure kept):** opening = short words and manageable density; development = rising spawn frequency, varied speeds, several threats at once; climax = high competing urgency and fast scrolls, demanding but fair, with long words not the main source of stress. Skilled players can clear it; nothing is scripted to fail; it should show why SLOW will be valuable.
+
+**Academy:** the same philosophy. The baseline rises with nonlinear peaks and recoveries. Each apprenticeship gives its spell and earlier spells tactical value. The 10–15 s cast cadence remains an experimental target, not a quota (Bible §3). No spell becomes mandatory maintenance, and no unavoidable damage is added to drive spell use. Advanced spatial spawning stays with Arcane Trials (D-107, D-109). Existing Academy spawning and the Difficulty Director are used first.
+
+**Reconciliation with earlier decisions (nothing silently discarded):**
+- **D-097 / the Difficulty Director spec — refined.** Word length and fall speed are no longer co-equal "primary" levers. Count, urgency and timing now lead, and length is a later-weighted lever. Still valid: one shared loop, a joint length × speed distribution, a rising apprenticeship floor, nonlinear escalation with peaks and recovery, determinism, and no skill adaptation.
+- **D-101 — retained, refined.** Dominant soft length windows and rare outliers stay, and so do the Slow (≈ 3–6) and Harvest (6+) anchors. The intermediate windows now rise later: apprenticeships 2–4 stay closer to short and medium words. Within a window, early pressure drives speed and density more than length.
+- **D-102 — retained.** The continuous Learn → Master → Boss run, persistent score, Combo and Rush, events and recovery, the boss climax, checkpoint saves and the Endless structure all stand. Its tuning values are revised by this pass.
+- **D-107 — retained.** Typing is the only input, the Academy opens with the challenge, and advanced spawn behaviours belong to Arcane Trials.
+- **D-112 — retained, retuned.** The Opening Trial keeps its structure, length (90 words, 7 checkpoints), results flow and menu placement. Only its pressure path changes.
+- **Production Bible** §3 "Spawning as difficulty" and the spell-cadence hypothesis are consistent with this and are amended in §12.
+
+**First tuning pass (Implemented on `dev/battlefield-pressure-20261123`, values Experimental):**
+- `DIRECTOR_TUNING.lengths`: `earlyCurve` 1.5 (intermediate windows rise later); `longWeight` 0.5→1 and `mediumWeight` 0.85→1 over the vocabulary position; `tiltShare` 0.3→1 (early pressure pushes length less).
+- `DirectorSpec.vocabulary` (optional, [0, 1]): where the words come from, separate from where the pressure comes from. The Opening Trial uses 0→0.15 (`OPENING_TUNING.vocabulary`).
+- Events are bursts: `short.spawn` 0.18→0.4, `extraWords` 1→2; `major.spawn` 0.34→0.55, `extraWords` 3→4; `burstShare` 0.55→1 over the apprenticeships.
+- `academyDensity` 1→0.72: later apprenticeships spawn more often, not only longer words.
+- Endless (D-114): `endlessBurst` makes bursts denser as the Endless level rises, capped (`max` 0.8, `spawnCap` 0.75).
+- Readability: `SPAWN_FAIRNESS` in `GameEngine.spawn()` keeps a new Director scroll's predicted Ward arrival ≥ 0.45 s from every other by slowing it by at most 1.2 s, and lane choice avoids overtaking a slower scroll. Deterministic, no random draws.
+- `RUN_RULESET` `run-1` → `run-2`: old saved runs can't resume, and Academy records start a new table (old ones are kept under the old key).
+
+### D-114 — Distinct difficulty objectives per mode: Academy masters the chaos, Arcane Trials survive it, Endless defies the inevitable (2026-11-23)
+_2026-11-23 · **Owner decision** (Option C) · Design: **Approved** · Tuning, curves and thresholds: **Experimental until validated** · Supplements D-113 · Implementation: Academy and Endless on `dev/battlefield-pressure-20261123`; Arcane Trials not built (SCOPE-002)_
+
+- **Academy — Master the chaos.**
+  - A finite, fair, learnable progression.
+  - Escalating field density, competing urgency and descent speed.
+  - Designed to be conquered through typing skill, prioritization and intelligent spellcasting.
+  - The Opening Trial shows why spells are valuable, without scripted failure.
+  - Teacher examinations reward accumulated spell knowledge (D-103).
+- **Arcane Trials — Survive the chaos.**
+  - Authored encounters of about 15–20 minutes.
+  - Distinctive tactical pressure and advanced spawn behaviours (D-107, D-109).
+  - Demanding but winnable through mastery of the full spell bank.
+  - The challenge comes mainly from simultaneous threats, movement, timing and spell decisions.
+  - Not implemented. This records its objective for when the mode is prototyped (Bible §2 Yellow).
+- **Endless — Defy the inevitable.**
+  - Escalating survival with no final victory.
+  - A rising combined workload eventually overwhelms even exceptional players.
+  - Individual scrolls stay readable and mechanically fair.
+  - No uncapped fall speeds, unreadable clutter or arbitrary unavoidable damage.
+  - After the physical speed and density limits are reached, escalation continues through competing urgency and workload.
+
+**Constraints:** no new gameplay systems just to differentiate the modes. Reuse the Difficulty Director and the shared mechanics. Numbers are experimental. Refines D-102's Endless section and D-097's Endless notes. Recorded in the Production Bible §12.

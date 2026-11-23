@@ -156,6 +156,15 @@ export interface Pace {
 
 /** Each word's speed varies by up to this fraction around the level's pace. */
 export const SPEED_VARIANCE = 0.25;
+
+/**
+ * D-113 readability (Director runs only). A new scroll's predicted Ward arrival
+ * is kept at least `impactGapSeconds` from every other scroll's, by slowing the
+ * new one a little (never by more than `maxDelaySeconds`, never faster). Lane
+ * choice also avoids sitting above a slower scroll the new one would overtake.
+ * Deterministic: no random draws.
+ */
+export const SPAWN_FAIRNESS = { impactGapSeconds: 0.45, maxDelaySeconds: 1.2, overtakePenalty: 1.5 } as const;
 /** Quota levels: average speed runs from ×(1−this) at the start to ×(1+this) at the quota. */
 export const LEVEL_SPEED_RAMP = 0.15;
 /** During a surge words arrive this much more often, and a few more may be on the field. */
@@ -1072,6 +1081,18 @@ export class GameEngine {
     return fallSpeed * vary * ramp;
   }
 
+  /** D-113: slow a new Director scroll just enough that it doesn't land with another one. */
+  private fairSpeed(speed: number, startY: number): number {
+    const H = this.field.height;
+    const own = (H - startY) / speed;
+    const gap = SPAWN_FAIRNESS.impactGapSeconds;
+    const arrivals = this.s.words.filter((w) => w.speed > 0 && w.y < H).map((w) => (H - w.y) / w.speed).sort((a, b) => a - b);
+    let t = own;
+    for (const a of arrivals) if (Math.abs(a - t) < gap) t = a + gap;
+    if (t === own || t - own > SPAWN_FAIRNESS.maxDelaySeconds) return speed;
+    return (H - startY) / t;
+  }
+
   private spawn(fallSpeed: number, startY = 0): void {
     const s = this.s;
     // Director (D-097): plan length and time-to-Ward first (its own stream). Alter's easy window still decides the text.
@@ -1082,15 +1103,24 @@ export class GameEngine {
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;
+    const H = this.field.height;
+    let speed = plan ? H / plan.fallSeconds : this.spawnSpeed(fallSpeed);
+    if (plan) speed = this.fairSpeed(speed, startY);
+    // Would the new scroll catch word w before w reaches the Ward? (D-113: no overtaking through text.)
+    const overtakes = (w: WordState): boolean => {
+      if (!plan || w.speed <= 0 || speed <= w.speed || w.y <= startY) return false;
+      return (w.y - startY) / (speed - w.speed) < (H - w.y) / w.speed;
+    };
     // Keep the spawn cadence and word count unchanged. Prefer a clear lane
     // near the top so crowded fields remain readable, even under stacked Slow.
     let x = Math.round(minX < maxX ? this.rng.range(minX, maxX) : this.field.width / 2);
-    if (minX < maxX && s.words.some((w) => w.y < 90)) {
+    if (minX < maxX && s.words.some((w) => w.y < 90 || overtakes(w))) {
       const score = (candidate: number): number => s.words.reduce((penalty, w) => {
-        if (w.y >= 90) return penalty;
+        const caught = overtakes(w);
+        if (w.y >= 90 && !caught) return penalty;
         const required = halfWidth + w.text.length * this.field.approxCharWidth / 2 + 12;
         const overlap = Math.max(0, required - Math.abs(candidate - w.x));
-        return penalty + overlap * (w.y < 45 ? 2 : 1);
+        return penalty + overlap * (caught ? SPAWN_FAIRNESS.overtakePenalty : w.y < 45 ? 2 : 1);
       }, 0);
       let best = score(x);
       for (let i = 0; i < 10; i++) {
@@ -1107,7 +1137,6 @@ export class GameEngine {
       available.length > 0 && this.rng.chance(this.config.spellDropChance)
         ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
         : null;
-    const speed = plan ? this.field.height / plan.fallSeconds : this.spawnSpeed(fallSpeed);
 
     const word: WordState = {
       id: s.nextWordId++,

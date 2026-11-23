@@ -72,6 +72,27 @@ base game (RELIC-001)?
 Bible §6 fixes the experiment's structure. Still undecided: the placeholder
 sounds, response thresholds, session design and success metrics.
 
+**Q-21 · Opening Trial target typist** (D-113)
+The first pass makes the Opening Trial clearable without spells from about
+55–60 WPM (Normal), while at 45 WPM it falls without SLOW and is cleared
+with it. Is ~55–60 WPM the right "hands alone" threshold, and should 90+ WPM
+typists also feel climax urgency (today their field stays nearly empty)?
+
+**Q-22 · Academy pressure for strong typists** (D-113, D-114)
+At 120–200 WPM the Academy still rarely builds competing urgency. Should the
+Academy ceiling reach strong typists (raising density further at the top),
+or is that Endless's and the Arcane Trials' job?
+
+**Q-23 · Endless length for exceptional typists** (D-114)
+A 200 WPM simulated typist now survives about 44–55 min on Normal and
+19–22 min on Hardcore. What session length should "eventually overwhelms"
+mean: is a target such as 20–30 min (Normal) wanted?
+
+**Q-24 · Resetting run saves and records** (D-113)
+The ruleset bump (`run-2`) means unfinished runs can't resume and Academy
+best scores start fresh (old ones are kept, not shown). Acceptable for the
+preview, or should old records be shown as "previous rules"?
+
 ## Resolved
 
 **Q-5 · Normal quick-cast:** resolved by D-106 (GAME-001). Default Normal

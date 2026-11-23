@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-112
+Decision log current through: D-114
 
 ## Current state (2026-11-23)
 
@@ -29,6 +29,12 @@ Decision log current through: D-112
   Learn → Master → Boss run with optional Endless (D-085, D-102), a living
   Difficulty Director (D-097, D-101, D-102), Arcane Rush, Runes, key-art
   presentation (D-093), Sandbox and Typing Trials.
+- **Difficulty identity (D-113, D-114, Approved; tuning Experimental):**
+  battlefield pressure first (simultaneous scrolls, descent speed, timing),
+  word length later. Academy masters the chaos, Arcane Trials survive it,
+  Endless defies the inevitable. The first tuning pass is on
+  `dev/battlefield-pressure-20261123` (PR into the dev branch, not yet merged):
+  [`battlefield-pressure-report-2026-11-23.md`](battlefield-pressure-report-2026-11-23.md).
   `dev/continuous-apprenticeship-20261122` currently points at the same commit.
 - **Approved but not built:** see the reconciliation plan. Highlights: typing
   as the only input, with number-key casting removed (D-107); a spell-free
@@ -87,6 +93,7 @@ Every Markdown file in the repository root and `docs/` is listed here;
 |---|---|
 | `docs/academy-campaign-canonical-gameplay-2026-11-22.md` | D-103 Academy and teacher-examination detail. Its Arcade Campaign and "Headmaster" are superseded by the Bible (D-106) |
 | `docs/continuous-apprenticeship-2026-11-22.md` | The implemented continuous run, Director and Endless (D-102) |
+| `docs/battlefield-pressure-report-2026-11-23.md` | Dated report: battlefield-pressure audit, first tuning pass and before/after simulations (D-113, D-114) |
 | `docs/apprenticeship-difficulty-director-2026-11-21.md` | Difficulty specification (D-097, D-101) |
 | `docs/arcane-volley-design-goal.md` | Arcane Rush (formerly Volley) emotional arc (D-059) |
 | `docs/precision-combo-scoring-proposal.md` | Precision Combo rule (approved direction) |

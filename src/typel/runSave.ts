@@ -16,7 +16,7 @@ import type { Mode, StartPhase } from './apprenticeship';
  */
 const KEY = 'typel.activeRun.v1';
 /** Bump when the run's structure or generation changes: old saves are then discarded, never replayed wrongly. */
-export const RUN_RULESET = 'run-1';
+export const RUN_RULESET = 'run-2';
 
 /**
  * Records for the continuous ruleset are kept apart from the old level-based

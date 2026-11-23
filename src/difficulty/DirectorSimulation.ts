@@ -2,6 +2,8 @@ import { FIELD, SIMULATION_HZ } from '../core/GameConfig';
 import { GameEngine, type RunPlan } from '../core/GameEngine';
 import { SeededRandom } from '../core/Random';
 import type { DifficultyConfig } from './DifficultyConfig';
+import { measurePressure } from './BattlefieldPressure';
+import type { SpellId } from '../gameplay/SpellManager';
 
 /**
  * D-102 simulation harness. Runs the REAL GameEngine through a whole
@@ -20,6 +22,11 @@ export interface Typist {
   /** Chance per keystroke of a typo (typed, noticed after `noticeMs`, erased, retyped). */
   errorRate: number;
   noticeMs: number;
+  /**
+   * D-113: cast learned spells by typing their names (+ Enter) when a simple,
+   * documented policy sees a reason (see `castDecision`). Off = never casts.
+   */
+  casts?: boolean;
 }
 
 /** Realistic typists from 45 to 200 WPM: faster typists read and switch faster and err less, but never instantly. */
@@ -61,6 +68,10 @@ export interface SecondSample {
   overlaps: number;
   combo: number;
   rush: number;
+  /** D-113 battlefield pressure (see BattlefieldPressure.ts). */
+  urgent: number;
+  workload: number;
+  impacts: number;
 }
 
 export type FailureCause = 'typing demand' | 'reaction and switching' | 'visual clutter' | 'none';
@@ -78,6 +89,10 @@ export interface RunReport {
   maxCombo: number;
   peakRush: number;
   checkpoints: { t: number; phase: string; score: number; combo: number; rush: number }[];
+  /** Seconds at which spell scrolls appeared, were collected, and spells were cast. */
+  spellScrolls: number[];
+  spellsCollected: number[];
+  casts: { t: number; spell: SpellId }[];
   spawns: SpawnSample[];
   timeline: SecondSample[];
   failure: FailureCause;
@@ -143,6 +158,14 @@ export function simulate(o: SimOptions): RunReport {
       ...(plan ? { lengthBand: plan.lengthBand, speedBand: plan.speedBand } : {}),
     });
   });
+  const spellScrolls: number[] = [];
+  const spellsCollected: number[] = [];
+  const casts: RunReport['casts'] = [];
+  engine.events.on('wordSpawned', ({ word }) => {
+    if (word.spell) spellScrolls.push(engine.state.tick / SIMULATION_HZ);
+  });
+  engine.events.on('spellCollected', () => spellsCollected.push(engine.state.tick / SIMULATION_HZ));
+  engine.events.on('spellCast', ({ spell }) => casts.push({ t: engine.state.tick / SIMULATION_HZ, spell }));
   engine.events.on('checkpoint', () => checkpoints.push({ t: engine.state.tick / SIMULATION_HZ, phase: phase(), score: engine.state.score, combo: engine.state.combo, rush: engine.volleyMultiplier }));
   const T = o.typist;
   const cps = cpsOf(T);
@@ -152,6 +175,9 @@ export function simulate(o: SimOptions): RunReport {
   let typo = false;
   let endlessStart: number | null = null;
   let peakRush = 1;
+  let casting: string | null = null;
+  let nextCastCheck = 0;
+  let currentAim: number | null = null;
   const maxTicks = (o.maxSeconds ?? 3600) * SIMULATION_HZ;
   const every = Math.max(1, Math.round((o.sampleEvery ?? 1) * SIMULATION_HZ));
   for (;;) {
@@ -167,14 +193,35 @@ export function simulate(o: SimOptions): RunReport {
     if (s.tick % every === 0) {
       const snap = engine.directorSnapshot;
       const pace = engine.pace;
+      const bp = measurePressure(s.words, { slowFactor: s.slowFactor, slowStacks: s.slowStacks.length, frozen: s.freezeTicks > 0 });
       timeline.push({
         t: s.tick / SIMULATION_HZ, phase: phase(), event: snap?.envelope.event ?? 'calm', pressure: snap?.envelope.pressure ?? null,
         endlessLevel: snap?.envelope.endlessLevel ?? null, words: s.words.length, maxActive: pace.maxActiveWords, spawnMs: pace.spawnInterval,
         requiredCps: requiredCps(s.words, T.switchMs / 1000), overlaps: overlapPairs(s.words), combo: s.combo, rush: engine.volleyMultiplier,
+        urgent: bp.urgent, workload: bp.workload, impacts: bp.impacts,
       });
     }
     if (wait > 0) {
       wait--;
+      continue;
+    }
+    if (T.casts && s.input === '' && !casting && s.tick >= nextCastCheck) {
+      nextCastCheck = s.tick + ticks(500);
+      casting = castDecision(engine, T);
+    }
+    if (casting) {
+      // Typing the spell's name, then Enter (typing is the only input, D-107).
+      budget += cps / SIMULATION_HZ;
+      while (budget >= 1 && casting) {
+        engine.typeChar(casting[s.input.length]!);
+        budget--;
+        if (s.input === casting) {
+          engine.submit();
+          casting = null;
+          budget = 0;
+          wait = ticks(T.switchMs);
+        }
+      }
       continue;
     }
     const target = [...s.words].sort((a, b) => b.y - a.y || a.id - b.id)[0];
@@ -183,10 +230,11 @@ export function simulate(o: SimOptions): RunReport {
       wait = ticks(T.reactionMs); // a new word must be read first
       continue;
     }
-    if (s.input === '' && s.pinnedId !== target.id) engine.selectTarget(target.id);
+    // Typing only (D-111): the typist simply types the nearest word; no clicking or pinning.
     budget += cps / SIMULATION_HZ;
     while (budget >= 1 && engine.status === 'playing') {
-      const aimed = s.words.find((w) => w.id === (s.pinnedId ?? target.id)) ?? target;
+      const aimed = s.words.find((w) => w.id === (s.pinnedId ?? currentAim ?? target.id)) ?? target;
+      currentAim = aimed.id;
       if (typo) {
         engine.backspace();
         typo = false;
@@ -206,6 +254,7 @@ export function simulate(o: SimOptions): RunReport {
       budget--;
       if (s.input === aimed.match) {
         engine.submit();
+        currentAim = null;
         budget = 0;
         wait = ticks(T.switchMs);
         break;
@@ -220,8 +269,36 @@ export function simulate(o: SimOptions): RunReport {
     endedIn: lost ? phase() : engine.status === 'won' ? 'cleared' : `${phase()} (time cap)`,
     seconds, endlessSeconds: endlessStart === null ? 0 : (engine.state.tick - endlessStart) / SIMULATION_HZ,
     score: engine.state.score, captured: st.completed, missed: st.missed, maxCombo: st.maxCombo, peakRush,
-    checkpoints, spawns, timeline, failure: lost ? classifyFailure(timeline.slice(-12), T) : 'none',
+    checkpoints, spellScrolls, spellsCollected, casts, spawns, timeline, failure: lost ? classifyFailure(timeline.slice(-12), T) : 'none',
   };
+}
+
+/**
+ * D-113 simulated spell policy: a plain, documented heuristic so simulations
+ * can measure spell cadence and value. It is not a model of good play, and it
+ * never reads anything the player couldn't see.
+ */
+export function castDecision(engine: GameEngine, t: Typist): string | null {
+  const s = engine.state;
+  const learned = new Set(engine.config.availableSpells);
+  const has = (id: SpellId) => learned.has(id) && (s.spells[id] ?? 0) > 0;
+  const time = { slowFactor: s.slowFactor, slowStacks: s.slowStacks.length, frozen: s.freezeTicks > 0 };
+  const bp = measurePressure(s.words, time, { urgentSeconds: 3, windowSeconds: 6, switchSeconds: t.switchMs / 1000, impactGapSeconds: 0.45 });
+  const cps = cpsOf(t);
+  const lower = s.words.filter((w) => w.y > FIELD.height * 0.5).length;
+  const doomed = s.words.some((w) => {
+    const ttw = (FIELD.height - w.y) / Math.max(1e-6, w.speed);
+    return ttw < 1.2 && (w.match.length - w.typed) / cps + t.switchMs / 1000 > ttw;
+  });
+  if (doomed && has('shock')) return 'shock';
+  if (bp.requiredLps > cps * 0.85 && s.slowStacks.length === 0 && s.freezeTicks === 0 && has('slow')) return 'slow';
+  if (bp.urgent >= 3 && s.freezeTicks === 0 && has('ice')) return 'ice';
+  if (lower >= 3 && has('fire')) return 'fire';
+  if (s.words.length >= 6 && has('alter')) return 'alter';
+  if (s.barrier === 0 && s.combo >= 15 && has('barrier')) return 'barrier';
+  if (s.instability >= 40 && has('wind')) return 'wind';
+  if (engine.volleyMultiplier >= 2.5 && s.words.length >= 4 && has('harvest')) return 'harvest';
+  return null;
 }
 
 /** Why the Ward fell, from the last ~12 s: too much to type, too little time per word, or an unreadable field. */

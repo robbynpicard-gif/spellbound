@@ -308,6 +308,11 @@ export const OPENING_TUNING = {
   ] as ReadonlyArray<readonly [number, number, number]>,
   /** From this segment on, the HUD calls it Phase II ("the pressure deepens"). */
   masterFrom: 4,
+  /**
+   * D-113: the words stay near Slow's vocabulary (short and medium) while the
+   * pressure, speed and density come from the later checkpoints. First → last segment.
+   */
+  vocabulary: [0, 0.15] as readonly [number, number],
 };
 
 export const OPENING = {
@@ -339,6 +344,9 @@ export function openingRun(mode: Mode): RunPlan {
       introducesSpell: null,
       spellDropChance: 0,
       openingWords: i === 0 ? base.openingWords : 0,
+      director: base.director
+        ? { ...base.director, vocabulary: OPENING_TUNING.vocabulary[0] + (OPENING_TUNING.vocabulary[1] - OPENING_TUNING.vocabulary[0]) * (i / Math.max(1, OPENING_TUNING.path.length - 1)) }
+        : base.director,
     };
     return { config, phase: i >= OPENING_TUNING.masterFrom ? 'master' : 'learn' };
   });
