@@ -66,17 +66,26 @@ receive the same pushes. Should the second be retired so there is one dev line?
 by D-093). The legacy campaign code is compiled and tested on dev but not
 reached by the preview. Keep both until dev is promoted, or plan a cleanup?
 
-**Q-16 · Missing source records** (GAME-006, Bible §10). *Owner has asked ChatGPT (2026-11-23).*
-The "six previously discussed spawning behaviours" and the "prior approved
-Game Bible" aren't in the repository. Please add them (or the ChatGPT
-conversation they came from) so they can be recovered exactly, not guessed.
+**Q-16 · The original Game Bible** (Bible §10)
+The six spawn behaviours are now recorded (D-109). Still missing: the
+original "Wizzy Type — Game Bible for ChatGPT (v0.20.0)", a ten-page PDF
+that ChatGPT located but that isn't in the repository. Please upload it, so
+it can be added as a historical document and checked against newer decisions.
 
-**Q-17 · Clicking a word to target it** (from D-107)
-Today, clicking a falling word pins it as the target and clears the typing
-line (`src/typel/render/PlayScene.ts` `gameobjectdown` →
-`GameEngine.selectTarget` / `applySelect`; dates from D-020/D-022). D-107
-says typing is always the input. Should click-to-pin be removed too? Typing a
-word already targets it.
+**Q-18 · How the Academy opening fits the continuous run** (from PR #13, D-110)
+How do the spell-free opening challenge, the Chronomancer lesson and the
+Temporal Trial map onto D-102's continuous Learn → Master → Boss run? What
+are the pass/fail, retry, Ward, scoring and unlock rules? No silent Combo or
+Rush resets, and no scripted loss.
+
+**Q-19 · Green-scope acceptance criteria** (from PR #13, D-110)
+What are the release acceptance criteria, external playtest targets, release
+timing and Steamworks/business checklist? Which relics, if any, go in the
+base game (RELIC-001)?
+
+**Q-20 · AUDIO-EXP-001 parameters** (from PR #13, D-110)
+Bible §6 fixes the experiment's structure. Still undecided: the placeholder
+sounds, response thresholds, session design and success metrics.
 
 ## Resolved
 
@@ -97,3 +106,9 @@ opening challenge is the challenge; apprenticeships teach the tools.
 Trials, to be revisited if testing shows apprenticeships benefit.
 
 **Q-15 · Volley or Arcane Rush:** resolved by D-107. Rush; "Volley" is retired.
+
+**Q-17 · Clicking a word to target it:** resolved by D-108. No clicking
+during gameplay; menus only.
+
+**Q-16 (first half) · The six spawn behaviours:** recovered by ChatGPT and
+recorded as D-109. The Game Bible PDF is still open (Q-16).

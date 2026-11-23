@@ -24,7 +24,7 @@ Wind/All-In, the Difficulty Director and Endless.
 |---|---|---|---|---|
 | GOV-001 repository as source of truth | D-104: `AGENTS.md`, docs index, docs check | None | Retain | Done in PR #12. `AGENTS.md` now carries the Bible's status labels |
 | PROD-001 paid Steam release; PROD-002 20–35 h/week | Steam mentioned in D-085 | None | Retain | Recorded in D-106 |
-| GAME-001 typing primary; no number-key casting in default Normal | Typed spell names cast in both modes (Verified). **Normal also casts with keys 1–8** (`PlayScene.bindInput`, `GameEngine.quickCast`, tested in `tests/spells.test.ts`) | **Yes** | Remove | **D-107: remove number-key casting completely, with no setting.** Keep the reserved spell words. Clicking a word to pin the target is open (Q-17) |
+| GAME-001 typing primary; no number-key casting in default Normal | Typed spell names cast in both modes (Verified). **Normal also casts with keys 1–8** (`PlayScene.bindInput`, `GameEngine.quickCast`, tested in `tests/spells.test.ts`) | **Yes** | Remove | **D-107: remove number-key casting completely, with no setting.** Keep the reserved spell words. **D-108: also remove click-to-target; no clicking during gameplay** (menus may be clicked) |
 | GAME-002 spell-free, fairly escalating first trial | Apprenticeship 1 teaches Slow from its first second (`learnedSpells(1)`). "Typing Trials" is a separate speed-test mode | **Yes** | New | Add a spell-free opening trial before the Slow lesson. Escalation must be fair and survivable by skilled players, with no scripted failure. Typing Trials stays as practice |
 | GAME-003 Chronomancer teaches `SLOW`; the Temporal Trial doesn't require casts | Slow teacher is "Master of Time", boss "The Unwinding Clock" (`src/typel/apprenticeship.ts`). "Chronomancer" in `docs/lore.md` and D-042 is an older, removed wizard with Rewind | **Names** | Refactor | Rename to Chronomancer and the Temporal Trial. Retire the old Rewind Chronomancer meaning. Check pass rules don't require casts (D-103 already says so) |
 | GAME-004 challenge → lesson → examination → Grandmaster | Each apprenticeship runs Learn → Master → Boss (D-102). The finale is the "Final Examination" by the "Grand Wizard"; D-103 says "Headmaster" | **Names** | Refactor | Rename the final figure to Grandmaster. **D-107:** the spell-free opening challenge is the challenge; apprenticeships are lessons plus examinations, with no per-apprenticeship challenge. The Bible (§10) leaves stage count, teachers and durations unfinalized |
@@ -32,9 +32,9 @@ Wind/All-In, the Difficulty Director and Endless.
 | SCOPE-001 Academy + Arcade & Practice (green) | Sandbox (each apprenticeship's Endless), Typing Trials and the legacy Practice mode (`main` only) | Partly | Refactor | Build Arcade & Practice from the existing Endless, Sandbox and Typing Trials. Add spell-free survival, targeted practice and personal records |
 | SCOPE-002 Arcane Trials (yellow) | D-103's "Arcade Campaign" (authored stages, advanced scroll types). Not implemented | **Yes** | Replace | D-103's Arcade Campaign is superseded as a committed launch mode. Its ideas move into the Arcane Trials prototype (one representative 15–20 minute run first). **D-107: advanced spawn behaviours live in Arcane Trials** (revisit if testing shows apprenticeships benefit) |
 | SCOPE-003 expanding playground (red); RELIC-001 small relic set | No relic system exists | — | Defer / New | Keep the architecture extensible. Design 3–5 relics with Arcane Trials, after the vertical slice |
-| GAME-005 Combo/Volley buildup and screen-clear fairness | Implemented. The Rush multiplier starts on the second timely perfect word (D-060). Window: 52 + 13 ticks per letter in Normal, 34 + 10 in Hardcore (`ArcaneVolley.ts`). The clock pauses on an empty field with one 0.4 s grace (D-067). Player-facing name: Arcane Rush (D-086) | Name only | Retain (rename) | Keep the mechanics exactly as built. **D-107: "Volley" retired, the mechanic is Rush.** Rename the remaining Volley wording in hints and code |
+| GAME-005 Combo/Volley buildup and screen-clear fairness | Implemented. The Rush multiplier starts on the second timely perfect word (D-060). Window: 52 + 13 ticks per letter in Normal, 34 + 10 in Hardcore (`ArcaneVolley.ts`). The clock pauses on an empty field with one 0.4 s grace (D-067). Player-facing name: Arcane Rush (D-086) | Name only | Retain (rename) | Keep the mechanics exactly as built. **D-107/D-108: "Volley" retired; the name is Arcane Rush.** Rename the remaining Volley wording in hints and code |
 | Spell cadence: one cast every 10–15 s, maybe 5–10 s | Director pressure exists. Cadence is not measured | — | New (measure) | Add cast-interval telemetry to the simulation harness, then tune toward the hypothesis. It's not a quota (D-105) |
-| GAME-006 diverse spawn behaviours; suspended scrolls | Spawning varies by length, speed, Director events and the Wind/Harvest scroll types. **The "six behaviours" aren't recorded anywhere in the repo.** Suspended scrolls aren't implemented | Missing source | Defer, then New | Recover the six behaviours from the owner or ChatGPT records before any design (Q-16; owner has asked ChatGPT). Per D-107 they're for Arcane Trials. Prototype suspended scrolls with variable hold times inside the D-058 rules (no word-selection bias) |
+| GAME-006 diverse spawn behaviours; suspended scrolls | Spawning varies by length, speed, Director events and the Wind/Harvest scroll types. **The "six behaviours" aren't recorded anywhere in the repo.** Suspended scrolls aren't implemented | Recovered (D-109) | Defer, then New | **D-109 records the six behaviours and Suspended Scattered Spawning.** Even Distribution roughly matches today's default placement; the rest are new. Build them in the Arcane Trials prototype (D-107), with the deterministic tests D-109 lists. Prototype suspended scrolls with variable hold times inside the D-058 rules (no word-selection bias) |
 | GAME-007 legible elemental interactions | D-069 contracts. D-058 gate on per-scroll elements. Partly implemented | None | Retain | Continue under the D-058 gate |
 | GAME-008 captured-word spellcasting modifier | Exploratory in D-105 | None | Defer | No work |
 | Word-bank personality and approved word additions | Typing-culture words exist only on `main` (`81bedb5`, `src/data/words.json`), not on dev | **Yes** (dev is missing them) | Retain (merge) | Bring `81bedb5` into dev. Re-check that no added word clashes with a spell name |
@@ -55,16 +55,18 @@ merging.
 
 **M1 — Small reconciliation fixes** (Bible phase 00). Do these on dev:
 1. Merge the `81bedb5` word additions; test for spell-name clashes.
-2. Remove number-key casting completely (GAME-001, D-107). Update the HUD
-   and Codex key labels and `tests/spells.test.ts`.
+2. Remove number-key casting completely (GAME-001, D-107), and remove
+   click-to-target during gameplay (D-108). Update the HUD and Codex key
+   labels and `tests/spells.test.ts`.
 3. Renames: Chronomancer, Temporal Trial, Grandmaster; Volley → Rush in
    hints and code (`ArcaneVolley.ts`, `volley` fields), with no change to
    behaviour.
 4. Fix the stale "level"/"stage" spell text (Q-9).
 
 *Accept when:* tests pass; spells can still be typed in both modes; no
-number key casts in any mode; replays and saves still load after the Rush
-rename.
+number key or click acts during gameplay; replays and saves still load
+after the Rush rename. Old replays containing `select` commands must still
+replay.
 
 **M2 — Desktop foundations** (phase 01):
 1. Self-host the fonts.
@@ -88,15 +90,21 @@ for this slice.
 
 **M4 — AUDIO-EXP-001**, once the M3 event adapter exists.
 
+**M5 — Arcane Trials prototype** (Bible phase 05): one representative
+15–20 minute run, built on the D-109 spawn behaviours and Suspended
+Scattered Spawning.
+
+**Backlog idea (Experimental, D-108):** keep the typewriter active in the
+menus for typed navigation, alongside clicking.
+
 **Later phases** follow Bible §4 (03 Academy production → 08 launch) and get
 planned after M3, using the velocity measured there.
 
 ## Open questions
 
-Answered by D-107: Q-12 (number keys removed completely), Q-13 (the opening
-challenge is the challenge), Q-14 (spawn behaviours go to Arcane Trials),
-Q-15 (Rush). Still open, in [`open-questions.md`](open-questions.md):
-- **Q-16:** the six spawn behaviours and the prior Game Bible (owner has
-  asked ChatGPT).
-- **Q-17:** does clicking a word to pin the target stay, given that typing
-  is the only input?
+Answered: Q-12 to Q-15 (D-107), Q-17 (D-108), and the spawn-behaviour half
+of Q-16 (D-109). Still open, in [`open-questions.md`](open-questions.md):
+- **Q-16:** the original v0.20.0 Game Bible PDF.
+- **Q-18:** how the opening challenge maps onto the continuous run.
+- **Q-19:** green-scope acceptance criteria.
+- **Q-20:** AUDIO-EXP-001 parameters.

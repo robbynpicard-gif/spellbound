@@ -210,3 +210,7 @@ After completion:
   - **The Academy opens with the spell-free challenge.** Its chaos escalates until spells are needed. Apprenticeships provide the tools and lessons, and are not each preceded by a challenge (refines GAME-002 and GAME-004).
   - **Advanced spawn behaviours belong to Arcane Trials**, subject to change if testing shows apprenticeships benefit (refines GAME-006, SCOPE-002).
   - **"Volley" is renamed Rush** (player-facing "Arcane Rush"). Read "Volley" in §3, §6 and GAME-005 as Rush (refines GAME-005, AUD-002).
+- **2026-11-23 · D-108:**
+  - **No clicking during gameplay;** clicking is allowed only in menus. Typed menu navigation with an always-active typewriter is an idea to explore (refines GAME-001).
+  - **The flow multiplier stays "Arcane Rush"** (refines D-107's rename).
+- **2026-11-23 · D-109:** the six spatial spawn behaviours and Suspended Scattered Spawning are recovered and recorded. They belong to Arcane Trials per D-107 (completes GAME-006's recovery; numbers stay Experimental).

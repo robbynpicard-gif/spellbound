@@ -1504,3 +1504,81 @@ _2026-11-23 · **Owner decision** · Design status: **Approved** · Amends the P
 **Q-15: the name "Volley" is retired.** The flow multiplier is **Rush** (shown to players as "Arcane Rush" since D-086). Remaining "Volley" wording should be renamed: the apprenticeship hints in the UI, the code (`src/gameplay/ArcaneVolley.ts` and `volley` fields) and the Bible §3, §6 and GAME-005. The mechanics stay unchanged.
 
 **Q-16:** the owner has asked ChatGPT for the six spawn behaviours and the prior approved Game Bible. Still open until they're in the repository.
+
+### D-108 — No clicking during gameplay; Arcane Rush keeps its name (2026-11-23)
+_2026-11-23 · **Owner decision** (answers Q-17, confirms the Rush name) · Design status: **Approved** (typed menu navigation: **Experimental idea**) · Implementation: none yet; click removal planned in M1_
+
+**No clicking during gameplay.** During TypeL's gameplay loop, typing is the only input. Clicking a falling word to pin it as the target (`gameobjectdown` → `GameEngine.selectTarget`/`applySelect`, from D-020/D-022) is removed; typing a word already targets it. Clicking is allowed only in menus. Extends D-107 and GAME-001.
+
+**Idea to explore (Experimental, not approved for building):** keep the typewriter active in the menus too, so menus can be navigated by typing, while still accepting clicks on menu options.
+
+**Name:** the flow multiplier's player-facing name stays **Arcane Rush**, which represents the typing flow it rewards ("Rush" as shorthand). Refines D-107: Volley is retired, Arcane Rush is the name.
+
+### D-109 — The six spatial spawn behaviours and suspended scattered spawning, recovered (2026-11-23)
+_2026-11-23 · Recovered by ChatGPT from the 2026-11-22 owner design discussions, relayed by the owner (ChatGPT draft PR #14) · Design status: **Approved direction** (as recovered; owner to correct any wording) · Tuning: **Experimental** · Implementation: behaviour 1 approximated by the current default; the rest **not implemented** · Answers the first half of Q-16 (GAME-006)_
+
+**The six spatial behaviours:**
+1. **Even Distribution:** scrolls spread relatively evenly across the horizontal play area, for balanced pressure.
+   - *Today:* the default placement picks a random x within the margins and avoids overlapping words near the top (`src/core/GameEngine.ts`, spawn placement).
+2. **Uneven Distribution:** spawns favour some regions, creating asymmetric pressure.
+3. **Clustered Spawning:** groups of scrolls appear close together, concentrating choices.
+4. **Alternating Edges:** emphasis shifts between opposite sides, in recognizable phases.
+5. **Staggered Vertical Pressure:** different vertical threat levels overlap, instead of one uniform falling front.
+6. **Controlled Spatial Chaos:** several patterns combine within bounded, readable limits.
+
+**Constraints, as recovered:**
+- Behaviours run in short, recognizable phases spanning several spawns; they don't change on every scroll.
+- Phases are chosen by seeded, weighted variability, so play stays deterministic and replays still work (D-004, D-005).
+- Difficulty may change their frequency, intensity and limited combinations.
+- Scrolls already on screen never jump when a phase changes.
+- Readability, fair access to targets, determinism and Arcane Rush flow (including after a screen clear, D-067) come before visual complexity.
+- Exact weights, phase lengths and combinations are left to playtesting.
+
+**Suspended Scattered Spawning** is a separate, additional behaviour, not one of the six:
+- scrolls appear at scattered positions and hang for independently varied times, then fall;
+- they can be captured while suspended;
+- their release must be clearly signalled;
+- it must respect legibility, overlapping text, Ward timing, the seeded RNG and solvability.
+
+**Where they live (reconciled with D-107):**
+- Advanced spawn behaviours belong to **Arcane Trials**.
+- The recovered note that an apprenticeship may *feature* a behaviour without owning it stays available, but only if testing shows the apprenticeships benefit (D-107's revisit clause).
+- They are **not an M3 prerequisite.** The vertical slice uses natural escalation (D-107).
+- None of this permits biasing word selection (D-058).
+
+**Before building**, map each behaviour onto the Difficulty Director and the spawn-placement code. Write deterministic tests for:
+- seed replay;
+- valid coordinates;
+- overlap and readability;
+- phase transitions;
+- capture while suspended;
+- the empty-screen Rush pause;
+- difficulty bounds.
+
+### D-110 — ChatGPT PR #13 entries, renumbered and reconciled (2026-11-23)
+_2026-11-23 · Recorded by Claude from ChatGPT's PR #13 (branch `docs/typel-design-roadmap-20261122`), where these were written on 2026-11-22 as D-106, D-107 and D-108. Those numbers collided with D-106 and D-107 on the shared branch, so they are kept here under one new number. Design status: as stated below · Implementation: none_
+
+**PR #13 "D-106", Academy opening loop.** It matches GAME-002 and GAME-003, and adds detail kept as **Approved direction**:
+- the opening trial is a real examination that introduces targeting, typing, Enter, score, Combo and Arcane Rush under the normal rules;
+- no forced failure, fake difficulty or suppressed score;
+- the outcome may vary without blocking the learning arc;
+- the Temporal Trial never requires a cast.
+
+Its "challenge → teacher lesson → practical examination" applied to every apprenticeship is **superseded by D-107**: only the Academy opens with a challenge. Mapping the opening onto D-102's checkpoints is open (Q-18).
+
+**PR #13 "D-107", commercial scope.** It matches PROD-001/002 and SCOPE-001–003, and adds:
+- the studio name is "Eighteen Ninjas", without "Dev Co.";
+- prototype completion is not commercial readiness;
+- green scope includes settings, onboarding, accessibility, stability and packaging;
+- guardrails against feature creep and rewrites.
+
+Its ten-step production order is **superseded by the Bible's §4 phase sequence (00–08)** and the milestones in the reconciliation plan. Acceptance criteria are open (Q-19).
+
+**PR #13 "D-108", audio experiment.** It matches AUD-002 (AUDIO-EXP-001), and adds:
+- mute and reduced-intensity options as accessibility checks;
+- no tie between melody and a required typing cadence;
+- no masking of error cues;
+- no extra latency;
+- prototype behind an isolated flag.
+
+Sounds, thresholds and metrics are open (Q-20).

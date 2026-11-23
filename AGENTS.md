@@ -89,7 +89,8 @@ it. Search the code first.
 - Spell commands are fixed words (GAME-001). Typing the spell name + Enter
   casts in every mode. Typing is the only gameplay input (D-107): number-key
   casting still exists in Normal today but is being removed completely (M1).
-  Never add a non-typing way to act. Spell names are reserved, so no falling
+  No clicking during gameplay (D-108); clicking is allowed only in menus.
+  Never add a non-typing way to act in play. Spell names are reserved, so no falling
   word may equal, start with, or prefix one (`src/data/wordList.ts`). Don't
   add a new casting mode (e.g. Tab) or change targeting without a verified reason.
 - Don't change production (`main`) or merge into it without explicit owner
