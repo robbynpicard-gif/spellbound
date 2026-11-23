@@ -59,6 +59,13 @@ export interface DirectorSpec {
    * but keeps Slow's short and medium words.
    */
   vocabulary?: number;
+  /**
+   * D-116: skill-responsive pressure. 'both' (Opening Trial, Academy Normal),
+   * 'up' (Endless: only ever adds), 'off' (Hardcore, Sandbox). Absent = off.
+   */
+  adaptive?: 'both' | 'up' | 'off';
+  /** Which authored bounds the controller uses. Defaults from `kind`. */
+  adaptiveBounds?: 'run' | 'opening' | 'endless';
 }
 
 export interface DirectorContext {
@@ -72,6 +79,8 @@ export interface DirectorContext {
   phase?: RunPhase;
   /** An opening word placed partway down the field: never fast, never an upper outlier. */
   opening?: boolean;
+  /** D-116: the pressure controller's bias, added to the event-driven pressure (bounded by the controller). */
+  bias?: number;
 }
 
 export type PressureEvent = 'calm' | 'pressure' | 'surge' | 'recovery' | 'climax';
@@ -486,6 +495,8 @@ export function validateDirectorSpec(raw: unknown): string[] {
   if (!num(r.apprenticeship) || (r.apprenticeship as number) < 0 || (r.apprenticeship as number) > 1) problems.push('director.apprenticeship must be in [0, 1]');
   if (!num(r.referenceLength) || (r.referenceLength as number) <= 0) problems.push('director.referenceLength must be positive');
   if (r.vocabulary !== undefined && (!num(r.vocabulary) || (r.vocabulary as number) < 0 || (r.vocabulary as number) > 1)) problems.push('director.vocabulary must be in [0, 1]');
+  if (r.adaptive !== undefined && r.adaptive !== 'both' && r.adaptive !== 'up' && r.adaptive !== 'off') problems.push('director.adaptive must be both, up or off');
+  if (r.adaptiveBounds !== undefined && r.adaptiveBounds !== 'run' && r.adaptiveBounds !== 'opening' && r.adaptiveBounds !== 'endless') problems.push('director.adaptiveBounds must be run, opening or endless');
   return problems;
 }
 
@@ -624,7 +635,7 @@ export class DifficultyDirector {
       baseline = spec.kind === 'boss' ? bossBaseline(spec, ctx.progress, t) : runBaseline(spec, ctx.progress, t);
       mixBase = baseline;
     }
-    const pressure = clamp01(mixBase + fx.boost - fx.dip);
+    const pressure = clamp01(mixBase + fx.boost - fx.dip + (ctx.bias ?? 0));
     const vocab = clamp01(spec.vocabulary ?? spec.apprenticeship);
     // D-113: early vocabulary leans to the window's short and medium parts; pressure shows up as speed and count first.
     const raw = mixAt(pressure, t, reliefReserve) as unknown as number[][];

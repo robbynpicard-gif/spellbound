@@ -1,4 +1,3 @@
-import { wordComplexity } from '../src/gameplay/WordGenerator';
 import { describe, expect, it, vi } from 'vitest';
 import { FIELD } from '../src/core/GameConfig';
 import { FIRE_MIN_DEPTH, GameEngine, type EngineOptions } from '../src/core/GameEngine';
@@ -95,18 +94,16 @@ describe('spell pool', () => {
     expect(totalCharges(trimmed)).toBe(MAX_POOL_SIZE);
   });
 
-  it('registry has all eight spells, in power order, each with a drop weight', () => {
-    expect(SPELL_IDS).toEqual(['slow', 'ice', 'barrier', 'shock', 'alter', 'fire', 'wind', 'harvest']);
+  it('registry has all eight spells, in curriculum order, each with a drop weight', () => {
+    expect(SPELL_IDS).toEqual(['slow', 'barrier', 'wind', 'fire', 'ice', 'shock', 'alter', 'harvest']); // D-115 curriculum order
     expect(Object.keys(SPELLS).sort()).toEqual([...SPELL_IDS].sort());
     for (const id of SPELL_IDS) {
       expect(SPELLS[id].dropWeight).toBeGreaterThan(0);
       // In-game text stays short; the full description is for the spellbook.
       expect(SPELLS[id].summary.split(' ').length, id).toBeLessThanOrEqual(8);
     }
-    // Stronger spells drop less often.
-    for (let i = 1; i < SPELL_IDS.length; i++) {
-      expect(SPELLS[SPELL_IDS[i]!].dropWeight).toBeLessThanOrEqual(SPELLS[SPELL_IDS[i - 1]!].dropWeight);
-    }
+    // D-115: rarity and unlock position are separate dimensions; Harvest stays the rarest.
+    for (const id of SPELL_IDS) expect(SPELLS[id].dropWeight).toBeGreaterThanOrEqual(SPELLS.harvest.dropWeight);
   });
 
   it('boosts the drop weight of the spell a level introduces', () => {
@@ -396,7 +393,7 @@ describe('casting', () => {
     expect(engine.state.completed).toBe(1);
   });
 
-  it('Alter: for 8 seconds new words are short and easy, then the level\'s words return; shortened words stay short', () => {
+  it('Alter shortens existing long words only; later spawns keep the level\'s lengths (D-115)', () => {
     const engine = makeEngine(
       { spawnInterval: 100, maxActiveWords: 60, minWordLength: 6, maxWordLength: 10, initialFallSpeed: 900, instabilityPerMiss: 0.001 },
       { initialSpells: { alter: 1 } },
@@ -405,23 +402,12 @@ describe('casting', () => {
     const long = engine.state.words.map((w) => w.id);
     cast(engine, 'alter');
     const shortened = engine.state.words.filter((w) => long.includes(w.id)).map((w) => ({ id: w.id, text: w.text }));
-    const during: string[] = [];
+    for (const w of shortened) expect(w.text.length).toBeLessThanOrEqual(3);
     const after: string[] = [];
-    let open = true;
-    engine.events.on('spellEnded', ({ spell }) => {
-      if (spell === 'alter') open = false;
-    });
-    engine.events.on('wordSpawned', ({ word }) => (open ? during : after).push(word.text));
-    for (let i = 0; i < 8 * 60 + 200; i++) engine.step();
-    expect(open).toBe(false);
-    expect(during.length).toBeGreaterThan(10);
-    for (const w of during) {
-      expect(w.length).toBeLessThanOrEqual(5);
-      expect(wordComplexity(w)).toBeLessThanOrEqual(0.5);
-    }
-    expect(after.length).toBeGreaterThan(0);
+    engine.events.on('wordSpawned', ({ word }) => after.push(word.text));
+    for (let i = 0; i < 4 * 60; i++) engine.step();
+    expect(after.length).toBeGreaterThan(10);
     for (const w of after) expect(w.length).toBeGreaterThanOrEqual(6);
-    // Words shortened by the cast never grow back.
     for (const s of shortened) {
       const w = engine.state.words.find((x) => x.id === s.id);
       if (w) expect(w.text).toBe(s.text);

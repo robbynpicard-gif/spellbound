@@ -739,17 +739,10 @@ export class GameScene extends Phaser.Scene {
     });
 
     // ── Wind All-In, Ward scars, insurance and Focus (D-084 prototype) ──
-    ev.on('windCast', ({ outcome, cap, scar, endedAllIn }) => {
-      this.hud.setWardCap(cap);
-      this.gust(outcome === 'wager' ? 1 : 0.6);
-      const cx = LAYOUT.width / 2;
-      if (outcome === 'wager') {
-        this.effects.floatText(cx, LAYOUT.spawnY + 175, `ALL IN · ×${this.engine.wardInfo.allInMultiplier}`, PALETTE.gold, 36);
-        this.effects.floatText(cx, LAYOUT.spawnY + 225, `Ward scarred −${scar} · max ${cap}%`, PALETTE.crimson, 20);
-      } else if (outcome === 'heal') {
-        this.effects.floatText(cx, LAYOUT.spawnY + 175, cap < 100 ? `WARD MENDED · to ${cap}%` : 'WARD MENDED', SPELL_COLORS.wind, 28);
-        if (endedAllIn) this.effects.floatText(cx, LAYOUT.spawnY + 220, 'All-In released', 0xd8d0c0, 20);
-      } else this.effects.floatText(cx, LAYOUT.spawnY + 175, 'CALM GUST · too scarred to wager', 0xd8d0c0, 24);
+    ev.on('windCast', ({ moved }) => {
+      // D-115: Wind is a gust that pushes scrolls back up (no heal, no All-In).
+      this.gust(0.8);
+      this.effects.floatText(LAYOUT.width / 2, LAYOUT.spawnY + 175, moved.length ? `GUST · ${moved.length} pushed back` : 'GUST', SPELL_COLORS.wind, 28);
     });
     ev.on('allInChanged', ({ active, reason }) => {
       if (!active) this.hud.setAllIn(0, 1);

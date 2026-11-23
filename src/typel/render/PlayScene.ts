@@ -59,6 +59,8 @@ export interface PlaySetup {
   initialWords?: readonly WordState[];
   scoreOffset?: number;
   poolLimitOverride?: number;
+  /** D-115 experiment: per-spell bank caps. */
+  spellCaps?: Readonly<Partial<SpellCharges>> | null;
   spells: readonly SpellId[];
   title: string;
   subtitle: string;
@@ -354,6 +356,7 @@ export class TypeLPlayScene extends Phaser.Scene {
       initialCombo: setup.initialCombo,
       initialWords: setup.initialWords,
       poolLimitOverride: setup.poolLimitOverride,
+      spellCaps: setup.spellCaps ?? null,
     };
     // D-102 resume: replaying the saved log restores the checkpoint exactly (field, score, Combo, Rush, Director, streams).
     this.engine = setup.resume ? GameEngine.replay(options, setup.resume.commands, setup.resume.tick) : new GameEngine(options);
@@ -752,11 +755,6 @@ export class TypeLPlayScene extends Phaser.Scene {
       sound.focus(gain);
       this.callout(COMBO_TUBE.x + COMBO_TUBE.w / 2, COMBO_TUBE.top + 60, `FOCUS +${gain}`, '#bff6ff', 30, '#0a3a5a');
     });
-    ev.on('scoreInsured', () => {
-      sound.spell('barrier');
-      this.callout(COMBO_TUBE.x + COMBO_TUBE.w / 2, COMBO_TUBE.top + 60, 'COMBO SAVED', '#cfe2ff', 26, '#0b2a7a');
-      this.wardFlash(0x8fb8ff);
-    });
     ev.on('wordsBurned', ({ words, depths, links }) => {
       const pos = new Map(words.map((w) => [w.id, this.posOf(w)]));
       words.forEach((w, i) => {
@@ -775,8 +773,8 @@ export class TypeLPlayScene extends Phaser.Scene {
     });
     ev.on('wordsShocked', ({ words, links }) => {
       const pos = new Map(words.map((w) => [w.id, this.posOf(w)]));
-      // D-086: lightning rises from the Ward into the three nearest words.
-      for (const w of words.slice(0, 3)) {
+      // D-115: lightning rises from the Ward into the most urgent scroll, then conducts.
+      for (const w of words.slice(0, 1)) {
         const p = pos.get(w.id)!;
         this.bolt({ x: p.x + (Math.random() - 0.5) * 80, y: WARD_Y + 10 }, p, 0xfff27a, true);
       }
@@ -791,13 +789,13 @@ export class TypeLPlayScene extends Phaser.Scene {
       }
       if (!this.reduced) this.cameras.main.flash(90, 255, 250, 180, false);
       this.wardFlash(0xfff27a);
-      this.callout(cx, 420, words.length > 3 ? `CHAIN ×${words.length}!` : 'ZAP!', '#fff27a', 52, '#3a3000');
+      this.callout(cx, 420, words.length > 1 ? `CHAIN ×${words.length}!` : 'ZAP!', '#fff27a', 52, '#3a3000');
     });
-    ev.on('wordsHarvested', ({ words, points, volley, allIn }) => {
+    ev.on('wordsHarvested', ({ words, points, volley }) => {
       // Harvest SPENDS the Rush: that ending keeps its celebration, not the fade.
       if ((volley ?? 1) > 1) this.rushSpentTick = this.engine.state.tick;
       words.forEach((w, i) => this.time.delayedCall(i * 45, () => (this.stopTrail(w.id), this.collectView(w.id, true))));
-      const parts = [this.setup.showSequenceScore ? `HARVEST +${points}` : 'HARVEST', allIn && allIn > 1 ? `ALL-IN ×${allIn}` : '', volley && volley > 1 ? `RUSH ×${volley.toFixed(1)} SPENT` : ''].filter(Boolean);
+      const parts = [this.setup.showSequenceScore ? `HARVEST +${points}` : 'HARVEST', volley && volley > 1 ? `RUSH ×${volley.toFixed(1)} SPENT` : ''].filter(Boolean);
       this.callout(cx, 400, parts.join('  ·  '), '#ffd35a', 44, '#4a2a00');
       this.confetti(60);
       if (!this.reduced) this.cameras.main.flash(180, 255, 200, 80, false);
@@ -814,24 +812,15 @@ export class TypeLPlayScene extends Phaser.Scene {
         this.addView(w);
       }
     });
-    ev.on('windCast', ({ outcome, cap, scar, endedAllIn }) => {
-      this.gust(outcome === 'wager' ? 1 : 0.6);
-      if (outcome === 'wager') {
-        sound.wager();
-        this.callout(cx, 360, `ALL IN!  ×${this.engine.wardInfo.allInMultiplier}`, '#ffd35a', 72, '#6a0010');
-        this.callout(cx, 440, `The Ward is scarred −${scar}  ·  max ${cap}%`, '#ffb0b0', 26, '#3a0010');
-        this.wizard.cheer();
-        gw.impressed();
-        this.kickNeedle(-14);
-      } else if (outcome === 'heal') {
-        sound.gust(0.7);
-        sound.heal();
-        this.callout(cx, 400, cap < 100 ? `WARD MENDED · ${cap}%` : 'WARD MENDED', '#7dffb5', 44, '#0a3a1a');
-        if (endedAllIn) this.callout(cx, 456, 'All-In released', '#ffffff', 24, '#1a0630');
-      } else {
-        sound.gust(0.6);
-        this.callout(cx, 400, 'A calm breeze · too scarred to wager', '#e0ffe8', 30, '#1a0630');
+    ev.on('windCast', ({ moved }) => {
+      // D-115: a gust pushes every scroll back up, hardest near the Ward. Nothing is healed, captured or scored.
+      this.gust(1);
+      sound.gust(0.9);
+      for (const m of moved) {
+        const v = this.views.get(m.id);
+        if (v) this.burst(v.x, toY(m.from), 0xc8ffd8, 10);
       }
+      this.callout(cx, 400, moved.length > 0 ? `GUST · ${moved.length} pushed back` : 'GUST', '#c8ffd8', 44, '#0a3a1a');
     });
     ev.on('allInChanged', ({ active, reason }) => {
       this.tweens.add({ targets: this.allInVeil, alpha: active ? 0.3 : 0, duration: 400 });

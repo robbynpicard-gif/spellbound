@@ -72,6 +72,8 @@ export interface SecondSample {
   urgent: number;
   workload: number;
   impacts: number;
+  /** D-116 controller offset (null when the controller is off). */
+  offset: number | null;
 }
 
 export type FailureCause = 'typing demand' | 'reaction and switching' | 'visual clutter' | 'none';
@@ -140,11 +142,15 @@ export interface SimOptions {
   maxSeconds?: number;
   /** Record a timeline sample every N seconds. */
   sampleEvery?: number;
+  /** D-116 comparison: false switches the pressure controller off. */
+  pressureControl?: false;
+  /** Starting spell charges. */
+  initialSpells?: Partial<Record<SpellId, number>>;
 }
 
 export function simulate(o: SimOptions): RunReport {
   const config = o.plan ? o.plan.segments[0]!.config : o.config!;
-  const engine = new GameEngine({ config, run: o.plan, seed: o.seed, words: o.words, hardcore: o.hardcore, experimentalScoring: true });
+  const engine = new GameEngine({ config, run: o.plan, seed: o.seed, words: o.words, hardcore: o.hardcore, experimentalScoring: true, pressureControl: o.pressureControl, initialSpells: o.initialSpells });
   const hands = new SeededRandom((o.seed ^ 0x7a9e57) >>> 0);
   const spawns: SpawnSample[] = [];
   const timeline: SecondSample[] = [];
@@ -198,7 +204,7 @@ export function simulate(o: SimOptions): RunReport {
         t: s.tick / SIMULATION_HZ, phase: phase(), event: snap?.envelope.event ?? 'calm', pressure: snap?.envelope.pressure ?? null,
         endlessLevel: snap?.envelope.endlessLevel ?? null, words: s.words.length, maxActive: pace.maxActiveWords, spawnMs: pace.spawnInterval,
         requiredCps: requiredCps(s.words, T.switchMs / 1000), overlaps: overlapPairs(s.words), combo: s.combo, rush: engine.volleyMultiplier,
-        urgent: bp.urgent, workload: bp.workload, impacts: bp.impacts,
+        urgent: bp.urgent, workload: bp.workload, impacts: bp.impacts, offset: engine.pressureControl?.offset ?? null,
       });
     }
     if (wait > 0) {
@@ -286,17 +292,19 @@ export function castDecision(engine: GameEngine, t: Typist): string | null {
   const bp = measurePressure(s.words, time, { urgentSeconds: 3, windowSeconds: 6, switchSeconds: t.switchMs / 1000, impactGapSeconds: 0.45 });
   const cps = cpsOf(t);
   const lower = s.words.filter((w) => w.y > FIELD.height * 0.5).length;
-  const doomed = s.words.some((w) => {
+  const late = (limit: number) => s.words.filter((w) => {
     const ttw = (FIELD.height - w.y) / Math.max(1e-6, w.speed);
-    return ttw < 1.2 && (w.match.length - w.typed) / cps + t.switchMs / 1000 > ttw;
-  });
+    return ttw < limit && (w.match.length - w.typed) / cps + t.switchMs / 1000 > ttw;
+  }).length;
+  const doomed = late(1.2) > 0;
+  // D-115 identities: Shock saves the most urgent and its cluster; Wind pushes danger back; Barrier covers simultaneous landings.
   if (doomed && has('shock')) return 'shock';
+  if (late(2) >= 2 && s.barrier === 0 && has('barrier')) return 'barrier';
+  if (doomed && bp.urgent >= 2 && has('wind')) return 'wind';
   if (bp.requiredLps > cps * 0.85 && s.slowStacks.length === 0 && s.freezeTicks === 0 && has('slow')) return 'slow';
   if (bp.urgent >= 3 && s.freezeTicks === 0 && has('ice')) return 'ice';
   if (lower >= 3 && has('fire')) return 'fire';
   if (s.words.length >= 6 && has('alter')) return 'alter';
-  if (s.barrier === 0 && s.combo >= 15 && has('barrier')) return 'barrier';
-  if (s.instability >= 40 && has('wind')) return 'wind';
   if (engine.volleyMultiplier >= 2.5 && s.words.length >= 4 && has('harvest')) return 'harvest';
   return null;
 }

@@ -4,71 +4,68 @@
     "name": "Temporal Distortion",
     "book": "Slow",
     "summary": "Words fall slower for a while.",
-    "description": "Words fall slower for 8 seconds. Each cast adds its own slow: two at once are slower still.",
+    "description": "Every scroll falls at 60% speed for 8 seconds. New scrolls keep arriving at the same pace: Slow buys you time to keep up, it doesn't stop the chaos. Casting again while it lasts adds another slow, so two together are slower still. Arcane Rush time passes 20% slower while you are slowed.",
     "dropWeight": 5,
     "durationMs": 8000,
     "speedFactor": 0.6
   },
   {
-    "id": "ice",
-    "name": "Frostbinding",
-    "book": "Ice",
-    "summary": "Freezes words 8 s; perfect words build Focus.",
-    "description": "Freezes every word in place, and stops new words appearing, for 8 seconds. You can keep typing, and Arcane Rush time keeps running. Frostbound Focus: each perfectly typed word during one freeze adds +2, +4, +8, then +8 Combo instead of +1. A typo breaks the Focus run (and, as always, the Combo). Focus resets when the freeze ends. Casting again while frozen adds time, less each cast (8 s, 5.6, 3.9 …), and keeps the Focus run going. If you clear the whole board while it is frozen, the ice melts over 2 seconds: a short rest, then words return.",
-    "dropWeight": 4,
-    "durationMs": 8000
-  },
-  {
     "id": "barrier",
     "name": "Arcane Shield",
     "book": "Barrier",
-    "summary": "Blocks 2 misses, or saves Combo from slips.",
-    "description": "Adds 2 shield layers. A layer is spent when a word reaches the ward line (it does no harm), or when you make a typo and fix it: your Combo and Arcane Rush are kept. That corrected word still isn't perfect, so it adds no Combo and never counts for Ice Focus. One layer covers every slip in one entry. Lasts until your next checkpoint.",
+    "summary": "2 layers block Ward breaches for 7 s.",
+    "description": "Raises 2 shield layers for 7 seconds. Each layer stops one scroll that reaches the Ward: it does no harm and costs no Combo. Barrier protects the Ward only; a typo still costs your Combo and Arcane Rush. Casting again refreshes the shield to 2 layers and 7 seconds; it never stacks higher. Prototype values.",
     "dropWeight": 4,
     "blocks": 2
   },
   {
-    "id": "shock",
-    "name": "Chain Lightning",
-    "book": "Shock",
-    "summary": "Strikes the 3 lowest words, then may chain.",
-    "description": "Lightning rises from the Ward floor into the 3 words closest to the Ward, always. From each struck word it may leap to nearby words: closer words are likelier, and each leap makes the next less likely (seeded, so a replay strikes the same way). Up to 10 words. Struck words count toward your next checkpoint and pay base points × your Combo (× All-In if active). Shock never adds Combo or Arcane Rush. The odds are provisional.",
-    "dropWeight": 3,
-    "arcs": 3
-  },
-  {
-    "id": "alter",
-    "name": "Transmutation",
-    "book": "Alter",
-    "summary": "Rewrites every word as 2–3 letters.",
-    "description": "Every word on the field longer than 3 letters becomes a 2–3 letter word, for good, and still pays the original word's full base points when you type it. Then, for 8 seconds, every new word is short and easy. It earns Combo and Arcane Rush only the normal way, by typing.",
-    "dropWeight": 3,
-    "minLength": 6,
-    "durationMs": 8000
+    "id": "wind",
+    "name": "Gale",
+    "book": "Wind",
+    "summary": "Pushes every scroll back, hardest near the Ward.",
+    "description": "A gust pushes every scroll on the field back up, strongest on the ones closest to the Ward. Nothing is destroyed: every scroll keeps its word, its speed and its value, so you get a second chance to type it and score it. Wind never heals the Ward and never captures words. Prototype values.",
+    "dropWeight": 1.5
   },
   {
     "id": "fire",
     "name": "Incineration",
     "book": "Fire",
-    "summary": "Burns the low field; flames spread through crowds.",
-    "description": "Every word in the lower half of the field ignites, and flames leap to any word close enough to a burning one, generation after generation. Words in the top fifth are always spared. Each burned word pays its base points, +25% per generation of spread (a crowded field burns further and pays more). No Combo, Arcane Rush or checkpoint progress. Combustion Chain is a provisional prototype.",
+    "summary": "Burns the low field; pays nothing.",
+    "description": "Every scroll in the lower half of the field ignites, and flames leap to any scroll close enough to a burning one. Scrolls in the top fifth are always spared. Burned scrolls are simply gone: no points, no Combo, no Arcane Rush, no checkpoint progress, and any spell they carried is lost. Fire trades score for survival. Prototype reach.",
     "dropWeight": 2
   },
   {
-    "id": "wind",
-    "name": "Arcane Purge",
-    "book": "Wind",
-    "summary": "Mends the Ward, or wagers All-In at full.",
-    "description": "Below your Ward's current maximum, Wind heals it back to that maximum and removes the extra speed your mistakes gave words. At your current maximum, Wind goes ALL-IN: the Ward drops to 25%, its maximum is scarred (−15, then −20, −25 …), and for 10 seconds your typed words, Harvest and Shock score ×2. A Ward breach ends All-In (in Hardcore any mistake does), and healing with Wind ends it too. You can wager again whenever you're back at your maximum, as long as it would stay at 40% or more. Normal clears scars at every checkpoint; Hardcore keeps them for the whole apprenticeship. Prototype values.",
-    "dropWeight": 1.5,
-    "heal": 50
+    "id": "ice",
+    "name": "Frostbinding",
+    "book": "Ice",
+    "summary": "Freezes scrolls and spawns; Focus builds Combo.",
+    "description": "Freezes every word in place, and stops new words appearing, for 8 seconds. You can keep typing, and Arcane Rush time keeps running. Frostbound Focus: each perfectly typed word during one freeze adds +2, +4, +8, then +8 Combo instead of +1. A typo breaks the Focus run (and, as always, the Combo). Focus resets when the freeze ends. Casting again while frozen adds time, less each cast (8 s, 5.6, 3.9 …), and keeps the Focus run going. If you clear the whole board while it is frozen, the ice melts over 2 seconds: a short rest, then words return.",
+    "dropWeight": 4,
+    "durationMs": 8000
+  },
+  {
+    "id": "shock",
+    "name": "Chain Lightning",
+    "book": "Shock",
+    "summary": "Strikes the lowest scroll and its cluster.",
+    "description": "Lightning strikes the scroll closest to the Ward and always conducts through the scrolls clustered around it. Then it may jump to the nearest other cluster, and from there to another: each jump is half as likely as the last, but there is no fixed limit (seeded, so a replay strikes the same way). Struck scrolls count toward your next checkpoint and pay their base points × your Combo. Shock never adds Combo or Arcane Rush. The odds are provisional.",
+    "dropWeight": 3
+  },
+  {
+    "id": "alter",
+    "name": "Transmutation",
+    "book": "Alter",
+    "summary": "Shortens long scrolls; they keep their worth.",
+    "description": "Every scroll of 5 or more letters on the field is rewritten as a 2–3 letter word, in place, at the same speed. It still pays the original word's full base points when you type it. Shorter scrolls already on the field, and every scroll that arrives later, are unchanged. It earns Combo and Arcane Rush only the normal way, by typing.",
+    "dropWeight": 3,
+    "minLength": 5
   },
   {
     "id": "harvest",
     "name": "Harvest",
     "book": "Harvest",
     "summary": "Claims every word, cashing in Combo and Rush.",
-    "description": "Claims every word on the field: they all count toward your next checkpoint and pay their full base points × your Combo multiplier × your active Arcane Rush multiplier (× All-In if active). Your Combo stays; your Arcane Rush is spent. Harvest never adds Combo or Arcane Rush captures.",
+    "description": "Claims every scroll on the field: they all count toward your next checkpoint and pay their full base points × your Combo multiplier × your active Arcane Rush multiplier (without a Rush, base × Combo). Your Combo stays; your Arcane Rush is spent. Harvest never adds Combo or Arcane Rush.",
     "dropWeight": 1
   }
 ]

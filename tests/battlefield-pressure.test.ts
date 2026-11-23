@@ -49,7 +49,7 @@ describe('D-113 tuning', () => {
   });
 
   it('the Opening Trial mostly uses short and medium words, and its pressure rises', () => {
-    const r = simulate({ plan: openingRun('normal'), words: WORDS, seed: 11, typist: typistAt(90), maxSeconds: 600 });
+    const r = simulate({ plan: openingRun('normal'), words: WORDS, seed: 11, typist: typistAt(90), maxSeconds: 600, pressureControl: false });
     const lengths = r.spawns.map((s) => s.length);
     const long = lengths.filter((n) => n >= 7).length / lengths.length;
     expect(long).toBeLessThanOrEqual(0.06);

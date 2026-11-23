@@ -32,7 +32,7 @@ interface SpellWindow {
 }
 
 const TICKS = (s: number) => Math.round(s * 60);
-const TIMED: Partial<Record<SpellId, number>> = { slow: TICKS(8), alter: TICKS(8), fire: TICKS(4) };
+const TIMED: Partial<Record<SpellId, number>> = { slow: TICKS(8), alter: TICKS(8), fire: TICKS(4), wind: TICKS(5), barrier: TICKS(7) };
 
 export class RuneTracker {
   private perfectRun = 0;
@@ -43,7 +43,10 @@ export class RuneTracker {
   private alphaRun: string[] = [];
   private recentCaptures: number[] = [];
   private windows: SpellWindow[] = [];
-  private allIn: { points: number; awarded: boolean } | null = null;
+  /** Wind: ids of scrolls the last gust pushed back. */
+  private gusted = new Set<number>();
+  private gustCaptures = 0;
+  private barrierBlocks = 0;
 
   constructor(
     events: EventBus<GameEvents>,
@@ -58,7 +61,13 @@ export class RuneTracker {
     events.on('typingError', () => this.onSlip());
     events.on('submitMissed', () => this.onSlip());
     events.on('wordMissed', () => this.onSlip());
-    events.on('wordBlocked', () => (this.clean = false));
+    events.on('wordBlocked', () => {
+      this.clean = false;
+      if (++this.barrierBlocks === 2) this.give('unbroken');
+    });
+    events.on('barrierChanged', ({ remaining }) => {
+      if (remaining === 0) this.barrierBlocks = 0;
+    });
     events.on('spellCast', ({ spell }) => this.open(spell));
     events.on('spellEnded', ({ spell }) => this.close(spell));
     events.on('wordsShocked', ({ words }) => {
@@ -72,21 +81,13 @@ export class RuneTracker {
       const w = this.latest('fire');
       if (w) w.survivors = new Set(this.fieldWords().map((x) => x.id));
     });
-    events.on('wordsHarvested', ({ points, volley, allIn }) => {
-      if ((allIn ?? 1) > 1 && (volley ?? 1) >= 2) this.give('reap');
-      this.addAllIn(points);
+    events.on('wordsHarvested', ({ volley }) => {
+      if ((volley ?? 1) >= 3) this.give('reap');
     });
-    events.on('wordsShocked', ({ points }) => this.addAllIn(points));
-    events.on('scoreInsured', () => {
-      if (this.ctx.combo() >= 20) this.give('unbroken');
-    });
-    events.on('windCast', ({ outcome, wagers }) => {
-      if (outcome !== 'wager') return;
-      this.allIn = { points: 0, awarded: false };
-      if (wagers === 3) this.give('thrice-scarred');
-    });
-    events.on('allInChanged', ({ active }) => {
-      if (!active) this.allIn = null;
+    events.on('windCast', ({ moved }) => {
+      if (moved.length >= 6) this.give('thrice-scarred');
+      this.gusted = new Set(moved.map((m) => m.id));
+      this.gustCaptures = 0;
     });
   }
 
@@ -122,14 +123,6 @@ export class RuneTracker {
     for (const w of this.active()) w.points += points;
   }
 
-  private addAllIn(points: number): void {
-    if (!this.allIn || this.allIn.awarded) return;
-    this.allIn.points += points;
-    if (this.allIn.points >= 1000) {
-      this.allIn.awarded = true;
-      this.give('final-wager');
-    }
-  }
 
   private onSlip(): void {
     this.clean = false;
@@ -144,6 +137,10 @@ export class RuneTracker {
     const lower = text.toLowerCase();
     const share = y / this.ctx.fieldHeight;
     const now = this.ctx.tick();
+    if (this.gusted.has(id) && this.active().some((w) => w.spell === 'wind')) {
+      this.gusted.delete(id);
+      if (++this.gustCaptures === 3) this.give('final-wager');
+    }
 
     // Typing mastery
     if (perfect) {
@@ -173,7 +170,6 @@ export class RuneTracker {
     if (this.alphaRun.length === 4) this.give('alphabetist');
 
     // Spell rune sequences
-    this.addAllIn(points);
     for (const w of this.active()) {
       w.points += points;
       if (perfect) w.perfect++;

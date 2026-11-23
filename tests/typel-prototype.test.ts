@@ -7,27 +7,35 @@ import { RUNES } from '../src/gameplay/runes/RuneCatalogue';
 
 const W = (id: number, x: number, y: number) => ({ id, x, y });
 
-describe('Shock seeded chain (provisional)', () => {
-  it('always strikes the first word and is deterministic for a seed', () => {
+describe('Shock chain (D-115)', () => {
+  it('strikes the first scroll, always conducts through its cluster, and is deterministic for a seed', () => {
     const field = [W(1, 100, 700), W(2, 160, 660), W(3, 230, 620), W(4, 900, 100)];
-    const a = shockChain(field, [field[0]!], new SeededRandom(42));
-    const b = shockChain(field, [field[0]!], new SeededRandom(42));
-    expect(a.struck[0]!.id).toBe(1);
-    expect(a.struck.map((w) => w.id)).toEqual(b.struck.map((w) => w.id));
-    expect(a.struck.some((w) => w.id === 4)).toBe(false); // out of reach
+    for (let seed = 1; seed <= 20; seed++) {
+      const a = shockChain(field, field[0]!, new SeededRandom(seed));
+      const b = shockChain(field, field[0]!, new SeededRandom(seed));
+      expect(a.struck[0]!.id).toBe(1);
+      expect(a.struck.map((w) => w.id).slice(0, 3).sort()).toEqual([1, 2, 3]); // the cluster, guaranteed
+      expect(a.struck.map((w) => w.id)).toEqual(b.struck.map((w) => w.id));
+      expect(a.struck.some((w) => w.id === 4)).toBe(false); // beyond any jump's reach
+    }
   });
 
-  it('chains further on a dense field than a sparse one, capped', () => {
-    const dense = Array.from({ length: 16 }, (_, i) => W(i + 1, 100 + (i % 4) * 90, 400 + Math.floor(i / 4) * 80));
-    const sparse = Array.from({ length: 16 }, (_, i) => W(i + 1, 100 + i * 400, 400));
-    let d = 0;
-    let s = 0;
-    for (let seed = 1; seed <= 40; seed++) {
-      d += shockChain(dense, [dense[0]!], new SeededRandom(seed)).struck.length;
-      s += shockChain(sparse, [sparse[0]!], new SeededRandom(seed)).struck.length;
-      expect(shockChain(dense, [dense[0]!], new SeededRandom(seed)).struck.length).toBeLessThanOrEqual(10);
+  it('jumps to other clusters with diminishing odds and no fixed cap', () => {
+    // Six two-scroll clusters, 400 px apart: conduction never bridges them; only jumps do.
+    const field = Array.from({ length: 12 }, (_, i) => W(i + 1, 100 + Math.floor(i / 2) * 400 + (i % 2) * 60, 500));
+    const counts = new Map<number, number>();
+    for (let seed = 1; seed <= 400; seed++) {
+      const r = shockChain(field, field[0]!, new SeededRandom(seed));
+      expect(r.struck.length).toBe(2 * (r.jumps + 1));
+      counts.set(r.jumps, (counts.get(r.jumps) ?? 0) + 1);
     }
-    expect(d).toBeGreaterThan(s * 2);
+    const share = (k: number) => (counts.get(k) ?? 0) / 400;
+    expect(share(0)).toBeGreaterThan(0.4); // usually one cluster
+    expect(share(1)).toBeGreaterThan(share(2));
+    expect(Math.max(...counts.keys())).toBeGreaterThanOrEqual(2); // rare cascades happen
+    // A dense field conducts through everything: more than the old 10-word cap.
+    const dense = Array.from({ length: 16 }, (_, i) => W(i + 1, 100 + (i % 4) * 90, 400 + Math.floor(i / 4) * 80));
+    expect(shockChain(dense, dense[0]!, new SeededRandom(1)).struck.length).toBe(16);
   });
 });
 
@@ -128,23 +136,26 @@ describe('D-086 engine changes', () => {
     expect(PLUNGE_ODDS[2]!).toBeLessThan(0.1);
   });
 
-  it('Shock always strikes the 3 words nearest the Ward', () => {
+  it('Shock strikes the most urgent scroll first (D-115)', () => {
     const e = mk({ initialSpells: { shock: 1 } });
     fill(e, 6);
-    const lowest = [...e.state.words].sort((a, b) => b.y - a.y).slice(0, 3).map((w) => w.id);
+    const lowest = [...e.state.words].sort((a, b) => b.y - a.y || a.id - b.id)[0]!.id;
     let struck: number[] = [];
     e.events.on('wordsShocked', ({ words }) => (struck = words.map((w) => w.id)));
     for (const c of 'shock') e.typeChar(c);
     e.submit();
-    expect(struck.slice(0, 3).sort()).toEqual([...lowest].sort());
+    expect(struck[0]).toBe(lowest);
   });
 
-  it('Alter rewrites every word longer than 3 letters', () => {
+  it('Alter shortens only long existing words and never changes future spawns (D-115)', () => {
     const e = mk({ initialSpells: { alter: 1 } });
     fill(e, 5);
+    const short = e.state.words.filter((w) => w.text.length < 5).map((w) => [w.id, w.text] as const);
     for (const c of 'alter') e.typeChar(c);
     e.submit();
-    expect(e.state.words.every((w) => w.text.length <= 3)).toBe(true);
+    for (const w of e.state.words) expect(w.originalLength === undefined || w.text.length < w.originalLength).toBe(true);
+    for (const [id, text] of short) expect(e.state.words.find((w) => w.id === id)?.text).toBe(text);
+    expect(e.state.easyTicks).toBe(0);
   });
 
   it('Ice melts within 2 seconds once the board is cleared', () => {

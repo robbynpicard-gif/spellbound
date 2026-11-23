@@ -1,9 +1,9 @@
 /**
- * Spell ids, in power order (least → most powerful), which is also the order
- * the Campaign introduces them (docs/plans/spells-v2.md). The id is the cast
- * word: type it and press Enter to cast.
+ * Spell ids in the canonical Academy order (D-115): the order the
+ * apprenticeships teach them. It is a curriculum, not a power ranking. The id
+ * is the cast word: type it and press Enter to cast.
  */
-export const SPELL_IDS = ['slow', 'ice', 'barrier', 'shock', 'alter', 'fire', 'wind', 'harvest'] as const;
+export const SPELL_IDS = ['slow', 'barrier', 'wind', 'fire', 'ice', 'shock', 'alter', 'harvest'] as const;
 export type SpellId = (typeof SPELL_IDS)[number];
 
 export type SpellCharges = Record<SpellId, number>;
@@ -13,6 +13,12 @@ export type SpellCharges = Record<SpellId, number>;
  * often each spell drops (its drop weight) is what keeps strong spells rare.
  */
 export const SPELL_POOL_SIZE = 8;
+
+/**
+ * D-115 candidate per-spell caps (EXPERIMENTAL, not approved balance). Off by
+ * default: the shared bank is the testing baseline. Turn on to test stockpiling.
+ */
+export const SPELL_CAP_CANDIDATES: Readonly<SpellCharges> = { slow: 4, barrier: 2, wind: 2, fire: 3, ice: 2, shock: 2, alter: 2, harvest: 1 };
 
 /**
  * Mana pool growth (D-057): typing accurately widens the pool, so a clean run
@@ -89,8 +95,10 @@ export function sanitizeCharges(input?: Partial<Record<string, unknown>>): Spell
 }
 
 /** Adds one charge (mutates). Returns false and changes nothing when the pool is full. */
-export function addCharge(charges: SpellCharges, id: SpellId, limit: number = SPELL_POOL_SIZE): boolean {
+export function addCharge(charges: SpellCharges, id: SpellId, limit: number = SPELL_POOL_SIZE, caps?: Readonly<Partial<SpellCharges>> | null): boolean {
   if (poolFull(charges, limit)) return false;
+  const cap = caps?.[id];
+  if (cap !== undefined && charges[id] >= cap) return false;
   charges[id]++;
   return true;
 }
