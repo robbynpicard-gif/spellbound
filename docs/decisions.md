@@ -1636,3 +1636,21 @@ _2026-11-23 · **Owner decisions** (2026-11-23: finite trial; separate stage; fi
 For comparison, the same typist clears the whole Chronomancer apprenticeship spell-free at 45 WPM. That bears out the Bible's note that the early game is too forgiving. Its rebalance is separate, later work.
 
 **Not decided yet:** the Opening Trial's real name, its art, and whether Hardcore offers it (it does now, because the mode toggle applies).
+
+
+### D-113 — Spell identities approved (2026-11-23)
+_2026-11-23 · Owner-approved conceptual direction · Approved design, not yet implemented · Refines GAME-007 and Production Bible §3 · Numerical tuning and scoring remain open_
+
+**Shared rule:** Every spell must offer a recognizable, physically intuitive decision, not an interchangeable stress-relief button. Typing remains primary. Do not add complexity for its own sake.
+
+- **SHOCK — tactical chain lightning:** dependable lowest-threat strike and guaranteed conduction through an eligible nearby cluster; occasional jump to another cluster, with each successive extra jump increasingly improbable but never ruled out by an arbitrary jump count. Typical: one cluster; occasional second; exceptionally rare third/fourth or more. Organic electricity rather than scripted rails. Use seeded deterministic randomness. No special jackpot scoring multiplier approved. Existing code instead initially strikes three lowest words and caps at ten; reconcile before implementing.
+- **WIND — second-chance physical repulsion:** a visible gust moves danger away from the Ward without deleting words, preserving typing opportunities. Prefer a predictable single push, with stronger effect near the Ward as a candidate, not a settled formula. Prototype pure repulsion first against the existing healing/acceleration-cleansing/All-In version. Ward healing, stability and All-In are not approved for removal from the game; examine survival economy separately.
+- **SLOW — manageable momentum:** “I can still handle this.” Reduce descent briefly while threats keep moving. Initial candidate: shorter meaningful window, recasts refresh duration rather than stack indefinitely. Existing 60%-speed eight-second stacking remains until an implementation change is approved. Arcane Rush remains a typing-performance system, not SLOW-exclusive.
+- **ICE — emergency total control:** “I need everything to stop right now.” Suspend danger to prioritize and type, preserving threats. Existing Frostbound Focus, spawn suspension and recast rules are not repealed. Test whether the stop genuinely enables recovery.
+- **FIRE — catastrophic destructive cleansing:** “Stopping them isn't enough; these threats need to go.” Remove danger outright, unlike ICE. Reliable decisive clearing is the preferred identity; full-screen reach is not yet a locked specification. Current code ignites the lower half, propagates through proximity and spares the top fifth. Resolve reach and scoring explicitly rather than silently replacing implementation.
+
+**Academy distinction:** SLOW = keep pace; ICE = stop and regain control; FIRE = destroy the danger. WIND = push danger away while preserving the typing task. SHOCK = precise clustered destruction with rare spectacular cascades.
+
+**Other spells (not newly redesigned):** BARRIER currently blocks breaches and protects typing momentum from corrected slips; ALTER transforms words and near-term word difficulty; HARVEST cashes in the battlefield using accumulated Combo/Arcane Rush. Their identities need a separate critical review. Preserve existing behaviour until approved changes.
+
+**Open:** SHOCK eligibility/probabilities and no-cap implementation; WIND displacement and Ward/All-In survival economy; SLOW refresh and ICE interactions; FIRE reach; all spells' scoring, Combo, Rush, checkpoint progress, fairness and HARVEST boundaries. Audit code/tests and stage an implementation plan before changing player-facing rules.

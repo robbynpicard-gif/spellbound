@@ -72,6 +72,9 @@ base game (RELIC-001)?
 Bible §6 fixes the experiment's structure. Still undecided: the placeholder
 sounds, response thresholds, session design and success metrics.
 
+
+**Q-21 · Approved spell identities versus current mechanics (D-113)** — Reconcile SHOCK's guaranteed cluster conduction and diminishing uncapped jumps with its current three-target/ten-word behaviour; WIND repulsion with healing, cleansing, All-In and Ward economy; SLOW refresh versus stacking; ICE Focus and freeze interactions; FIRE destructive reach versus current lower-half spread. Audit score, Combo, Arcane Rush, checkpoint progress, HARVEST and fairness before implementation.
+
 ## Resolved
 
 **Q-5 · Normal quick-cast:** resolved by D-106 (GAME-001). Default Normal
