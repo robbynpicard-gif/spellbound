@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. One-time handoff; the shared entry point is docs/README.md. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TYPEL — Claude Code prototype handoff
 
 > **CANONICAL FOUR-PILLAR REGISTER (2026-11-20):** Read **[`docs/typel-four-pillar-decision-register-2026-11-20.md`](typel-four-pillar-decision-register-2026-11-20.md)** before any further implementation. It reconciles recoverable discussions into **Gameplay / Visual Composition / Audio / Progression**, each separated into **Decided / Exploratory / Superseded**, and records code-vs-design contradictions. Rendering style is **not chosen**; pixel art is merely an early possibility, not the game's identity. This register and the creative direction document supersede conflicting assumptions in this older mechanics-first handoff.

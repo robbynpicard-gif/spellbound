@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Milestone 4 architecture. Its core rules (D-003 to D-005) still hold; for current files see docs/system-map.md. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TypeL — Architecture
 
 _Last updated: 2026-11-16 (Milestone 4 — Endless Practice, see decisions D-023)_

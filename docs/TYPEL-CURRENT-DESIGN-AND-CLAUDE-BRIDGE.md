@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. 2026-11-20 bridge. The entry point is now docs/README.md and AGENTS.md (D-104); its principles live on in decisions.md. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TYPEL — current design authority and Claude continuation briefing
 _2026-11-20 · living bridge document; update before Claude handoff_
 

@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. v0.27 Codex export of the legacy game on main; not the dev prototype's rules. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TypeL — Game mechanics (v0.27.0)
 
 Generated from the game's own numbers (the same source as the in-game **Codex** on the main menu), so it matches what you play.

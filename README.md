@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Its gameplay section, spell table and play URL describe the 2026-11-16 build; the real Pages URL is /spellbound/. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](docs/README.md), those win.
+
 # 🧙 TypeL
 
 A wizard-themed arcade typing game for the browser. Words fall toward your

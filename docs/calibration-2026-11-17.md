@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Calibration of the legacy stage campaign. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # Calibration report — stage campaign
 
 ## v0.20.0 (D-048): +33% floor, surges, spells needed at the boss

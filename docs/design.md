@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. v0.27 reference for the legacy 5 × 20 campaign on main. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # TypeL — Current Design Reference
 
 Last updated 2026-11-18 (v0.27.0). This is the single source of truth for the

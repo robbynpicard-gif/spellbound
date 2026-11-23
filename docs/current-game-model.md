@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. 2026-11-19 snapshot of the legacy campaign. Its no-preview rule is contradicted by D-060 and the deploy workflow; apprenticeships replaced the campaign on dev (D-085, D-102). Where it conflicts with `docs/decisions.md` or a current document in the [docs index](README.md), those win.
+
 # Current game model — approved gameplay baseline
 
 Updated 2026-11-19. This document is the concise current gameplay contract. Earlier GDD, decisions, and development-log entries remain as historical records; when they conflict with this document, newer accepted owner decisions and verified implementation take precedence. Do not treat older prototype descriptions as current requirements.

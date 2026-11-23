@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Pre-D-085 overhaul plan; the look is now governed by D-093. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](docs/README.md), those win.
+
 # TypeL — Renaissance Workstation Visual/Audio Overhaul
 
 Status: approved scope for the development preview; implementation and deployment verification are separate milestones. Production `main` is frozen.

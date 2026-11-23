@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. The standalone prototype.html slice was superseded by the integrated prototype (D-085). Where it conflicts with `docs/decisions.md` or a current document in the [docs index](docs/README.md), those win.
+
 # TypeL — apprenticeship vertical slice (development branch)
 
 This branch is isolated from `main`. The prototype is a standalone playable page at `prototype.html` so it does not modify the existing Phaser game, menus, artwork, or production deployment.

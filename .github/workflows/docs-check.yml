@@ -1,0 +1,22 @@
+# Documentation consistency (D-104). Separate from the gameplay checks and
+# the Pages deployment, so a documentation problem never blocks a deploy.
+name: Documentation check
+on:
+  push:
+    branches:
+      - main
+      - 'dev/**'
+      - 'docs/**'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node tools/check-docs.mjs

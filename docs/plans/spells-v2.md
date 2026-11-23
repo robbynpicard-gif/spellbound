@@ -1,3 +1,5 @@
+> **Document status: HISTORICAL** (classified 2026-11-22, D-104). Kept for context; not a current requirement. Implemented, later revised by D-049 onward. Where it conflicts with `docs/decisions.md` or a current document in the [docs index](../README.md), those win.
+
 # TypeL — Spell system v2 plan (implemented)
 
 _Agreed with the project owner and implemented, 2026-11-16 (decisions.md D-025/D-026). Pairs with [campaign-v2.md](campaign-v2.md). Supersedes D-017 once implemented._

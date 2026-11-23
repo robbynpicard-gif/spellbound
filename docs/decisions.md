@@ -1409,3 +1409,176 @@ Details: `docs/continuous-apprenticeship-2026-11-22.md`. Supersedes, on the prev
 **Owner-approved gameplay direction; detailed tuning and content not yet implemented.** Keep current eight-spell apprenticeship order: Slow → Fire → Ice → Barrier → Shock → Alter → Wind → Harvest; Final Examination tests all. Academy apprenticeships remain continuous Learn → Master → Boss runs (D-102). Each featured spell is taught through naturally useful, recognizable encounter situations, not forced casting. **Apprenticeship bosses are the teachers themselves**, presenting a culminating examination that expects understanding of the featured spell **and previously learned spell bank**, with multiple viable solutions and no mandatory charge. Defeating the Headmaster graduates the wizard and **unlocks a distinct Arcade Campaign**. The Campaign assumes spell mastery and becomes the main home for additional scroll types, previously discussed spawn behavior variants including suspended scattered scrolls with variable hang times, and compound challenges. Academy may preview mechanics pedagogically. Preserve skill-based typing, score continuity, fairness, deterministic play, and Endless escalation. Teacher identities, exact encounter weights, campaign stages, elemental scroll contracts and numbers are exploratory, not approved implementations.
 
 **Cohesion review (recommendations, not yet owner-approved mechanical changes):** D-102's invisible Normal Ward full-heals at internal checkpoints and Barrier expiration at those checkpoints are inconsistent with continuous play; propose visible, learnable resource boundaries. Review Wind scar expiry, spell availability for teacher tests, Rush timing on empty fields, save/retry farming, and legible scoring communication before finalizing. Do not quietly change these rules. Full canonical consolidation, implementation distinctions, test matrix and unresolved choices: `docs/academy-campaign-canonical-gameplay-2026-11-22.md`.
+
+### D-104 — One shared context system for every assistant (2026-11-22)
+_2026-11-22 · Owner-requested (synchronization brief); structure proposed by Claude · **Design status: Proposed** until the owner merges the PR · Implementation: docs and CI only, branch `docs/shared-context-system` · no gameplay code changed_
+
+**Owner request:** ChatGPT and Claude must not keep separate, competing definitions of TypeL. Both read the same repository documents, record accepted decisions in this log, update docs when code changes, keep historical context, and verify the repository before substantial work.
+
+**Proposed structure:**
+- `AGENTS.md` holds the rules for every assistant: the source-of-truth hierarchy, status labels, the ten-step verification workflow and the doc-update duties. `CLAUDE.md` only imports it.
+- `docs/README.md` is the single entry point. It classifies every document as current, reference or historical, and holds the current-state snapshot.
+- `docs/system-map.md` maps each mechanic to its files, tests, status and decisions, verified from code.
+- `docs/open-questions.md` is the one register of questions for the owner.
+- Historical documents keep their content and get a "Document status: HISTORICAL" banner. Nothing is deleted.
+- `tools/check-docs.mjs` (`npm run docs:check`, CI `docs-check.yml`) fails on:
+  - unclassified docs;
+  - historical docs without the banner;
+  - broken links and paths in the current shared-context files;
+  - duplicate decision IDs;
+  - an index whose "current through" ID is behind this log.
+
+**Supersedes as entry points (documents kept):** `docs/current-game-model.md`, `docs/TYPEL-CURRENT-DESIGN-AND-CLAUDE-BRIDGE.md`, `docs/typel-four-pillar-decision-register-2026-11-20.md`, and README's claim that `docs/GDD.md` is the source of truth. Their remaining valid principles already live in this log (D-058, D-059, D-063 and later).
+
+**Audit findings that prompted this:**
+- seven documents each claimed to be the source of truth;
+- three different repository names were in use (see open question Q-1);
+- `main` and the dev branch run different games;
+- several decision IDs are missing (Q-7).
+
+Details: `docs/open-questions.md`.
+
+### D-105 — Owner gameplay direction from the synchronization brief (2026-11-22)
+_2026-11-22 · Owner statements, recorded verbatim in substance · **Spellcasting and gameplay philosophy: Approved direction. Difficulty and spell economy: balancing hypotheses, not quotas.** · Implementation: none · open questions Q-5, Q-6_
+
+**Spellcasting:**
+- Hardcore casts by typing a spell's name; number-key quick-cast is off in Hardcore and on in Normal.
+  - Verified in code: `GameEngine.quickCast`, `PlayScene.bindInput`, `tests/spells.test.ts`.
+- The owner prefers Hardcore's typed casting as the model for normal gameplay. Whether Normal keeps quick-cast is open (Q-5).
+- Spell commands must stay simple, recognizable and consistent.
+- The word bank keeps reserving spell commands (D-049).
+- Don't redesign spell targeting or add a Tab-style casting mode without a verified reason.
+
+**Difficulty:**
+- The current early-game baseline feels too forgiving.
+- The enjoyable late game, where spells become useful and necessary, should inform the new normal baseline.
+- The current gentler experience may become an introductory teaching phase.
+- The game stays primarily about typing.
+
+**Spell economy (hypotheses, to be tested):**
+- Initial target: a cast roughly every 10–15 s of active play.
+- A cast every ~5–10 s is a possible future direction, subject to playtesting.
+- Charge supply should allow meaningful spending without excessive hoarding.
+
+**Exploratory only, not approved for implementation:**
+- a campaign stage that replaces fixed spell commands with the captured scroll's word;
+- stages with longer incantations.
+
+**Philosophy:**
+- Apprenticeships teach mechanics.
+- Teacher-bosses test accumulated knowledge (consistent with D-103).
+- Arcade progression gives replayability and mastery.
+- Accuracy, consistency, flow, tactical choices and spell knowledge all matter.
+- Difficulty should not rely only on faster spawning or longer words.
+
+### D-106 — Production Bible adopted as the design source of truth (2026-11-23)
+_2026-11-23 · **Owner decision** ("Treat the bible as your source of truth") · Design status: **Approved** · Implementation: documents only; gameplay changes are staged for approval in `docs/production-bible-reconciliation-2026-11-23.md` · Deployment: none_
+
+**Decision:** `docs/production-bible.md` (TypeL Production Bible v1.0, Eighteen Ninjas, 2026-11-22) is the authoritative design document. Its item IDs (PROD-, SCOPE-, RELIC-, GAME-, VIS-, AUD-, TECH-, GOV-) are cited alongside D-numbers. This log remains the single append-only record of changes. Changes to the Bible need owner approval and a new entry here.
+
+**Precedence:**
+- Where the Bible conflicts with an earlier decision, the Bible wins.
+- Where the Bible is silent, existing decisions and mechanics stay unchanged (its integrity note). Hardcore, Runes, the Ward, Wind/All-In, the Difficulty Director, Endless and Arcane Rush's built mechanics all carry on.
+- The Bible states intent; code still proves implementation.
+- Approved items aren't built until a staged plan is approved (Bible §8).
+
+**Superseded in part by this decision:**
+- **D-103:** the "Arcade Campaign" as a committed graduation mode. Its ideas move to the Arcane Trials exploration (SCOPE-002). "Headmaster" becomes Grandmaster (GAME-004).
+- **D-085 and D-090:** the "Grand Wizard" name for the final figure becomes Grandmaster.
+- **D-042 / `docs/lore.md`:** "Chronomancer" no longer means the removed Rewind wizard. It is the teacher of `SLOW` (GAME-003).
+- **D-049 (as applied to TypeL Normal):** default Normal no longer offers number-key casting (GAME-001). Not yet implemented.
+- **D-092:** music that follows danger is to be replaced by restrained atmosphere with performance-responsive layers, tested through AUDIO-EXP-001 (AUD-001, AUD-002). Not yet implemented.
+- **D-105:** confirmed and absorbed; its spellcasting, cadence and philosophy notes match Bible §3.
+
+**Also adopted:** the Bible's status labels (Deferred; Recommended — not approved; Needs audit verification), now in `AGENTS.md` §3. A preserved baseline (Bible §8 step 1) exists as the branches `baseline/main-2026-11-23` (`81bedb5`) and `baseline/dev-2026-11-23` (`cb41e71`); tag pushes are blocked from the session that made them.
+
+### D-107 — Owner answers Q-12 to Q-15: typing is the only input, Academy opens with a challenge, spawn variety lives in Arcane Trials, Volley becomes Rush (2026-11-23)
+_2026-11-23 · **Owner decision** · Design status: **Approved** · Amends the Production Bible (recorded in its §12) · Implementation: none yet; planned in M1 and M3 of `docs/production-bible-reconciliation-2026-11-23.md`_
+
+**Q-12: number-key casting is removed completely.** It isn't kept as an opt-in setting. "This is a typing game and typing should always be the input." This applies to Normal and every other mode; Hardcore already has none. Relics, when they exist, are also expected to be used by typing their names. *Supersedes D-049's number keys (quick-cast slots) for TypeL.* Whether clicking a word to pin it as the target also goes is still open (Q-17).
+
+**Q-13: the challenge is the starting stage.** The Academy opens with a spell-free challenge (GAME-002). It establishes the loop: type to claim a scroll and earn score. Its chaos escalates naturally until spells are clearly needed. The apprenticeships then give the tools and lessons for managing that chaos, and teachers examine them (GAME-004). Apprenticeships do not each open with their own challenge. GAME-004's "challenge → lesson → examination → Grandmaster" is read as: opening challenge → apprenticeship lessons and examinations → Grandmaster.
+
+**Q-14: advanced spawn behaviours belong to Arcane Trials** (SCOPE-002, GAME-006). This may change if testing shows that spawn variety helps apprenticeships teach their spells. The Academy's pressure comes from natural escalation, so that spells become the answer to the chaos.
+
+**Q-15: the name "Volley" is retired.** The flow multiplier is **Rush** (shown to players as "Arcane Rush" since D-086). Remaining "Volley" wording should be renamed: the apprenticeship hints in the UI, the code (`src/gameplay/ArcaneVolley.ts` and `volley` fields) and the Bible §3, §6 and GAME-005. The mechanics stay unchanged.
+
+**Q-16:** the owner has asked ChatGPT for the six spawn behaviours and the prior approved Game Bible. Still open until they're in the repository.
+
+### D-108 — No clicking during gameplay; Arcane Rush keeps its name (2026-11-23)
+_2026-11-23 · **Owner decision** (answers Q-17, confirms the Rush name) · Design status: **Approved** (typed menu navigation: **Experimental idea**) · Implementation: none yet; click removal planned in M1_
+
+**No clicking during gameplay.** During TypeL's gameplay loop, typing is the only input. Clicking a falling word to pin it as the target (`gameobjectdown` → `GameEngine.selectTarget`/`applySelect`, from D-020/D-022) is removed; typing a word already targets it. Clicking is allowed only in menus. Extends D-107 and GAME-001.
+
+**Idea to explore (Experimental, not approved for building):** keep the typewriter active in the menus too, so menus can be navigated by typing, while still accepting clicks on menu options.
+
+**Name:** the flow multiplier's player-facing name stays **Arcane Rush**, which represents the typing flow it rewards ("Rush" as shorthand). Refines D-107: Volley is retired, Arcane Rush is the name.
+
+### D-109 — The six spatial spawn behaviours and suspended scattered spawning, recovered (2026-11-23)
+_2026-11-23 · Recovered by ChatGPT from the 2026-11-22 owner design discussions, relayed by the owner (ChatGPT draft PR #14) · Design status: **Approved direction** (as recovered; owner to correct any wording) · Tuning: **Experimental** · Implementation: behaviour 1 approximated by the current default; the rest **not implemented** · Answers the first half of Q-16 (GAME-006)_
+
+**The six spatial behaviours:**
+1. **Even Distribution:** scrolls spread relatively evenly across the horizontal play area, for balanced pressure.
+   - *Today:* the default placement picks a random x within the margins and avoids overlapping words near the top (`src/core/GameEngine.ts`, spawn placement).
+2. **Uneven Distribution:** spawns favour some regions, creating asymmetric pressure.
+3. **Clustered Spawning:** groups of scrolls appear close together, concentrating choices.
+4. **Alternating Edges:** emphasis shifts between opposite sides, in recognizable phases.
+5. **Staggered Vertical Pressure:** different vertical threat levels overlap, instead of one uniform falling front.
+6. **Controlled Spatial Chaos:** several patterns combine within bounded, readable limits.
+
+**Constraints, as recovered:**
+- Behaviours run in short, recognizable phases spanning several spawns; they don't change on every scroll.
+- Phases are chosen by seeded, weighted variability, so play stays deterministic and replays still work (D-004, D-005).
+- Difficulty may change their frequency, intensity and limited combinations.
+- Scrolls already on screen never jump when a phase changes.
+- Readability, fair access to targets, determinism and Arcane Rush flow (including after a screen clear, D-067) come before visual complexity.
+- Exact weights, phase lengths and combinations are left to playtesting.
+
+**Suspended Scattered Spawning** is a separate, additional behaviour, not one of the six:
+- scrolls appear at scattered positions and hang for independently varied times, then fall;
+- they can be captured while suspended;
+- their release must be clearly signalled;
+- it must respect legibility, overlapping text, Ward timing, the seeded RNG and solvability.
+
+**Where they live (reconciled with D-107):**
+- Advanced spawn behaviours belong to **Arcane Trials**.
+- The recovered note that an apprenticeship may *feature* a behaviour without owning it stays available, but only if testing shows the apprenticeships benefit (D-107's revisit clause).
+- They are **not an M3 prerequisite.** The vertical slice uses natural escalation (D-107).
+- None of this permits biasing word selection (D-058).
+
+**Before building**, map each behaviour onto the Difficulty Director and the spawn-placement code. Write deterministic tests for:
+- seed replay;
+- valid coordinates;
+- overlap and readability;
+- phase transitions;
+- capture while suspended;
+- the empty-screen Rush pause;
+- difficulty bounds.
+
+### D-110 — ChatGPT PR #13 entries, renumbered and reconciled (2026-11-23)
+_2026-11-23 · Recorded by Claude from ChatGPT's PR #13 (branch `docs/typel-design-roadmap-20261122`), where these were written on 2026-11-22 as D-106, D-107 and D-108. Those numbers collided with D-106 and D-107 on the shared branch, so they are kept here under one new number. Design status: as stated below · Implementation: none_
+
+**PR #13 "D-106", Academy opening loop.** It matches GAME-002 and GAME-003, and adds detail kept as **Approved direction**:
+- the opening trial is a real examination that introduces targeting, typing, Enter, score, Combo and Arcane Rush under the normal rules;
+- no forced failure, fake difficulty or suppressed score;
+- the outcome may vary without blocking the learning arc;
+- the Temporal Trial never requires a cast.
+
+Its "challenge → teacher lesson → practical examination" applied to every apprenticeship is **superseded by D-107**: only the Academy opens with a challenge. Mapping the opening onto D-102's checkpoints is open (Q-18).
+
+**PR #13 "D-107", commercial scope.** It matches PROD-001/002 and SCOPE-001–003, and adds:
+- the studio name is "Eighteen Ninjas", without "Dev Co.";
+- prototype completion is not commercial readiness;
+- green scope includes settings, onboarding, accessibility, stability and packaging;
+- guardrails against feature creep and rewrites.
+
+Its ten-step production order is **superseded by the Bible's §4 phase sequence (00–08)** and the milestones in the reconciliation plan. Acceptance criteria are open (Q-19).
+
+**PR #13 "D-108", audio experiment.** It matches AUD-002 (AUDIO-EXP-001), and adds:
+- mute and reduced-intensity options as accessibility checks;
+- no tie between melody and a required typing cadence;
+- no masking of error cues;
+- no extra latency;
+- prototype behind an isolated flag.
+
+Sounds, thresholds and metrics are open (Q-20).
