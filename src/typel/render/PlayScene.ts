@@ -8,7 +8,7 @@
  * live object placed exactly where it sits in the painting.
  */
 import Phaser from 'phaser';
-import { GameEngine } from '../../core/GameEngine';
+import { GameEngine, type Command, type EngineOptions, type RunPlan } from '../../core/GameEngine';
 import { SIMULATION_STEP_MS, FIELD } from '../../core/GameConfig';
 import type { GameResult } from '../../core/GameEvents';
 import type { DifficultyConfig } from '../../difficulty/DifficultyConfig';
@@ -34,7 +34,19 @@ export interface Carry {
   ward: { cap: number; wagers: number };
   combo: number;
   words: WordState[];
+  /** D-102: internal checkpoints passed in this run (0 outside a run). */
+  checkpoints: number;
 }
+
+/** D-102: what the app needs to save a checkpoint (seed is the app's). */
+export interface CheckpointSnapshot {
+  tick: number;
+  commands: Command[];
+  phase: string;
+  score: number;
+}
+
+const PHASE_LABEL = { learn: 'Learn', master: 'Master', boss: 'Boss Examination', endless: 'Endless' } as const;
 
 export interface PlaySetup {
   config: DifficultyConfig;
@@ -56,6 +68,16 @@ export interface PlaySetup {
   boss?: boolean;
   /** Practice views only: show the exact points each capture or cash-out earned (D-088). */
   showSequenceScore?: boolean;
+  /** D-102: a continuous apprenticeship run, and where to resume it from. */
+  run?: RunPlan;
+  resume?: { commands: readonly Command[]; tick: number };
+  /** Short apprenticeship name for the stage banner ("Flame"), and the boss's name and lines. */
+  trialName?: string;
+  bossName?: string;
+  bossLines?: readonly Line[];
+  /** The Master's line for the checkpoint that just began, if any. */
+  checkpointLines?(segment: number): Line[] | undefined;
+  onCheckpoint?(snapshot: CheckpointSnapshot): void;
   onEnd(result: GameResult, stats: GameStats, carry: Carry): void;
   onPause(): void;
 }
@@ -298,8 +320,9 @@ export class TypeLPlayScene extends Phaser.Scene {
     this.lastRush = 1;
     this.archFlash = 0;
     this.reduced = prefs.reducedMotion();
-    this.engine = new GameEngine({
+    const options: EngineOptions = {
       config: setup.config,
+      run: setup.run,
       seed: setup.seed ?? Math.floor(Math.random() * 2 ** 31),
       words: WORDS,
       hardcore: setup.hardcore,
@@ -310,8 +333,10 @@ export class TypeLPlayScene extends Phaser.Scene {
       initialCombo: setup.initialCombo,
       initialWords: setup.initialWords,
       poolLimitOverride: setup.poolLimitOverride,
-    });
-    this.shownScore = setup.scoreOffset ?? 0;
+    };
+    // D-102 resume: replaying the saved log restores the checkpoint exactly (field, score, Combo, Rush, Director, streams).
+    this.engine = setup.resume ? GameEngine.replay(options, setup.resume.commands, setup.resume.tick) : new GameEngine(options);
+    this.shownScore = (setup.scoreOffset ?? 0) + (setup.resume ? this.engine.state.score : 0);
     this.lastMult = 1 + Math.floor((setup.initialCombo ?? 0) / 10);
   }
 
@@ -334,8 +359,9 @@ export class TypeLPlayScene extends Phaser.Scene {
     this.refreshRack();
     this.setDrums(this.shownScore, true);
     this.setPaper('', true);
-    sound.setMood(this.setup.boss ? 'boss' : 'play');
-    if (this.setup.boss) sound.bossStart();
+    const inBoss = this.setup.boss || this.engine.runInfo?.phase === 'boss';
+    sound.setMood(inBoss ? 'boss' : 'play');
+    if (inBoss) sound.bossStart();
     this.banner(this.setup.title, this.setup.subtitle);
     if (this.setup.lines?.length) this.showLines(this.setup.lines);
     (window as unknown as { typelEngine?: GameEngine }).typelEngine = this.engine;
@@ -561,6 +587,23 @@ export class TypeLPlayScene extends Phaser.Scene {
     this.tweens.killTweensOf(k);
     k.setVisible(true).setY(5).setTint(0xb8a890);
     this.tweens.add({ targets: k, y: 0, duration: 90, ease: 'Quad.easeOut', onComplete: () => k.setVisible(false).clearTint() });
+  }
+
+  /**
+   * D-102 phase change: a small title near the top of the field that fades in
+   * and out without pausing play or covering the falling words for long.
+   */
+  private phaseFlourish(title: string, sub: string): void {
+    const y = FIELD_RECT.y + 64;
+    const t = this.text(CX, y, title, 34, '#ffe9a8', { fontFamily: FONT_TITLE, fontStyle: '700', stroke: '#2a0040', strokeThickness: 7 }).setOrigin(0.5).setDepth(60);
+    const s = this.text(CX, y + 36, sub, 18, '#ffffff', { fontFamily: FONT_ARCADE, stroke: '#2a0040', strokeThickness: 5 }).setOrigin(0.5).setDepth(60);
+    for (const o of [t, s]) {
+      this.fit(o, Number(o.style.fontSize.toString().replace('px', '')), FIELD_RECT.w - 60);
+      o.setAlpha(0);
+      this.tweens.add({ targets: o, alpha: 0.92, duration: 220 });
+      this.tweens.add({ targets: o, alpha: 0, delay: 1400, duration: 450, onComplete: () => o.destroy() });
+    }
+    if (!this.reduced) this.confetti(24);
   }
 
   /** Level title card that sweeps in over the field and away. */
@@ -789,6 +832,27 @@ export class TypeLPlayScene extends Phaser.Scene {
       void points;
       this.runRunes();
     });
+    ev.on('checkpoint', ({ segment, phase, previousPhase }) => {
+      if (phase !== previousPhase) {
+        if (phase === 'boss') {
+          this.phaseFlourish(this.setup.bossName ?? 'Boss Examination', 'Boss Examination · survive, then clear the field');
+          sound.setMood('boss');
+          sound.bossStart();
+          if (this.setup.bossLines?.length) this.showLines(this.setup.bossLines);
+        } else {
+          this.phaseFlourish(PHASE_LABEL[phase], phase === 'master' ? 'Phase II · the pressure deepens' : 'Phase I');
+          sound.rune(1);
+        }
+      }
+      const lines = phase !== 'boss' ? this.setup.checkpointLines?.(segment) : undefined;
+      if (lines?.length) this.showLines(lines);
+      this.setup.onCheckpoint?.({
+        tick: this.engine.state.tick,
+        commands: this.engine.commands.filter((c) => c.tick <= this.engine.state.tick),
+        phase,
+        score: this.engine.state.score,
+      });
+    });
     ev.on('gameOver', ({ result }) => {
       this.ended = true;
       if (result === 'won') {
@@ -818,6 +882,7 @@ export class TypeLPlayScene extends Phaser.Scene {
       ward: { cap: w.cap, wagers: w.wagers },
       combo: s.combo,
       words: s.words.map((x) => ({ ...x })),
+      checkpoints: this.engine.runInfo?.segment ?? 0,
     });
   }
 
@@ -889,7 +954,7 @@ export class TypeLPlayScene extends Phaser.Scene {
     this.engine.continueIntoEndless(config);
     this.ended = false;
     this.paused = false;
-    this.setup = { ...this.setup, boss: false, title, subtitle: 'Endless · the pace keeps rising' };
+    this.setup = { ...this.setup, boss: false, title, subtitle: 'Endless · it never stops getting harder' };
     this.banner(title, this.setup.subtitle);
     sound.setMood('boss');
   }
@@ -1084,10 +1149,16 @@ export class TypeLPlayScene extends Phaser.Scene {
   private refreshPlates(): void {
     const e = this.engine;
     const rem = e.survivalRemainingMs;
+    const info = e.runInfo;
     const progress = rem !== null && isSurvival(e.config)
       ? rem > 0 ? `Survive ${Math.ceil(rem / 1000)}s` : 'Clear the field!'
-      : e.config.requiredWords ? `${e.state.completed} / ${e.config.requiredWords} scrolls` : `${e.state.completed} scrolls`;
-    const stage = (this.setup.stage ?? this.setup.title).toUpperCase();
+      : info && info.phase !== 'endless'
+        ? `${PHASE_LABEL[info.phase]} ${Math.floor(info.phaseProgress * 100)}%`
+        : e.config.requiredWords ? `${e.state.completed} / ${e.config.requiredWords} scrolls` : `${e.state.completed} scrolls`;
+    // D-102 stage banner: "FLAME · LEARN", "FLAME · <BOSS>", "FLAME · ENDLESS"
+    const stage = (info && this.setup.trialName
+      ? `${this.setup.trialName} · ${info.phase === 'boss' ? (this.setup.bossName ?? 'Boss') : PHASE_LABEL[info.phase]}`
+      : (this.setup.stage ?? this.setup.title)).toUpperCase();
     if (this.stageText.text !== stage) {
       this.stageText.setText(stage);
       this.fit(this.stageText, 17, KA.banner.w);

@@ -7,18 +7,16 @@ import type { GameResult } from '../core/GameEvents';
 import type { GameStats } from '../gameplay/ScoringSystem';
 import { SPELLS } from '../spells/SpellRegistry';
 import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
-import type { WordState } from '../gameplay/Word';
 import { RUNES, RUNE_BY_ID } from '../gameplay/runes/RuneCatalogue';
 import { WARD_TUNING } from '../gameplay/WardScar';
 import {
-  BOSS_LEVEL, LEVELS_PER_TRIAL, learnedSpells, sandboxConfig, SPELL_ORDER, startingCharges, TRIALS, trialEndless, trialLevel,
-  directorSandboxConfig, directorTrialEndless, directorTrialLevel,
-  type Mode, type Trial,
+  apprenticeshipEndless, apprenticeshipRun, BOSS_LEVEL, LEARN_CHECKPOINTS, learnedSpells, sandboxRunConfig, SPELL_ORDER, startingCharges, TRIALS,
+  type Mode, type StartPhase, type Trial,
 } from './apprenticeship';
-import { difficultyLabel, directorEnabled, setDirectorEnabled } from './directorFlag';
+import { clearRun, loadRun, RUN_RULESET, runRecordKey, saveRun, type SavedRun } from './runSave';
 import { sound, type AudioSettings } from './audio';
 import { prefs } from './prefs';
-import { TypeLPlayScene, type Carry, type PlaySetup } from './render/PlayScene';
+import { TypeLPlayScene, type PlaySetup } from './render/PlayScene';
 import { SPELL_GLYPH, SPELL_HUE } from './render/paint';
 import { TypeLMenuScene } from './render/study';
 import { medalDataUrl } from './render/medal';
@@ -42,32 +40,20 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string,
 }
 const btn = (label: string, onClick: () => void, cls = '') => el('button', { class: `t-btn ${cls}`, onClick: () => (sound.click(), onClick()) }, label);
 
+/** D-102: one continuous apprenticeship run (Learn → Master → Boss → optional Endless). */
 interface Run {
   mode: Mode;
   trial: number;
-  level: number;
-  score: number;
-  levelScores: number[];
-  combo: number;
-  spells: Partial<SpellCharges>;
-  instability: number;
-  ward?: { cap: number; wagers: number };
-  words: WordState[];
-  peakVolley: number;
-  runes: Record<string, number>;
+  start: StartPhase;
+  seed: number;
   endless: boolean;
-  /** Flawless Perfection (D-090): started at level 1, never fell, every level Flawless. */
-  startLevel: number;
-  flawlessLevels: number;
+  /** Resumed after the Ward fell: Flawless Perfection is no longer possible. */
   fell: boolean;
-  /** D-097 prototype: this run uses the Difficulty Director (fixed when the run starts). */
-  director: boolean;
 }
 
-/** Director runs keep their own records so classic and director scores never mix. */
-const recordKey = (mode: Mode, trial: number, director: boolean) => `${mode}:${trial}${director ? ':director' : ''}`;
+const recordKey = runRecordKey;
 
-const HARDCORE_RECOVERY: Record<number, number> = { 4: 25, 8: 25 };
+const PHASE_NAME = { learn: 'Learn', master: 'Master', boss: 'Boss Examination', endless: 'Endless' } as const;
 
 export class TypeLApp {
   private run: Run | null = null;
@@ -142,11 +128,12 @@ export class TypeLApp {
   showApprenticeship(): void {
     this.backdrop();
     const done = new Set(prefs.data.completed[this.mode]);
+    const saved = loadRun();
     const list = el('div', { class: 't-trials' });
     for (const t of TRIALS) {
-      const pick = el('select', { class: 't-levelpick', 'aria-label': `Start ${t.title} at level` });
-      for (let l = 1; l <= BOSS_LEVEL; l++) pick.append(el('option', { value: String(l) }, l === BOSS_LEVEL ? 'Boss' : `Level ${l}`));
-      const best = prefs.data.bestTrialScore[recordKey(this.mode, t.index, directorEnabled())];
+      const pick = el('select', { class: 't-levelpick', 'aria-label': `Start ${t.title} at phase` },
+        el('option', { value: 'learn' }, 'From Learn'), el('option', { value: 'master' }, 'From Master'), el('option', { value: 'boss' }, 'Boss only'));
+      const best = prefs.data.bestTrialScore[recordKey(this.mode, t.index)];
       list.append(
         el('article', { class: `t-trial${done.has(t.index) ? ' done' : ''}`, style: t.spell ? `--hue:${SPELL_HUE[t.spell]}` : '--hue:#d9a441' },
           el('div', { class: 't-trial-glyph' }, t.spell ? SPELL_GLYPH[t.spell] : '✶'),
@@ -155,41 +142,48 @@ export class TypeLApp {
             el('p', null, `${t.master}${t.spell ? ` · learn ${t.spell.toUpperCase()}` : ' · every spell'} · boss: ${t.bossName}`),
             el('p', { class: 't-small' }, done.has(t.index) ? `Completed ✓ · best ${best?.toLocaleString() ?? '—'}` : best ? `Best ${best.toLocaleString()}` : 'Not yet completed'),
           ),
-          el('div', { class: 't-trial-go' }, btn(done.has(t.index) ? 'Replay' : 'Begin', () => this.beginTrial(t.index, Number(pick.value)), 'primary small'), pick),
+          el('div', { class: 't-trial-go' }, btn(done.has(t.index) ? 'Replay' : 'Begin', () => this.beginTrial(t.index, pick.value as StartPhase), 'primary small'), pick),
         ),
       );
     }
+    const resume = saved
+      ? el('div', { class: 't-row' },
+          btn(`Resume ${TRIALS[saved.trial - 1]!.title} · ${PHASE_NAME[saved.phase as keyof typeof PHASE_NAME] ?? saved.phase} · ${saved.score.toLocaleString()}`, () => this.resumeRun(saved), 'primary small'),
+          btn('Discard saved run', () => (clearRun(), this.showApprenticeship()), 'small'),
+          el('span', { class: 't-small' }, `${saved.mode === 'hardcore' ? 'Hardcore' : 'Normal'} · saved at its last checkpoint`))
+      : null;
     this.show(this.panel('The Apprenticeship',
+      resume,
       el('div', { class: 't-row' },
         btn('Normal', () => ((this.mode = 'normal'), this.showApprenticeship()), this.mode === 'normal' ? 'primary small' : 'small'),
         btn('Hardcore', () => ((this.mode = 'hardcore'), this.showApprenticeship()), this.mode === 'hardcore' ? 'primary small' : 'small'),
         el('span', { class: 't-small' }, this.mode === 'normal'
-          ? 'Normal teaches: number keys 1–8 cast, the Ward is fresh every level.'
-          : 'Hardcore expects mastery: spells are typed, the Ward carries between levels. (Unlocked for testing; it will require Normal.)'),
+          ? 'Normal teaches: number keys 1–8 cast, and the Ward is restored at every checkpoint.'
+          : 'Hardcore expects mastery: spells are typed, the Ward and its scars carry through the whole apprenticeship. (Unlocked for testing; it will require Normal.)'),
       ),
       list,
-      el('p', { class: 't-small' }, `Difficulty: ${difficultyLabel()}. ${directorEnabled()
-        ? 'Development preview of the shared Difficulty Director (D-097): short, long, slow and fast words in every apprenticeship; numbers are experimental. Best scores are kept separately.'
-        : 'The classic difficulty. The experimental Difficulty Director can be switched on in Options.'}`),
-      el('p', { class: 't-small' }, `Each apprenticeship: ${LEVELS_PER_TRIAL} levels and a spell boss, then Endless. Spells you have learned come with you. All unlocked for testing; the level picker is a testing tool.`),
+      el('p', { class: 't-small' }, 'Each apprenticeship is one continuous examination: Learn, then Master, then the Boss Examination, then Endless if you wish. Score, Combo and Arcane Rush carry all the way through. Your run is saved at every checkpoint. All unlocked for testing; the phase picker is a testing tool.'),
       el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
   }
 
-  private beginTrial(index: number, startLevel = 1): void {
+  private beginTrial(index: number, start: StartPhase = 'learn'): void {
     const trial = TRIALS[index - 1]!;
-    this.run = {
-      mode: this.mode, trial: index, level: startLevel, score: 0, levelScores: [], combo: 0,
-      spells: startingCharges(trial), instability: 0, words: [], peakVolley: 1, runes: {}, endless: false,
-      startLevel, flawlessLevels: 0, fell: false, director: directorEnabled(),
-    };
-    if (startLevel === 1) {
+    clearRun();
+    this.run = { mode: this.mode, trial: index, start, seed: Math.floor(Math.random() * 2 ** 31), endless: false, fell: false };
+    if (start === 'learn') {
       this.backdrop();
       this.show(this.panel(trial.title, this.mentor(trial.intro),
         this.spellCard(trial.spell),
-        el('div', { class: 't-row' }, btn('Begin', () => this.playLevel(), 'primary'), btn('Back', () => this.showApprenticeship()))),
-      { onKey: (e) => e.key === 'Enter' && this.playLevel() });
-    } else this.playLevel();
+        el('div', { class: 't-row' }, btn('Begin', () => this.launchRun(), 'primary'), btn('Back', () => this.showApprenticeship()))),
+      { onKey: (e) => e.key === 'Enter' && this.launchRun() });
+    } else this.launchRun();
+  }
+
+  private resumeRun(saved: SavedRun, fell = saved.fell): void {
+    this.mode = saved.mode;
+    this.run = { mode: saved.mode, trial: saved.trial, start: saved.start, seed: saved.seed, endless: false, fell };
+    this.launchRun(saved);
   }
 
   private mentor(lines: readonly { who: string; text: string }[]): HTMLElement {
@@ -205,140 +199,105 @@ export class TypeLApp {
       el('div', null, el('h3', null, `${s.book.toUpperCase()} · type “${spell}”`), el('p', null, s.description)));
   }
 
-  private playLevel(): void {
+  /** One engine for the whole apprenticeship. Checkpoints happen inside the game; only the end of the run leaves it. */
+  private launchRun(resume?: SavedRun): void {
     const run = this.run!;
     const trial = TRIALS[run.trial - 1]!;
-    const boss = run.level >= BOSS_LEVEL;
-    if (boss && !this.root.querySelector('.t-boss')) {
-      this.backdrop();
-      this.show(this.panel(trial.bossName, el('div', { class: 't-boss' }), this.mentor(trial.bossIntro),
-        el('p', { class: 't-small' }, 'Survive until the timer ends; then clear the field. Victory opens Endless.'),
-        el('div', { class: 't-row' }, btn('Face the boss', () => this.launchLevel(), 'primary'))),
-      { onKey: (e) => e.key === 'Enter' && this.launchLevel() });
-      return;
-    }
-    this.launchLevel();
-  }
-
-  private launchLevel(): void {
-    const run = this.run!;
-    const trial = TRIALS[run.trial - 1]!;
-    const boss = run.level >= BOSS_LEVEL;
-    const config = run.director ? directorTrialLevel(run.mode, run.trial, run.level) : trialLevel(run.mode, run.trial, run.level);
-    const hint = trial.hints[run.level];
+    const plan = apprenticeshipRun(run.mode, run.trial, run.start);
+    const short = trial.title.replace(/^The Apprenticeship of /, '');
+    this.clearUi();
     this.startPlay({
-      config,
+      config: plan.segments[0]!.config,
+      run: plan,
+      seed: run.seed,
+      resume: resume ? { commands: resume.commands, tick: resume.tick } : undefined,
       hardcore: run.mode === 'hardcore',
-      initialSpells: run.spells,
-      initialInstability: run.mode === 'hardcore' ? run.instability : 0,
-      initialWard: run.mode === 'hardcore' ? run.ward : undefined,
-      initialCombo: run.combo,
-      initialWords: run.words,
-      scoreOffset: run.score,
+      initialSpells: startingCharges(trial),
       spells: learnedSpells(run.trial),
-      title: boss ? trial.bossName : trial.title,
-      subtitle: `${run.mode === 'hardcore' ? 'Hardcore' : 'Normal'} · ${boss ? 'Spell boss' : `Level ${run.level} of ${LEVELS_PER_TRIAL}`}${run.director ? ' · Director' : ''}`,
-      // D-096 stage banner: "FLAME · LEVEL 2", or the boss's name
-      stage: `${trial.title.replace(/^The Apprenticeship of /, '')} · ${boss ? trial.bossName : run.endless ? 'Endless' : `Level ${run.level}`}`,
-      lines: run.level === 1 ? trial.intro.slice(-1) : hint ? [hint] : undefined,
-      boss,
-      onPause: () => this.pauseMenu(() => this.launchLevel()),
-      onEnd: (result, stats, carry) => this.levelEnded(result, stats, carry),
+      title: trial.title,
+      subtitle: `${run.mode === 'hardcore' ? 'Hardcore' : 'Normal'} · ${resume ? `Resuming · ${PHASE_NAME[resume.phase as keyof typeof PHASE_NAME] ?? resume.phase}` : PHASE_NAME[run.start]}`,
+      trialName: short,
+      bossName: trial.bossName,
+      bossLines: trial.bossIntro,
+      checkpointLines: (segment) => {
+        const level = Math.min(BOSS_LEVEL, (run.start === 'learn' ? 1 : run.start === 'master' ? LEARN_CHECKPOINTS + 1 : BOSS_LEVEL) + segment);
+        const hint = trial.hints[level];
+        return hint ? [hint] : undefined;
+      },
+      lines: run.start === 'learn' && !resume ? trial.intro.slice(-1) : undefined,
+      boss: run.start === 'boss',
+      onCheckpoint: (cp) => saveRun({
+        ruleset: RUN_RULESET, mode: run.mode, trial: run.trial, start: run.start, seed: run.seed,
+        tick: cp.tick, commands: cp.commands, phase: cp.phase, score: cp.score, savedAt: Date.now(), fell: run.fell,
+      }),
+      onPause: () => this.pauseMenu(() => this.beginTrial(run.trial, run.start)),
+      onEnd: (result, stats, carry) => this.runEnded(result, stats, carry.checkpoints),
     });
   }
 
-  private record(stats: GameStats): void {
+  private record(stats: GameStats, levels: number): void {
     const l = prefs.data.lifetime;
     l.words += stats.completed;
     l.perfect += stats.maxCombo > 0 ? Math.round(stats.completed * stats.accuracy) : 0;
     l.peakVolley = Math.max(l.peakVolley, stats.peakArcaneVolleyMultiplier ?? 1);
     l.wagers += stats.allInWagers ?? 0;
-    l.levels += 1;
+    l.levels += levels;
     prefs.save();
   }
 
-  private levelEnded(result: GameResult, stats: GameStats, carry: Carry): void {
+  private runEnded(result: GameResult, stats: GameStats, checkpoints: number): void {
     const run = this.run!;
     const trial = TRIALS[run.trial - 1]!;
-    this.record(stats);
-    for (const [id, n] of Object.entries(stats.runeCounts ?? {})) run.runes[id] = (run.runes[id] ?? 0) + n;
-    if (!run.endless && result === 'won' && stats.runeCounts?.['flawless']) run.flawlessLevels++;
-    if (!run.endless && result !== 'won') run.fell = true;
-    run.peakVolley = Math.max(run.peakVolley, stats.peakArcaneVolleyMultiplier ?? 1);
+    // Lifetime "levels" counts checkpoints reached in this run (each was a level before D-102).
+    this.record(stats, run.endless ? 0 : checkpoints + (result === 'won' ? 1 : 0));
     if (run.endless) return this.endlessOver(stats);
-    if (result !== 'won') return this.levelLost(stats);
-    run.score += stats.score;
-    run.levelScores.push(stats.score);
-    run.combo = carry.combo;
-    run.spells = carry.spells;
-    run.words = carry.words;
-    if (run.mode === 'hardcore') {
-      const floor = 100 - carry.ward.cap;
-      run.ward = carry.ward;
-      run.instability = Math.max(floor, carry.instability - (HARDCORE_RECOVERY[run.level] ?? 0));
-    }
-    if (run.level >= BOSS_LEVEL) return this.trialWon(trial, stats);
-    const runes = Object.entries(stats.runeCounts ?? {}).map(([id, n]) => `${RUNE_BY_ID.get(id)?.name ?? id}${n > 1 ? ` ×${n}` : ''}`);
-    const recovery = run.mode === 'hardcore' && HARDCORE_RECOVERY[run.level] ? `Ward recovers ${HARDCORE_RECOVERY[run.level]}% (never above its scar).` : '';
-    const next = () => {
-      run.level++;
-      this.playLevel();
-    };
-    this.show(el('section', { class: 't-snapshot' },
-      el('h2', { class: 't-title' }, `Level ${run.level} cleared`),
-      el('div', { class: 't-bigscore' }, run.score.toLocaleString()),
-      el('div', { class: 't-stats' },
-        stat('Level', stats.score.toLocaleString()), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`),
-        stat('WPM', String(Math.round(stats.wpm))), stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`)),
-      runes.length ? el('p', { class: 't-runes' }, `Runes: ${runes.join(' · ')}`) : null,
-      recovery ? el('p', { class: 't-small' }, recovery) : null,
-      el('div', { class: 't-row' }, btn(run.level + 1 >= BOSS_LEVEL ? 'Onward to the boss' : 'Next level', next, 'primary')),
-      el('p', { class: 't-small' }, 'Enter to continue · the scrolls on the field carry on'),
-    ), { overlay: true, onKey: (e) => e.key === 'Enter' && next() });
-    sound.setMood('menu');
+    if (result !== 'won') return this.runLost(stats);
+    clearRun();
+    this.trialWon(trial, stats);
   }
 
-  private levelLost(stats: GameStats): void {
+  private runLost(stats: GameStats): void {
     const run = this.run!;
     const trial = TRIALS[run.trial - 1]!;
+    const saved = loadRun();
+    const phase = saved ? (PHASE_NAME[saved.phase as keyof typeof PHASE_NAME] ?? saved.phase) : null;
     this.show(this.panel('The Ward has fallen',
       el('p', null, `${trial.master}: “Again. Every Master has fallen here.”`),
-      el('div', { class: 't-stats' }, stat('Level score', stats.score.toLocaleString()), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`), stat('WPM', String(Math.round(stats.wpm)))),
+      el('div', { class: 't-bigscore' }, stats.score.toLocaleString()),
+      el('div', { class: 't-stats' }, stat('Scrolls', String(stats.completed)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`), stat('WPM', String(Math.round(stats.wpm))), stat('Best Combo', String(stats.maxCombo))),
       el('div', { class: 't-row' },
-        btn('Retry this level', () => {
-          run.words = [];
-          if (run.mode === 'hardcore') run.instability = Math.min(run.instability, 50);
-          this.launchLevel();
-        }, 'primary'),
-        btn('Restart apprenticeship', () => this.beginTrial(run.trial)),
+        saved && saved.trial === run.trial ? btn(`Retry from checkpoint (${phase} · ${saved.score.toLocaleString()})`, () => this.resumeRun(saved, true), 'primary') : null,
+        btn('Restart apprenticeship', () => this.beginTrial(run.trial, run.start), saved ? '' : 'primary'),
         btn('Leave', () => this.showApprenticeship())),
-      el('p', { class: 't-small' }, 'Retrying keeps your spells and score so far (testing convenience).'),
+      el('p', { class: 't-small' }, 'Retrying restores the run exactly as it was at its last checkpoint, with the score it had then (testing convenience).'),
     ), { overlay: true });
   }
 
   private trialWon(trial: Trial, stats: GameStats): void {
     const run = this.run!;
-    const key = recordKey(run.mode, run.trial, run.director);
+    const key = recordKey(run.mode, run.trial);
     const list = prefs.data.completed[run.mode];
     if (!list.includes(run.trial)) list.push(run.trial);
     prefs.data.lifetime.bosses++;
     const best = prefs.data.bestTrialScore[key] ?? 0;
-    const isBest = run.score > best;
-    if (isBest) prefs.data.bestTrialScore[key] = run.score;
+    const isBest = stats.score > best;
+    if (isBest) prefs.data.bestTrialScore[key] = stats.score;
     prefs.save();
     sound.victory();
-    // Flawless Perfection: the whole apprenticeship, from level 1, every level Flawless and never fallen
-    const perfection = run.startLevel === 1 && !run.fell && run.levelScores.length > 0 && run.flawlessLevels === run.levelScores.length;
+    // Flawless Perfection: the whole apprenticeship from the start, never fallen, every checkpoint and the boss Flawless.
+    const checkpoints = apprenticeshipRun(run.mode, run.trial, run.start).segments.length;
+    const perfection = run.start === 'learn' && !run.fell && (stats.runeCounts?.['flawless'] ?? 0) >= checkpoints;
     const perfectRune = RUNE_BY_ID.get('flawless-perfection')!;
+    const runes: Record<string, number> = { ...(stats.runeCounts ?? {}) };
     if (perfection) {
       prefs.noteRune(perfectRune.id);
-      run.runes[perfectRune.id] = (run.runes[perfectRune.id] ?? 0) + 1;
+      runes[perfectRune.id] = (runes[perfectRune.id] ?? 0) + 1;
       window.setTimeout(() => {
         sound.rune(3);
         voice.say([RUNE_CALLOUTS[perfectRune.id]!, SPECIAL.flawlessPerfection], 4, 2);
       }, 900);
     }
-    const runes = Object.entries(run.runes).map(([id, n]) => `${RUNE_BY_ID.get(id)?.name ?? id}${n > 1 ? ` ×${n}` : ''}`);
+    const runeText = Object.entries(runes).map(([id, n]) => `${RUNE_BY_ID.get(id)?.name ?? id}${n > 1 ? ` ×${n}` : ''}`);
     const nextTrial = TRIALS[run.trial];
     this.show(this.panel(`${trial.title} — complete`,
       this.mentor(trial.victory),
@@ -346,14 +305,14 @@ export class TypeLApp {
         ? el('div', { class: 't-perfection' }, el('img', { class: 't-medal-big', src: medalDataUrl(perfectRune, 128), alt: '' }),
             el('div', null, el('h3', null, 'Flawless Perfection'), el('p', null, `The Grand Wizard: “${SPECIAL.flawlessPerfection.text}”`)))
         : null,
-      el('div', { class: 't-bigscore' }, run.score.toLocaleString(), isBest ? el('span', { class: 't-best' }, ' new best') : null),
-      el('div', { class: 't-stats' }, stat('Boss score', stats.score.toLocaleString()), stat('Peak Rush', `×${run.peakVolley.toFixed(1)}`), stat('Levels', String(run.levelScores.length))),
-      runes.length ? el('p', { class: 't-runes' }, `Runes this apprenticeship: ${runes.join(' · ')}`) : null,
+      el('div', { class: 't-bigscore' }, stats.score.toLocaleString(), isBest ? el('span', { class: 't-best' }, ' new best') : null),
+      el('div', { class: 't-stats' }, stat('Scrolls', String(stats.completed)), stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Best Combo', String(stats.maxCombo)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`)),
+      runeText.length ? el('p', { class: 't-runes' }, `Runes this apprenticeship: ${runeText.join(' · ')}`) : null,
       el('div', { class: 't-row' },
         btn('Enter Endless', () => this.enterEndless(), 'primary'),
         nextTrial ? btn(`Next: ${nextTrial.title}`, () => this.beginTrial(nextTrial.index)) : null,
         btn('Apprenticeship', () => this.showApprenticeship())),
-      el('p', { class: 't-small' }, 'Endless continues this exact field with everything you have learned, and the pace keeps climbing.'),
+      el('p', { class: 't-small' }, 'Endless continues this exact field, score and Combo, and it never stops getting harder.'),
     ), { overlay: true });
   }
 
@@ -361,12 +320,12 @@ export class TypeLApp {
     const run = this.run!;
     run.endless = true;
     this.clearUi();
-    this.play.continueEndless(run.director ? directorTrialEndless(run.mode, run.trial) : trialEndless(run.mode, run.trial), `Endless · ${TRIALS[run.trial - 1]!.title}`);
+    this.play.continueEndless(apprenticeshipEndless(run.mode, run.trial), `Endless · ${TRIALS[run.trial - 1]!.title}`);
   }
 
   private endlessOver(stats: GameStats): void {
     const run = this.run!;
-    const key = recordKey(run.mode, run.trial, run.director);
+    const key = recordKey(run.mode, run.trial);
     const best = prefs.data.bestEndless[key] ?? 0;
     const total = stats.score;
     if (total > best) prefs.data.bestEndless[key] = total;
@@ -405,10 +364,7 @@ export class TypeLApp {
         btn('Normal rules', () => ((sb.mode = 'normal'), this.showSandboxSetup()), sb.mode === 'normal' ? 'primary small' : 'small'),
         btn('Hardcore rules', () => ((sb.mode = 'hardcore'), this.showSandboxSetup()), sb.mode === 'hardcore' ? 'primary small' : 'small')),
       el('div', { class: 't-row' }, ...[1, 2, 3, 4, 5].map((n) => btn(`Pace ${n}`, () => ((sb.tier = n), this.showSandboxSetup()), sb.tier === n ? 'primary small' : 'small'))),
-      el('div', { class: 't-row' },
-        btn('Classic difficulty', () => (setDirectorEnabled(false), this.showSandboxSetup()), !directorEnabled() ? 'primary small' : 'small'),
-        btn('Director (experimental)', () => (setDirectorEnabled(true), this.showSandboxSetup()), directorEnabled() ? 'primary small' : 'small'),
-        el('span', { class: 't-small' }, directorEnabled() ? `Director: pace ${sb.tier} stands for apprenticeship ${1 + (sb.tier - 1) * 2} of 9.` : 'Classic: the Endless pace of old stage ' + sb.tier + '.')),
+      el('p', { class: 't-small' }, `Pace ${sb.tier} plays the Endless of apprenticeship ${1 + (sb.tier - 1) * 2} of 9: it keeps getting harder until the Ward falls.`),
       el('div', { class: 't-row' }, btn('Start', () => this.startSandbox(), 'primary'), btn('Back', () => this.showTitle())),
       el('p', { class: 't-small' }, 'Try: Wind at full Ward then Harvest · Ice and type perfectly · Shock into a crowd · Fire on a cluster · Barrier then slip and correct · submit a wrong word on purpose and catch the plunge.'),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
@@ -418,7 +374,7 @@ export class TypeLApp {
     const sb = this.sandbox;
     const charges: Partial<SpellCharges> = Object.fromEntries(SPELL_ORDER.map((s) => [s, s === 'wind' ? 6 : 4]));
     this.startPlay({
-      config: directorEnabled() ? directorSandboxConfig(sb.mode, sb.tier) : sandboxConfig(sb.mode, sb.tier),
+      config: sandboxRunConfig(sb.mode, sb.tier),
       hardcore: sb.mode === 'hardcore',
       initialSpells: charges,
       poolLimitOverride: 60,
@@ -426,7 +382,7 @@ export class TypeLApp {
       title: 'Sandbox',
       showSequenceScore: true,
       stage: `Sandbox · Pace ${sb.tier}`,
-      subtitle: `${sb.mode === 'hardcore' ? 'Hardcore' : 'Normal'} rules · pace ${sb.tier}${directorEnabled() ? ' · Director' : ''} · not recorded`,
+      subtitle: `${sb.mode === 'hardcore' ? 'Hardcore' : 'Normal'} rules · pace ${sb.tier} · not recorded`,
       lines: [{ who: 'The Grand Wizard', text: 'Here nothing is at stake. Experiment. Combine. Break things.' }],
       onPause: () => this.pauseMenu(() => this.startSandbox()),
       onEnd: (_r, stats) => this.show(this.panel('Sandbox results',
@@ -543,10 +499,9 @@ export class TypeLApp {
         h3('Catch it!'), p('Submitting a wrong word sends the word you meant into a plunge. Most plunges are brisk, some urgent, and now and then one is desperate. Catch it before it reaches the Ward to earn Saving Grace (Daring Rescue for the fastest). Another wrong submission on a plunging word makes it fall faster still. A wrong letter you fix with Backspace never causes a plunge.'),
         h3('Backspace'), p('Backspace un-inks letters from the paper and the scroll. Fixing a slip is always allowed; the slip itself still broke your Combo unless a Barrier layer caught it.'),
         h3('The Ward'), p(`Words that reach the bottom crack the Ward. At 0% you fall. Wind at your Ward’s current maximum goes All-In: the Ward drops to ${WARD_TUNING.wagerStability}%, its maximum is scarred (−${WARD_TUNING.firstScar}, then ${WARD_TUNING.scarGrowth} more each time), and for ${WARD_TUNING.allInTicks / 60} seconds your score is ×${WARD_TUNING.allInMultiplier}. Healing never rises above the scar. A breach ends All-In; in Hardcore any slip does.`),
-        h3('Normal and Hardcore'), p('Normal: number keys 1–8 cast; the Ward is fresh every level. Hardcore: spells are typed (a clean typed spell earns Combo and points); the Ward and its scars carry through the apprenticeship, with small recoveries after levels 4 and 8.'),
-        h3(`Difficulty · ${difficultyLabel()}`), p(directorEnabled()
-          ? 'Every apprenticeship plays the same loop. Each one has its own familiar range of word lengths (about 3–6 letters in the Apprenticeship of Time, 6 and up by Harvest), with the occasional longer or shorter word. Within that range, words can be shorter or longer, and slower or faster: short and slow give you breathing room, long and slow test precision, short and fast test reactions, and long and fast are the rare spikes. Each level builds pressure faster toward its end, swells during surges and eases after them. Later apprenticeships start from a higher floor and see the hard combinations more often, but slower, shorter words never disappear. Nothing watches how well you type: the same seed and the same play give the same words. Every number behind this is an experimental prototype value.'
-          : 'Classic difficulty: each apprenticeship has its own range of word lengths, and words fall a little faster as each level goes on. The experimental Difficulty Director can be switched on in Options.'),
+        h3('Normal and Hardcore'), p('Normal: number keys 1–8 cast, and the Ward is restored at every checkpoint of the apprenticeship. Hardcore: spells are typed (a clean typed spell earns Combo and points); the Ward and its scars carry through the whole apprenticeship, with small recoveries at two checkpoints. Hardcore starts under more pressure, builds it faster and recovers less.'),
+        h3('One continuous examination'), p('Each apprenticeship is a single run in three phases: Learn (meet the spell and build momentum), Master (more frequent and overlapping pressure), and the Boss Examination, which builds to its climax in the final seconds. Nothing resets between them: your score, Combo and Arcane Rush carry through, and so does the field. Endless follows the boss if you wish; it never stops getting harder.'),
+        h3('Difficulty'), p('Every apprenticeship has its own familiar range of word lengths (about 3–6 letters in the Apprenticeship of Time, 6 and up by Harvest), with the occasional longer or shorter word. Words vary in length and speed together: short and slow give you room, long and slow test precision, short and fast test reactions, long and fast are the spikes. Pressure changes often: brief pressure moments every few seconds, bigger surges every half-minute or so, each followed by a short, kinder stretch that keeps words coming. Later apprenticeships start higher. Nothing watches how well you type: the same seed and the same play give the same game. Every number behind this is an experimental prototype value.'),
         h3('Rune sequences'), p('Some Runes belong to spells. Casting opens that spell’s opportunity window; only what you type inside it counts. Casting alone never earns a Rune.'),
         p('Every number on this page is a prototype value.'),
       );
@@ -599,12 +554,9 @@ export class TypeLApp {
     this.backdrop();
     const rm = el('input', { type: 'checkbox', checked: prefs.reducedMotion() }) as HTMLInputElement;
     rm.addEventListener('change', () => ((prefs.data.reducedMotion = rm.checked), prefs.save()));
-    const dd = el('input', { type: 'checkbox', checked: directorEnabled() }) as HTMLInputElement;
-    dd.addEventListener('change', () => setDirectorEnabled(dd.checked));
     this.show(this.panel('Options',
       this.audioControls(),
       el('label', { class: 't-audio' }, rm, el('span', null, 'Reduced motion (no shakes, tilts or large bursts)')),
-      el('label', { class: 't-audio' }, dd, el('span', null, 'Experimental Difficulty Director (D-097 development preview; off = classic difficulty)')),
       el('div', { class: 't-row' },
         btn('Back', () => this.showTitle(), 'primary'),
         btn('Reset prototype progress', () => {

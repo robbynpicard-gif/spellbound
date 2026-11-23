@@ -1,62 +1,91 @@
 import { FIELD, SIMULATION_HZ } from '../core/GameConfig';
-import { GameEngine } from '../core/GameEngine';
+import { GameEngine, type RunPlan } from '../core/GameEngine';
+import { SeededRandom } from '../core/Random';
 import type { DifficultyConfig } from './DifficultyConfig';
 
 /**
- * Difficulty simulation for D-097 (Phase 2). Runs the REAL GameEngine with a
- * deterministic synthetic typist and measures what the field asks of a
- * player. Used by tests and by tools/director-report.ts to compare the
- * classic difficulty with the Difficulty Director.
- *
- * The typist is a measuring stick, not a prediction of human play: it never
- * mistypes, never casts spells, always aims at the word nearest the Ward,
- * and types at a fixed rate with a fixed pause between words.
+ * D-102 simulation harness. Runs the REAL GameEngine through a whole
+ * continuous apprenticeship (and optionally its Endless) with a synthetic
+ * typist, and measures what the field asks of a player. A measuring stick,
+ * not a prediction of human play: the typist never casts spells and always
+ * aims at the word nearest the Ward.
  */
 export interface Typist {
-  /** Characters per second while typing a word. */
-  cps: number;
-  /** Pause before starting each new word, in ms (reading / reaction). */
+  /** Typing speed while a word is being typed. */
+  wpm: number;
+  /** Reading a word before starting it after a quiet field. */
   reactionMs: number;
+  /** Moving attention to the next target after a capture. */
+  switchMs: number;
+  /** Chance per keystroke of a typo (typed, noticed after `noticeMs`, erased, retyped). */
+  errorRate: number;
+  noticeMs: number;
 }
+
+/** Realistic typists from 45 to 200 WPM: faster typists read and switch faster and err less, but never instantly. */
+export function typistAt(wpm: number): Typist {
+  const t = Math.min(1, Math.max(0, (wpm - 45) / 155));
+  return {
+    wpm,
+    reactionMs: Math.round(480 - 260 * t), // 480 → 220 ms
+    switchMs: Math.round(320 - 170 * t), // 320 → 150 ms
+    errorRate: 0.05 - 0.035 * t, // 5 % → 1.5 %
+    noticeMs: Math.round(300 - 120 * t),
+  };
+}
+
+export const cpsOf = (t: Typist) => (t.wpm * 5) / 60;
 
 export interface SpawnSample {
   length: number;
-  /** Time-to-Ward from the top of the field at spawn speed (seconds). */
   fallSeconds: number;
-  /** Seconds from spawn to the Ward from where it spawned (opening words start lower). */
   timeToWard: number;
-  /** Encounter progress (0–1 of elapsed time) when it spawned. */
-  at: number;
+  seconds: number;
+  phase: string;
   lengthBand?: string;
   speedBand?: string;
 }
 
 export interface SecondSample {
   t: number;
-  /**
-   * Typing rate (characters per second) needed to clear every word on the
-   * field before it reaches the Ward, nearest-first: max over k of
-   * (letters left in the k nearest words) / (time until the k-th lands).
-   */
-  requiredCps: number;
-  words: number;
+  phase: string;
+  event: string;
   pressure: number | null;
+  endlessLevel: number | null;
+  words: number;
+  maxActive: number;
+  spawnMs: number;
+  /** Nearest-first typing rate (chars/s) the field needs, with per-word switching cost. */
+  requiredCps: number;
+  /** Word pairs whose labels overlap on screen (readability). */
+  overlaps: number;
+  combo: number;
+  rush: number;
 }
+
+export type FailureCause = 'typing demand' | 'reaction and switching' | 'visual clutter' | 'none';
 
 export interface RunReport {
   seed: number;
   status: string;
+  /** Where the run ended: learn, master, boss, endless; 'cleared' when it was won; '… (time cap)' when the cap stopped it. */
+  endedIn: string;
   seconds: number;
+  endlessSeconds: number;
+  score: number;
   captured: number;
   missed: number;
+  maxCombo: number;
+  peakRush: number;
+  checkpoints: { t: number; phase: string; score: number; combo: number; rush: number }[];
   spawns: SpawnSample[];
   timeline: SecondSample[];
+  failure: FailureCause;
 }
 
 const H = FIELD.height;
 
-/** Nearest-first schedulability: the typing rate the field demands right now. */
-export function requiredCps(words: readonly { y: number; speed: number; match: string; typed: number }[], reactionS: number): number {
+export function requiredCps(words: readonly { y: number; speed: number; match: string; typed: number }[], switchS: number): number {
   const rows = words
     .filter((w) => w.speed > 0)
     .map((w) => ({ t: Math.max(0.05, (H - w.y) / w.speed), letters: w.match.length - w.typed }))
@@ -65,91 +94,145 @@ export function requiredCps(words: readonly { y: number; speed: number; match: s
   let worst = 0;
   rows.forEach((r, k) => {
     letters += r.letters;
-    const time = Math.max(0.05, r.t - reactionS * (k + 1));
+    const time = Math.max(0.05, r.t - switchS * (k + 1));
     worst = Math.max(worst, letters / time);
   });
   return worst;
 }
 
-export function simulateRun(config: DifficultyConfig, words: readonly string[], seed: number, typist: Typist, maxSeconds = 240): RunReport {
-  const engine = new GameEngine({ config, seed, words, experimentalScoring: true });
+function overlapPairs(words: readonly { x: number; y: number; text: string }[]): number {
+  let n = 0;
+  for (let i = 0; i < words.length; i++)
+    for (let j = i + 1; j < words.length; j++) {
+      const a = words[i]!;
+      const b = words[j]!;
+      const half = ((a.text.length + b.text.length) * FIELD.approxCharWidth) / 2;
+      if (Math.abs(a.x - b.x) < half && Math.abs(a.y - b.y) < 28) n++;
+    }
+  return n;
+}
+
+export interface SimOptions {
+  /** A continuous run, or a single config (sandbox/Endless directly). */
+  plan?: RunPlan;
+  config?: DifficultyConfig;
+  /** Continue into this Endless config after the boss. */
+  endless?: DifficultyConfig;
+  hardcore?: boolean;
+  words: readonly string[];
+  seed: number;
+  typist: Typist;
+  maxSeconds?: number;
+  /** Record a timeline sample every N seconds. */
+  sampleEvery?: number;
+}
+
+export function simulate(o: SimOptions): RunReport {
+  const config = o.plan ? o.plan.segments[0]!.config : o.config!;
+  const engine = new GameEngine({ config, run: o.plan, seed: o.seed, words: o.words, hardcore: o.hardcore, experimentalScoring: true });
+  const hands = new SeededRandom((o.seed ^ 0x7a9e57) >>> 0);
   const spawns: SpawnSample[] = [];
   const timeline: SecondSample[] = [];
-  const expected = config.survivalMs ? config.survivalMs / 1000 : null;
+  const checkpoints: RunReport['checkpoints'] = [];
+  const phase = () => engine.runInfo?.phase ?? (engine.config.director?.kind ?? 'level');
   engine.events.on('wordSpawned', ({ word }) => {
     const plan = engine.directorSnapshot?.lastPlan;
     spawns.push({
-      length: word.text.length,
-      fallSeconds: H / word.speed,
-      timeToWard: (H - word.y) / word.speed,
-      at: engine.state.tick,
+      length: word.text.length, fallSeconds: H / word.speed, timeToWard: (H - word.y) / word.speed,
+      seconds: engine.state.tick / SIMULATION_HZ, phase: phase(),
       ...(plan ? { lengthBand: plan.lengthBand, speedBand: plan.speedBand } : {}),
     });
   });
+  engine.events.on('checkpoint', () => checkpoints.push({ t: engine.state.tick / SIMULATION_HZ, phase: phase(), score: engine.state.score, combo: engine.state.combo, rush: engine.volleyMultiplier }));
+  const T = o.typist;
+  const cps = cpsOf(T);
+  const ticks = (ms: number) => Math.max(0, Math.round((ms / 1000) * SIMULATION_HZ));
+  let wait = ticks(T.reactionMs);
   let budget = 0;
-  let wait = 0;
-  const reactionTicks = Math.round((typist.reactionMs / 1000) * SIMULATION_HZ);
-  const maxTicks = maxSeconds * SIMULATION_HZ;
-  while (engine.status === 'playing' && engine.state.tick < maxTicks) {
+  let typo = false;
+  let endlessStart: number | null = null;
+  let peakRush = 1;
+  const maxTicks = (o.maxSeconds ?? 3600) * SIMULATION_HZ;
+  const every = Math.max(1, Math.round((o.sampleEvery ?? 1) * SIMULATION_HZ));
+  for (;;) {
+    if (engine.status === 'won' && o.endless && endlessStart === null) {
+      engine.continueIntoEndless(o.endless);
+      endlessStart = engine.state.tick;
+    }
+    if (engine.status !== 'playing' || engine.state.tick >= maxTicks) break;
     engine.step();
-    if (engine.status !== 'playing') break;
-    const tick = engine.state.tick;
-    if (tick % SIMULATION_HZ === 0) {
+    if (engine.status !== 'playing') continue;
+    const s = engine.state;
+    peakRush = Math.max(peakRush, engine.volleyMultiplier);
+    if (s.tick % every === 0) {
+      const snap = engine.directorSnapshot;
+      const pace = engine.pace;
       timeline.push({
-        t: tick / SIMULATION_HZ,
-        requiredCps: requiredCps(engine.state.words, typist.reactionMs / 1000),
-        words: engine.state.words.length,
-        pressure: engine.directorSnapshot?.envelope.pressure ?? null,
+        t: s.tick / SIMULATION_HZ, phase: phase(), event: snap?.envelope.event ?? 'calm', pressure: snap?.envelope.pressure ?? null,
+        endlessLevel: snap?.envelope.endlessLevel ?? null, words: s.words.length, maxActive: pace.maxActiveWords, spawnMs: pace.spawnInterval,
+        requiredCps: requiredCps(s.words, T.switchMs / 1000), overlaps: overlapPairs(s.words), combo: s.combo, rush: engine.volleyMultiplier,
       });
     }
     if (wait > 0) {
       wait--;
       continue;
     }
-    budget += typist.cps / SIMULATION_HZ;
-    const target = [...engine.state.words].sort((a, b) => b.y - a.y || a.id - b.id)[0];
+    const target = [...s.words].sort((a, b) => b.y - a.y || a.id - b.id)[0];
     if (!target) {
-      budget = Math.min(budget, 1);
+      budget = 0;
+      wait = ticks(T.reactionMs); // a new word must be read first
       continue;
     }
-    if (engine.state.pinnedId !== target.id && engine.state.input === '') engine.selectTarget(target.id);
+    if (s.input === '' && s.pinnedId !== target.id) engine.selectTarget(target.id);
+    budget += cps / SIMULATION_HZ;
     while (budget >= 1 && engine.status === 'playing') {
-      const aimed = engine.state.words.find((w) => w.id === (engine.state.pinnedId ?? target.id));
-      if (!aimed) break;
-      const char = aimed.match[engine.state.input.length];
-      if (!char) break;
-      engine.typeChar(char);
-      budget--;
-      if (engine.state.input === aimed.match) {
-        engine.submit();
-        wait = reactionTicks;
+      const aimed = s.words.find((w) => w.id === (s.pinnedId ?? target.id)) ?? target;
+      if (typo) {
+        engine.backspace();
+        typo = false;
+        budget--;
+        continue;
+      }
+      const ch = aimed.match[s.input.length];
+      if (!ch) break;
+      if (hands.next() < T.errorRate) {
+        engine.typeChar(ch === 'q' ? 'z' : 'q');
+        typo = true;
         budget = 0;
+        wait = ticks(T.noticeMs);
+        break;
+      }
+      engine.typeChar(ch);
+      budget--;
+      if (s.input === aimed.match) {
+        engine.submit();
+        budget = 0;
+        wait = ticks(T.switchMs);
         break;
       }
     }
   }
   const seconds = engine.state.tick / SIMULATION_HZ;
-  const total = expected ?? seconds;
-  for (const s of spawns) s.at = Math.min(1, s.at / SIMULATION_HZ / Math.max(1, total));
-  return { seed, status: engine.status, seconds, captured: engine.state.completed, missed: engine.state.missed, spawns, timeline };
+  const st = engine.stats();
+  const lost = engine.status === 'lost';
+  return {
+    seed: o.seed, status: engine.status,
+    endedIn: lost ? phase() : engine.status === 'won' ? 'cleared' : `${phase()} (time cap)`,
+    seconds, endlessSeconds: endlessStart === null ? 0 : (engine.state.tick - endlessStart) / SIMULATION_HZ,
+    score: engine.state.score, captured: st.completed, missed: st.missed, maxCombo: st.maxCombo, peakRush,
+    checkpoints, spawns, timeline, failure: lost ? classifyFailure(timeline.slice(-12), T) : 'none',
+  };
 }
 
-// ───────────── aggregation ─────────────
-
-/** Speed classes are absolute seconds to the Ward. */
-export const QUADRANT_THRESHOLDS = { slowMinSeconds: 13.5, fastMaxSeconds: 10 };
-
-/**
- * Length classes are RELATIVE to the apprenticeship's dominant window (D-098):
- * short = the window's two lowest lengths or below; long = its top length or
- * above. Slow [3, 6]: short ≤ 4, long ≥ 6. Harvest [6, 9]: short ≤ 7, long ≥ 9.
- */
-export function lengthClass(len: number, window: readonly [number, number]): 'short' | 'medium' | 'long' {
-  return len <= window[0] + 1 ? 'short' : len >= window[1] ? 'long' : 'medium';
+/** Why the Ward fell, from the last ~12 s: too much to type, too little time per word, or an unreadable field. */
+export function classifyFailure(last: readonly SecondSample[], t: Typist): FailureCause {
+  if (last.length === 0) return 'reaction and switching';
+  const mean = (f: (s: SecondSample) => number) => last.reduce((a, s) => a + f(s), 0) / last.length;
+  if (mean((s) => s.overlaps) >= 2) return 'visual clutter';
+  return mean((s) => s.requiredCps) > cpsOf(t) * 0.9 ? 'typing demand' : 'reaction and switching';
 }
-export function speedClass(fall: number): 'slow' | 'medium' | 'fast' {
-  return fall >= QUADRANT_THRESHOLDS.slowMinSeconds ? 'slow' : fall <= QUADRANT_THRESHOLDS.fastMaxSeconds ? 'fast' : 'medium';
-}
+
+// ───────────── aggregation helpers ─────────────
 
 export function percentile(values: readonly number[], q: number): number {
   if (values.length === 0) return 0;
@@ -160,102 +243,27 @@ export function percentile(values: readonly number[], q: number): number {
   return sorted[lo]! + (sorted[hi]! - sorted[lo]!) * (i - lo);
 }
 
-export interface Summary {
-  runs: number;
-  spawns: number;
-  lengthHistogram: Record<number, number>;
-  meanLength: number;
-  length: { p10: number; p50: number; p90: number };
-  /** D-098: share of words inside, above and below the dominant window used for classes. */
-  window: { range: readonly [number, number]; within: number; above: number; below: number };
-  fall: { p10: number; p50: number; p90: number; min: number };
-  /** Shares of the 3 × 3 grid (same thresholds for both systems; lengths relative to the window). */
-  grid: Record<string, number>;
-  corners: { shortSlow: number; longSlow: number; shortFast: number; longFast: number };
-  /** time-to-Ward ÷ time to type it alone at the typist's rate. Lower = tighter. */
-  slack: { p10: number; p50: number };
-  /** Share of words whose slack is under 2 (tight on their own). */
-  tightShare: number;
-  /** Required typing rate (cps) by tenth of the encounter (mean across runs). */
-  pressureCurve: number[];
-  /** Director pressure by tenth (null for classic). */
-  directorCurve: (number | null)[];
-  peakRequiredCps: number;
-  /** Relief windows per minute: ≥ 2 s at or below half of the run's 80th-percentile demand, right after reaching it. */
-  recoveriesPerMinute: number;
-  /** Mean seconds to clear the encounter (quota levels) among runs that cleared it. */
-  meanSeconds: number;
-  winRate: number;
-  missesPerRun: number;
+/** Seconds between the starts of consecutive events of one kind in a timeline. */
+export function eventGaps(timeline: readonly SecondSample[], kind: string): number[] {
+  const starts: number[] = [];
+  let prev = '';
+  for (const s of timeline) {
+    if (s.event === kind && prev !== kind) starts.push(s.t);
+    prev = s.event;
+  }
+  return starts.slice(1).map((t, i) => t - starts[i]!);
 }
 
-export function summarize(reports: readonly RunReport[], typist: Typist, window: readonly [number, number] = [3, 6]): Summary {
-  const spawns = reports.flatMap((r) => r.spawns);
-  const hist: Record<number, number> = {};
-  for (const s of spawns) hist[s.length] = (hist[s.length] ?? 0) + 1;
-  const n = Math.max(1, spawns.length);
-  for (const k of Object.keys(hist)) hist[Number(k)] = hist[Number(k)]! / n;
-  const grid: Record<string, number> = {};
-  for (const l of ['short', 'medium', 'long']) for (const v of ['slow', 'medium', 'fast']) grid[`${l}-${v}`] = 0;
-  for (const s of spawns) grid[`${lengthClass(s.length, window)}-${speedClass(s.fallSeconds)}`]! += 1 / n;
-  const lengths = spawns.map((s) => s.length);
-  const falls = spawns.map((s) => s.fallSeconds);
-  const slack = spawns.map((s) => s.timeToWard / (s.length / typist.cps + typist.reactionMs / 1000));
-  const curve = Array.from({ length: 10 }, () => [] as number[]);
-  const dcurve = Array.from({ length: 10 }, () => [] as number[]);
-  let recoveries = 0;
-  let minutes = 0;
-  for (const r of reports) {
-    minutes += r.seconds / 60;
-    const total = Math.max(1, r.timeline.length);
-    r.timeline.forEach((s, i) => {
-      const bin = Math.min(9, Math.floor((i / total) * 10));
-      curve[bin]!.push(s.requiredCps);
-      if (s.pressure !== null) dcurve[bin]!.push(s.pressure);
-    });
-    // Relative to the run's own peaks, so a gentle level's breathers count too.
-    const peak = Math.max(0.5, percentile(r.timeline.map((s) => s.requiredCps), 0.8));
-    let armed = false;
-    let calm = 0;
-    for (const s of r.timeline) {
-      if (s.requiredCps >= peak) {
-        armed = true;
-        calm = 0;
-      } else if (armed && s.requiredCps <= 0.5 * peak) {
-        calm++;
-        if (calm >= 2) {
-          recoveries++;
-          armed = false;
-          calm = 0;
-        }
-      } else calm = 0;
+/** Lengths (seconds) of consecutive runs of one event kind. */
+export function eventDurations(timeline: readonly SecondSample[], kind: string): number[] {
+  const out: number[] = [];
+  let run = 0;
+  for (const s of timeline) {
+    if (s.event === kind) run++;
+    else if (run > 0) {
+      out.push(run);
+      run = 0;
     }
   }
-  const mean = (v: number[]) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0);
-  const won = reports.filter((r) => r.status === 'won');
-  return {
-    runs: reports.length,
-    spawns: spawns.length,
-    lengthHistogram: hist,
-    meanLength: mean(lengths),
-    length: { p10: percentile(lengths, 0.1), p50: percentile(lengths, 0.5), p90: percentile(lengths, 0.9) },
-    window: {
-      range: window,
-      within: lengths.filter((l) => l >= window[0] && l <= window[1]).length / n,
-      above: lengths.filter((l) => l > window[1]).length / n,
-      below: lengths.filter((l) => l < window[0]).length / n,
-    },
-    fall: { p10: percentile(falls, 0.1), p50: percentile(falls, 0.5), p90: percentile(falls, 0.9), min: Math.min(...falls) },
-    grid,
-    corners: { shortSlow: grid['short-slow']!, longSlow: grid['long-slow']!, shortFast: grid['short-fast']!, longFast: grid['long-fast']! },
-    slack: { p10: percentile(slack, 0.1), p50: percentile(slack, 0.5) },
-    tightShare: slack.filter((v) => v < 2).length / n,
-    pressureCurve: curve.map(mean),
-    directorCurve: dcurve.map((v) => (v.length ? mean(v) : null)),
-    peakRequiredCps: percentile(reports.flatMap((r) => r.timeline.map((s) => s.requiredCps)), 0.95),
-    recoveriesPerMinute: minutes > 0 ? recoveries / minutes : 0,
-    meanSeconds: mean(won.map((r) => r.seconds)),
-    winRate: won.length / Math.max(1, reports.length),
-    missesPerRun: mean(reports.map((r) => r.missed)),
-  };
+  return out;
 }

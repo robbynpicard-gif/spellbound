@@ -9,6 +9,7 @@
  */
 import { averageWordLength, type DifficultyConfig } from '../difficulty/DifficultyConfig';
 import { DIRECTOR_TUNING, type DirectorSpec, type EncounterKind } from '../difficulty/DifficultyDirector';
+import type { RunPlan, RunSegment } from '../core/GameEngine';
 import { endlessConfig, stageLevel, type StageMode } from '../difficulty/Stages';
 import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
 
@@ -215,50 +216,79 @@ export function sandboxConfig(mode: Mode, tier: number): DifficultyConfig {
   return { ...endlessConfig(mode, tier), name: `Sandbox · Tier ${tier}`, availableSpells: [...SPELL_ORDER], introducesSpell: null };
 }
 
-// ───────────── Difficulty Director variants (D-097 prototype, preview flag only) ─────────────
+// ───────────── D-102: the continuous apprenticeship ─────────────
 //
-// Same apprenticeships, levels, quotas, bosses, surges, spells and Endless as
-// the classic functions above. Only word length and fall speed change: the
-// shared director plans them jointly instead of each level's length bracket
-// and speed ramp. The classic functions are untouched and remain the default.
+// One run per apprenticeship: Phase I Learn, Phase II Master (both made of the
+// old levels' quotas, now internal checkpoints the player never sees as
+// screens), then Phase III, the Boss Examination. The classic per-level
+// configs above remain the source of each checkpoint's supporting levers
+// (quota, base spawn interval and density, spell drops, boss timer and ramp);
+// the Difficulty Director owns word length, fall speed, pressure events,
+// recovery and Endless growth. The classic functions stay for regression
+// tests and simulation comparison only; the player sees one system.
+
+/** EXPERIMENTAL prototype values (D-102). */
+export const RUN_TUNING = {
+  /** Share of the Learn + Master checkpoints that form Phase I. */
+  learnShare: 0.3,
+  /** Hardcore Ward recovery when a checkpoint is reached (unchanged from the level rules). */
+  hardcoreRecovery: { 4: 25, 8: 25 } as Record<number, number>,
+};
+
+/** Checkpoints (old levels) in Phase I: 4 of 12 at the prototype share. */
+export const LEARN_CHECKPOINTS = Math.max(1, Math.min(LEVELS_PER_TRIAL - 1, Math.round(RUN_TUNING.learnShare * LEVELS_PER_TRIAL)));
+export type StartPhase = 'learn' | 'master' | 'boss';
 
 /** Normalized apprenticeship progression: trial 1 → 0, trial 9 → 1. */
 export const apprenticeshipPosition = (trialIndex: number) => (Math.min(TRIALS.length, Math.max(1, trialIndex)) - 1) / (TRIALS.length - 1);
 
-function withDirector(classic: DifficultyConfig, mode: Mode, a: number, arcPosition: number, kind: EncounterKind): DifficultyConfig {
-  const director: DirectorSpec = {
-    version: 1,
-    mode,
-    apprenticeship: a,
-    arcPosition,
-    kind,
-    referenceLength: averageWordLength(classic),
-    surges: kind === 'endless' ? [] : (classic.surges ?? []).map((s) => s.at),
-  };
+function withDirector(classic: DifficultyConfig, mode: Mode, trialIndex: number, kind: EncounterKind): DifficultyConfig {
+  const director: DirectorSpec = { version: 2, mode, apprenticeship: apprenticeshipPosition(trialIndex), kind, referenceLength: averageWordLength(classic) };
   const rest: DifficultyConfig = { ...classic };
   delete rest.wordLengthWeights;
   return {
     ...rest,
-    // The director chooses lengths (D-098 soft windows with rare tails), so the generator holds every usable length.
+    // The director chooses lengths (soft windows with rare tails), so the generator holds every usable length.
     minWordLength: DIRECTOR_TUNING.lengths.library[0],
     maxWordLength: DIRECTOR_TUNING.lengths.library[1],
-    // Endless keeps its spawn escalation and waves; fall speed no longer compounds (bounded overdrive instead).
-    ...(classic.escalation ? { escalation: { ...classic.escalation, speed: 0 } } : {}),
+    // Within-run variation and surges come from the director's continuous model, not per-level ramps.
+    spawnRamp: 0,
+    speedRamp: 0,
+    speedRampExtra: 0,
+    surges: [],
+    escalation: null,
     director,
   };
 }
 
-export function directorTrialLevel(mode: Mode, trialIndex: number, level: number): DifficultyConfig {
+/** One internal checkpoint (an old level) of the continuous run. */
+export function runSegmentConfig(mode: Mode, trialIndex: number, level: number): DifficultyConfig {
   const boss = level >= BOSS_LEVEL;
-  const arc = boss ? 1 : (level - 1) / LEVELS_PER_TRIAL;
-  return withDirector(trialLevel(mode, trialIndex, level), mode, apprenticeshipPosition(trialIndex), arc, boss ? 'boss' : 'level');
+  return withDirector(trialLevel(mode, trialIndex, level), mode, trialIndex, boss ? 'boss' : 'run');
 }
 
-export function directorTrialEndless(mode: Mode, trialIndex: number): DifficultyConfig {
-  return withDirector(trialEndless(mode, trialIndex), mode, apprenticeshipPosition(trialIndex), 1, 'endless');
+/** The whole apprenticeship as one run plan. `start` is a testing convenience (begin at Master or the boss). */
+export function apprenticeshipRun(mode: Mode, trialIndex: number, start: StartPhase = 'learn'): RunPlan {
+  const first = start === 'learn' ? 1 : start === 'master' ? LEARN_CHECKPOINTS + 1 : BOSS_LEVEL;
+  const segments: RunSegment[] = [];
+  for (let level = first; level <= BOSS_LEVEL; level++) {
+    const config = runSegmentConfig(mode, trialIndex, level);
+    segments.push({
+      config: level === first ? config : { ...config, openingWords: 0 },
+      phase: level >= BOSS_LEVEL ? 'boss' : level <= LEARN_CHECKPOINTS ? 'learn' : 'master',
+      hardcoreRecovery: RUN_TUNING.hardcoreRecovery[level],
+    });
+  }
+  return { segments, firstLevelIndex: Math.min(first, LEVELS_PER_TRIAL) - 1, levelSegments: LEVELS_PER_TRIAL };
 }
 
-/** Sandbox pace tiers 1–5 map onto the apprenticeship journey (tier 1 = first, tier 5 = last). */
-export function directorSandboxConfig(mode: Mode, tier: number): DifficultyConfig {
-  return withDirector(sandboxConfig(mode, tier), mode, (Math.min(5, Math.max(1, tier)) - 1) / 4, 1, 'endless');
+/** Endless after the boss: no quota, no timer, and no permanent ceiling. */
+export function apprenticeshipEndless(mode: Mode, trialIndex: number): DifficultyConfig {
+  return { ...withDirector(trialEndless(mode, trialIndex), mode, trialIndex, 'endless'), rampWords: null };
+}
+
+/** Sandbox pace tiers 1–5 map onto the apprenticeship journey (tier 1 = first, tier 5 = last), played as Endless. */
+export function sandboxRunConfig(mode: Mode, tier: number): DifficultyConfig {
+  const trial = 1 + (Math.min(5, Math.max(1, tier)) - 1) * 2;
+  return { ...withDirector(sandboxConfig(mode, tier), mode, trial, 'endless'), rampWords: null };
 }

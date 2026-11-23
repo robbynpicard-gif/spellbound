@@ -200,4 +200,10 @@ export class RuneTracker {
   levelWon(): void {
     if (this.clean) this.give('flawless');
   }
+
+  /** D-102: an internal checkpoint of a continuous run counts as a level for Flawless, then starts a fresh one. */
+  checkpointReached(): void {
+    this.levelWon();
+    this.clean = true;
+  }
 }

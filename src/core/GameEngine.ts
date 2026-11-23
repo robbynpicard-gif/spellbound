@@ -48,7 +48,37 @@ import {
 import { commonPrefixLength, guessIntendedWord, mostUrgent, wordsMatching } from '../gameplay/TargetManager';
 import { lengthClassOf, type WordState } from '../gameplay/Word';
 import { WordGenerator } from '../gameplay/WordGenerator';
-import { DifficultyDirector, type Envelope, type SpawnPlan } from '../difficulty/DifficultyDirector';
+import { DifficultyDirector, type DirectorContext, type Envelope, type RunPhase, type SpawnPlan } from '../difficulty/DifficultyDirector';
+
+/**
+ * D-102 continuous apprenticeship: one engine plays a whole run. Each segment
+ * is an internal checkpoint (the old levels) whose quota or timer ends it; the
+ * engine moves to the next one without stopping, so the field, score, Combo,
+ * Rush, spell charges and every random stream carry straight on. Only the
+ * last segment ends the game ('won'), or the Ward falling ('lost').
+ */
+export interface RunSegment {
+  config: DifficultyConfig;
+  phase: Exclude<RunPhase, 'endless'>;
+  /** Hardcore: Ward points restored when this checkpoint is reached (never above its scar). */
+  hardcoreRecovery?: number;
+}
+export interface RunPlan {
+  segments: readonly RunSegment[];
+  /** Index of segments[0] among the run's Learn + Master checkpoints (a run can start at Master). */
+  firstLevelIndex: number;
+  /** Learn + Master checkpoints in the whole apprenticeship. */
+  levelSegments: number;
+}
+export interface RunInfo {
+  phase: RunPhase;
+  segment: number;
+  segments: number;
+  /** 0–1 through Learn + Master (1 during the boss and Endless). */
+  runProgress: number;
+  /** 0–1 through the current phase. */
+  phaseProgress: number;
+}
 import type { SpellContext } from '../spells/BaseSpell';
 import { dropWeights, SPELLS } from '../spells/SpellRegistry';
 import { EventBus } from './EventBus';
@@ -73,6 +103,8 @@ export type Command =
 
 export interface EngineOptions {
   config: DifficultyConfig;
+  /** D-102: a continuous apprenticeship run. `config` must be `run.segments[0].config`. */
+  run?: RunPlan;
   seed: number;
   words: readonly string[];
   field?: FieldConfig;
@@ -221,11 +253,20 @@ export class GameEngine {
   private endlessWaveActive = false;
   /** Short respite after a campaign surge, without lowering the level's baseline. */
   private recoveryUntilTick = 0;
-  /** Difficulty Director (D-097 prototype): present only when the level's config carries a director spec. */
+  /** Difficulty Director: present only when the level's config carries a director spec. */
   private director: DifficultyDirector | null = null;
   private lastPlan: SpawnPlan | null = null;
+  /** D-102 continuous run: the plan, which segment is live and where it began. */
+  private readonly run: RunPlan | null;
+  private segmentIndex = 0;
+  private segmentStartTick = 0;
+  private segmentStartCompleted = 0;
+  private endlessPhase = false;
+  private directorSurge = false;
 
   constructor(options: EngineOptions) {
+    this.run = options.run && options.run.segments.length > 0 ? options.run : null;
+    if (this.run && this.run.segments[0]!.config !== options.config) throw new Error('A run plan must start with options.config');
     this.config = options.config;
     this.seed = options.seed;
     this.field = options.field ?? FIELD;
@@ -339,9 +380,12 @@ export class GameEngine {
     } else this.director = null;
     this.endlessStartedTick = this.s.tick;
     this.endlessWaveActive = false;
+    this.endlessPhase = true;
     this.s.status = 'playing';
     this.s.windingDown = false;
-    this.s.completed = 0;
+    // The run's capture count carries on (stats); Endless measures from here.
+    this.segmentStartCompleted = this.s.completed;
+    this.segmentStartTick = this.s.tick;
     this.s.spawnTimerMs = Math.min(this.s.spawnTimerMs, config.spawnInterval);
     this.s.input = '';
     this.s.targetId = null;
@@ -360,9 +404,35 @@ export class GameEngine {
     return this.s.tick * SIMULATION_STEP_MS;
   }
 
+  /** Simulated time since the current segment (checkpoint, boss or Endless) began. */
+  get segmentElapsedMs(): number {
+    return (this.s.tick - this.segmentStartTick) * SIMULATION_STEP_MS;
+  }
+
+  /** Captures since the current segment began. */
+  private get segmentCompleted(): number {
+    return this.s.completed - this.segmentStartCompleted;
+  }
+
   /** Boss levels: time left to survive (null on quota levels). */
   get survivalRemainingMs(): number | null {
-    return isSurvival(this.config) ? Math.max(0, this.config.survivalMs! - this.elapsedMs) : null;
+    return isSurvival(this.config) ? Math.max(0, this.config.survivalMs! - this.segmentElapsedMs) : null;
+  }
+
+  /** D-102: where a continuous run stands (null for single levels). */
+  get runInfo(): RunInfo | null {
+    if (!this.run) return null;
+    const seg = this.run.segments[this.segmentIndex]!;
+    const phase: RunPhase = this.endlessPhase ? 'endless' : seg.phase;
+    const levelIndex = this.run.firstLevelIndex + this.segmentIndex;
+    const runProgress = seg.phase === 'boss' || this.endlessPhase ? 1 : Math.min(1, (levelIndex + this.progress) / this.run.levelSegments);
+    let phaseProgress = this.progress;
+    if (!this.endlessPhase && seg.phase !== 'boss') {
+      const same = this.run.segments.map((x, i) => ({ x, i })).filter((e) => e.x.phase === seg.phase);
+      const first = same[0]!.i;
+      phaseProgress = Math.min(1, (this.segmentIndex - first + this.progress) / same.length);
+    }
+    return { phase, segment: this.segmentIndex, segments: this.run.segments.length, runProgress, phaseProgress };
   }
 
   /**
@@ -373,7 +443,7 @@ export class GameEngine {
     const c = this.config;
     let pace = { fallSpeed: c.initialFallSpeed, spawnInterval: c.spawnInterval, maxActiveWords: c.maxActiveWords };
     if (isSurvival(c) && c.ramp) {
-      const t = Math.min(1, this.elapsedMs / c.survivalMs!);
+      const t = Math.min(1, this.segmentElapsedMs / c.survivalMs!);
       const lerp = (a: number, b: number) => a + (b - a) * t;
       pace = {
         fallSpeed: lerp(pace.fallSpeed, c.ramp.initialFallSpeed),
@@ -383,7 +453,7 @@ export class GameEngine {
     }
     // Endless: the pace keeps climbing with every word captured (D-057).
     if (c.escalation) {
-      const steps = Math.floor(this.s.completed / c.escalation.perWords);
+      const steps = Math.floor(this.segmentCompleted / c.escalation.perWords);
       pace = {
         fallSpeed: pace.fallSpeed * Math.pow(1 + c.escalation.speed, steps),
         spawnInterval: pace.spawnInterval / Math.pow(1 + c.escalation.spawn, steps),
@@ -409,16 +479,24 @@ export class GameEngine {
       // pace's fall speed is only a reference. Spawn interval keeps every
       // classic supporting lever above and is rescaled so letters arrive at a
       // comparable rate for the director's expected word length.
+      // D-102: the director also drives density and its events' arrival changes.
       const env = this.director.envelope(this.directorContext());
-      pace = { ...pace, fallSpeed: this.field.height / env.referenceFallSeconds, spawnInterval: pace.spawnInterval * env.spawnScale };
+      pace = {
+        fallSpeed: this.field.height / env.referenceFallSeconds,
+        spawnInterval: Math.max(env.spawnFloorMs, pace.spawnInterval * env.spawnScale),
+        maxActiveWords: Math.max(3, Math.min(16, pace.maxActiveWords + env.extraWords)),
+      };
     }
     return pace;
   }
 
-  private directorContext(): { progress: number; endlessSeconds: number } {
+  private directorContext(): DirectorContext {
+    const info = this.runInfo;
     return {
-      progress: this.progress,
+      progress: info && info.phase !== 'boss' && info.phase !== 'endless' ? info.runProgress : this.progress,
+      seconds: (this.s.tick * SIMULATION_STEP_MS) / 1000,
       endlessSeconds: ((this.s.tick - (this.endlessStartedTick ?? 0)) * SIMULATION_STEP_MS) / 1000,
+      phase: info?.phase,
     };
   }
 
@@ -470,10 +548,10 @@ export class GameEngine {
 
   private get progress(): number {
     const c = this.config;
-    if (c.requiredWords) return Math.min(1, this.s.completed / c.requiredWords);
-    if (c.survivalMs) return Math.min(1, this.elapsedMs / c.survivalMs);
+    if (c.requiredWords) return Math.min(1, this.segmentCompleted / c.requiredWords);
+    if (c.survivalMs) return Math.min(1, this.segmentElapsedMs / c.survivalMs);
     // Endless Practice: each quota's worth of words is one lap, with the level's surges again.
-    if (c.rampWords) return (this.s.completed % c.rampWords) / c.rampWords;
+    if (c.rampWords) return (this.segmentCompleted % c.rampWords) / c.rampWords;
     return 0;
   }
 
@@ -499,7 +577,7 @@ export class GameEngine {
       this.events.emit('surgeChanged', { active: false });
     }
     if (!c.requiredWords && !c.survivalMs && c.rampWords) {
-      const lap = Math.floor(s.completed / c.rampWords);
+      const lap = Math.floor(this.segmentCompleted / c.rampWords);
       if (lap !== s.surgeLap) {
         s.surgeLap = lap;
         s.surgesStarted = 0;
@@ -511,6 +589,15 @@ export class GameEngine {
         this.endlessWaveActive = active;
         this.events.emit('surgeChanged', { active });
       }
+    }
+    if (this.director) {
+      // D-102: surges come from the director's seeded event timeline (and the boss's fixed swells).
+      const active = this.director.envelope(this.directorContext()).event === 'surge';
+      if (active !== this.directorSurge) {
+        this.directorSurge = active;
+        this.events.emit('surgeChanged', { active });
+      }
+      return;
     }
     const next = c.surges?.[s.surgesStarted];
     if (next && s.surgeTicks === 0 && this.progress >= next.at) {
@@ -636,7 +723,8 @@ export class GameEngine {
     const pace = this.pace;
     if (s.spawnTimerMs === 0 && !s.windingDown && s.words.length < pace.maxActiveWords) {
       this.spawn(pace.fallSpeed);
-      s.spawnTimerMs = pace.spawnInterval;
+      // D-102: the director varies each gap a little (seeded), so arrivals never tick like a metronome.
+      s.spawnTimerMs = pace.spawnInterval * (this.director && this.lastPlan ? this.lastPlan.gapFactor : 1);
     }
   }
 
@@ -979,7 +1067,7 @@ export class GameEngine {
     const rampSize = this.config.speedRamp ?? LEVEL_SPEED_RAMP;
     const vary = 1 + (this.speedRng.next() * 2 - 1) * variance;
     const quota = this.config.requiredWords ?? this.config.rampWords ?? null;
-    const progress = quota ? Math.min(1, this.s.completed / quota) : 0.5;
+    const progress = quota ? Math.min(1, this.segmentCompleted / quota) : 0.5;
     const ramp = 1 - rampSize + (2 * rampSize + (this.config.speedRampExtra ?? 0)) * progress;
     return fallSpeed * vary * ramp;
   }
@@ -1170,12 +1258,51 @@ export class GameEngine {
   }
 
   private emitProgress(): void {
-    this.events.emit('progressChanged', { completed: this.s.completed, required: this.config.requiredWords });
+    this.events.emit('progressChanged', { completed: this.segmentCompleted, required: this.config.requiredWords });
   }
 
   private checkQuota(): void {
     const quota = this.config.requiredWords;
-    if (this.s.status === 'playing' && quota !== null && this.s.completed >= quota) this.end('won');
+    if (this.s.status !== 'playing' || quota === null || this.segmentCompleted < quota) return;
+    if (this.run && this.segmentIndex < this.run.segments.length - 1) this.advanceSegment();
+    else this.end('won');
+  }
+
+  /**
+   * D-102 checkpoint: the next internal segment begins on the same tick. Nothing
+   * resets: field, score, Combo, Rush, spells, active spell effects and random
+   * streams all continue. The Ward follows the established rules: Normal's is
+   * fresh at every checkpoint (as it was fresh every level); Hardcore's carries,
+   * with its scheduled recoveries.
+   */
+  private advanceSegment(): void {
+    const run = this.run!;
+    const from = run.segments[this.segmentIndex]!;
+    this.runeTracker?.checkpointReached();
+    if (this.hardcore) {
+      const heal = from.hardcoreRecovery ?? 0;
+      if (heal > 0) {
+        const floor = 100 - this.ward.cap;
+        this.s.instability = this.instability.add(-Math.max(0, Math.min(heal, this.instability.value - floor)));
+      }
+    } else {
+      this.ward = { cap: 100, wagers: 0, allInTicks: this.ward.allInTicks };
+      this.s.instability = this.instability.add(-this.instability.value);
+    }
+    this.events.emit('instabilityChanged', { value: this.instability.value, stage: this.instability.stage });
+    this.segmentIndex++;
+    const to = run.segments[this.segmentIndex]!;
+    this.config = to.config;
+    if (to.config.director) {
+      if (this.director) this.director.setSpec(to.config.director);
+      else this.director = new DifficultyDirector(to.config.director, this.seed, this.generator.lengthCounts());
+    }
+    this.segmentStartTick = this.s.tick;
+    this.segmentStartCompleted = this.s.completed;
+    this.s.surgesStarted = 0;
+    this.s.windingDown = false;
+    this.events.emit('checkpoint', { segment: this.segmentIndex, phase: to.phase, previousPhase: from.phase });
+    this.emitProgress();
   }
 
   /** Sets the Clean Streak (D-046) and reports the change. */
