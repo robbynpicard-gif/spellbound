@@ -292,3 +292,55 @@ export function sandboxRunConfig(mode: Mode, tier: number): DifficultyConfig {
   const trial = 1 + (Math.min(5, Math.max(1, tier)) - 1) * 2;
   return { ...withDirector(sandboxConfig(mode, tier), mode, trial, 'endless'), rampWords: null };
 }
+
+// ───────────── D-112: the spell-free opening challenge (GAME-002) ─────────────
+//
+// The Academy opens with a real typing examination: no spells, no spell
+// scrolls, pressure that rises naturally until spells are clearly needed
+// (D-107). It is finite, so a skilled typist can clear it; nothing is
+// scripted to fail. It borrows the apprenticeships' own checkpoint configs
+// along a rising path, so it uses the same Director, scoring and Ward rules.
+
+/** EXPERIMENTAL prototype values (D-112): [apprenticeship, checkpoint level, words to capture]. */
+export const OPENING_TUNING = {
+  path: [
+    [1, 1, 14], [2, 4, 12], [3, 6, 12], [5, 4, 12], [6, 6, 12], [7, 6, 13], [8, 8, 15],
+  ] as ReadonlyArray<readonly [number, number, number]>,
+  /** From this segment on, the HUD calls it Phase II ("the pressure deepens"). */
+  masterFrom: 4,
+};
+
+export const OPENING = {
+  title: 'The Opening Trial',
+  short: 'Opening',
+  examiner: GW,
+  intro: [
+    { who: GW, text: 'Before any Master teaches you, show me your hands. Type what falls. Catch it before it reaches the Ward.' },
+  ] as readonly Line[],
+  hints: {
+    2: { who: GW, text: 'Good. Now it begins to quicken.' },
+    4: { who: GW, text: 'The sky fills faster than hands alone can empty it. Remember this feeling.' },
+    6: { who: GW, text: 'Hold. This is where a spell would have helped you.' },
+  } as Record<number, Line>,
+  passed: { who: GW, text: 'You held. Hands like that deserve tools. The Chronomancer is waiting.' } as Line,
+  fell: { who: GW, text: 'The Ward fell, as it should here. Hands alone are not enough. That is what the Masters are for. The Chronomancer is waiting.' } as Line,
+};
+
+/** The whole opening challenge as one run plan, with no spells anywhere in it. */
+export function openingRun(mode: Mode): RunPlan {
+  const segments: RunSegment[] = OPENING_TUNING.path.map(([trial, level, words], i) => {
+    const base = runSegmentConfig(mode, trial, level);
+    const config: DifficultyConfig = {
+      ...base,
+      level: i + 1,
+      name: `${OPENING.title} · ${i + 1}`,
+      requiredWords: words,
+      availableSpells: [],
+      introducesSpell: null,
+      spellDropChance: 0,
+      openingWords: i === 0 ? base.openingWords : 0,
+    };
+    return { config, phase: i >= OPENING_TUNING.masterFrom ? 'master' : 'learn' };
+  });
+  return { segments, firstLevelIndex: 0, levelSegments: segments.length };
+}

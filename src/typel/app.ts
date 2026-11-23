@@ -10,7 +10,7 @@ import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
 import { RUNES, RUNE_BY_ID } from '../gameplay/runes/RuneCatalogue';
 import { WARD_TUNING } from '../gameplay/WardScar';
 import {
-  apprenticeshipEndless, apprenticeshipRun, BOSS_LEVEL, LEARN_CHECKPOINTS, learnedSpells, sandboxRunConfig, SPELL_ORDER, startingCharges, TRIALS,
+  apprenticeshipEndless, apprenticeshipRun, BOSS_LEVEL, LEARN_CHECKPOINTS, learnedSpells, OPENING, openingRun, sandboxRunConfig, SPELL_ORDER, startingCharges, TRIALS,
   type Mode, type StartPhase, type Trial,
 } from './apprenticeship';
 import { clearRun, loadRun, RUN_RULESET, runRecordKey, saveRun, type SavedRun } from './runSave';
@@ -130,6 +130,21 @@ export class TypeLApp {
     const done = new Set(prefs.data.completed[this.mode]);
     const saved = loadRun();
     const list = el('div', { class: 't-trials' });
+    // D-112: the spell-free Opening Trial comes first and is suggested on a new save, but never gates anything.
+    const opened = prefs.data.opening;
+    const fresh = opened.runs === 0 && done.size === 0;
+    const openingBest = opened.best[this.mode];
+    list.append(
+      el('article', { class: `t-trial${opened.cleared[this.mode] ? ' done' : ''}`, style: '--hue:#d9a441' },
+        el('div', { class: 't-trial-glyph' }, '✎'),
+        el('div', { class: 't-trial-body' },
+          el('h3', null, `${fresh ? 'Start here · ' : ''}${OPENING.title}`),
+          el('p', null, `${OPENING.examiner} · no spells · type to claim the scrolls`),
+          el('p', { class: 't-small' }, opened.cleared[this.mode] ? `Cleared ✓ · best ${openingBest?.toLocaleString() ?? '—'}` : openingBest ? `Best ${openingBest.toLocaleString()}` : 'Not yet attempted'),
+        ),
+        el('div', { class: 't-trial-go' }, btn(opened.runs > 0 ? 'Replay' : 'Begin', () => this.beginOpening(), 'primary small')),
+      ),
+    );
     for (const t of TRIALS) {
       const pick = el('select', { class: 't-levelpick', 'aria-label': `Start ${t.title} at phase` },
         el('option', { value: 'learn' }, 'From Learn'), el('option', { value: 'master' }, 'From Master'), el('option', { value: 'boss' }, 'Boss only'));
@@ -165,6 +180,61 @@ export class TypeLApp {
       el('p', { class: 't-small' }, 'Each apprenticeship is one continuous examination: Learn, then Master, then the Boss Examination, then Endless if you wish. Score, Combo and Arcane Rush carry all the way through. Your run is saved at every checkpoint. All unlocked for testing; the phase picker is a testing tool.'),
       el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
+  }
+
+  // ───────────────────────── D-112: the Opening Trial ─────────────────────────
+
+  private beginOpening(): void {
+    this.run = null;
+    this.backdrop();
+    this.show(this.panel(OPENING.title, this.mentor(OPENING.intro),
+      el('p', null, 'Type each falling word and press Enter to claim its scroll before it reaches the Ward. Perfect words build Combo; quick perfect words build Arcane Rush. There are no spells here. The sky fills faster and faster: clear the trial if your hands can, but if the Ward falls you still move on.'),
+      el('div', { class: 't-row' }, btn('Begin', () => this.launchOpening(), 'primary'), btn('Back', () => this.showApprenticeship()))),
+    { onKey: (e) => e.key === 'Enter' && this.launchOpening() });
+  }
+
+  private launchOpening(): void {
+    const mode = this.mode;
+    const plan = openingRun(mode);
+    this.clearUi();
+    this.startPlay({
+      config: plan.segments[0]!.config,
+      run: plan,
+      seed: Math.floor(Math.random() * 2 ** 31),
+      hardcore: mode === 'hardcore',
+      initialSpells: {},
+      spells: [],
+      title: OPENING.title,
+      subtitle: `${mode === 'hardcore' ? 'Hardcore' : 'Normal'} · no spells`,
+      trialName: OPENING.short,
+      checkpointLines: (segment) => {
+        const hint = OPENING.hints[segment];
+        return hint ? [hint] : undefined;
+      },
+      onPause: () => this.pauseMenu(() => this.launchOpening(), () => this.showApprenticeship()),
+      onEnd: (result, stats) => this.openingEnded(mode, result === 'won', stats),
+    });
+  }
+
+  private openingEnded(mode: Mode, cleared: boolean, stats: GameStats): void {
+    const o = prefs.data.opening;
+    o.runs++;
+    if (cleared) o.cleared[mode] = true;
+    const isBest = stats.score > (o.best[mode] ?? 0);
+    if (isBest) o.best[mode] = stats.score;
+    this.record(stats, 0);
+    if (cleared) sound.victory();
+    const line = cleared ? OPENING.passed : OPENING.fell;
+    this.show(this.panel(cleared ? 'Trial cleared' : 'The Ward has fallen',
+      this.mentor([line]),
+      el('div', { class: 't-bigscore' }, stats.score.toLocaleString()),
+      isBest ? el('p', { class: 't-small' }, 'New best') : null,
+      el('div', { class: 't-stats' }, stat('Scrolls', String(stats.completed)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`), stat('WPM', String(Math.round(stats.wpm))), stat('Best Combo', String(stats.maxCombo)), stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`)),
+      el('div', { class: 't-row' },
+        btn(`Continue: ${TRIALS[0]!.title}`, () => this.beginTrial(1, 'learn'), 'primary'),
+        btn('Try again', () => this.launchOpening()),
+        btn('Leave', () => this.showApprenticeship())),
+    ), { overlay: true, onKey: (e) => e.key === 'Enter' && this.beginTrial(1, 'learn') });
   }
 
   private beginTrial(index: number, start: StartPhase = 'learn'): void {
@@ -337,7 +407,7 @@ export class TypeLApp {
     ), { overlay: true });
   }
 
-  private pauseMenu(restart: () => void): void {
+  private pauseMenu(restart: () => void, leave?: () => void): void {
     const resume = () => {
       this.clearUi();
       this.play.resume();
@@ -346,8 +416,8 @@ export class TypeLApp {
       el('div', { class: 't-menu' },
         btn('Resume', resume, 'primary'),
         btn('Restart', () => restart()),
-        btn('Codex (rules)', () => this.showCodex('rules', () => this.pauseMenu(restart))),
-        btn('Leave', () => (this.run ? this.showApprenticeship() : this.showTitle()))),
+        btn('Codex (rules)', () => this.showCodex('rules', () => this.pauseMenu(restart, leave))),
+        btn('Leave', () => (leave ? leave() : this.run ? this.showApprenticeship() : this.showTitle()))),
       this.audioControls(),
     ), { overlay: true, onKey: (e) => e.key === 'Escape' && resume() });
   }
