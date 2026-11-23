@@ -1582,3 +1582,29 @@ Its ten-step production order is **superseded by the Bible's §4 phase sequence 
 - prototype behind an isolated flag.
 
 Sounds, thresholds and metrics are open (Q-20).
+
+
+### D-115 — Owner-approved spell identities, Academy unlock curriculum and replay mastery (2026-11-23)
+_2026-11-23 · **Approved design direction** by owner in TypeL design discussion · Implementation: **not reconciled or verified** · Balance values: **Experimental** · Supersedes contradictory prototype behavior in D-017, D-025, D-084 and related code where they conflict; does not discard unrelated accepted mechanics. GAME-001, GAME-003–005, SCOPE-001–002._
+
+**Design authority:** TypeL is a typing-first magical battlefield. Spells must feel consequential, frequent enough to be used, and remain distinct. No number-key casting or gameplay clicking; fixed spell commands are typed and submitted with Enter. Score mastery comes from accuracy, consistency, tactical timing and emergent spell interactions. Do not force combination bonuses or add a ninth spell without a demonstrated mechanical gap.
+
+**Eight approved spell identities (exact effects; numeric tuning remains experimental):**
+1. **SLOW:** temporary slowdown of falling scrolls; typing and spawns continue. Everyday tempo control, distinct from ICE.
+2. **BARRIER:** short-lived, limited layers preventing **Ward breaches only**. Does not protect Combo or Arcane Rush from typing errors. No indefinite protection or unlimited stacking. Two layers and ~6–8 seconds are experimental starting points.
+3. **WIND:** physical repulsion of approaching scrolls away from the Ward; preserves them to type and score. **No healing, All-In, automatic capture or scoring.** Healing and All-In are exploratory relic/trial possibilities, not WIND features.
+4. **FIRE:** emergency destruction of battlefield threats for **zero points**. No Combo/Rush payout or chain jackpot. Pure survival-versus-score sacrifice.
+5. **ICE:** freezes scroll motion **and new spawns** while typing continues; precision/recovery window. Frostbound Focus perfect-typing Combo benefit is an approved direction; duration and diminishing recasts are tunable.
+6. **SHOCK:** guaranteed initial strike on the most urgent eligible scroll; guaranteed conduction through its nearby cluster; seeded, diminishing probability of jumps to more distant clusters, with no arbitrary fixed total chain cap. Awards ordinary Combo-influenced capture points, **not** Arcane Rush cash-out or extra jackpot; does not itself build typing Combo/Rush.
+7. **ALTER:** shortens existing difficult words on the field, preserving original base point value; **does not** affect future spawns, reposition scrolls, or strip modifiers.
+8. **HARVEST:** captures the current full field at base value × existing Combo × active Arcane Rush; consumes Rush, preserves Combo, and creates no new Combo/Rush. Still captures base/Combo points without Rush. Avoid duplicate multiplier applications.
+
+**Owner-accepted provisional unlock order:** SLOW → BARRIER → WIND → FIRE → ICE → SHOCK → ALTER → HARVEST. This is the curriculum to implement and test, not a ranking of power or rarity. The owner explicitly rejected treating FIRE → ICE as a required order merely because it was an illustrative example.
+
+**Academy and replay:** spell-free Opening Trial (D-112) precedes spell apprenticeships. Each apprenticeship teaches its spell; a genuinely challenging Normal examination is intended to be achievable with the repertoire available then. Clearing Normal unlocks the next apprenticeship **and** an optional themed Hardcore challenge for that stage. Hardcore is designed primarily for a returning player with a broader repertoire and larger practical inventory, but remains attemptable immediately by an exceptional typist. Hardcore never gates spell acquisition. Earlier Normal challenges retain their original difficulty, while later-unlocked spells are usable and actually obtainable when replaying, so returning players feel stronger. Optional Hardcore retains each stage's theme and has distinct mastery recognition; it is not simply an across-the-board speed increase. This refines older global Normal/Hardcore semantics where inconsistent; exact stage migration requires an implementation audit. Advanced unrelated Arcane Trials remain separate Yellow scope, not automatically approved for full production.
+
+**Spell economy:** retain a shared bank as testing baseline. Investigate per-spell caps to prevent stockpiling: SLOW 4, BARRIER 2, WIND 2, FIRE 3, ICE 2, SHOCK 2, ALTER 2, HARVEST 1 (**candidate values only, not approved balance**). Rarity, cap and unlock position are separate dimensions. Test charge acquisition versus spending, full-bank overflow, unused charges at defeat, hoarding, repeated-cast survival without typing, and whether early-stage replay actually offers unlocked spells. Target regular consequential casting, not an inventory chore or spell-only dominance. Avoid destructive bank trimming without examining existing approved rules and regression effects.
+
+**Difficulty intent:** Academy emphasizes mastery, Arcane Trials survival, Endless eventually overwhelming every player without unreadable or unfair clutter. Six spatial spawn behaviors (D-109) are retained, primarily for advanced Arcane Trials, not automatically inserted into Academy. Preserve deterministic 60 Hz/seeded replay and the established Combo/Arcane Rush flow protections. Numeric difficulty tuning remains experimental.
+
+**Implementation mandate from owner:** update canonical context **before code**. Audit the actual active dev/preview source and tests, reconcile old paths, update player-facing descriptions and tests, then validate a playable browser preview before production. Conflicting legacy behavior must not remain active; do not remove unrelated functionality. No claim of tested or deployed until verified. Do not overwrite the public build without explicit deployment approval.
