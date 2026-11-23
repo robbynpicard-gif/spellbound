@@ -32,12 +32,14 @@ describe('Opening Trial', () => {
   it('is finite and clearable by a skilled typist, with no scripted failure', () => {
     const r = simulate({ plan: openingRun('normal'), words: WORDS, seed: 17, typist: typistAt(100), maxSeconds: 600 });
     expect(r.status).toBe('won');
-    expect(r.seconds).toBeGreaterThan(100);
+    // D-116: a skilled typist is kept busy, so it no longer drags; still a real stretch of play.
+    expect(r.seconds).toBeGreaterThan(60);
     expect(r.seconds).toBeLessThan(240);
   });
 
   it('escalates until hands alone are not enough for a slow typist', () => {
-    const r = simulate({ plan: openingRun('normal'), words: WORDS, seed: 17, typist: typistAt(45), maxSeconds: 600 });
+    // The authored curve alone (D-112/D-113); with D-116 adaptation a 45 WPM typist is eased and can sometimes clear it.
+    const r = simulate({ plan: openingRun('normal'), words: WORDS, seed: 17, typist: typistAt(45), maxSeconds: 600, pressureControl: false });
     expect(r.status).not.toBe('won');
     // ...but only after a real stretch of play, not at the start
     expect(r.seconds).toBeGreaterThan(90);

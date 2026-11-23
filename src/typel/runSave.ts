@@ -1,4 +1,5 @@
 import type { Command } from '../core/GameEngine';
+import type { SpellId } from '../gameplay/SpellManager';
 import type { Mode, StartPhase } from './apprenticeship';
 
 /**
@@ -16,7 +17,7 @@ import type { Mode, StartPhase } from './apprenticeship';
  */
 const KEY = 'typel.activeRun.v1';
 /** Bump when the run's structure or generation changes: old saves are then discarded, never replayed wrongly. */
-export const RUN_RULESET = 'run-1';
+export const RUN_RULESET = 'run-3';
 
 /**
  * Records for the continuous ruleset are kept apart from the old level-based
@@ -38,6 +39,9 @@ export interface SavedRun {
   savedAt: number;
   /** The run was resumed after the Ward fell (Flawless Perfection then can't be earned). */
   fell: boolean;
+  /** D-115: the spells the run offered and whether per-spell caps were on (needed to replay it exactly). */
+  spells?: SpellId[];
+  caps?: boolean;
 }
 
 export function loadRun(): SavedRun | null {

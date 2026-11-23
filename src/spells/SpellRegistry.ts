@@ -12,8 +12,9 @@ const EFFECTS: Record<SpellId, (ctx: SpellContext, data: SpellData) => void> = {
   barrier: (ctx, data) => ctx.addBarrier(data.blocks ?? 2),
   shock: (ctx, data) => ctx.chainLightning(data.arcs ?? 3),
   alter: (ctx, data) => {
-    ctx.transmute(data.minLength ?? 6);
-    ctx.easyWords(ctx.ticks(data.durationMs ?? 8000));
+    ctx.transmute(data.minLength ?? 5);
+    // D-115: ALTER never changes future spawns; only a legacy config with a duration does.
+    if (data.durationMs) ctx.easyWords(ctx.ticks(data.durationMs));
   },
   fire: (ctx) => ctx.burnAllWords(),
   wind: (ctx, data) => {

@@ -8,11 +8,12 @@ import type { GameStats } from '../gameplay/ScoringSystem';
 import { SPELLS } from '../spells/SpellRegistry';
 import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
 import { RUNES, RUNE_BY_ID } from '../gameplay/runes/RuneCatalogue';
-import { WARD_TUNING } from '../gameplay/WardScar';
 import {
-  apprenticeshipEndless, apprenticeshipRun, BOSS_LEVEL, LEARN_CHECKPOINTS, learnedSpells, OPENING, openingRun, sandboxRunConfig, SPELL_ORDER, startingCharges, TRIALS,
+  apprenticeshipEndless, apprenticeshipRun, BOSS_LEVEL, LEARN_CHECKPOINTS, OPENING, openingRun, sandboxRunConfig, SPELL_ORDER, TRIALS,
   type Mode, type StartPhase, type Trial,
 } from './apprenticeship';
+import { hardcoreSeed, lockReason, openingUnlocked, repertoire, startingBank, trialUnlocked } from './progression';
+import { SPELL_CAP_CANDIDATES } from '../gameplay/SpellManager';
 import { clearRun, loadRun, RUN_RULESET, runRecordKey, saveRun, type SavedRun } from './runSave';
 import { sound, type AudioSettings } from './audio';
 import { prefs } from './prefs';
@@ -46,6 +47,10 @@ interface Run {
   trial: number;
   start: StartPhase;
   seed: number;
+  /** D-115: the spells this run offers (fixed at the start, so a resume replays identically). */
+  spells: SpellId[];
+  /** D-115 experiment: per-spell caps on for this run. */
+  caps: boolean;
   endless: boolean;
   /** Resumed after the Ward fell: Flawless Perfection is no longer possible. */
   fell: boolean;
@@ -134,6 +139,7 @@ export class TypeLApp {
     const opened = prefs.data.opening;
     const fresh = opened.runs === 0 && done.size === 0;
     const openingBest = opened.best[this.mode];
+    const openingOpen = openingUnlocked(prefs.data, this.mode);
     list.append(
       el('article', { class: `t-trial${opened.cleared[this.mode] ? ' done' : ''}`, style: '--hue:#d9a441' },
         el('div', { class: 't-trial-glyph' }, '✎'),
@@ -142,22 +148,25 @@ export class TypeLApp {
           el('p', null, `${OPENING.examiner} · no spells · type to claim the scrolls`),
           el('p', { class: 't-small' }, opened.cleared[this.mode] ? `Cleared ✓ · best ${openingBest?.toLocaleString() ?? '—'}` : openingBest ? `Best ${openingBest.toLocaleString()}` : 'Not yet attempted'),
         ),
-        el('div', { class: 't-trial-go' }, btn(opened.runs > 0 ? 'Replay' : 'Begin', () => this.beginOpening(), 'primary small')),
+        el('div', { class: 't-trial-go' }, openingOpen
+          ? btn(opened.runs > 0 ? 'Replay' : 'Begin', () => this.beginOpening(), 'primary small')
+          : el('span', { class: 't-small' }, '🔒 Clear it in Normal first')),
       ),
     );
     for (const t of TRIALS) {
       const pick = el('select', { class: 't-levelpick', 'aria-label': `Start ${t.title} at phase` },
         el('option', { value: 'learn' }, 'From Learn'), el('option', { value: 'master' }, 'From Master'), el('option', { value: 'boss' }, 'Boss only'));
       const best = prefs.data.bestTrialScore[recordKey(this.mode, t.index)];
+      const open = trialUnlocked(prefs.data, this.mode, t.index);
       list.append(
-        el('article', { class: `t-trial${done.has(t.index) ? ' done' : ''}`, style: t.spell ? `--hue:${SPELL_HUE[t.spell]}` : '--hue:#d9a441' },
+        el('article', { class: `t-trial${done.has(t.index) ? ' done' : ''}${open ? '' : ' locked'}`, style: t.spell ? `--hue:${SPELL_HUE[t.spell]}` : '--hue:#d9a441' },
           el('div', { class: 't-trial-glyph' }, t.spell ? SPELL_GLYPH[t.spell] : '✶'),
           el('div', { class: 't-trial-body' },
             el('h3', null, `${t.index}. ${t.title}`),
             el('p', null, `${t.master}${t.spell ? ` · learn ${t.spell.toUpperCase()}` : ' · every spell'} · boss: ${t.bossName}`),
-            el('p', { class: 't-small' }, done.has(t.index) ? `Completed ✓ · best ${best?.toLocaleString() ?? '—'}` : best ? `Best ${best.toLocaleString()}` : 'Not yet completed'),
+            el('p', { class: 't-small' }, !open ? `🔒 ${lockReason(this.mode, t.index)}` : done.has(t.index) ? `Completed ✓ · best ${best?.toLocaleString() ?? '—'}` : best ? `Best ${best.toLocaleString()}` : 'Not yet completed'),
           ),
-          el('div', { class: 't-trial-go' }, btn(done.has(t.index) ? 'Replay' : 'Begin', () => this.beginTrial(t.index, pick.value as StartPhase), 'primary small'), pick),
+          el('div', { class: 't-trial-go' }, open ? btn(done.has(t.index) ? 'Replay' : 'Begin', () => this.beginTrial(t.index, pick.value as StartPhase), 'primary small') : null, open ? pick : null),
         ),
       );
     }
@@ -173,11 +182,11 @@ export class TypeLApp {
         btn('Normal', () => ((this.mode = 'normal'), this.showApprenticeship()), this.mode === 'normal' ? 'primary small' : 'small'),
         btn('Hardcore', () => ((this.mode = 'hardcore'), this.showApprenticeship()), this.mode === 'hardcore' ? 'primary small' : 'small'),
         el('span', { class: 't-small' }, this.mode === 'normal'
-          ? 'Normal teaches: type a spell’s name and press Enter to cast it, and the Ward is restored at every checkpoint.'
-          : 'Hardcore expects mastery: spells are typed, the Ward and its scars carry through the whole apprenticeship. (Unlocked for testing; it will require Normal.)'),
+          ? 'Normal teaches: type a spell’s name and press Enter to cast it. The pressure adapts to how you play, within each examination’s limits, and the Ward is restored at every checkpoint. Replays keep their difficulty but give you every spell you have earned.'
+          : 'Hardcore is optional and fixed: the same scrolls every attempt, no adaptation, and the Ward carries through the whole apprenticeship. Come back with more spells. Clearing an examination in Normal opens its Hardcore.'),
       ),
       list,
-      el('p', { class: 't-small' }, 'Each apprenticeship is one continuous examination: Learn, then Master, then the Boss Examination, then Endless if you wish. Score, Combo and Arcane Rush carry all the way through. Your run is saved at every checkpoint. All unlocked for testing; the phase picker is a testing tool.'),
+      el('p', { class: 't-small' }, 'Each apprenticeship is one continuous examination: Learn, then Master, then the Boss Examination, then Endless if you wish. Score, Combo and Arcane Rush carry all the way through. Your run is saved at every checkpoint. The phase picker is a testing tool. ' + (prefs.data.unlockAll ? 'Everything is unlocked (Options).' : 'To open everything for testing, see Options.')),
       el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
   }
@@ -200,7 +209,7 @@ export class TypeLApp {
     this.startPlay({
       config: plan.segments[0]!.config,
       run: plan,
-      seed: Math.floor(Math.random() * 2 ** 31),
+      seed: mode === 'hardcore' ? hardcoreSeed(0) : Math.floor(Math.random() * 2 ** 31),
       hardcore: mode === 'hardcore',
       initialSpells: {},
       spells: [],
@@ -239,8 +248,11 @@ export class TypeLApp {
 
   private beginTrial(index: number, start: StartPhase = 'learn'): void {
     const trial = TRIALS[index - 1]!;
+    if (!trialUnlocked(prefs.data, this.mode, index)) return this.showApprenticeship();
     clearRun();
-    this.run = { mode: this.mode, trial: index, start, seed: Math.floor(Math.random() * 2 ** 31), endless: false, fell: false };
+    // D-115/D-118: Hardcore is a fixed, reproducible challenge; Normal varies its seed.
+    const seed = this.mode === 'hardcore' ? hardcoreSeed(index) : Math.floor(Math.random() * 2 ** 31);
+    this.run = { mode: this.mode, trial: index, start, seed, spells: repertoire(prefs.data, index), caps: prefs.data.spellCaps, endless: false, fell: false };
     if (start === 'learn') {
       this.backdrop();
       this.show(this.panel(trial.title, this.mentor(trial.intro),
@@ -252,7 +264,7 @@ export class TypeLApp {
 
   private resumeRun(saved: SavedRun, fell = saved.fell): void {
     this.mode = saved.mode;
-    this.run = { mode: saved.mode, trial: saved.trial, start: saved.start, seed: saved.seed, endless: false, fell };
+    this.run = { mode: saved.mode, trial: saved.trial, start: saved.start, seed: saved.seed, spells: saved.spells ?? repertoire(prefs.data, saved.trial), caps: saved.caps ?? false, endless: false, fell };
     this.launchRun(saved);
   }
 
@@ -273,7 +285,7 @@ export class TypeLApp {
   private launchRun(resume?: SavedRun): void {
     const run = this.run!;
     const trial = TRIALS[run.trial - 1]!;
-    const plan = apprenticeshipRun(run.mode, run.trial, run.start);
+    const plan = apprenticeshipRun(run.mode, run.trial, run.start, { spells: run.spells });
     const short = trial.title.replace(/^The Apprenticeship of /, '');
     this.clearUi();
     this.startPlay({
@@ -282,8 +294,9 @@ export class TypeLApp {
       seed: run.seed,
       resume: resume ? { commands: resume.commands, tick: resume.tick } : undefined,
       hardcore: run.mode === 'hardcore',
-      initialSpells: startingCharges(trial),
-      spells: learnedSpells(run.trial),
+      initialSpells: startingBank(trial, run.spells),
+      spells: run.spells,
+      spellCaps: run.caps ? SPELL_CAP_CANDIDATES : null,
       title: trial.title,
       subtitle: `${run.mode === 'hardcore' ? 'Hardcore' : 'Normal'} · ${resume ? `Resuming · ${PHASE_NAME[resume.phase as keyof typeof PHASE_NAME] ?? resume.phase}` : PHASE_NAME[run.start]}`,
       trialName: short,
@@ -297,7 +310,7 @@ export class TypeLApp {
       lines: run.start === 'learn' && !resume ? trial.intro.slice(-1) : undefined,
       boss: run.start === 'boss',
       onCheckpoint: (cp) => saveRun({
-        ruleset: RUN_RULESET, mode: run.mode, trial: run.trial, start: run.start, seed: run.seed,
+        ruleset: RUN_RULESET, mode: run.mode, trial: run.trial, start: run.start, seed: run.seed, spells: run.spells, caps: run.caps,
         tick: cp.tick, commands: cp.commands, phase: cp.phase, score: cp.score, savedAt: Date.now(), fell: run.fell,
       }),
       onPause: () => this.pauseMenu(() => this.beginTrial(run.trial, run.start)),
@@ -355,7 +368,7 @@ export class TypeLApp {
     prefs.save();
     sound.victory();
     // Flawless Perfection: the whole apprenticeship from the start, never fallen, every checkpoint and the boss Flawless.
-    const checkpoints = apprenticeshipRun(run.mode, run.trial, run.start).segments.length;
+    const checkpoints = apprenticeshipRun(run.mode, run.trial, run.start, { spells: run.spells }).segments.length;
     const perfection = run.start === 'learn' && !run.fell && (stats.runeCounts?.['flawless'] ?? 0) >= checkpoints;
     const perfectRune = RUNE_BY_ID.get('flawless-perfection')!;
     const runes: Record<string, number> = { ...(stats.runeCounts ?? {}) };
@@ -380,7 +393,7 @@ export class TypeLApp {
       runeText.length ? el('p', { class: 't-runes' }, `Runes this apprenticeship: ${runeText.join(' · ')}`) : null,
       el('div', { class: 't-row' },
         btn('Enter Endless', () => this.enterEndless(), 'primary'),
-        nextTrial ? btn(`Next: ${nextTrial.title}`, () => this.beginTrial(nextTrial.index)) : null,
+        nextTrial && trialUnlocked(prefs.data, run.mode, nextTrial.index) ? btn(`Next: ${nextTrial.title}`, () => this.beginTrial(nextTrial.index)) : null,
         btn('Apprenticeship', () => this.showApprenticeship())),
       el('p', { class: 't-small' }, 'Endless continues this exact field, score and Combo, and it never stops getting harder.'),
     ), { overlay: true });
@@ -390,7 +403,7 @@ export class TypeLApp {
     const run = this.run!;
     run.endless = true;
     this.clearUi();
-    this.play.continueEndless(apprenticeshipEndless(run.mode, run.trial), `Endless · ${TRIALS[run.trial - 1]!.title}`);
+    this.play.continueEndless(apprenticeshipEndless(run.mode, run.trial, run.spells), `Endless · ${TRIALS[run.trial - 1]!.title}`);
   }
 
   private endlessOver(stats: GameStats): void {
@@ -402,7 +415,7 @@ export class TypeLApp {
     prefs.save();
     this.show(this.panel('Endless — the Ward falls at last',
       el('div', { class: 't-bigscore' }, total.toLocaleString(), total > best ? el('span', { class: 't-best' }, ' new best') : null),
-      el('div', { class: 't-stats' }, stat('Scrolls', String(stats.completed)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`), stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Wagers', String(stats.allInWagers ?? 0))),
+      el('div', { class: 't-stats' }, stat('Scrolls', String(stats.completed)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`), stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Best Combo', String(stats.maxCombo))),
       el('div', { class: 't-row' }, btn('Apprenticeship', () => this.showApprenticeship(), 'primary'), btn('Title', () => this.showTitle())),
     ), { overlay: true });
   }
@@ -458,9 +471,9 @@ export class TypeLApp {
       onEnd: (_r, stats) => this.show(this.panel('Sandbox results',
         el('div', { class: 't-bigscore' }, stats.score.toLocaleString()),
         el('div', { class: 't-stats' },
-          stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Wagers', String(stats.allInWagers ?? 0)),
-          stat('All-In points', String(stats.allInPoints ?? 0)), stat('Harvests in All-In', String(stats.allInHarvests ?? 0)),
-          stat('Runes', String(Object.values(stats.runeCounts ?? {}).reduce((a, b) => a + b, 0))), stat('Ward max', `${stats.wardCap ?? 100}%`)),
+          stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Best Combo', String(stats.maxCombo)),
+          stat('Scrolls', String(stats.completed)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`),
+          stat('Runes', String(Object.values(stats.runeCounts ?? {}).reduce((a, b) => a + b, 0)))),
         el('div', { class: 't-row' }, btn('Again', () => this.startSandbox(), 'primary'), btn('Sandbox', () => this.showSandboxSetup()), btn('Title', () => this.showTitle())),
       ), { overlay: true }),
     });
@@ -562,16 +575,17 @@ export class TypeLApp {
     let body: HTMLElement;
     if (tab === 'rules') {
       body = el('div', { class: 't-codex' },
-        h3('Score'), p('Each captured word pays letters × 10 × Combo × Arcane Rush × All-In, rounded once. Runes pay small fixed points on top. Nothing else multiplies your score.'),
+        h3('Score'), p('Each captured word pays letters × 10 × Combo × Arcane Rush, rounded once. Shock pays base × Combo; Harvest pays base × Combo × Rush and spends the Rush; Fire pays nothing. Runes pay small fixed points on top. Nothing else multiplies your score.'),
         p('In the Apprenticeship the machine shows your total and each word’s base, Combo and Rush, but never the exact points a single capture earned: that stays a mystery. The Sandbox shows them for practice.'),
-        h3('Precision Combo'), p('Every perfectly typed capture adds 1 (Ice Focus adds more). Every 10 Combo raises the multiplier by ×1. A typo, a wrong Enter or a missed word breaks it. A Barrier layer can save it from one slip you correct.'),
+        h3('Precision Combo'), p('Every perfectly typed capture adds 1 (Ice Focus adds more). Every 10 Combo raises the multiplier by ×1. A typo, a wrong Enter or a missed word breaks it. Nothing protects it from a slip: Barrier guards the Ward, not your hands.'),
         h3('Arcane Rush'), p('Your flow state. Your first perfect capture opens a timing window (the gold bar on the Rush column); a second inside it starts the Rush at ×1.2. Keep capturing in time and it climbs +0.2 per capture to ×5 (Mastery), then +0.1 per ever-harder step. Longer words get longer windows. An empty field pauses the window. Slow gives it 25% more time. Harvest spends it.'),
         h3('Catch it!'), p('Submitting a wrong word sends the word you meant into a plunge. Most plunges are brisk, some urgent, and now and then one is desperate. Catch it before it reaches the Ward to earn Saving Grace (Daring Rescue for the fastest). Another wrong submission on a plunging word makes it fall faster still. A wrong letter you fix with Backspace never causes a plunge.'),
-        h3('Backspace'), p('Backspace un-inks letters from the paper and the scroll. Fixing a slip is always allowed; the slip itself still broke your Combo unless a Barrier layer caught it.'),
-        h3('The Ward'), p(`Words that reach the bottom crack the Ward. At 0% you fall. Wind at your Ward’s current maximum goes All-In: the Ward drops to ${WARD_TUNING.wagerStability}%, its maximum is scarred (−${WARD_TUNING.firstScar}, then ${WARD_TUNING.scarGrowth} more each time), and for ${WARD_TUNING.allInTicks / 60} seconds your score is ×${WARD_TUNING.allInMultiplier}. Healing never rises above the scar. A breach ends All-In; in Hardcore any slip does.`),
-        h3('Normal and Hardcore'), p('In every mode, spells are cast by typing their names and pressing Enter. Normal: the Ward is restored at every checkpoint of the apprenticeship. Hardcore: a clean typed spell also earns Combo and points; the Ward and its scars carry through the whole apprenticeship, with small recoveries at two checkpoints. Hardcore starts under more pressure, builds it faster and recovers less.'),
+        h3('Backspace'), p('Backspace un-inks letters from the paper and the scroll. Fixing a slip is always allowed; the slip itself still broke your Combo.'),
+        h3('The Ward'), p('Scrolls that reach the bottom crack the Ward. At 0% you fall. Barrier layers stop breaches for a few seconds. Nothing heals the Ward during a run: Normal restores it at every checkpoint; Hardcore carries it through the apprenticeship with two small recoveries.'),
+        h3('The Academy'), p('The Opening Trial comes first, with no spells. Then each apprenticeship teaches one spell, in this order: Slow, Barrier, Wind, Fire, Ice, Shock, Alter, Harvest, then the Final Examination with all eight. Clearing an apprenticeship’s Normal examination opens the next one and its optional Hardcore. Replaying an earlier apprenticeship keeps its difficulty, but every spell you have earned can drop there.'),
+        h3('Normal and Hardcore'), p('In every mode, spells are cast by typing their names and pressing Enter. Normal adapts: it watches your pace, accuracy and how close scrolls get, and adds or eases pressure within each examination’s limits, so the field stays busy without becoming unfair. Hardcore is fixed: the same scrolls every attempt, no adaptation, more pressure, and the Ward carries through. A clean typed spell also earns Combo in Hardcore. It is meant for returning with more spells, and it never blocks progress.'),
         h3('One continuous examination'), p('Each apprenticeship is a single run in three phases: Learn (meet the spell and build momentum), Master (more frequent and overlapping pressure), and the Boss Examination, which builds to its climax in the final seconds. Nothing resets between them: your score, Combo and Arcane Rush carry through, and so does the field. Endless follows the boss if you wish; it never stops getting harder.'),
-        h3('Difficulty'), p('Every apprenticeship has its own familiar range of word lengths (about 3–6 letters in the Apprenticeship of Time, 6 and up by Harvest), with the occasional longer or shorter word. Words vary in length and speed together: short and slow give you room, long and slow test precision, short and fast test reactions, long and fast are the spikes. Pressure changes often: brief pressure moments every few seconds, bigger surges every half-minute or so, each followed by a short, kinder stretch that keeps words coming. Later apprenticeships start higher. Nothing watches how well you type: the same seed and the same play give the same game. Every number behind this is an experimental prototype value.'),
+        h3('Difficulty'), p('The challenge is the battlefield: how many scrolls fall at once, how fast, and how close together they arrive. Word length matters more later: early apprenticeships mostly use short and medium words (about 3–6 letters in the Apprenticeship of Time, 6 and up by Harvest), with the occasional longer or shorter word. Pressure changes often: brief bursts every few seconds, bigger surges every half-minute or so, each followed by a short, kinder stretch that keeps words coming. Scrolls are spaced so two rarely reach the Ward at the same instant. Later apprenticeships start higher and fill the sky faster. In Normal and Endless the pressure also responds to how you are playing; the same seed and the same play still give exactly the same game. Every number behind this is an experimental prototype value.'),
         h3('Rune sequences'), p('Some Runes belong to spells. Casting opens that spell’s opportunity window; only what you type inside it counts. Casting alone never earns a Rune.'),
         p('Every number on this page is a prototype value.'),
       );
@@ -624,9 +638,15 @@ export class TypeLApp {
     this.backdrop();
     const rm = el('input', { type: 'checkbox', checked: prefs.reducedMotion() }) as HTMLInputElement;
     rm.addEventListener('change', () => ((prefs.data.reducedMotion = rm.checked), prefs.save()));
+    const ua = el('input', { type: 'checkbox', checked: prefs.data.unlockAll }) as HTMLInputElement;
+    ua.addEventListener('change', () => ((prefs.data.unlockAll = ua.checked), prefs.save()));
+    const caps = el('input', { type: 'checkbox', checked: prefs.data.spellCaps }) as HTMLInputElement;
+    caps.addEventListener('change', () => ((prefs.data.spellCaps = caps.checked), prefs.save()));
     this.show(this.panel('Options',
       this.audioControls(),
       el('label', { class: 't-audio' }, rm, el('span', null, 'Reduced motion (no shakes, tilts or large bursts)')),
+      el('label', { class: 't-audio' }, ua, el('span', null, 'Playtesting: unlock every apprenticeship, every Hardcore and every spell')),
+      el('label', { class: 't-audio' }, caps, el('span', null, 'Experiment: per-spell bank caps (Slow 4, Barrier 2, Wind 2, Fire 3, Ice 2, Shock 2, Alter 2, Harvest 1)')),
       el('div', { class: 't-row' },
         btn('Back', () => this.showTitle(), 'primary'),
         btn('Reset prototype progress', () => {

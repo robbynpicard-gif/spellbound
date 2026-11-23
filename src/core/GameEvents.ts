@@ -44,7 +44,8 @@ export interface GameEvents {
   /** Words claimed by Harvest. */
   wordsHarvested: { words: WordState[]; points: number; volley?: number; allIn?: number };
   /** Wind's decision (D-084): healed toward the scarred maximum, wagered All-In, or a calm gust. */
-  windCast: { outcome: 'wager' | 'heal' | 'calm'; stability: number; cap: number; scar: number; endedAllIn: boolean; wagers: number };
+  /** D-115: Wind is a gust that pushes scrolls back up (`moved`: field y before and after). */
+  windCast: { outcome: 'push'; moved: { id: number; from: number; to: number }[] };
   /** The All-In scoring window opened or closed. */
   allInChanged: { active: boolean; ticks: number; multiplier: number; reason: 'wager' | 'expired' | 'breach' | 'mistake' | 'heal' };
   /** Barrier absorbed a corrected typo: Combo and Volley are kept. */

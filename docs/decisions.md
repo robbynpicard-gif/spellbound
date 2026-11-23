@@ -1636,3 +1636,163 @@ _2026-11-23 · **Owner decisions** (2026-11-23: finite trial; separate stage; fi
 For comparison, the same typist clears the whole Chronomancer apprenticeship spell-free at 45 WPM. That bears out the Bible's note that the early game is too forgiving. Its rebalance is separate, later work.
 
 **Not decided yet:** the Opening Trial's real name, its art, and whether Hardcore offers it (it does now, because the mode toggle applies).
+
+### D-113 — Battlefield pressure is TypeL's primary difficulty: controlled chaos, mastered through typing and magic (2026-11-23)
+_2026-11-23 · **Owner decision** ("Battlefield Pressure and Difficulty Identity Update") · Design: **Approved** · Tuning: **Experimental** · Implementation: branch `dev/battlefield-pressure-20261123` (first tuning pass) · Report: `docs/battlefield-pressure-report-2026-11-23.md`_
+
+**Identity:** controlled chaos, mastered through typing and magic. Preserve the current layout and presentation.
+
+**New difficulty hierarchy (highest first):**
+1. Simultaneous scrolls competing for attention.
+2. Descent speed and the limited time to respond.
+3. Spawn timing, composition and overlapping threats.
+4. Word length and complexity, more important later in progression.
+
+- Word length stays variable everywhere, but it does **not** define early-game difficulty. Early play mostly uses short and medium words. Later play increasingly combines longer words with demanding field conditions.
+- The player should be overwhelmed by tactical decisions before being overwhelmed by typing individual words.
+- **Measurement:** difficulty is judged by the typing work competing within a limited time window (active scrolls, urgent scrolls, time to the Ward, arrival overlap, required throughput), not by the maximum number of scrolls. `src/difficulty/BattlefieldPressure.ts` measures it for simulations only; gameplay never reads it.
+- **Readability and fairness:** more density must not bring unreadable overlaps, ambiguous targets, unavoidable simultaneous impacts, untelegraphed spikes, reliance on long words, or situations that invalidate spell effects.
+
+**Opening Trial (D-112, structure kept):** opening = short words and manageable density; development = rising spawn frequency, varied speeds, several threats at once; climax = high competing urgency and fast scrolls, demanding but fair, with long words not the main source of stress. Skilled players can clear it; nothing is scripted to fail; it should show why SLOW will be valuable.
+
+**Academy:** the same philosophy. The baseline rises with nonlinear peaks and recoveries. Each apprenticeship gives its spell and earlier spells tactical value. The 10–15 s cast cadence remains an experimental target, not a quota (Bible §3). No spell becomes mandatory maintenance, and no unavoidable damage is added to drive spell use. Advanced spatial spawning stays with Arcane Trials (D-107, D-109). Existing Academy spawning and the Difficulty Director are used first.
+
+**Reconciliation with earlier decisions (nothing silently discarded):**
+- **D-097 / the Difficulty Director spec — refined.** Word length and fall speed are no longer co-equal "primary" levers. Count, urgency and timing now lead, and length is a later-weighted lever. Still valid: one shared loop, a joint length × speed distribution, a rising apprenticeship floor, nonlinear escalation with peaks and recovery, determinism, and no skill adaptation.
+- **D-101 — retained, refined.** Dominant soft length windows and rare outliers stay, and so do the Slow (≈ 3–6) and Harvest (6+) anchors. The intermediate windows now rise later: apprenticeships 2–4 stay closer to short and medium words. Within a window, early pressure drives speed and density more than length.
+- **D-102 — retained.** The continuous Learn → Master → Boss run, persistent score, Combo and Rush, events and recovery, the boss climax, checkpoint saves and the Endless structure all stand. Its tuning values are revised by this pass.
+- **D-107 — retained.** Typing is the only input, the Academy opens with the challenge, and advanced spawn behaviours belong to Arcane Trials.
+- **D-112 — retained, retuned.** The Opening Trial keeps its structure, length (90 words, 7 checkpoints), results flow and menu placement. Only its pressure path changes.
+- **Production Bible** §3 "Spawning as difficulty" and the spell-cadence hypothesis are consistent with this and are amended in §12.
+
+**First tuning pass (Implemented on `dev/battlefield-pressure-20261123`, values Experimental):**
+- `DIRECTOR_TUNING.lengths`: `earlyCurve` 1.5 (intermediate windows rise later); `longWeight` 0.5→1 and `mediumWeight` 0.85→1 over the vocabulary position; `tiltShare` 0.3→1 (early pressure pushes length less).
+- `DirectorSpec.vocabulary` (optional, [0, 1]): where the words come from, separate from where the pressure comes from. The Opening Trial uses 0→0.15 (`OPENING_TUNING.vocabulary`).
+- Events are bursts: `short.spawn` 0.18→0.4, `extraWords` 1→2; `major.spawn` 0.34→0.55, `extraWords` 3→4; `burstShare` 0.55→1 over the apprenticeships.
+- `academyDensity` 1→0.72: later apprenticeships spawn more often, not only longer words.
+- Endless (D-114): `endlessBurst` makes bursts denser as the Endless level rises, capped (`max` 0.8, `spawnCap` 0.75).
+- Readability: `SPAWN_FAIRNESS` in `GameEngine.spawn()` keeps a new Director scroll's predicted Ward arrival ≥ 0.45 s from every other by slowing it by at most 1.2 s, and lane choice avoids overtaking a slower scroll. Deterministic, no random draws.
+- `RUN_RULESET` `run-1` → `run-2`: old saved runs can't resume, and Academy records start a new table (old ones are kept under the old key).
+
+### D-114 — Distinct difficulty objectives per mode: Academy masters the chaos, Arcane Trials survive it, Endless defies the inevitable (2026-11-23)
+_2026-11-23 · **Owner decision** (Option C) · Design: **Approved** · Tuning, curves and thresholds: **Experimental until validated** · Supplements D-113 · Implementation: Academy and Endless on `dev/battlefield-pressure-20261123`; Arcane Trials not built (SCOPE-002)_
+
+- **Academy — Master the chaos.**
+  - A finite, fair, learnable progression.
+  - Escalating field density, competing urgency and descent speed.
+  - Designed to be conquered through typing skill, prioritization and intelligent spellcasting.
+  - The Opening Trial shows why spells are valuable, without scripted failure.
+  - Teacher examinations reward accumulated spell knowledge (D-103).
+- **Arcane Trials — Survive the chaos.**
+  - Authored encounters of about 15–20 minutes.
+  - Distinctive tactical pressure and advanced spawn behaviours (D-107, D-109).
+  - Demanding but winnable through mastery of the full spell bank.
+  - The challenge comes mainly from simultaneous threats, movement, timing and spell decisions.
+  - Not implemented. This records its objective for when the mode is prototyped (Bible §2 Yellow).
+- **Endless — Defy the inevitable.**
+  - Escalating survival with no final victory.
+  - A rising combined workload eventually overwhelms even exceptional players.
+  - Individual scrolls stay readable and mechanically fair.
+  - No uncapped fall speeds, unreadable clutter or arbitrary unavoidable damage.
+  - After the physical speed and density limits are reached, escalation continues through competing urgency and workload.
+
+**Constraints:** no new gameplay systems just to differentiate the modes. Reuse the Difficulty Director and the shared mechanics. Numbers are experimental. Refines D-102's Endless section and D-097's Endless notes. Recorded in the Production Bible §12.
+
+
+### D-115 — Owner-approved spell identities, Academy unlock curriculum and replay mastery (2026-11-23)
+_2026-11-23 · **Approved design direction** by owner in TypeL design discussion · Implementation: **not reconciled or verified** · Balance values: **Experimental** · Supersedes contradictory prototype behavior in D-017, D-025, D-084 and related code where they conflict; does not discard unrelated accepted mechanics. GAME-001, GAME-003–005, SCOPE-001–002._
+
+**Design authority:** TypeL is a typing-first magical battlefield. Spells must feel consequential, frequent enough to be used, and remain distinct. No number-key casting or gameplay clicking; fixed spell commands are typed and submitted with Enter. Score mastery comes from accuracy, consistency, tactical timing and emergent spell interactions. Do not force combination bonuses or add a ninth spell without a demonstrated mechanical gap.
+
+**Eight approved spell identities (exact effects; numeric tuning remains experimental):**
+1. **SLOW:** temporary slowdown of falling scrolls; typing and spawns continue. Everyday tempo control, distinct from ICE.
+2. **BARRIER:** short-lived, limited layers preventing **Ward breaches only**. Does not protect Combo or Arcane Rush from typing errors. No indefinite protection or unlimited stacking. Two layers and ~6–8 seconds are experimental starting points.
+3. **WIND:** physical repulsion of approaching scrolls away from the Ward; preserves them to type and score. **No healing, All-In, automatic capture or scoring.** Healing and All-In are exploratory relic/trial possibilities, not WIND features.
+4. **FIRE:** emergency destruction of battlefield threats for **zero points**. No Combo/Rush payout or chain jackpot. Pure survival-versus-score sacrifice.
+5. **ICE:** freezes scroll motion **and new spawns** while typing continues; precision/recovery window. Frostbound Focus perfect-typing Combo benefit is an approved direction; duration and diminishing recasts are tunable.
+6. **SHOCK:** guaranteed initial strike on the most urgent eligible scroll; guaranteed conduction through its nearby cluster; seeded, diminishing probability of jumps to more distant clusters, with no arbitrary fixed total chain cap. Awards ordinary Combo-influenced capture points, **not** Arcane Rush cash-out or extra jackpot; does not itself build typing Combo/Rush.
+7. **ALTER:** shortens existing difficult words on the field, preserving original base point value; **does not** affect future spawns, reposition scrolls, or strip modifiers.
+8. **HARVEST:** captures the current full field at base value × existing Combo × active Arcane Rush; consumes Rush, preserves Combo, and creates no new Combo/Rush. Still captures base/Combo points without Rush. Avoid duplicate multiplier applications.
+
+**Owner-accepted provisional unlock order:** SLOW → BARRIER → WIND → FIRE → ICE → SHOCK → ALTER → HARVEST. This is the curriculum to implement and test, not a ranking of power or rarity. The owner explicitly rejected treating FIRE → ICE as a required order merely because it was an illustrative example.
+
+**Academy and replay:** spell-free Opening Trial (D-112) precedes spell apprenticeships. Each apprenticeship teaches its spell; a genuinely challenging Normal examination is intended to be achievable with the repertoire available then. Clearing Normal unlocks the next apprenticeship **and** an optional themed Hardcore challenge for that stage. Hardcore is designed primarily for a returning player with a broader repertoire and larger practical inventory, but remains attemptable immediately by an exceptional typist. Hardcore never gates spell acquisition. Earlier Normal challenges retain their original difficulty, while later-unlocked spells are usable and actually obtainable when replaying, so returning players feel stronger. Optional Hardcore retains each stage's theme and has distinct mastery recognition; it is not simply an across-the-board speed increase. This refines older global Normal/Hardcore semantics where inconsistent; exact stage migration requires an implementation audit. Advanced unrelated Arcane Trials remain separate Yellow scope, not automatically approved for full production.
+
+**Spell economy:** retain a shared bank as testing baseline. Investigate per-spell caps to prevent stockpiling: SLOW 4, BARRIER 2, WIND 2, FIRE 3, ICE 2, SHOCK 2, ALTER 2, HARVEST 1 (**candidate values only, not approved balance**). Rarity, cap and unlock position are separate dimensions. Test charge acquisition versus spending, full-bank overflow, unused charges at defeat, hoarding, repeated-cast survival without typing, and whether early-stage replay actually offers unlocked spells. Target regular consequential casting, not an inventory chore or spell-only dominance. Avoid destructive bank trimming without examining existing approved rules and regression effects.
+
+**Difficulty intent:** Academy emphasizes mastery, Arcane Trials survival, Endless eventually overwhelming every player without unreadable or unfair clutter. Six spatial spawn behaviors (D-109) are retained, primarily for advanced Arcane Trials, not automatically inserted into Academy. Preserve deterministic 60 Hz/seeded replay and the established Combo/Arcane Rush flow protections. Numeric difficulty tuning remains experimental.
+
+**Implementation mandate from owner:** update canonical context **before code**. Audit the actual active dev/preview source and tests, reconcile old paths, update player-facing descriptions and tests, then validate a playable browser preview before production. Conflicting legacy behavior must not remain active; do not remove unrelated functionality. No claim of tested or deployed until verified. Do not overwrite the public build without explicit deployment approval.
+
+
+### D-116 — Controlled chaos is the playable core loop; prototype skill-responsive pressure (2026-11-23)
+_2026-11-23 · Owner-approved design requirement, clarified after D-115 · Implementation: **not yet verified or implemented by this decision** · Exact algorithms, thresholds and balance: **Experimental** · Refines D-097, D-101, D-102, D-107, D-114 and D-115; supersedes any interpretation that an apprenticeship or trial can consist of long passive waits punctuated by isolated waves._
+
+**Core requirement:** TypeL must feel like **controlling chaos already in progress**, not waiting for chaos to start. The same sustained typing-plus-spell decision loop must live **inside** the Opening Trial, Academy lessons and examinations, optional Hardcore, and any playable Arcane Trial prototype. A cosmetically refactored apprenticeship with long idle intervals fails this requirement. Short, earned breathing room after efficient captures or a powerful spell is desirable; sustained idle stretches are not. Never punish an efficient screen clear with unavoidable loss of Combo/Arcane Rush (D-067), fabricate impossible threats, or use unreadable clutter to create intensity.
+
+**Required playable prototype:** Reconcile and implement the existing Difficulty Director as an actual deterministic, skill-responsive pressure controller **within authored stage bounds**. Observe rolling effective WPM, accuracy, successful captures, active threats, proximity/urgency, Ward state and spell use; damp noisy short-term reactions and avoid oscillation. Respond through sensible bounded combinations of spawn timing, concurrent workload, word difficulty and spatial placement, rather than relying only on faster falling words. Maintain enough incoming opportunities for strong typists without erasing the payoff of good play or scaling every player to the same failure outcome. Respect seeded RNG, fixed ticks, replay, legibility, word-selection fairness and existing stage themes. Advanced six-pattern spatial spawn repertoire remains primarily Arcane Trials per D-109; this requirement does **not** automatically authorize importing all six into Academy.
+
+**Mode-specific constraints:**
+- **Opening Trial and Academy Normal:** continuous meaningful engagement and pressure, with learning-friendly stage-specific bounds; meaningful adaptation to different typing abilities. Each Normal examination remains genuinely challenging with its then-available repertoire and achievable without mandatory spell casts.
+- **Hardcore:** authored, fixed/reproducible high-pressure profile that rewards later return with a larger unlocked repertoire. Do **not** dynamically neutralize that advantage. Exceptional players may attempt it immediately; it never gates unlocks.
+- **Arcane Trials:** survival-oriented authored encounters, advanced spatial/temporal pressures and tactical spell decisions. Preserve Yellow experimental scope; if a representative prototype is built, it must use the same controlled-chaos loop, not an unrelated waiting/wave system.
+- **Endless:** escalating combined workload ultimately overwhelms even expert players, without illegibility or arbitrary speed spikes. Skill responsiveness cannot cancel the inevitable escalation.
+
+**Tuning and validation:** Make pressure settings inspectable/configurable. Test seeded synthetic typists at multiple effective WPM and accuracy bands, including spell usage and deliberate screen clears. Report time with zero actionable targets, low-pressure durations, concurrent threats, pressure-control response, spell relief/rebuild and failure/clear rates. Simulations are diagnostic, not proof of human fun. Include actual browser preview verification and human playtest instructions; don't claim implementation or deployment from documentation alone.
+
+**Supersession clarity:** Existing D-097/D-101/D-102 Director implementation details remain useful where compatible, but are **not sufficient merely by existing**; revise any logic producing long idle gameplay or unintentionally flattening mastery. D-114's three mode identities remain intact; D-116 adds a required functioning, testable controller and experiential acceptance criteria. D-115's spell identities, progression, replay and economy remain intact. Do not create a new independent difficulty system if the existing Director can be corrected.
+
+
+### D-117 — Spell identities approved (2026-11-23; renumbered from D-113)
+_Renumbered from PR #18's "D-113" (recorded 18:30 UTC), which collided with the battlefield-pressure D-113 recorded earlier on `dev/battlefield-pressure-20261123` (PR #17); the newer one is renumbered per D-101. **Superseded by D-115 wherever they differ** (D-115 is the canonical spell specification). Its open items are tracked as Q-25._
+_2026-11-23 · Owner-approved conceptual direction · Approved design, not yet implemented · Refines GAME-007 and Production Bible §3 · Numerical tuning and scoring remain open_
+
+**Shared rule:** Every spell must offer a recognizable, physically intuitive decision, not an interchangeable stress-relief button. Typing remains primary. Do not add complexity for its own sake.
+
+- **SHOCK — tactical chain lightning:** dependable lowest-threat strike and guaranteed conduction through an eligible nearby cluster; occasional jump to another cluster, with each successive extra jump increasingly improbable but never ruled out by an arbitrary jump count. Typical: one cluster; occasional second; exceptionally rare third/fourth or more. Organic electricity rather than scripted rails. Use seeded deterministic randomness. No special jackpot scoring multiplier approved. Existing code instead initially strikes three lowest words and caps at ten; reconcile before implementing.
+- **WIND — second-chance physical repulsion:** a visible gust moves danger away from the Ward without deleting words, preserving typing opportunities. Prefer a predictable single push, with stronger effect near the Ward as a candidate, not a settled formula. Prototype pure repulsion first against the existing healing/acceleration-cleansing/All-In version. Ward healing, stability and All-In are not approved for removal from the game; examine survival economy separately.
+- **SLOW — manageable momentum:** “I can still handle this.” Reduce descent briefly while threats keep moving. Initial candidate: shorter meaningful window, recasts refresh duration rather than stack indefinitely. Existing 60%-speed eight-second stacking remains until an implementation change is approved. Arcane Rush remains a typing-performance system, not SLOW-exclusive.
+- **ICE — emergency total control:** “I need everything to stop right now.” Suspend danger to prioritize and type, preserving threats. Existing Frostbound Focus, spawn suspension and recast rules are not repealed. Test whether the stop genuinely enables recovery.
+- **FIRE — catastrophic destructive cleansing:** “Stopping them isn't enough; these threats need to go.” Remove danger outright, unlike ICE. Reliable decisive clearing is the preferred identity; full-screen reach is not yet a locked specification. Current code ignites the lower half, propagates through proximity and spares the top fifth. Resolve reach and scoring explicitly rather than silently replacing implementation.
+
+**Academy distinction:** SLOW = keep pace; ICE = stop and regain control; FIRE = destroy the danger. WIND = push danger away while preserving the typing task. SHOCK = precise clustered destruction with rare spectacular cascades.
+
+**Other spells (not newly redesigned):** BARRIER currently blocks breaches and protects typing momentum from corrected slips; ALTER transforms words and near-term word difficulty; HARVEST cashes in the battlefield using accumulated Combo/Arcane Rush. Their identities need a separate critical review. Preserve existing behaviour until approved changes.
+
+**Open:** SHOCK eligibility/probabilities and no-cap implementation; WIND displacement and Ward/All-In survival economy; SLOW refresh and ICE interactions; FIRE reach; all spells' scoring, Combo, Rush, checkpoint progress, fairness and HARVEST boundaries. Audit code/tests and stage an implementation plan before changing player-facing rules.
+
+### D-118 — Implementing D-115 and D-116 in the playable preview (2026-11-23)
+_2026-11-23 · Implementation decision under the owner's "Full Gameplay Implementation and Playable Prototype" assignment · Design authority: D-115, D-116 · Every number below: **Experimental** · Branch `dev/canonical-playable-20261123`_
+
+Where D-115/D-116 left a choice to the implementation, the preview does this (each is reversible and lives in one tuning object):
+
+- **Order:** apprenticeships follow D-115: Slow, Barrier, Wind, Fire, Ice, Shock, Alter, Harvest, then the Final Examination. Saved progress and records written under the old order are migrated by spell, not by position.
+- **SLOW** (unchanged, already canonical): 60% fall speed for 8 s per cast, stacking; spawning continues.
+- **BARRIER:** a cast sets the shield to 2 layers for 7 s (`BARRIER_TUNING`); recasting refreshes, never stacks above 2. Layers stop Ward breaches only. **Removed:** the corrected-slip Combo/Rush protection and "lasts until the next checkpoint".
+- **WIND:** a gust pushes every scroll up, harder near the Ward (`WIND_TUNING`). Scrolls keep their text, speed and value. **Removed:** Ward healing, cleansing of mistake speed, All-In wagers, Ward scars and the All-In score multiplier.
+- **FIRE:** the combustion reach is kept (low half ignites, spreads through crowds, top fifth spared). **Changed:** it pays zero points and no checkpoint progress.
+- **ICE:** unchanged, already canonical (freeze movement and spawns, Frostbound Focus, diminishing recasts, melt on a cleared board).
+- **SHOCK:** one guaranteed strike on the most urgent scroll, guaranteed conduction through its nearby cluster, then seeded jumps to other clusters with diminishing probability and no fixed cap (`SHOCK_TUNING`). Pays base × Combo; no Rush, no Combo gain. **Removed:** "the 3 lowest words always" and the 10-word cap.
+- **ALTER:** words of 5+ letters on the field become short words in place, keeping their original base value. **Removed:** the 8 s window of easy future spawns.
+- **HARVEST:** unchanged, already canonical.
+- **Bank:** the shared bank with accuracy growth (D-057) stays the baseline. Per-spell caps (D-115 candidates) are implemented behind an Options toggle, off by default.
+- **Academy unlocks:** the Opening Trial (cleared or not, D-112) opens the first apprenticeship. Clearing an apprenticeship's Normal examination opens the next apprenticeship and that apprenticeship's Hardcore. An Options toggle unlocks everything for playtesting.
+- **Replay:** a Normal replay keeps the stage's difficulty, but every spell the player has unlocked can drop, and the starting bank is drawn from the whole repertoire.
+- **Hardcore:** fixed and reproducible: a fixed seed per apprenticeship, no skill adaptation, and the player's whole unlocked repertoire. The existing Hardcore Ward rules stay. It never gates anything.
+- **D-116 controller:** a deterministic pressure controller inside the existing Director (`src/difficulty/PressureController.ts`). It reads rolling typing speed, accuracy, captures, field workload and urgency, Ward breaches and spell relief, and moves a damped, dead-banded "pressure offset" within per-mode bounds. The offset changes spawn timing, the number of concurrent scrolls and word difficulty, not fall speed alone. It is on in the Opening Trial and Academy Normal (both directions), upward-only in Endless, and off in Hardcore and the Sandbox. An empty field brings the next scroll quickly, after a short earned pause.
+- **Supersedes:** D-113's "no skill adaptation" constraint, for the modes above only (D-116). Hardcore and seeded replays stay fixed; every run remains replayable from its commands.
+- **Controller values (Experimental):**
+  - Sampled every 0.5 s.
+  - Rolling rate over 8 s and accuracy over 10 s.
+  - Target: the field demands 60% of the player's shown letter rate.
+  - Dead band 0.12. The offset rises at 0.08/s and eases at 0.12/s.
+  - No rise in the first 12 s, with 10+ scrolls on the field, during ICE, or for 3 s after a powerful spell. It eases for 6 s after a breach.
+  - Bounds: Academy −0.6 to 1.1 → 1.4; Opening −0.5 to 1.0; Endless 0 to 1.2.
+  - Effect: spawn interval × e^(−L), up to +3 scrolls per unit, and the Director's pressure + 0.15·L. The spawn floor still holds.
+  - After the field empties, the next scroll comes within 0.65 s.
+- **Also removed or changed:**
+  - TypeL's elemental-reaction damage multiplier (an extra multiplier that contradicted D-115 scoring).
+  - Runes that depended on All-In or slip insurance, reworked as Unbroken (2 blocks in one Barrier), Second Wind, Gale Force and Reap What You Sow (Rush ×3).
+  - The Ward-heal and scar text.
+  - The run ruleset is now `run-3` (old checkpoint saves can't resume; records start a new table, and old ones are kept). The progress schema is v2.
+- **Not done:** Arcane Trials (Yellow scope, Q-28); graduation; tuning against human play (Q-26, Q-27).

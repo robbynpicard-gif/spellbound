@@ -29,10 +29,11 @@ import {
 import { wordComplexity } from '../gameplay/WordGenerator';
 import { precisionComboMultiplier } from '../gameplay/PrecisionComboPrototype';
 import { sustainedVolleyMultiplier, type FlowCapture } from '../gameplay/SustainedVolley';
-import { combustionChain, FIRE_TUNING, shockChain, type ChainLink } from '../gameplay/SpellChains';
+import { PRESSURE_CONTROL, PressureController, type ControllerSnapshot } from '../difficulty/PressureController';
+import { combustionChain, shockChain, type ChainLink } from '../gameplay/SpellChains';
 import { RuneTracker } from '../gameplay/runes/RuneTracker';
 import type { RuneDef } from '../gameplay/runes/RuneCatalogue';
-import { allInMultiplier, arcaneScore, castWind, freshWard, parseWard, tickAllIn, type WardScarState } from '../gameplay/WardScar';
+import { allInMultiplier, arcaneScore, freshWard, parseWard, tickAllIn, type WardScarState } from '../gameplay/WardScar';
 import {
   addCharge,
   poolSizeFor,
@@ -128,7 +129,20 @@ export interface EngineOptions {
   initialWard?: { cap: number; wagers: number };
   /** Sandbox only: hold this many charges, ignoring the mana pool. Never set in Campaign or duels. */
   poolLimitOverride?: number;
+  /** D-115 experiment: per-spell bank caps (null/absent = the shared bank only). */
+  spellCaps?: Readonly<Partial<SpellCharges>> | null;
+  /** D-116 pressure controller tuning override (tests, simulation). Absent = the config's director decides. */
+  pressureControl?: false;
 }
+
+/** BARRIER (D-115, D-118): layers that stop Ward breaches only, for a short time. EXPERIMENTAL. */
+export const BARRIER_TUNING = { layers: 2, durationMs: 7000 } as const;
+
+/**
+ * WIND (D-115, D-118): one gust pushes every scroll back up, more strongly
+ * near the Ward. Words keep their text, speed and value. EXPERIMENTAL.
+ */
+export const WIND_TUNING = { push: 0.14, nearWard: 0.3, topShare: 0.03 } as const;
 
 /** Ice Frostbound Focus (D-077): Combo gained per successive perfect capture during one freeze. EXPERIMENTAL. */
 export const ICE_FOCUS_STEPS: readonly number[] = [2, 4, 8];
@@ -156,6 +170,15 @@ export interface Pace {
 
 /** Each word's speed varies by up to this fraction around the level's pace. */
 export const SPEED_VARIANCE = 0.25;
+
+/**
+ * D-113 readability (Director runs only). A new scroll's predicted Ward arrival
+ * is kept at least `impactGapSeconds` from every other scroll's, by slowing the
+ * new one a little (never by more than `maxDelaySeconds`, never faster). Lane
+ * choice also avoids sitting above a slower scroll the new one would overtake.
+ * Deterministic: no random draws.
+ */
+export const SPAWN_FAIRNESS = { impactGapSeconds: 0.45, maxDelaySeconds: 1.2, overtakePenalty: 1.5 } as const;
 /** Quota levels: average speed runs from ×(1−this) at the start to ×(1+this) at the quota. */
 export const LEVEL_SPEED_RAMP = 0.15;
 /** During a surge words arrive this much more often, and a few more may be on the field. */
@@ -241,6 +264,8 @@ export class GameEngine {
   private iceFocus = 0;
   /** Barrier absorbed a corrected typo in the current entry (score insurance). */
   private insuredEntry = false;
+  private barrierTicks = 0;
+  private readonly spellCaps: Readonly<Partial<SpellCharges>> | null;
   private readonly poolOverride: number | null;
   private readonly allIn = { wagers: 0, points: 0, harvests: 0, shocks: 0, typedPoints: 0 };
   /** TypeL Runes earned this level (id → count). Arcane preview only. */
@@ -255,6 +280,9 @@ export class GameEngine {
   private recoveryUntilTick = 0;
   /** Difficulty Director: present only when the level's config carries a director spec. */
   private director: DifficultyDirector | null = null;
+  /** D-116: skill-responsive pressure inside the Director's bounds (null when off). */
+  private controller: PressureController | null = null;
+  private emptyTicks = 0;
   private lastPlan: SpawnPlan | null = null;
   /** D-102 continuous run: the plan, which segment is live and where it began. */
   private readonly run: RunPlan | null;
@@ -275,8 +303,11 @@ export class GameEngine {
       ? options.experimentalWordGenerator(options.words, options.config, this.rng, options.seed)
       : new WordGenerator(options.words, options.config, this.rng);
     if (options.config.director) this.director = new DifficultyDirector(options.config.director, options.seed, this.generator.lengthCounts());
+    this.pressureControlAllowed = options.pressureControl !== false;
+    this.syncController(options.config);
     this.hardcore = options.hardcore === true;
     this.experimentalScoring = options.experimentalScoring === true;
+    this.spellCaps = options.spellCaps ?? null;
     this.speedRng = new SeededRandom((this.seed ^ 0x5eed5eed) >>> 0);
     this.laneRng = new SeededRandom((this.seed ^ 0x1a4e1a4e) >>> 0);
     this.ward = this.experimentalScoring && options.initialWard ? parseWard(options.initialWard.cap, options.initialWard.wagers) : freshWard();
@@ -354,6 +385,26 @@ export class GameEngine {
     return this.s;
   }
 
+  private readonly pressureControlAllowed: boolean;
+
+  /** D-116: create or re-bound the pressure controller for the encounter's director spec. */
+  private syncController(config: DifficultyConfig): void {
+    const spec = config.director;
+    const mode = this.pressureControlAllowed ? (spec?.adaptive ?? 'off') : 'off';
+    if (!spec || mode === 'off') {
+      this.controller = null;
+      return;
+    }
+    const kind = spec.adaptiveBounds ?? (spec.kind === 'endless' ? 'endless' : 'run');
+    if (this.controller) this.controller.setBounds(mode, kind, spec.apprenticeship);
+    else this.controller = new PressureController(mode, kind, spec.apprenticeship);
+  }
+
+  /** Development inspection (simulation, tests, debug HUD): the controller's state, or null when off. */
+  get pressureControl(): ControllerSnapshot | null {
+    return this.controller?.snapshot ?? null;
+  }
+
   /** Current fixed-tick sustained Volley multiplier for the typewriter HUD. */
   /** Preview-only readable window for the second-word Volley trigger.
    * UI consumes simulation state without changing timing or word spawning. */
@@ -378,6 +429,7 @@ export class GameEngine {
       if (this.director) this.director.setSpec(config.director);
       else this.director = new DifficultyDirector(config.director, this.seed, this.generator.lengthCounts());
     } else this.director = null;
+    this.syncController(config);
     this.endlessStartedTick = this.s.tick;
     this.endlessWaveActive = false;
     this.endlessPhase = true;
@@ -481,10 +533,12 @@ export class GameEngine {
       // comparable rate for the director's expected word length.
       // D-102: the director also drives density and its events' arrival changes.
       const env = this.director.envelope(this.directorContext());
+      // D-116: the controller tightens or relaxes arrivals and concurrency within its bounds; the floor still holds.
+      const fx = this.controller?.effect() ?? { spawnScale: 1, extraWords: 0 };
       pace = {
         fallSpeed: this.field.height / env.referenceFallSeconds,
-        spawnInterval: Math.max(env.spawnFloorMs, pace.spawnInterval * env.spawnScale),
-        maxActiveWords: Math.max(3, Math.min(16, pace.maxActiveWords + env.extraWords)),
+        spawnInterval: Math.max(env.spawnFloorMs, pace.spawnInterval * env.spawnScale * fx.spawnScale),
+        maxActiveWords: Math.max(3, Math.min(16, pace.maxActiveWords + env.extraWords + fx.extraWords)),
       };
     }
     return pace;
@@ -497,6 +551,7 @@ export class GameEngine {
       seconds: (this.s.tick * SIMULATION_STEP_MS) / 1000,
       endlessSeconds: ((this.s.tick - (this.endlessStartedTick ?? 0)) * SIMULATION_STEP_MS) / 1000,
       phase: info?.phase,
+      bias: this.controller?.effect().pressureBias ?? 0,
     };
   }
 
@@ -647,6 +702,19 @@ export class GameEngine {
 
     this.tickPacing();
 
+    if (this.controller && s.tick % PRESSURE_CONTROL.sampleTicks === 0) {
+      this.controller.sample({
+        tick: s.tick, correctChars: s.correctChars, errors: s.errors, missed: s.missed, words: s.words,
+        time: { slowFactor: s.slowFactor, slowStacks: s.slowStacks.length, frozen: s.freezeTicks > 0 },
+      });
+    }
+
+    if (this.barrierTicks > 0 && --this.barrierTicks === 0 && s.barrier > 0) {
+      s.barrier = 0;
+      this.events.emit('barrierChanged', { remaining: 0 });
+      this.events.emit('spellEnded', { spell: 'barrier' });
+    }
+
     if (this.ward.allInTicks > 0) {
       this.ward = tickAllIn(this.ward);
       if (this.ward.allInTicks === 0) this.events.emit('allInChanged', { active: false, ticks: 0, multiplier: 1, reason: 'expired' });
@@ -720,6 +788,11 @@ export class GameEngine {
     }
 
     s.spawnTimerMs = Math.max(0, s.spawnTimerMs - SIMULATION_STEP_MS);
+    // D-116: no long empty stretches. After a clear, a short earned pause, then the next scroll.
+    if (this.controller && s.words.length === 0) {
+      this.emptyTicks++;
+      s.spawnTimerMs = Math.min(s.spawnTimerMs, Math.max(0, PRESSURE_CONTROL.idlePauseMs - this.emptyTicks * SIMULATION_STEP_MS));
+    } else this.emptyTicks = 0;
     const pace = this.pace;
     if (s.spawnTimerMs === 0 && !s.windingDown && s.words.length < pace.maxActiveWords) {
       this.spawn(pace.fallSpeed);
@@ -829,14 +902,8 @@ export class GameEngine {
       s.entryTypo = true;
       if (this.experimentalScoring) {
         this.iceFocus = 0;
-        if (!this.insuredEntry && s.barrier > 0) {
-          // Barrier score insurance (prototype): one layer covers this entry's typos.
-          s.barrier--;
-          this.insuredEntry = true;
-          this.events.emit('barrierChanged', { remaining: s.barrier });
-          this.events.emit('scoreInsured', { barrierLeft: s.barrier });
-        }
-        if (!this.insuredEntry) {
+        // D-115: BARRIER protects the Ward only; a typo always costs Combo and Rush.
+        {
           this.setCombo(0);
           this.setCleanStreak(0, 'typo');
           this.shrinkPool();
@@ -938,7 +1005,7 @@ export class GameEngine {
     const elementalSpells: Partial<Record<SpellId, Element>> = { fire: 'fire', ice: 'ice', shock: 'shock', wind: 'wind' };
     const incoming = elementalSpells[spell];
     this.pendingElementalMultiplier = 1;
-    if (incoming) {
+    if (incoming && !this.experimentalScoring) {
       const transition = applyElementalStatus(this.workshopElement, incoming, s.tick, Math.round(8000 / SIMULATION_STEP_MS));
       this.workshopElement = transition.next;
       this.pendingElementalMultiplier = transition.damageMultiplier;
@@ -950,6 +1017,7 @@ export class GameEngine {
       }
     }
     this.events.emit('spellCast', { spell, charges: { ...s.spells } });
+    if (this.controller && (spell === 'fire' || spell === 'harvest' || spell === 'shock' || spell === 'ice' || spell === 'wind')) this.controller.noteRelief(s.tick);
     SPELLS[spell].cast(this.spellContext);
     this.pendingElementalMultiplier = 1;
   }
@@ -1072,6 +1140,18 @@ export class GameEngine {
     return fallSpeed * vary * ramp;
   }
 
+  /** D-113: slow a new Director scroll just enough that it doesn't land with another one. */
+  private fairSpeed(speed: number, startY: number): number {
+    const H = this.field.height;
+    const own = (H - startY) / speed;
+    const gap = SPAWN_FAIRNESS.impactGapSeconds;
+    const arrivals = this.s.words.filter((w) => w.speed > 0 && w.y < H).map((w) => (H - w.y) / w.speed).sort((a, b) => a - b);
+    let t = own;
+    for (const a of arrivals) if (Math.abs(a - t) < gap) t = a + gap;
+    if (t === own || t - own > SPAWN_FAIRNESS.maxDelaySeconds) return speed;
+    return (H - startY) / t;
+  }
+
   private spawn(fallSpeed: number, startY = 0): void {
     const s = this.s;
     // Director (D-097): plan length and time-to-Ward first (its own stream). Alter's easy window still decides the text.
@@ -1082,15 +1162,24 @@ export class GameEngine {
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const minX = this.field.sideMargin + halfWidth;
     const maxX = this.field.width - this.field.sideMargin - halfWidth;
+    const H = this.field.height;
+    let speed = plan ? H / plan.fallSeconds : this.spawnSpeed(fallSpeed);
+    if (plan) speed = this.fairSpeed(speed, startY);
+    // Would the new scroll catch word w before w reaches the Ward? (D-113: no overtaking through text.)
+    const overtakes = (w: WordState): boolean => {
+      if (!plan || w.speed <= 0 || speed <= w.speed || w.y <= startY) return false;
+      return (w.y - startY) / (speed - w.speed) < (H - w.y) / w.speed;
+    };
     // Keep the spawn cadence and word count unchanged. Prefer a clear lane
     // near the top so crowded fields remain readable, even under stacked Slow.
     let x = Math.round(minX < maxX ? this.rng.range(minX, maxX) : this.field.width / 2);
-    if (minX < maxX && s.words.some((w) => w.y < 90)) {
+    if (minX < maxX && s.words.some((w) => w.y < 90 || overtakes(w))) {
       const score = (candidate: number): number => s.words.reduce((penalty, w) => {
-        if (w.y >= 90) return penalty;
+        const caught = overtakes(w);
+        if (w.y >= 90 && !caught) return penalty;
         const required = halfWidth + w.text.length * this.field.approxCharWidth / 2 + 12;
         const overlap = Math.max(0, required - Math.abs(candidate - w.x));
-        return penalty + overlap * (w.y < 45 ? 2 : 1);
+        return penalty + overlap * (caught ? SPAWN_FAIRNESS.overtakePenalty : w.y < 45 ? 2 : 1);
       }, 0);
       let best = score(x);
       for (let i = 0; i < 10; i++) {
@@ -1107,7 +1196,6 @@ export class GameEngine {
       available.length > 0 && this.rng.chance(this.config.spellDropChance)
         ? this.rng.weighted(dropWeights(available, this.config.introducesSpell) as Record<SpellId, number>)
         : null;
-    const speed = plan ? this.field.height / plan.fallSeconds : this.spawnSpeed(fallSpeed);
 
     const word: WordState = {
       id: s.nextWordId++,
@@ -1199,7 +1287,7 @@ export class GameEngine {
   private collect(word: WordState): void {
     const s = this.s;
     const spell = word.spell!;
-    const stored = addCharge(s.spells, spell, this.poolLimit);
+    const stored = addCharge(s.spells, spell, this.poolLimit, this.spellCaps);
     const overflowPoints = stored ? 0 : OVERFLOW_POINTS * (this.experimentalScoring ? precisionComboMultiplier(s.combo) : multiplierOf(s.combo));
     if (overflowPoints > 0) {
       s.score += overflowPoints;
@@ -1291,7 +1379,7 @@ export class GameEngine {
     }
     this.events.emit('instabilityChanged', { value: this.instability.value, stage: this.instability.stage });
     // Barrier "lasts until the end of the level": a checkpoint is that boundary now.
-    if (this.s.barrier > 0) {
+    if (!this.experimentalScoring && this.s.barrier > 0) {
       this.s.barrier = 0;
       this.events.emit('barrierChanged', { remaining: 0 });
     }
@@ -1302,6 +1390,7 @@ export class GameEngine {
       if (this.director) this.director.setSpec(to.config.director);
       else this.director = new DifficultyDirector(to.config.director, this.seed, this.generator.lengthCounts());
     }
+    this.syncController(to.config);
     this.segmentStartTick = this.s.tick;
     this.segmentStartCompleted = this.s.completed;
     this.s.surgesStarted = 0;
@@ -1486,7 +1575,11 @@ export class GameEngine {
         this.events.emit('slowChanged', { stacks: this.s.slowStacks.length, factor: this.slowMultiplier });
       },
       addBarrier: (count) => {
-        this.s.barrier += count;
+        if (this.experimentalScoring) {
+          // D-115: a fixed number of short-lived layers; recasting refreshes, never stacks.
+          this.s.barrier = Math.max(this.s.barrier, BARRIER_TUNING.layers);
+          this.barrierTicks = Math.round(BARRIER_TUNING.durationMs / SIMULATION_STEP_MS);
+        } else this.s.barrier += count;
         this.events.emit('barrierChanged', { remaining: this.s.barrier });
       },
       chainLightning: (arcs) => this.chainLightning(arcs),
@@ -1505,6 +1598,8 @@ export class GameEngine {
       },
       wind: (heal) => this.castWindSpell(heal),
       resetWordSpeeds: () => {
+        // D-115: TypeL's Wind is pure repulsion; only the legacy campaign cleanses speed.
+        if (this.experimentalScoring) return;
         const speed = this.pace.fallSpeed;
         // Director words have their own planned speeds: Wind returns each to its spawn speed, never below it.
         const cap = this.director ? Infinity : speed * (1 + (this.config.speedVariance ?? SPEED_VARIANCE));
@@ -1526,12 +1621,9 @@ export class GameEngine {
       // no Combo, Volley or quota.
       const { burned, links } = combustionChain(s.words, this.field.height);
       if (burned.length === 0) return;
-      let points = 0;
-      for (const { word, depth } of burned) {
-        this.removeWord(word);
-        points += Math.round(wordPoints(word.text.length, 1) * (1 + FIRE_TUNING.depthBonus * depth) * this.pendingElementalMultiplier);
-      }
-      s.score += points;
+      // D-115: pure survival. Fire pays zero points, no Combo, Rush or checkpoint progress.
+      for (const { word } of burned) this.removeWord(word);
+      const points = 0;
       this.events.emit('wordsBurned', { words: burned.map((b) => b.word), points, depths: burned.map((b) => b.depth), links });
       this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
       return;
@@ -1583,9 +1675,8 @@ export class GameEngine {
     if (this.experimentalScoring) {
       // D-080 direction, provisional odds: guaranteed first strike, seeded spatial chain.
       const rng = new SeededRandom((this.seed ^ Math.imul(this.s.tick + 7, 0x85ebca6b)) >>> 0);
-      // D-086: the 3 words closest to the Ward are always struck; the chain grows from them.
-      const firsts = [...this.s.words].sort((a, b) => b.y - a.y || a.id - b.id).slice(0, 3);
-      const chain = shockChain(this.s.words, firsts, rng);
+      // D-115: the most urgent scroll, its cluster, then seeded diminishing jumps (no fixed cap).
+      const chain = shockChain(this.s.words, first, rng);
       return this.shockPayout(chain.struck, chain.links);
     }
     const struck = [first, ...rest];
@@ -1610,18 +1701,22 @@ export class GameEngine {
 
   /** The single authoritative Wind decision (D-084); legacy rules keep the flat heal. */
   private castWindSpell(heal: number): void {
-    const s = this.s;
     if (!this.experimentalScoring) return this.spellContext.restoreWard(heal);
-    const r = castWind(this.ward, 100 - this.instability.value);
-    this.ward = r.ward;
-    s.instability = this.instability.add(100 - r.stability - this.instability.value);
-    s.peakInstability = Math.max(s.peakInstability, s.instability);
-    if (r.outcome === 'wager') this.allIn.wagers++;
-    this.events.emit('instabilityChanged', { value: s.instability, stage: this.instability.stage });
-    this.events.emit('windCast', { outcome: r.outcome, stability: r.stability, cap: r.ward.cap, scar: r.scar, endedAllIn: r.endedAllIn, wagers: r.ward.wagers });
-    if (r.outcome === 'wager')
-      this.events.emit('allInChanged', { active: true, ticks: r.ward.allInTicks, multiplier: allInMultiplier(r.ward), reason: 'wager' });
-    else if (r.endedAllIn) this.events.emit('allInChanged', { active: false, ticks: 0, multiplier: 1, reason: 'heal' });
+    return this.windGust();
+  }
+
+  /** D-115 WIND: physical repulsion only. No healing, no All-In, no capture, no score. */
+  private windGust(): void {
+    const H = this.field.height;
+    const moved: { id: number; from: number; to: number }[] = [];
+    for (const w of this.s.words) {
+      const depth = Math.min(1, Math.max(0, w.y / H));
+      const to = Math.max(H * WIND_TUNING.topShare, w.y - H * (WIND_TUNING.push + WIND_TUNING.nearWard * depth * depth));
+      if (to < w.y) moved.push({ id: w.id, from: w.y, to });
+      w.prevY = to;
+      w.y = Math.min(w.y, to);
+    }
+    this.events.emit('windCast', { outcome: 'push', moved });
   }
 
   /** Shock cash-out: base × earned Combo × All-In; never adds Combo or Volley; counts quota. */
@@ -1678,7 +1773,8 @@ export class GameEngine {
   private transmute(minLength: number): void {
     const s = this.s;
     // TypeL (D-086): every word longer than 3 letters is rewritten; legacy keeps its length gate.
-    const long = s.words.filter((w) => w.text.length >= (this.experimentalScoring ? 4 : minLength));
+    // D-115: only existing difficult (long) words change; they keep their original base value.
+    const long = s.words.filter((w) => w.text.length >= minLength);
     if (long.length === 0 || this.shortWords.length === 0) return;
     const rng = new SeededRandom((this.seed ^ Math.imul(s.tick + 1, 0x9e3779b1)) >>> 0);
     const onField = new Set(s.words.map((w) => w.match));

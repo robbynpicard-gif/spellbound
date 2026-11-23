@@ -72,6 +72,55 @@ base game (RELIC-001)?
 Bible §6 fixes the experiment's structure. Still undecided: the placeholder
 sounds, response thresholds, session design and success metrics.
 
+**Q-21 · Opening Trial target typist** (D-113; note D-116 now eases slower typists, see Q-26)
+The first pass makes the Opening Trial clearable without spells from about
+55–60 WPM (Normal), while at 45 WPM it falls without SLOW and is cleared
+with it. Is ~55–60 WPM the right "hands alone" threshold, and should 90+ WPM
+typists also feel climax urgency (today their field stays nearly empty)?
+
+**Q-22 · Academy pressure for strong typists** (D-113, D-114)
+At 120–200 WPM the Academy still rarely builds competing urgency. Should the
+Academy ceiling reach strong typists (raising density further at the top),
+or is that Endless's and the Arcane Trials' job?
+
+**Q-23 · Endless length for exceptional typists** (D-114)
+A 200 WPM simulated typist now survives about 44–55 min on Normal and
+19–22 min on Hardcore. What session length should "eventually overwhelms"
+mean: is a target such as 20–30 min (Normal) wanted?
+
+**Q-24 · Resetting run saves and records** (D-113)
+The ruleset bump (`run-2`) means unfinished runs can't resume and Academy
+best scores start fresh (old ones are kept, not shown). Acceptable for the
+preview, or should old records be shown as "previous rules"?
+
+**Q-25 · Remaining spell-identity details** (D-117, renumbered from PR #18's Q-21)
+D-115 settles the eight identities, and D-118 records the preview's first
+implementation. Still for the owner to confirm in playtest:
+- SLOW stacking versus refresh;
+- WIND's push strength;
+- FIRE's reach (the low half plus spread);
+- SHOCK's conduction radius and jump odds;
+- BARRIER's 2 layers for 7 s;
+- whether Ward healing or All-In return later as relics or trial modifiers.
+
+**Q-26 · How generous should Academy Normal adaptation be?** (D-116, D-118)
+With the controller, simulated 35–45 WPM typists now clear apprenticeships
+1–5, and 60 WPM typists clear the Final Examination. Both failed on the fixed
+curve. Is that the "genuinely challenging but achievable" bar, or should the
+lower bound be tighter (less easing) for later examinations?
+
+**Q-27 · Hardcore's fixed profile for strong typists** (D-115, D-116)
+Hardcore is fixed and reproducible, so a 120–160 WPM typist meets a sparse
+field there (35–52% idle in apprenticeships 3–5). Should Hardcore's authored
+profile be raised substantially, per stage? And how should "returning with
+more spells" be rewarded? The simulated caster shows almost no difference
+between the stage repertoire and the full one.
+
+**Q-28 · Arcane Trials prototype** (D-114, D-116)
+Not built in this pass (Yellow scope). When should a representative trial be
+prototyped on the same controller, and with which of the six D-109 spawn
+behaviours?
+
 ## Resolved
 
 **Q-5 · Normal quick-cast:** resolved by D-106 (GAME-001). Default Normal

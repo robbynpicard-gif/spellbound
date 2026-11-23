@@ -19,16 +19,21 @@ export interface ChainLink {
   depth: number;
 }
 
+/**
+ * SHOCK (D-115, D-118): one guaranteed strike on the most urgent scroll,
+ * guaranteed conduction through its nearby cluster, then seeded jumps to other
+ * clusters, each less likely than the last, with no fixed cap on the chain.
+ * EXPERIMENTAL values.
+ */
 export const SHOCK_TUNING = {
-  /** Field pixels an arc can jump. */
-  radius: 300,
-  /** Chance at point-blank range, falling linearly to `farChance` at the radius. */
-  nearChance: 0.9,
-  farChance: 0.2,
-  /** Each generation of the chain is this much less likely to jump again. */
-  depthDecay: 0.82,
-  /** Hard safety ceiling on words struck by one cast. */
-  maxWords: 10,
+  /** Field pixels within which lightning always conducts (one cluster). */
+  conduct: 170,
+  /** Chance of the first jump to another cluster. */
+  jumpChance: 0.5,
+  /** Each further jump is this much less likely (0.5: 50%, 25%, 12.5% …). Never zero, so no fixed cap. */
+  jumpDecay: 0.5,
+  /** A jump reaches the nearest unstruck scroll within this distance of any struck one. */
+  jumpReach: 700,
 } as const;
 
 export const FIRE_TUNING = {
@@ -44,40 +49,59 @@ export const FIRE_TUNING = {
 
 const dist = (a: ChainWord, b: ChainWord) => Math.hypot(a.x - b.x, a.y - b.y);
 
+/** Conducts from `seeds` through every scroll within `radius` of a struck one (guaranteed, spatial). */
+function conduct<W extends ChainWord>(words: readonly W[], struck: W[], hit: Set<number>, links: ChainLink[], depthOf: Map<number, number>, from: number, radius: number): void {
+  for (let i = from; i < struck.length; i++) {
+    const src = struck[i]!;
+    const near = words
+      .filter((w) => !hit.has(w.id) && dist(src, w) <= radius)
+      .sort((a, b) => dist(src, a) - dist(src, b) || a.id - b.id);
+    for (const w of near) {
+      const depth = depthOf.get(src.id)! + 1;
+      hit.add(w.id);
+      depthOf.set(w.id, depth);
+      struck.push(w);
+      links.push({ from: src.id, to: w.id, depth });
+    }
+  }
+}
+
 /**
- * Shock: the guaranteed strikes (D-086: the 3 words nearest the Ward) come first; from every
- * struck word, each nearby unstruck word gets one seeded roll, likelier when
- * close and in early generations. Dense fields chain further.
+ * Shock chain: `first` is always struck and its cluster always conducts. Then
+ * each jump to the nearest other cluster succeeds with jumpChance × decay^k.
+ * Seeded, so a replay strikes the same way.
  */
 export function shockChain<W extends ChainWord>(
   words: readonly W[],
-  firsts: readonly W[],
+  first: W,
   rng: SeededRandom,
   t: { -readonly [K in keyof typeof SHOCK_TUNING]: number } = SHOCK_TUNING,
-): { struck: W[]; links: ChainLink[] } {
-  const struck: W[] = [...firsts];
+): { struck: W[]; links: ChainLink[]; jumps: number } {
+  const struck: W[] = [first];
   const links: ChainLink[] = [];
-  const hit = new Set<number>(firsts.map((w) => w.id));
-  const depthOf = new Map<number, number>(firsts.map((w) => [w.id, 0]));
-  for (let i = 0; i < struck.length && struck.length < t.maxWords; i++) {
-    const src = struck[i]!;
-    const depth = depthOf.get(src.id)!;
-    const near = words
-      .filter((w) => !hit.has(w.id) && dist(src, w) <= t.radius)
-      .sort((a, b) => dist(src, a) - dist(src, b) || a.id - b.id);
-    for (const w of near) {
-      if (struck.length >= t.maxWords) break;
-      const closeness = 1 - dist(src, w) / t.radius;
-      const p = (t.farChance + (t.nearChance - t.farChance) * closeness) * Math.pow(t.depthDecay, depth);
-      if (rng.next() < p) {
-        hit.add(w.id);
-        depthOf.set(w.id, depth + 1);
-        struck.push(w);
-        links.push({ from: src.id, to: w.id, depth: depth + 1 });
+  const hit = new Set<number>([first.id]);
+  const depthOf = new Map<number, number>([[first.id, 0]]);
+  conduct(words, struck, hit, links, depthOf, 0, t.conduct);
+  let jumps = 0;
+  while (struck.length < words.length && rng.next() < t.jumpChance * Math.pow(t.jumpDecay, jumps)) {
+    let best: { src: W; w: W; d: number } | null = null;
+    for (const src of struck)
+      for (const w of words) {
+        if (hit.has(w.id)) continue;
+        const d = dist(src, w);
+        if (d <= t.jumpReach && (!best || d < best.d || (d === best.d && w.id < best.w.id))) best = { src, w, d };
       }
-    }
+    if (!best) break;
+    jumps++;
+    const depth = depthOf.get(best.src.id)! + 1;
+    hit.add(best.w.id);
+    depthOf.set(best.w.id, depth);
+    const from = struck.length;
+    struck.push(best.w);
+    links.push({ from: best.src.id, to: best.w.id, depth });
+    conduct(words, struck, hit, links, depthOf, from, t.conduct);
   }
-  return { struck, links };
+  return { struck, links, jumps };
 }
 
 /**

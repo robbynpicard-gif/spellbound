@@ -131,36 +131,7 @@ describe('Ward scar rules (pure)', () => {
   });
 });
 
-describe('Wind in the engine (Arcane preview)', () => {
-  it('a wager at full Ward drops to critical without collapsing, and doubles typed scores', () => {
-    const e = arcane({ initialSpells: { wind: 1 } });
-    fill(e, 2);
-    cast(e, 'wind');
-    expect(e.wardInfo.stability).toBe(WARD_TUNING.wagerStability);
-    expect(e.wardInfo.cap).toBe(85);
-    expect(e.status).toBe('playing');
-    const w = [...e.state.words].sort((a, b) => b.y - a.y)[0]!;
-    expect(capture(e)).toBe(w.text.length * 10 * 1 * 2);
-    expect(e.stats().allInWagers).toBe(1);
-  });
-
-  it('a Ward breach ends All-In in Normal; a typo ends it only in Hardcore', () => {
-    const normal = arcane({ initialSpells: { wind: 1 } });
-    fill(normal, 1);
-    cast(normal, 'wind');
-    type(normal, 'z');
-    normal.clearInput();
-    expect(normal.wardInfo.allInTicks).toBeGreaterThan(0);
-    while (normal.state.missed === 0 && normal.status === 'playing') normal.step();
-    expect(normal.wardInfo.allInTicks).toBe(0);
-
-    const hard = arcane({ initialSpells: { wind: 1 }, hardcore: true });
-    fill(hard, 1);
-    cast(hard, 'wind');
-    type(hard, 'z');
-    expect(hard.wardInfo.allInTicks).toBe(0);
-  });
-
+describe('Ward scar carry (legacy campaign data; D-115 removed All-In from Wind)', () => {
   it('starts a scarred level at or below its maximum and keeps legacy Wind unchanged', () => {
     expect(arcane({ initialWard: { cap: 60, wagers: 2 } }).wardInfo.stability).toBe(60);
     const legacy = new GameEngine({ config: CONFIG, seed: 7, words: WORDS, initialSpells: { wind: 1 }, initialInstability: 80 });
@@ -171,26 +142,24 @@ describe('Wind in the engine (Arcane preview)', () => {
 });
 
 describe('Harvest, Shock, Ice, Barrier, Alter (Arcane preview)', () => {
-  it('Harvest pays full base × Combo × Volley × All-In, consumes Volley and keeps Combo', () => {
-    const e = arcane({ initialSpells: { harvest: 1, wind: 1 }, initialCombo: 20 });
+  it('Harvest pays full base × Combo × Rush, consumes Rush and keeps Combo (D-115)', () => {
+    const e = arcane({ initialSpells: { harvest: 1 }, initialCombo: 20 });
     fill(e, 5);
     capture(e);
-    capture(e); // two flawless captures ignite Volley ×1.2
+    capture(e); // two flawless captures ignite Rush ×1.2
     expect(e.volleyMultiplier).toBeCloseTo(1.2);
-    cast(e, 'wind'); // All-In ×2
     const base = e.state.words.reduce((sum, w) => sum + w.text.length * 10, 0);
     const combo = e.state.combo;
     const completed = e.state.completed;
     const before = pts(e);
     cast(e, 'harvest');
-    expect(pts(e) - before).toBe(Math.round(base * 3 * 1.2 * 2));
+    expect(pts(e) - before).toBe(Math.round(base * 3 * 1.2));
     expect(e.state.combo).toBe(combo);
     expect(e.volleyMultiplier).toBe(1);
     expect(e.state.completed).toBe(completed + 3);
-    expect(e.stats().allInHarvests).toBe(1);
   });
 
-  it('Shock cashes out base × Combo × All-In without adding Combo', () => {
+  it('Shock cashes out base × Combo without adding Combo', () => {
     const e = arcane({ initialSpells: { shock: 1 }, initialCombo: 10 });
     fill(e, 3);
     const combo = e.state.combo;
@@ -229,18 +198,14 @@ describe('Harvest, Shock, Ice, Barrier, Alter (Arcane preview)', () => {
     expect(e.volleyArmedProgress).toBeLessThan(armed);
   });
 
-  it('Barrier insures one corrected typo: Combo kept, capture not perfect', () => {
+  it('Barrier no longer protects Combo from a slip (D-115)', () => {
     const e = arcane({ initialSpells: { barrier: 1 }, initialCombo: 15 });
     fill(e, 2);
     cast(e, 'barrier');
     const layers = e.state.barrier;
     correctedCapture(e);
-    expect(e.state.barrier).toBe(layers - 1);
-    expect(e.state.combo).toBe(15); // kept, but no +1 for a corrected capture
-    const bare = arcane({ initialCombo: 15 });
-    fill(bare, 2);
-    correctedCapture(bare);
-    expect(bare.state.combo).toBe(0);
+    expect(e.state.barrier).toBe(layers);
+    expect(e.state.combo).toBe(0);
   });
 
   it('Alter keeps the original word base value', () => {

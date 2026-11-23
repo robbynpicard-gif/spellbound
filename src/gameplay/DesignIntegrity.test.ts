@@ -5,7 +5,7 @@ import { SPELL_IDS, addCharge, emptyCharges, poolSizeFor, totalCharges } from '.
 
 describe('D-058 existing spell economy and elemental behavior', () => {
   it('keeps the accepted eight-spell roster and shared charge pool', () => {
-    expect(SPELL_IDS).toEqual(['slow', 'ice', 'barrier', 'shock', 'alter', 'fire', 'wind', 'harvest']);
+    expect(SPELL_IDS).toEqual(['slow', 'barrier', 'wind', 'fire', 'ice', 'shock', 'alter', 'harvest']); // D-115 curriculum order
     const charges = emptyCharges();
     expect(poolSizeFor(0)).toBe(8);
     expect(poolSizeFor(25)).toBe(9);

@@ -203,16 +203,21 @@ describe('D-102 save, resume and determinism', () => {
     expect(c.spawns).not.toEqual(a.spawns);
   });
 
-  it('the Director reads no player skill: only seed, spec, progress and the clock', () => {
+  it('the Director reads only seed, spec, progress, the clock and the bounded D-116 bias', () => {
     const keys = new Set<string>();
     const ctx = new Proxy({ progress: 0.3, seconds: 40 }, { get: (o, k) => (keys.add(String(k)), (o as Record<string | symbol, unknown>)[k]) });
     new DifficultyDirector(apprenticeshipRun('normal', 2).segments[0]!.config.director!, 1, COUNTS).next(ctx);
-    for (const k of keys) expect(['progress', 'seconds', 'endlessSeconds', 'phase', 'opening']).toContain(k);
+    for (const k of keys) expect(['progress', 'seconds', 'endlessSeconds', 'phase', 'opening', 'bias']).toContain(k);
+    // D-116: Normal adapts, Hardcore is a fixed profile, Endless only adds.
+    expect(apprenticeshipRun('normal', 2).segments[0]!.config.director!.adaptive).toBe('both');
+    expect(apprenticeshipRun('hardcore', 2).segments[0]!.config.director!.adaptive).toBe('off');
+    expect(apprenticeshipEndless('normal', 2).director!.adaptive).toBe('up');
   });
 });
 
 describe('D-102 living difficulty', () => {
-  const runReport = simulate({ plan: apprenticeshipRun('normal', 5), words: WORDS, seed: 21, typist: PERFECT, maxSeconds: 1200 });
+  // The authored event schedule (D-102); the D-116 controller is tested in controlled-chaos.test.ts.
+  const runReport = simulate({ plan: apprenticeshipRun('normal', 5), words: WORDS, seed: 21, typist: PERFECT, maxSeconds: 1200, pressureControl: false });
   const preBoss = runReport.timeline.filter((s) => s.phase === 'learn' || s.phase === 'master');
 
   it('short pressure events arrive every ~8–15 s and last ~3–7 s (experimental targets)', () => {

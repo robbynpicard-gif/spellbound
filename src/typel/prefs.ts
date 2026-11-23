@@ -2,6 +2,8 @@
  * TypeL prototype storage (D-085): progress, records, Runes, Triumph totals
  * and accessibility. Its own keys, so it never touches older saves.
  */
+import { migrateCompleted, PROGRESS_VERSION } from './progression';
+
 const KEY = 'typel.progress.v1';
 
 export interface TypeLProgress {
@@ -15,6 +17,12 @@ export interface TypeLProgress {
   /** D-112: the spell-free Opening Trial, per mode. */
   opening: { cleared: { normal: boolean; hardcore: boolean }; best: Record<string, number>; runs: number };
   reducedMotion: boolean | null;
+  /** Save schema (D-118): 2 = apprenticeship indices in the D-115 order. */
+  version?: number;
+  /** Options → playtesting: open every apprenticeship and Hardcore, and give every spell. */
+  unlockAll: boolean;
+  /** Options → experiment: D-115 candidate per-spell bank caps. */
+  spellCaps: boolean;
 }
 
 const fresh = (): TypeLProgress => ({
@@ -26,6 +34,9 @@ const fresh = (): TypeLProgress => ({
   typing: { bestWpm: {}, runs: 0 },
   opening: { cleared: { normal: false, hardcore: false }, best: {}, runs: 0 },
   reducedMotion: null,
+  version: PROGRESS_VERSION,
+  unlockAll: false,
+  spellCaps: false,
 });
 
 function load(): TypeLProgress {
@@ -33,10 +44,18 @@ function load(): TypeLProgress {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Partial<TypeLProgress> | null;
     const f = fresh();
     if (!raw) return f;
+    // v1 saves numbered apprenticeships in the pre-D-115 spell order: map them by spell.
+    const old = (raw.version ?? 1) < PROGRESS_VERSION;
+    const completed = { ...f.completed, ...(raw.completed ?? {}) };
+    if (old) {
+      completed.normal = migrateCompleted(completed.normal ?? []);
+      completed.hardcore = migrateCompleted(completed.hardcore ?? []);
+    }
     return {
       ...f,
       ...raw,
-      completed: { ...f.completed, ...(raw.completed ?? {}) },
+      version: PROGRESS_VERSION,
+      completed,
       lifetime: { ...f.lifetime, ...(raw.lifetime ?? {}) },
       typing: { ...f.typing, ...(raw.typing ?? {}) },
       opening: { ...f.opening, ...(raw.opening ?? {}), cleared: { ...f.opening.cleared, ...(raw.opening?.cleared ?? {}) } },
