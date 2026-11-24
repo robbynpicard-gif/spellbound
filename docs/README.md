@@ -184,3 +184,7 @@ the owner's approval.
 ## Arcane Trials current design override (D-120, 2026-11-23)
 
 The initial Arcane Trials prototype targets **~8–12 minutes experimentally**, with **continuous controlled chaos and no mandatory three-phase template**. Any 15–20 minute default or prescribed three-phase encounter in older docs is historical/superseded for this mode. Longer or phase-based variants are potential future experiments, not the baseline. See `docs/production-bible.md` and D-120 in `docs/decisions.md`. Arcane Trials remain Yellow scope; implementation is not verified.
+
+## Experimental menu integration (2026-11-23)
+
+Branch `dev/arcade-menu-alignment-20261123` is an **unverified experimental** Arcade-first menu integration (D-122). Primary destinations are Academy, Arcade, Practice, and Arcane Trials. Arcade is an early playable integration using existing Endless configurations; Ranked online infrastructure and presets, Free Type, and detailed Battlefield Lab controls are not implemented. The existing preview branch and production `main` are unchanged pending review and verification.
