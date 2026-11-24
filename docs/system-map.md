@@ -78,3 +78,7 @@ by anything.
 | Deploy | `.github/workflows/deploy.yml` (runs on `main`): builds `main` at the root and the dev branch into `/preview/`, stamps the preview with the dev commit | Last run succeeded 2026-11-23 00:38 UTC; live content not inspected for this audit |
 | Validate branches | `.github/workflows/dev-check.yml`, `dev-validate.yml` | Green |
 | Repository | `robbynpicard-gif/spellbound`, Pages `https://robbynpicard-gif.github.io/spellbound/` (the GitHub API reports this name as of 2026-11-22; D-099's rename to `TypeL` has not happened on GitHub) | Verified via API |
+
+## Arcade-first menu experiment (D-122; 2026-11-23)
+
+**Experimental, unverified:** branch `dev/arcade-menu-alignment-20261123` modifies `src/typel/app.ts` to expose Academy, Arcade, Practice and experimental Arcane Trials as primary destinations. Arcade currently reuses `apprenticeshipEndless` with adaptive Casual or fixed Ranked and stores separate local bests; this is not final competitive implementation. Practice routes Read & Type to `typingTrial.ts` and Battlefield Lab to Sandbox; Free Type remains a clearly labeled design preview. Developer unlocks and spell-cap controls remain in Options. Tests and browser verification pending; no `main` changes.
