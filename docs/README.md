@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-121
+Decision log current through: D-122
 
 ## Current state (2026-11-23)
 
@@ -187,4 +187,4 @@ The initial Arcane Trials prototype targets **~8–12 minutes experimentally**, 
 
 ## Experimental menu integration (2026-11-23)
 
-Branch `dev/arcade-menu-alignment-20261123` is an **unverified experimental** Arcade-first menu integration (D-122). Primary destinations are Academy, Arcade, Practice, and Arcane Trials. Arcade is an early playable integration using existing Endless configurations; Ranked online infrastructure and presets, Free Type, and detailed Battlefield Lab controls are not implemented. The existing preview branch and production `main` are unchanged pending review and verification.
+Branch `dev/arcade-menu-alignment-20261123` is an **unverified experimental** Arcade-first menu integration (D-122). Primary destinations are Academy, Arcade, Practice, and Arcane Trials. Arcade is an early playable integration using existing Endless configurations; Ranked online infrastructure and presets, Free Type, and detailed Battlefield Lab controls are not implemented. Merged into the development preview for owner playtesting; production `main` remains unchanged. Interactive verification is pending.
