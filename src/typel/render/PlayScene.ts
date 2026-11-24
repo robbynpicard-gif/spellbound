@@ -654,7 +654,17 @@ export class TypeLPlayScene extends Phaser.Scene {
     const ev = this.engine.events;
     const cx = CX;
     const gw = this.world.wizard;
-    ev.on('wordSpawned', ({ word }) => this.addView(word));
+    ev.on('wordSpawned', ({ word, formation }) => {
+      this.addView(word);
+      if (!formation) return;
+      // D-120 readability: a scroll entering partway down is announced with a soft ring where it appears,
+      // and a change of wind side gets a brief gust from that side.
+      if (formation.staggered) {
+        const at = this.posOf(word);
+        this.burst(at.x, at.y, 0xd8f0ff, 8);
+      }
+      if (formation.switched && formation.side) this.gust(formation.side === 'left' ? 0.35 : -0.35);
+    });
     ev.on('wordProgress', ({ word }) => this.views.get(word.id)?.setTyped(word.typed));
     ev.on('targetChanged', ({ previousId, currentId }) => {
       if (previousId !== null) this.views.get(previousId)?.setTarget(false);

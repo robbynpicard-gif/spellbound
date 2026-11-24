@@ -117,11 +117,23 @@ more spells" be rewarded? The simulated caster shows almost no difference
 between the stage repertoire and the full one.
 
 **Q-28 · Arcane Trials prototype** (D-114, D-116)
-Not built in this pass (Yellow scope). When should a representative trial be
-prototyped on the same controller, and with which of the six D-109 spawn
-behaviours?
+*Partly answered:* one representative trial, The Crosswind Trial, is built on
+the existing Director with D-109 behaviours 4 and 5 (2026-11-23; see
+`arcane-trial-prototype-report-2026-11-23.md`). Whether to expand to more
+trials or behaviours waits on playtesting (Q-29 to Q-31).
+
+**Q-32 · Crosswind playtest checks** (D-121)
+Questions for the owner's first play of the Crosswind Trial:
+- Is the spell economy sustainable without the starting bank (one of each spell)?
+- Are staggered arrivals readable and fair?
+- Does the ending feel like surviving a trial rather than finishing a quota?
+- Should challenge tiers serve 160 WPM players (D-121, Deferred)?
 
 ## Resolved
+
+- **Q-29 · Should Arcane Trials adapt?** Fixed, seeded authored difficulty is the baseline; adaptation stays experimental (D-121).
+- **Q-30 · Who should the Crosswind Trial stop?** 90 WPM is the initial calibration reference, not a requirement; challenge tiers deferred (D-121).
+- **Q-31 · How a trial ends.** Keep the 560-scroll quota for the prototype; revisit time endings after playtesting (D-121).
 
 **Q-5 · Normal quick-cast:** resolved by D-106 (GAME-001). Default Normal
 drops number-key casting. Whether an opt-in setting stays is Q-12.

@@ -9,7 +9,8 @@ export type GameResult = 'won' | 'lost';
 
 /** Everything the simulation announces. Rendering, audio and UI listen to these. */
 export interface GameEvents {
-  wordSpawned: { word: WordState };
+  /** `formation`: present in an Arcane Trial (D-120), for the entry telegraph. */
+  wordSpawned: { word: WordState; formation?: { side: 'left' | 'right' | null; staggered: boolean; switched: boolean } };
   /** A correct character was typed on the target word. */
   wordProgress: { word: WordState };
   wordCompleted: {

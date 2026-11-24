@@ -30,7 +30,7 @@ Wind/All-In, the Difficulty Director and Endless.
 | GAME-004 challenge → lesson → examination → Grandmaster | Each apprenticeship runs Learn → Master → Boss (D-102). The finale is the "Final Examination" by the "Grand Wizard"; D-103 says "Headmaster" | **Names** | Refactor | Rename the final figure to Grandmaster. **D-107:** the spell-free opening challenge is the challenge; apprenticeships are lessons plus examinations, with no per-apprenticeship challenge. The Bible (§10) leaves stage count, teachers and durations unfinalized |
 | Graduation unlocks the toolkit and advanced play | D-103: graduation unlocks the "Arcade Campaign". Not implemented | Partly | Refactor | Keep graduation. What it unlocks follows the SCOPE rows below |
 | SCOPE-001 Academy + Arcade & Practice (green) | Sandbox (each apprenticeship's Endless), Typing Trials and the legacy Practice mode (`main` only) | Partly | Refactor | Build Arcade & Practice from the existing Endless, Sandbox and Typing Trials. Add spell-free survival, targeted practice and personal records |
-| SCOPE-002 Arcane Trials (yellow) | D-103's "Arcade Campaign" (authored stages, advanced scroll types). Not implemented | **Yes** | Replace | D-103's Arcade Campaign is superseded as a committed launch mode. Its ideas move into the Arcane Trials prototype (one representative 15–20 minute run first). **D-107: advanced spawn behaviours live in Arcane Trials** (revisit if testing shows apprenticeships benefit) |
+| SCOPE-002 Arcane Trials (yellow) | D-103's "Arcade Campaign" (authored stages, advanced scroll types). Not implemented | **Yes** | Replace | D-103's Arcade Campaign is superseded as a committed launch mode. Its ideas move into the Arcane Trials prototype (one representative ~8–12-minute experimental continuous run first). **D-107: advanced spawn behaviours live in Arcane Trials** (revisit if testing shows apprenticeships benefit) |
 | SCOPE-003 expanding playground (red); RELIC-001 small relic set | No relic system exists | — | Defer / New | Keep the architecture extensible. Design 3–5 relics with Arcane Trials, after the vertical slice |
 | GAME-005 Combo/Volley buildup and screen-clear fairness | Implemented. The Rush multiplier starts on the second timely perfect word (D-060). Window: 52 + 13 ticks per letter in Normal, 34 + 10 in Hardcore (`ArcaneVolley.ts`). The clock pauses on an empty field with one 0.4 s grace (D-067). Player-facing name: Arcane Rush (D-086) | Name only | Retain (rename) | Keep the mechanics exactly as built. **D-107/D-108: "Volley" retired; the name is Arcane Rush.** Rename the remaining Volley wording in hints and code |
 | Spell cadence: one cast every 10–15 s, maybe 5–10 s | Director pressure exists. Cadence is not measured | — | New (measure) | Add cast-interval telemetry to the simulation harness, then tune toward the hypothesis. It's not a quota (D-105) |
@@ -93,7 +93,7 @@ for this slice.
 **M4 — AUDIO-EXP-001**, once the M3 event adapter exists.
 
 **M5 — Arcane Trials prototype** (Bible phase 05): one representative
-15–20 minute run, built on the D-109 spawn behaviours and Suspended
+~8–12-minute experimental continuous run, built on the D-109 spawn behaviours and Suspended
 Scattered Spawning.
 
 **Backlog idea (Experimental, D-108):** keep the typewriter active in the
@@ -110,3 +110,7 @@ of Q-16 (D-109). Still open, in [`open-questions.md`](open-questions.md):
 - **Q-18:** how the opening challenge maps onto the continuous run.
 - **Q-19:** green-scope acceptance criteria.
 - **Q-20:** AUDIO-EXP-001 parameters.
+
+### D-120 — Arcane Trials prototype override (2026-11-23)
+
+Where this reconciliation plan or historical sources specify a 15–20 minute default or mandatory three-phase encounter, **D-120 supersedes those requirements**. The first prototype should test ~8–12 minute continuous encounters with dynamic pressure/release, no mandatory phase breaks, and distinctive authored tactical identity. Duration is experimental; the mode remains Yellow. Future longer or phased variants are separate exploration, not required for the first slice.

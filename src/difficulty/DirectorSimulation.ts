@@ -95,6 +95,10 @@ export interface RunReport {
   spellScrolls: number[];
   spellsCollected: number[];
   casts: { t: number; spell: SpellId }[];
+  /** Points paid by spells (Shock, Harvest), for the D-119 typing-first check. Typed points = score − this − Runes. */
+  spellPoints: number;
+  /** Rune points (fixed awards). */
+  runePoints: number;
   spawns: SpawnSample[];
   timeline: SecondSample[];
   failure: FailureCause;
@@ -172,6 +176,9 @@ export function simulate(o: SimOptions): RunReport {
   });
   engine.events.on('spellCollected', () => spellsCollected.push(engine.state.tick / SIMULATION_HZ));
   engine.events.on('spellCast', ({ spell }) => casts.push({ t: engine.state.tick / SIMULATION_HZ, spell }));
+  let spellPoints = 0;
+  engine.events.on('wordsShocked', ({ points }) => (spellPoints += points));
+  engine.events.on('wordsHarvested', ({ points }) => (spellPoints += points));
   engine.events.on('checkpoint', () => checkpoints.push({ t: engine.state.tick / SIMULATION_HZ, phase: phase(), score: engine.state.score, combo: engine.state.combo, rush: engine.volleyMultiplier }));
   const T = o.typist;
   const cps = cpsOf(T);
@@ -275,7 +282,7 @@ export function simulate(o: SimOptions): RunReport {
     endedIn: lost ? phase() : engine.status === 'won' ? 'cleared' : `${phase()} (time cap)`,
     seconds, endlessSeconds: endlessStart === null ? 0 : (engine.state.tick - endlessStart) / SIMULATION_HZ,
     score: engine.state.score, captured: st.completed, missed: st.missed, maxCombo: st.maxCombo, peakRush,
-    checkpoints, spellScrolls, spellsCollected, casts, spawns, timeline, failure: lost ? classifyFailure(timeline.slice(-12), T) : 'none',
+    checkpoints, spellScrolls, spellsCollected, casts, spellPoints, runePoints: st.runePoints ?? 0, spawns, timeline, failure: lost ? classifyFailure(timeline.slice(-12), T) : 'none',
   };
 }
 
