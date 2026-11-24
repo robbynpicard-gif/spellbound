@@ -134,6 +134,13 @@ export interface EngineOptions {
   spellCaps?: Readonly<Partial<SpellCharges>> | null;
   /** D-116 pressure controller tuning override (tests, simulation). Absent = the config's director decides. */
   pressureControl?: false;
+  /**
+   * D-125 Practice Sandbox only (never set by Academy, Arcade or Trials):
+   * `noDefeat`: an unblocked breach still counts as lost, breaks Combo and
+   * plays its feedback, but never damages the Ward or ends the session.
+   * `unlimited`: spells whose charge is restored after every cast.
+   */
+  practice?: { noDefeat?: boolean; unlimited?: readonly SpellId[] };
 }
 
 /** BARRIER (D-115, D-118): layers that stop Ward breaches only, for a short time. EXPERIMENTAL. */
@@ -227,7 +234,9 @@ export class GameEngine {
 
   private readonly field: FieldConfig;
   private readonly rng: SeededRandom;
-  private readonly generator: WordGenerator;
+  private generator: WordGenerator;
+  private readonly words: readonly string[];
+  private readonly practice: { noDefeat: boolean; unlimited: Set<SpellId> } | null;
   private readonly instability: InstabilityManager;
   private readonly hardcore: boolean;
   private readonly experimentalScoring: boolean;
@@ -301,6 +310,10 @@ export class GameEngine {
     if (this.run && this.run.segments[0]!.config !== options.config) throw new Error('A run plan must start with options.config');
     this.config = options.config;
     this.seed = options.seed;
+    this.words = options.words;
+    this.practice = options.practice
+      ? { noDefeat: options.practice.noDefeat === true, unlimited: new Set(options.practice.unlimited ?? []) }
+      : null;
     this.field = options.field ?? FIELD;
     this.rng = new SeededRandom(options.seed);
     this.generator = options.experimentalWordGenerator
@@ -1000,6 +1013,8 @@ export class GameEngine {
       this.events.emit('spellFizzled', { spell });
       return;
     }
+    // D-125 Sandbox: an unlimited spell keeps its charge (durations and stacking rules are unchanged).
+    if (this.practice?.unlimited.has(spell)) s.spells[spell]++;
     s.spellsCast[spell]++;
     if (this.experimentalScoring && !this.volleySpellRefreshUsed && this.volleyMultiplier > 1) {
       // A successful spell is a rhythm action: refresh, don't pause or capture.
@@ -1334,8 +1349,9 @@ export class GameEngine {
     this.activeVolleyMultiplier = 1;
     this.setCleanStreak(0, 'miss');
     this.shrinkPool();
-    const damage = this.config.instabilityPerMiss;
-    s.instability = this.instability.add(damage);
+    // D-125 Sandbox: no defeat and no Ward depletion; the breach is still counted (s.missed) and felt.
+    const damage = this.practice?.noDefeat ? 0 : this.config.instabilityPerMiss;
+    s.instability = damage > 0 ? this.instability.add(damage) : s.instability;
     s.peakInstability = Math.max(s.peakInstability, s.instability);
 
     this.events.emit('wordMissed', { word, instability: s.instability });
@@ -1343,7 +1359,34 @@ export class GameEngine {
     this.events.emit('scoreChanged', { score: s.score, combo: s.combo });
 
     // The boss timer is already survived: a late miss stings but cannot end the run.
-    if (this.instability.collapsed && !s.windingDown) this.end('lost');
+    if (this.instability.collapsed && !s.windingDown && !this.practice?.noDefeat) this.end('lost');
+  }
+
+  /**
+   * D-125 Sandbox only: which spells are unlimited, and set charges for the
+   * spells given (0 = disabled: typing its name fizzles). Durations, stacking
+   * and every spell effect are unchanged.
+   */
+  setPracticeSpells(unlimited: readonly SpellId[], charges: Partial<SpellCharges>): void {
+    if (!this.practice) throw new Error('setPracticeSpells is for the Practice Sandbox only');
+    this.practice.unlimited = new Set(unlimited);
+    for (const [id, n] of Object.entries(charges) as [SpellId, number][]) this.s.spells[id] = Math.max(0, Math.floor(n));
+    this.events.emit('manaPoolChanged', { size: this.poolLimit, lost: 0, charges: { ...this.s.spells } });
+  }
+
+  /**
+   * D-125 Sandbox only: replace the practice configuration (pace, lengths,
+   * concurrency, escalation, drops). Scrolls already on the field keep their
+   * word and speed; the new values shape future spawns. Throws outside Practice.
+   */
+  updatePracticeConfig(config: DifficultyConfig): void {
+    if (!this.practice) throw new Error('updatePracticeConfig is for the Practice Sandbox only');
+    if (config.director || this.config.director) throw new Error('The Sandbox uses the classic pace, not the Director');
+    const lengthsChanged = config.minWordLength !== this.config.minWordLength || config.maxWordLength !== this.config.maxWordLength
+      || JSON.stringify(config.wordLengthWeights ?? null) !== JSON.stringify(this.config.wordLengthWeights ?? null);
+    this.config = config;
+    if (lengthsChanged) this.generator = new WordGenerator(this.words, config, this.rng);
+    this.s.spawnTimerMs = Math.min(this.s.spawnTimerMs, config.spawnInterval);
   }
 
   /**

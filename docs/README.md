@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-124
+Decision log current through: D-126
 
 ## Current state (2026-11-23)
 
@@ -195,3 +195,7 @@ Branch `dev/arcade-menu-alignment-20261123` is an **unverified experimental** Ar
 
 **Immediate gratification, progressive mastery (GAME-009, D-123).** Easy to type, hard to keep up, satisfying to master. Short words are legitimate gameplay at every difficulty. Opening Trial and early Academy should predominantly use familiar two- and three-letter words, with occasional four-letter words; establish frequent captures, Combo and Arcane Rush early through ordinary successful typing, not artificial reward grants. Build intensity primarily through spawn frequency, descent-speed variation, density and overlapping urgency, within readable and fair bounds. Gradually introduce longer words and jointly retune spawn rate and speed (including easing either when length increases); do not require all three levers to rise together. Retain short words for rhythm and recovery even in advanced play. Exact distributions, pressure envelopes and compensation are Experimental. Preserve scoring, spell identities, typing-only input, reserved spell-name prefix exclusions, deterministic replay, and mode-specific adaptation rules. Do not bias word choice toward reward triggers.
 First implementation: D-124 (Experimental; simulation-verified, not human-playtested). Results: [`immediate-gratification-report-2026-11-23.md`](immediate-gratification-report-2026-11-23.md).
+
+
+## Practice suite (D-125)
+Owner-approved (D-125) and implemented (D-126): Play houses Academy and Arcane Trials; Arcade unchanged; Practice houses Free Type, Read & Type and the no-defeat configurable Sandbox. Values Experimental; not human-playtested. Spell-themed reset cosmetics deferred.
