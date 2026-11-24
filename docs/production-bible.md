@@ -64,6 +64,8 @@ The expanding playground: additional relics, replay variations, Grimoires, highe
 - **Word-bank personality:** include carefully selected typing-culture words and references; secret achievements and recognition of accuracy, consistency, and flow are favored. Preserve the detailed approved word additions from the source documents.
 - **No arbitrary redesign:** do not invent new scoring formulas, spell lists, or difficulty curves where exact approved specifications exist elsewhere. Reconcile those first.
 
+**Immediate gratification, progressive mastery (GAME-009, D-123).** Easy to type, hard to keep up, satisfying to master. Short words are legitimate gameplay at every difficulty. Opening Trial and early Academy should predominantly use familiar two- and three-letter words, with occasional four-letter words; establish frequent captures, Combo and Arcane Rush early through ordinary successful typing, not artificial reward grants. Build intensity primarily through spawn frequency, descent-speed variation, density and overlapping urgency, within readable and fair bounds. Gradually introduce longer words and jointly retune spawn rate and speed (including easing either when length increases); do not require all three levers to rise together. Retain short words for rhythm and recovery even in advanced play. Exact distributions, pressure envelopes and compensation are Experimental. Preserve scoring, spell identities, typing-only input, reserved spell-name prefix exclusions, deterministic replay, and mode-specific adaptation rules. Do not bias word choice toward reward triggers.
+
 ## 4. Production model
 
 **Approved philosophy:** game design, visual art, audio, world logic, and engineering must be planned synchronously around playable stage experiences. Avoid making complete asset libraries before testing a representative slice.
@@ -170,6 +172,7 @@ After completion:
 | GAME-005 | Combo/Volley flow fairness, meaningful buildup | Approved; exact formula audit required |
 | GAME-006 | Diverse spawn behaviors and suspended scrolls | Approved direction; full taxonomy audit required |
 | GAME-007 | Intuitive world/elemental interactions | Approved principle |
+| GAME-009 | Immediate gratification, progressive mastery | Approved principle; tuning Experimental |
 | GAME-008 | Captured-word-dependent spellcasting stage modifier | Deferred idea |
 | VIS-001 | Layered 2D with expressive animation; selective 3D | Approved |
 | VIS-002 | Prototype references anchor Flow prompt style | Approved |
