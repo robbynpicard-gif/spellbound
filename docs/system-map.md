@@ -93,3 +93,7 @@ by anything.
 - Crosswind vocabulary 0.52: `src/typel/arcaneTrials.ts`.
 - Tests: `tests/immediate-gratification.test.ts`, the vocabulary tests in `tests/continuous-run.test.ts`.
 - Simulation tool: `tools/gratification-report.ts`. Report: `immediate-gratification-report-2026-11-23.md`.
+
+
+## Practice suite (D-125)
+Approved, not implemented: extend `src/typel/app.ts`, existing typing trial/audio, `src/typel/render/PlayScene.ts`, `src/core/GameEngine.ts` and Sandbox configuration as needed. Isolate practice-only rules and add regression tests. See D-125.
