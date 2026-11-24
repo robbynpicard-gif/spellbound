@@ -50,7 +50,7 @@ by anything.
 | Runes, Flawless, Participation Runes (All-In and slip-insurance Runes reworked for D-115: Unbroken, Second Wind, Gale Force, Reap What You Sow) | `src/gameplay/runes/RuneCatalogue.ts`, `RuneTracker.ts`, `src/typel/render/medal.ts` | Live | Implemented, Experimental | `tests/typel-prototype.test.ts` | D-085, D-089, D-090, D-098, D-118 |
 | Triumphs (TypeL) | `src/typel/triumphs.ts` | Live | Implemented | — | D-085 |
 | Elemental status and reactions | `src/gameplay/ElementalStatus.ts`, `ElementalReactions.ts` | Legacy only (off in TypeL since D-118: its damage multiplier conflicted with D-115 scoring) | Implemented in part | `tests/typel-elemental-*.test.ts`, `tests/elementalReactions.test.ts` | D-058, D-118 |
-| Typing Trials | `src/typel/typingTrial.ts` | Live | Implemented | — | D-085 |
+| Read & Type (formerly Typing Trials): passages, durations, accuracy, records; peak/lowest WPM (D-126) | `src/typel/typingTrial.ts`, `src/typel/app.ts` (`showTypingSetup`, `typingTrial`) | Practice → Read & Type | Implemented | — | D-085, D-125, D-126 |
 | Rendering (key-art scene, typewriter Ward, HUD) | `src/typel/render/PlayScene.ts`, `keyart.ts`, `paint.ts`, `study.ts` | Live | Implemented, art placeholder | — | D-093–D-096, D-098 · `typel-keyart-reconstruction-2026-11-21.md` |
 | Audio (synthesized score and effects; volume groups music/sfx/voice) | `src/typel/audio.ts` | Live | Implemented, placeholder. AUD-001 (Approved) replaces danger-driven music with performance-responsive layers and six mix groups; AUDIO-EXP-001 approved experiment | — | D-085, D-092, D-106 · `assets/AUDIO_BIBLE.md` |
 | Grand Wizard voice (babble placeholder, recording hooks) | `src/typel/voice.ts`, `voiceLines.ts`, `src/data/voice-manifest.json` | Live | Implemented, placeholder | — | D-090 · `grand-wizard-voice-script.md` |
@@ -96,4 +96,13 @@ by anything.
 
 
 ## Practice suite (D-125)
-Approved, not implemented: extend `src/typel/app.ts`, existing typing trial/audio, `src/typel/render/PlayScene.ts`, `src/core/GameEngine.ts` and Sandbox configuration as needed. Isolate practice-only rules and add regression tests. See D-125.
+**Implemented (D-126); Verified by unit and engine tests and on the dev preview; values Experimental; not human-playtested.**
+- **Menus:** `src/typel/app.ts` (`showTitle`, `showPlay`, `showPractice`).
+- **Free Type:** `showFreeType`; speed rules in `src/typel/practice.ts` (`WpmTracker`, `FREE_TYPE_TUNING`, `countWords`).
+- **Sandbox:**
+  - `showSandbox` and `sandboxPanel` in `src/typel/app.ts`;
+  - settings and config in `src/typel/practice.ts` (`SandboxSettings`, `sandboxPracticeConfig`, `sandboxStartingBank`, `LENGTH_PROFILES`, `SANDBOX_LIMITS`);
+  - the engine `practice` option, `updatePracticeConfig` and `setPracticeSpells` in `src/core/GameEngine.ts`;
+  - scene support in `src/typel/render/PlayScene.ts` (`PlaySetup.practice`, `startPractice`, `updatePractice`, `setPracticeOptions`, quiet scoring);
+  - styles in `src/typel/typel.css`.
+- **Tests:** `tests/practice-suite.test.ts`.

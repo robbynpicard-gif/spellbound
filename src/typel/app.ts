@@ -9,7 +9,7 @@ import { SPELLS } from '../spells/SpellRegistry';
 import type { SpellCharges, SpellId } from '../gameplay/SpellManager';
 import { RUNES, RUNE_BY_ID } from '../gameplay/runes/RuneCatalogue';
 import {
-  apprenticeshipEndless, apprenticeshipRun, BOSS_LEVEL, LEARN_CHECKPOINTS, OPENING, openingRun, sandboxRunConfig, SPELL_ORDER, TRIALS,
+  apprenticeshipEndless, apprenticeshipRun, BOSS_LEVEL, LEARN_CHECKPOINTS, OPENING, openingRun, SPELL_ORDER, TRIALS,
   type Mode, type StartPhase, type Trial,
 } from './apprenticeship';
 import { arcaneTrialConfig, CROSSWIND, type TrialAdaptation } from './arcaneTrials';
@@ -26,6 +26,10 @@ import { voice } from './voice';
 import { RUNE_CALLOUTS, SPECIAL } from './voiceLines';
 import { TIER_NAMES, tierOf, TRIUMPHS } from './triumphs';
 import { trialText, typingStats } from './typingTrial';
+import {
+  cleanSandboxSettings, countWords, defaultSandboxSettings, SANDBOX_LIMITS, sandboxPracticeConfig, sandboxStartingBank, unlimitedSpells, WpmTracker,
+  type LengthProfile, type SandboxSettings,
+} from './practice';
 
 type Child = Node | string | null | undefined | false;
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string, unknown> | null = {}, ...kids: Child[]): HTMLElementTagNameMap[K] {
@@ -64,7 +68,6 @@ const PHASE_NAME = { learn: 'Learn', master: 'Master', boss: 'Boss Examination',
 export class TypeLApp {
   private run: Run | null = null;
   private mode: Mode = 'normal';
-  private sandbox = { mode: 'normal' as Mode, tier: 3 };
   private keyHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(private readonly game: Phaser.Game, private readonly root: HTMLElement) {}
@@ -118,16 +121,29 @@ export class TypeLApp {
       el('p', { class: 't-phonetic' }, '/ˈtaɪ.pəl/  ·  “tie-pull”'),
       el('p', { class: 't-tagline' }, 'Type. Cast. Survive.'),
       el('nav', { class: 't-menu' },
-        btn('Academy', () => this.showApprenticeship(), 'primary'),
+        btn('Play', () => this.showPlay(), 'primary'),
         btn('Arcade', () => this.showArcade()),
         btn('Practice', () => this.showPractice()),
-        btn('Arcane Trials · experimental', () => this.showArcaneTrial()),
         btn('Codex', () => this.showCodex('rules')),
         btn('Options & Dev Tools', () => this.showOptions()),
       ),
-      el('p', { class: 't-foot' }, 'Development preview · Arcade and Practice are experimental integrations · art and audio are placeholders'),
+      el('p', { class: 't-foot' }, 'Development preview · Arcade and Arcane Trials are experimental · art and audio are placeholders'),
     );
     this.show(menu);
+  }
+
+  /** D-125: Play houses the Academy and the Arcane Trials. */
+  private showPlay(): void {
+    this.run = null;
+    this.backdrop();
+    this.show(this.panel('Play',
+      el('p', null, 'The Academy teaches every spell through its examinations. The Arcane Trials test what you have mastered.'),
+      el('div', { class: 't-menu' },
+        btn('Academy', () => this.showApprenticeship(), 'primary'),
+        btn('Arcane Trials · experimental', () => this.showArcaneTrial()),
+      ),
+      el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
+    ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
   }
 
   /** One endless Arcade experience: adaptive Casual and fixed, graduate-only Ranked. */
@@ -186,25 +202,124 @@ export class TypeLApp {
     });
   }
 
+  /** D-125: Practice is open from the start; nothing here affects progression or Arcade records. */
   private showPractice(): void {
+    this.run = null;
     this.backdrop();
     this.show(this.panel('Practice',
-      el('p', null, 'Improve your typing or experiment with the battlefield. Practice results do not count toward ranked Arcade.'),
+      el('p', null, 'Write freely, train on passages, or experiment on the battlefield. Practice never affects your Academy progress or Arcade records.'),
       el('div', { class: 't-menu' },
-        btn('Free Type · coming soon', () => this.showFreeType()),
-        btn('Read & Type', () => this.showTypingSetup(), 'primary'),
-        btn('Battlefield Lab · prototype', () => this.showSandboxSetup()),
+        btn('Free Type', () => this.showFreeType(), 'primary'),
+        btn('Read & Type', () => this.showTypingSetup()),
+        btn('Sandbox', () => this.showSandbox()),
       ),
       el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
     ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
   }
 
+  // ───────────────────────── Free Type (D-125) ─────────────────────────
+
+  /** Kept for this game session only (never stored, never sent anywhere). */
+  private freeText = '';
+  private freeTracker = new WpmTracker();
+  private freeStarted: number | null = null;
+  private freeStatsHidden = false;
+
   private showFreeType(): void {
+    this.run = null;
     this.backdrop();
-    this.show(this.panel('Free Type · design preview',
-      el('p', null, 'A spontaneous writing-speed test is planned, but has not been implemented. Unlike Read & Type, there is no reference passage, so accuracy cannot be measured against a target.'),
-      el('div', { class: 't-row' }, btn('Practice', () => this.showPractice(), 'primary')),
-    ));
+    const area = el('textarea', { class: 't-parchment', spellcheck: 'false', autocapitalize: 'off', 'aria-label': 'Free Type parchment' }) as HTMLTextAreaElement;
+    area.value = this.freeText;
+    const cell = (label: string) => {
+      const v = el('b', null, '—');
+      return { node: el('div', { class: 't-stat' }, el('span', null, label), v), v };
+    };
+    const rolling = cell('WPM now'), average = cell('Average'), peak = cell('Peak'), lowest = cell('Lowest');
+    const words = cell('Words'), chars = cell('Characters'), elapsed = cell('Elapsed'), active = cell('Active');
+    const stats = el('div', { class: 't-stats t-freestats' }, rolling.node, average.node, peak.node, lowest.node, words.node, chars.node, elapsed.node, active.node);
+    stats.style.display = this.freeStatsHidden ? 'none' : '';
+    const note = el('p', { class: 't-small' }, '');
+    const fmt = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`;
+    const wpm = (x: number | null) => (x === null ? '—' : String(Math.round(x)));
+    const paint = () => {
+      const now = performance.now();
+      const st = this.freeTracker.stats(now);
+      rolling.v.textContent = st.paused && st.typedChars > 0 ? 'paused' : wpm(st.rolling);
+      average.v.textContent = wpm(st.average);
+      peak.v.textContent = wpm(st.peak);
+      lowest.v.textContent = wpm(st.lowest);
+      words.v.textContent = String(countWords(area.value));
+      chars.v.textContent = String(area.value.length);
+      elapsed.v.textContent = this.freeStarted === null ? '0:00' : fmt(now - this.freeStarted);
+      active.v.textContent = fmt(st.activeMs);
+    };
+    let lastWasWordChar = false;
+    area.addEventListener('beforeinput', (ev) => {
+      const e = ev as InputEvent;
+      // Only typed insertions count toward speed; pasted, dropped or autocompleted text does not.
+      if (e.inputType === 'insertText' || e.inputType === 'insertLineBreak' || e.inputType === 'insertParagraph') {
+        const now = performance.now();
+        this.freeStarted ??= now;
+        const text = e.inputType === 'insertText' ? e.data ?? '' : '\n';
+        this.freeTracker.key(now, Math.max(1, [...text].length));
+        const ch = text.slice(-1);
+        sound.key(/\s/.test(ch) ? 'k' : ch);
+        const wordChar = /[\p{L}\p{N}]/u.test(ch);
+        if (!wordChar && lastWasWordChar) {
+          // restrained word-completion feedback: the word counter glows briefly
+          words.node.classList.remove('t-pulse');
+          void words.node.offsetWidth;
+          words.node.classList.add('t-pulse');
+        }
+        lastWasWordChar = wordChar;
+      } else if (e.inputType.startsWith('delete')) {
+        sound.backspace();
+      }
+    });
+    area.addEventListener('input', () => ((this.freeText = area.value), paint()));
+    const timer = window.setInterval(paint, 250);
+    const leave = () => {
+      window.clearInterval(timer);
+      this.freeText = area.value;
+      this.showPractice();
+    };
+    const toggle = btn(this.freeStatsHidden ? 'Show statistics' : 'Hide statistics', () => {
+      this.freeStatsHidden = !this.freeStatsHidden;
+      stats.style.display = this.freeStatsHidden ? 'none' : '';
+      toggle.textContent = this.freeStatsHidden ? 'Show statistics' : 'Hide statistics';
+      area.focus();
+    }, 'small');
+    this.show(el('section', { class: 't-panel t-freetype' },
+      el('div', { class: 't-row spread' }, el('h2', { class: 't-title' }, 'Free Type'), el('span', { class: 't-small' }, 'Private: your text stays on this device for this session only.')),
+      stats,
+      area,
+      note,
+      el('div', { class: 't-row' },
+        toggle,
+        btn('Copy text', () => {
+          void navigator.clipboard?.writeText(area.value).then(() => (note.textContent = 'Copied.'), () => (note.textContent = 'Copy is not available here: select the text and copy it yourself.'));
+          area.focus();
+        }, 'small'),
+        btn('Reset statistics', () => {
+          this.freeTracker.reset();
+          this.freeStarted = null;
+          note.textContent = 'Statistics reset; your text is unchanged.';
+          paint();
+          area.focus();
+        }, 'small'),
+        btn('Clear text', () => {
+          area.value = '';
+          this.freeText = '';
+          note.textContent = 'Text cleared; statistics are unchanged.';
+          paint();
+          area.focus();
+        }, 'small'),
+        btn('Back', leave)),
+      el('p', { class: 't-small' }, 'Speed: 5 characters = 1 word. Pauses longer than 5 seconds and pasted text do not count. WPM now uses the last 10 seconds of typing, and Peak and Lowest start after the first 10 seconds. No accuracy is shown, because there is no reference text.'),
+    ), { onKey: (e) => e.key === 'Escape' && leave() });
+    area.focus();
+    area.setSelectionRange(area.value.length, area.value.length);
+    paint();
   }
 
   // ───────────────────────── apprenticeship ─────────────────────────
@@ -266,8 +381,8 @@ export class TypeLApp {
       ),
       list,
       el('p', { class: 't-small' }, 'Each apprenticeship is one continuous examination: Learn, then Master, then the Boss Examination, then Endless if you wish. Score, Combo and Arcane Rush carry all the way through. Your run is saved at every checkpoint. The phase picker is a testing tool. ' + (prefs.data.unlockAll ? 'Everything is unlocked (Options).' : 'To open everything for testing, see Options.')),
-      el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
-    ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
+      el('div', { class: 't-row' }, btn('Back', () => this.showPlay())),
+    ), { onKey: (e) => e.key === 'Escape' && this.showPlay() });
   }
 
   // ───────────────────────── D-112: the Opening Trial ─────────────────────────
@@ -514,9 +629,9 @@ export class TypeLApp {
     ), { overlay: true, onKey: (e) => e.key === 'Escape' && resume() });
   }
 
-  // ───────────────────────── sandbox ─────────────────────────
+  // ───────────────────────── Arcane Trials ─────────────────────────
 
-  /** D-120 prototype: one representative Arcane Trial, playable from the title for evaluation. */
+  /** D-120 prototype: one representative Arcane Trial, playable from Play for evaluation. */
   private arcane: { seed: number; adaptation: TrialAdaptation } = { seed: Math.floor(Math.random() * 2 ** 31), adaptation: 'off' };
 
   private showArcaneTrial(): void {
@@ -539,7 +654,7 @@ export class TypeLApp {
       el('div', { class: 't-row' },
         btn('Begin', () => this.launchArcaneTrial(), 'primary'),
         btn('New seed', () => ((a.seed = Math.floor(Math.random() * 2 ** 31)), this.showArcaneTrial()), 'small'),
-        btn('Back', () => this.showTitle()))),
+        btn('Back', () => this.showPlay()))),
     { onKey: (e) => e.key === 'Enter' && this.launchArcaneTrial() });
   }
 
@@ -585,46 +700,134 @@ export class TypeLApp {
     { overlay: true });
   }
 
+  // ───────────────────────── Sandbox (D-125) ─────────────────────────
+
+  /** Settings stay for the game session (Reset keeps them). */
+  private sandboxSettings: SandboxSettings = defaultSandboxSettings();
+  private sandboxStarted = false;
+
+  /** Kept for old links and tests: the Sandbox now opens on the battlefield. */
   showSandboxSetup(): void {
-    this.run = null;
-    this.backdrop();
-    const sb = this.sandbox;
-    this.show(this.panel('Sandbox',
-      el('p', null, 'Practice anything. Every spell, a deep stock of charges (6 Wind, 4 of each other), an endless field at the pace you choose. Nothing is recorded.'),
-      el('div', { class: 't-row' },
-        btn('Normal rules', () => ((sb.mode = 'normal'), this.showSandboxSetup()), sb.mode === 'normal' ? 'primary small' : 'small'),
-        btn('Hardcore rules', () => ((sb.mode = 'hardcore'), this.showSandboxSetup()), sb.mode === 'hardcore' ? 'primary small' : 'small')),
-      el('div', { class: 't-row' }, ...[1, 2, 3, 4, 5].map((n) => btn(`Pace ${n}`, () => ((sb.tier = n), this.showSandboxSetup()), sb.tier === n ? 'primary small' : 'small'))),
-      el('p', { class: 't-small' }, `Pace ${sb.tier} plays the Endless of apprenticeship ${1 + (sb.tier - 1) * 2} of 9: it keeps getting harder until the Ward falls.`),
-      el('div', { class: 't-row' }, btn('Start', () => this.startSandbox(), 'primary'), btn('Back', () => this.showTitle())),
-      el('p', { class: 't-small' }, 'Try: Wind at full Ward then Harvest · Ice and type perfectly · Shock into a crowd · Fire on a cluster · Barrier then slip and correct · submit a wrong word on purpose and catch the plunge.'),
-    ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
+    this.showSandbox();
   }
 
-  private startSandbox(): void {
-    const sb = this.sandbox;
-    const charges: Partial<SpellCharges> = Object.fromEntries(SPELL_ORDER.map((s) => [s, s === 'wind' ? 6 : 4]));
+  /** Enter the real battlefield, frozen and empty, with the settings panel over it. */
+  showSandbox(): void {
+    this.run = null;
+    const st = cleanSandboxSettings(this.sandboxSettings);
+    this.sandboxSettings = st;
+    this.sandboxStarted = false;
     this.startPlay({
-      config: sandboxRunConfig(sb.mode, sb.tier),
-      hardcore: sb.mode === 'hardcore',
-      initialSpells: charges,
+      config: sandboxPracticeConfig(st),
+      seed: st.seed ?? Math.floor(Math.random() * 2 ** 31),
+      hardcore: false,
+      initialSpells: sandboxStartingBank(st),
       poolLimitOverride: 60,
       spells: SPELL_ORDER,
       title: 'Sandbox',
+      subtitle: 'Practice · nothing is recorded · the Ward cannot fall',
+      stage: 'Sandbox',
       showSequenceScore: true,
-      stage: `Sandbox · Pace ${sb.tier}`,
-      subtitle: `${sb.mode === 'hardcore' ? 'Hardcore' : 'Normal'} rules · pace ${sb.tier} · not recorded`,
-      lines: [{ who: 'The Grandmaster', text: 'Here nothing is at stake. Experiment. Combine. Break things.' }],
-      onPause: () => this.pauseMenu(() => this.startSandbox()),
-      onEnd: (_r, stats) => this.show(this.panel('Sandbox results',
-        el('div', { class: 't-bigscore' }, stats.score.toLocaleString()),
-        el('div', { class: 't-stats' },
-          stat('Peak Rush', `×${(stats.peakArcaneVolleyMultiplier ?? 1).toFixed(1)}`), stat('Best Combo', String(stats.maxCombo)),
-          stat('Scrolls', String(stats.completed)), stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`),
-          stat('Runes', String(Object.values(stats.runeCounts ?? {}).reduce((a, b) => a + b, 0)))),
-        el('div', { class: 't-row' }, btn('Again', () => this.startSandbox(), 'primary'), btn('Sandbox', () => this.showSandboxSetup()), btn('Title', () => this.showTitle())),
-      ), { overlay: true }),
+      practice: { scoring: st.scoring, unlimited: unlimitedSpells(st) },
+      onPause: () => this.sandboxPanel(),
+      // No defeat in the Sandbox: the session only ends when you leave it.
+      onEnd: () => this.sandboxPanel(),
     });
+    this.sandboxPanel();
+  }
+
+  private sandboxPanel(): void {
+    const st = this.sandboxSettings;
+    const started = this.sandboxStarted;
+    const play = this.play;
+    const apply = () => {
+      this.sandboxSettings = cleanSandboxSettings(this.sandboxSettings);
+      const s2 = this.sandboxSettings;
+      try {
+        play.updatePractice(sandboxPracticeConfig(s2));
+        const charges: Partial<SpellCharges> = {};
+        const bank = sandboxStartingBank(s2);
+        const now = play.engineState?.spells;
+        for (const id of SPELL_ORDER) {
+          const o = s2.spells[id];
+          if (!o.enabled) charges[id] = 0;
+          else if (o.unlimited) charges[id] = Math.max(1, now?.[id] ?? 0);
+          else charges[id] = (now?.[id] ?? 0) > 0 ? now![id] : bank[id] ?? 0;
+        }
+        play.setPracticeOptions({ scoring: s2.scoring, unlimited: unlimitedSpells(s2), charges });
+      } catch {
+        // the scene may still be starting; the settings are kept and apply on the next Start or Reset
+      }
+    };
+    const range = (label: string, key: 'spawnMs' | 'fallSeconds' | 'maxActive', fmt: (v: number) => string) => {
+      const lim = SANDBOX_LIMITS[key];
+      const out = el('b', null, fmt(st[key]));
+      const input = el('input', { type: 'range', min: lim.min, max: lim.max, step: lim.step, value: st[key] }) as HTMLInputElement;
+      input.addEventListener('input', () => {
+        st[key] = Number(input.value);
+        out.textContent = fmt(st[key]);
+        apply();
+      });
+      return el('label', { class: 't-setting' }, el('span', null, label), input, out);
+    };
+    const check = (label: string, get: () => boolean, set: (v: boolean) => void) => {
+      const c = el('input', { type: 'checkbox', checked: get() }) as HTMLInputElement;
+      c.addEventListener('change', () => (set(c.checked), apply(), this.sandboxPanel()));
+      return el('label', { class: 't-audio' }, c, el('span', null, label));
+    };
+    const lengthBtns = (['short', 'mixed', 'long'] as LengthProfile[]).map((l) =>
+      btn(l === 'short' ? 'Short (2–4)' : l === 'mixed' ? 'Mixed (2–8)' : 'Long (5–10)', () => ((st.lengths = l), apply(), this.sandboxPanel()), st.lengths === l ? 'primary small' : 'small'));
+    const spellRows = SPELL_ORDER.map((id) => el('div', { class: 't-spellrow' },
+      el('span', { class: 't-spellname', style: `color:${SPELL_HUE[id]}` }, `${SPELL_GLYPH[id] ?? ''} ${id.toUpperCase()}`),
+      check('enabled', () => st.spells[id].enabled, (v) => (st.spells[id].enabled = v)),
+      st.spells[id].enabled ? check('unlimited', () => st.spells[id].unlimited, (v) => (st.spells[id].unlimited = v)) : null));
+    const seedInput = el('input', { type: 'text', inputmode: 'numeric', value: st.seed ?? '', placeholder: 'random', class: 't-seed', 'aria-label': 'Seed' }) as HTMLInputElement;
+    seedInput.addEventListener('change', () => {
+      const n = Number.parseInt(seedInput.value, 10);
+      st.seed = Number.isFinite(n) && n >= 0 ? n >>> 0 : null;
+      seedInput.value = st.seed === null ? '' : String(st.seed);
+    });
+    const e = play.engineState;
+    const stats = play.engineStats;
+    const fmt = (ms: number) => `${Math.floor(ms / 60000)}:${String(Math.floor((ms % 60000) / 1000)).padStart(2, '0')}`;
+    const statsBlock = started && e && stats ? el('div', { class: 't-stats' },
+      stat('Captured', String(e.completed)), stat('Lost', String(e.missed)), stat('Blocked', String(e.blocked)),
+      stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`), stat('WPM', String(Math.round(stats.wpm))),
+      stat('Spells cast', String(Object.values(e.spellsCast).reduce((a, b) => a + b, 0))), stat('Time', fmt(stats.elapsedMs)),
+      st.scoring ? stat('Score', stats.score.toLocaleString()) : null) : null;
+    const go = () => {
+      this.sandboxStarted = true;
+      this.clearUi();
+      this.play.startPractice();
+    };
+    const reset = () => this.showSandbox();
+    const exit = () => this.showPractice();
+    this.show(this.panel(started ? 'Sandbox · paused' : 'Sandbox',
+      el('p', { class: 't-small' }, started
+        ? 'The battlefield is frozen. Change anything, then resume. New settings shape the scrolls that come next.'
+        : 'An empty battlefield, frozen until you start. Nothing here is recorded, and the Ward cannot fall: a scroll that gets through just counts as lost.'),
+      statsBlock,
+      el('div', { class: 't-sandbox' },
+        el('div', null,
+          el('h3', null, 'Battlefield'),
+          range('New scroll every', 'spawnMs', (v) => `${(v / 1000).toFixed(1)} s`),
+          range('Fall time', 'fallSeconds', (v) => `${v} s`),
+          range('Most scrolls at once', 'maxActive', (v) => String(v)),
+          el('div', { class: 't-row' }, el('span', { class: 't-small' }, 'Word lengths'), ...lengthBtns),
+          check('Progressive escalation (pace rises as you capture)', () => st.escalation, (v) => (st.escalation = v)),
+          check('Spell scrolls can drop', () => st.drops, (v) => (st.drops = v)),
+          check('Scoring (score, Combo and Arcane Rush)', () => st.scoring, (v) => (st.scoring = v)),
+          el('label', { class: 't-setting' }, el('span', null, 'Seed (used on Start or Reset)'), seedInput)),
+        el('div', null,
+          el('h3', null, 'Spells · type the name and Enter'),
+          ...spellRows,
+          el('p', { class: 't-small' }, 'Disabled spells cannot be cast. Effects, durations and stacking follow the normal rules.'))),
+      el('div', { class: 't-row' },
+        btn(started ? 'Resume' : 'Start', go, 'primary'),
+        started ? btn('Reset', reset) : null,
+        btn('Exit to Practice', exit)),
+      el('p', { class: 't-small' }, 'Esc pauses while playing. Reset clears the field, counters, effects, time and score, and keeps these settings.'),
+    ), { overlay: true, onKey: (k) => k.key === 'Escape' && (started ? go() : exit()) });
   }
 
   // ───────────────────────── typing trials ─────────────────────────
@@ -634,12 +837,12 @@ export class TypeLApp {
     this.backdrop();
     const best = prefs.data.typing.bestWpm;
     const modes: [string, number][] = [['15 seconds', 15], ['30 seconds', 30], ['60 seconds', 60]];
-    this.show(this.panel('Typing Trials',
+    this.show(this.panel('Read & Type',
       el('p', null, 'Raw speed on the typewriter: clear the passage as quickly and accurately as you can. No scrolls, no spells, just your hands.'),
       el('div', { class: 't-menu' }, ...modes.map(([label, s], i) => btn(`${label}${best[s] ? `  ·  best ${Math.round(best[s]!)} WPM` : ''}`, () => this.typingTrial(s), i === 1 ? 'primary' : ''))),
-      el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
+      el('div', { class: 't-row' }, btn('Back', () => this.showPractice())),
       el('p', { class: 't-small' }, 'Net WPM counts correct characters only (5 characters = 1 word). Mistakes stay red until fixed.'),
-    ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
+    ), { onKey: (e) => e.key === 'Escape' && this.showPractice() });
   }
 
   private typingTrial(seconds: number): void {
@@ -652,6 +855,8 @@ export class TypeLApp {
     let errors = 0;
     let start = 0;
     let timer = 0;
+    // D-125: peak and lowest rolling speed (correct characters, 5 per word), as in Free Type; 5-second window for short trials.
+    const rollingTracker = new WpmTracker({ windowMs: 5000, pauseMs: 5000, minWindowChars: 5 });
     const paint = () => {
       spans.forEach((s, i) => {
         const t = typed[i];
@@ -663,16 +868,18 @@ export class TypeLApp {
     const finish = () => {
       window.clearInterval(timer);
       const s = typingStats(correct(), typed.length, errors, seconds * 1000);
+      const r = rollingTracker.stats(performance.now());
       const b = prefs.data.typing.bestWpm;
       const isBest = s.wpm > (b[seconds] ?? 0);
       if (isBest) b[seconds] = s.wpm;
       prefs.data.typing.runs++;
       prefs.save();
       sound.levelClear();
-      this.show(this.panel('Typing Trial',
+      this.show(this.panel('Read & Type',
         el('div', { class: 't-bigscore' }, `${Math.round(s.wpm)} WPM`, isBest ? el('span', { class: 't-best' }, ' new best') : null),
-        el('div', { class: 't-stats' }, stat('Accuracy', `${Math.round(s.accuracy * 100)}%`), stat('Raw', `${Math.round(s.raw)} WPM`), stat('Correct', String(s.correct)), stat('Mistakes', String(s.errors))),
-        el('div', { class: 't-row' }, btn('Again', () => this.typingTrial(seconds), 'primary'), btn('Other lengths', () => this.showTypingSetup()), btn('Title', () => this.showTitle())),
+        el('div', { class: 't-stats' }, stat('Accuracy', `${Math.round(s.accuracy * 100)}%`), stat('Raw', `${Math.round(s.raw)} WPM`), stat('Correct', String(s.correct)), stat('Mistakes', String(s.errors)),
+          stat('Peak', r.peak === null ? '—' : `${Math.round(r.peak)} WPM`), stat('Lowest', r.lowest === null ? '—' : `${Math.round(r.lowest)} WPM`)),
+        el('div', { class: 't-row' }, btn('Again', () => this.typingTrial(seconds), 'primary'), btn('Other lengths', () => this.showTypingSetup()), btn('Practice', () => this.showPractice())),
       ), { onKey: (e) => e.key === 'Enter' && this.typingTrial(seconds) });
     };
     const onKey = (e: KeyboardEvent) => {
@@ -699,14 +906,14 @@ export class TypeLApp {
         }, 100);
       }
       if (typed.length >= text.length) return;
-      if (e.key === text[typed.length]) sound.key(e.key === ' ' ? 'k' : e.key);
+      if (e.key === text[typed.length]) (sound.key(e.key === ' ' ? 'k' : e.key), rollingTracker.key(performance.now()));
       else (errors++, sound.typo());
       typed += e.key;
       paint();
       if (typed.length >= text.length) finish();
     };
     this.show(el('section', { class: 't-panel t-typing' },
-      el('div', { class: 't-row spread' }, el('h2', { class: 't-title' }, `Typing Trial · ${seconds}s`), clock, live),
+      el('div', { class: 't-row spread' }, el('h2', { class: 't-title' }, `Read & Type · ${seconds}s`), clock, live),
       el('div', { class: 't-sheet' }, passage),
       el('p', { class: 't-small' }, 'Start typing to begin · Backspace fixes mistakes · Esc to leave'),
     ), { onKey });

@@ -1884,3 +1884,29 @@ Read & Type: preserve existing transcription, passages, durations, accuracy and 
 Sandbox: replace Battlefield Lab label. Enter actual frozen empty battlefield; explicit Start, Pause, Resume, Reset (clears field, counters, effects, time and score; retains settings), exit to Practice. No defeat or Ward depletion; unblocked breaches increment session lost-scroll count with normal feedback. Independent controls for spawn frequency, descent speed, word-length profile (short/mixed/long), max active scrolls, progressive escalation (default off). Adjust before start or paused; generally affect future spawns. All eight spells available with independently toggleable unlimited charges by default; disabled spells cannot cast; preserve typed commands, effect durations and stacking rules. Spell-scroll drops independently toggleable. Scoring toggle suppresses score/Combo/Rush incentives and feedback when off; preserve ordinary gameplay and spell mechanics. Basic capture/loss, accuracy, WPM, spells cast and elapsed stats independent of scoring. Optional reproducible seed if straightforward. Isolate practice-only engine options; no changes to Academy/Arcade/Trials behaviour or records. Validate pause freezes simulation/effect timers, reset, repeated casts, disabled spells, no defeat, score-off behaviour, navigation, privacy and WPM edge cases. Run npm run check and npm run docs:check, update shared context and deploy/verify dev preview only; main untouched.
 
 Deferred cosmetic identity: eventually allow player-selected spell-themed reset animations (e.g. FIRE burns parchment), potentially reusable cosmetic presets across interface actions. Purely cosmetic, no gameplay effects; do not implement or flesh out now.
+
+
+### D-126 — Implementing D-125: Play menu and Practice suite (2026-11-23)
+_2026-11-23 · Implementation record under the owner's D-125 assignment · Design authority: D-125 · Values: **Experimental** · Branch `dev/practice-suite-20261123`_
+
+- **Menu:** the title offers Play, Arcade, Practice, Codex, and Options & Dev Tools.
+  - Play holds the Academy and Arcane Trials (experimental). Arcade is unchanged.
+  - Practice holds Free Type, Read & Type and Sandbox. All three are open from the start and never write progression, Arcade or Academy records.
+  - Back and Esc return to the parent menu.
+- **Free Type** (`src/typel/app.ts` `showFreeType`, `src/typel/practice.ts` `WpmTracker`, `countWords`):
+  - **Parchment:** an editable native text area (normal editing, punctuation, paragraphs and shortcuts), with the existing key and backspace sounds and a restrained pulse on the word counter at each completed word.
+  - **What counts toward speed:** only typed insertions (`beforeinput` insertText, insertLineBreak, insertParagraph), never pastes or drops. Five characters = one word.
+  - **Measures:** rolling WPM over the last 10 s of active time, valid only after 10 s of typing. Active-time average, peak and lowest come from the valid rolling value. Gaps over 5 s add no active time, and the live value shows "paused".
+  - **Also shown:** word and character counts, elapsed and active time.
+  - **Controls:** hide statistics, copy text, reset statistics (keeps the text), clear text (keeps the statistics).
+  - **Privacy:** the text is kept in memory for the game session only, never stored or sent. There is no accuracy metric.
+- **Read & Type** (the former Typing Trials): the same passages, durations, accuracy and records. It is renamed, now returns to Practice, and adds peak and lowest WPM (5-second rolling window on correct characters).
+- **Sandbox** (replaces the old endless "Battlefield Lab"):
+  - **Battlefield:** it opens on the real battlefield, frozen and empty, with a settings panel. Start, Esc to pause, Resume, Reset (a fresh scene with the same settings) and Exit to Practice.
+  - **Pace:** the classic fixed pace, with no Director and no adaptation (`sandboxPracticeConfig`). Controls cover spawn interval (0.3–4 s), fall time (3–20 s), word lengths (short 2–4, mixed 2–8, long 5–10), the maximum on the field (1–16) and progressive escalation (off by default).
+  - **Spells:** each spell can be enabled and made unlimited (all eight unlimited by default; limited spells start with 3). Spell-scroll drops can be toggled (off by default).
+  - **Scoring toggle:** off hides the score drums, plates, Combo and Rush tubes and their callouts, sounds and Runes. Mechanics are unchanged.
+  - **Statistics** shown while paused, whatever the scoring setting: captured, lost, blocked, accuracy, WPM, spells cast and time. An optional seed replays the same sky.
+  - **Live changes:** settings changed while paused apply to future spawns; existing scrolls keep their words.
+- **Engine isolation:** a new `practice` engine option sets no defeat (an unblocked breach counts as lost, breaks Combo and plays its feedback, but never damages the Ward or ends the session) and unlimited spells (the charge is restored after each cast; effects, durations and stacking are unchanged). Two Sandbox-only methods, `updatePracticeConfig` and `setPracticeSpells`, throw outside Practice. No other mode passes these.
+- **Not done:** the deferred spell-themed reset cosmetics (D-125). There is no in-run HUD control panel: settings are changed while paused, through the menu-style panel, since clicking is allowed only in menus (D-108).

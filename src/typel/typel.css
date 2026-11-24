@@ -104,3 +104,21 @@ html, body { margin: 0; height: 100%; background: #0d0805; overflow: hidden; fon
 .t-perfection { display: flex; gap: 16px; align-items: center; margin: 10px 0; padding: 10px 16px; background: rgb(90 14 22 / .12); border: 2px solid #c9962e; border-radius: 8px; }
 .t-perfection h3 { margin: 0; font-family: var(--display); color: #5a0e16; font-size: 26px; }
 .t-medal-big { width: 96px; height: 96px; }
+
+/* D-125 Practice: Free Type parchment and the Sandbox panel */
+.t-freetype .t-parchment { width: 100%; min-height: 46vh; box-sizing: border-box; resize: vertical; padding: 18px 22px;
+  background: repeating-linear-gradient(180deg, #fbf3dc 0 34px, #eadcb8 34px 35px); border: 1px solid #b08a46; border-radius: 4px;
+  font-family: "Courier Prime", "Courier New", monospace; font-size: 22px; line-height: 35px; color: #3a2414; outline: none; }
+.t-freetype .t-parchment:focus { box-shadow: 0 0 0 2px rgb(176 138 70 / .45); }
+.t-freestats { margin: 10px 0; }
+.t-freestats .t-stat { min-width: 96px; }
+.t-stat.t-pulse b { animation: t-pulse .32s ease-out; }
+@keyframes t-pulse { 0% { color: #9e1b16; transform: scale(1.12); } 100% { color: inherit; transform: none; } }
+.t-sandbox { display: grid; grid-template-columns: 1.15fr 1fr; gap: 22px; margin: 8px 0 12px; }
+.t-sandbox h3 { margin: 4px 0 8px; font-size: 17px; }
+.t-setting { display: grid; grid-template-columns: 11em 1fr 4.5em; align-items: center; gap: 10px; margin: 6px 0; }
+.t-setting input[type=range] { width: 100%; }
+.t-seed { width: 9em; padding: 4px 6px; font: inherit; }
+.t-spellrow { display: flex; align-items: center; gap: 14px; margin: 4px 0; }
+.t-spellname { width: 7.5em; font-weight: 700; letter-spacing: .04em; }
+@media (max-width: 820px) { .t-sandbox { grid-template-columns: 1fr; } }

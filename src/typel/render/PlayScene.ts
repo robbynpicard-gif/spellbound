@@ -15,6 +15,7 @@ import type { DifficultyConfig } from '../../difficulty/DifficultyConfig';
 import { isSurvival } from '../../difficulty/DifficultyConfig';
 import type { GameStats } from '../../gameplay/ScoringSystem';
 import type { SpellCharges, SpellId } from '../../gameplay/SpellManager';
+import type { GameState } from '../../core/GameState';
 import type { WordState } from '../../gameplay/Word';
 import { RUNE_BY_ID } from '../../gameplay/runes/RuneCatalogue';
 import { WORDS } from '../../data/wordList';
@@ -82,6 +83,12 @@ export interface PlaySetup {
   onCheckpoint?(snapshot: CheckpointSnapshot): void;
   onEnd(result: GameResult, stats: GameStats, carry: Carry): void;
   onPause(): void;
+  /**
+   * D-125 Practice Sandbox: starts frozen until start(); no defeat; unlimited
+   * spells shown as ∞; scoring off hides score, Combo and Rush and their
+   * feedback (mechanics are unchanged). Never set outside Practice.
+   */
+  practice?: { scoring: boolean; unlimited: readonly SpellId[] };
 }
 
 /** D-093: the battlefield is the sky between the score engine and the shelf; the paper's top edge is the Ward. */
@@ -357,9 +364,12 @@ export class TypeLPlayScene extends Phaser.Scene {
       initialWords: setup.initialWords,
       poolLimitOverride: setup.poolLimitOverride,
       spellCaps: setup.spellCaps ?? null,
+      practice: setup.practice ? { noDefeat: true, unlimited: setup.practice.unlimited } : undefined,
     };
     // D-102 resume: replaying the saved log restores the checkpoint exactly (field, score, Combo, Rush, Director, streams).
     this.engine = setup.resume ? GameEngine.replay(options, setup.resume.commands, setup.resume.tick) : new GameEngine(options);
+    // D-125: the Sandbox opens on a frozen, empty battlefield and waits for an explicit Start.
+    this.paused = setup.practice !== undefined;
     this.shownScore = (setup.scoreOffset ?? 0) + (setup.resume ? this.engine.state.score : 0);
     this.lastMult = 1 + Math.floor((setup.initialCombo ?? 0) / 10);
   }
@@ -470,6 +480,59 @@ export class TypeLPlayScene extends Phaser.Scene {
 
     this.buildRack();
     this.buildKeys();
+    this.applyScoreVisibility();
+  }
+
+  /** D-125 scoring off: no score drums, plates, Combo or Rush tubes. */
+  private applyScoreVisibility(): void {
+    const show = !this.quietScore;
+    for (const d of this.drums) (d.strip.setVisible(show), d.shade.setVisible(show));
+    this.comma?.setVisible(show);
+    for (const t of Object.values(this.plates)) t.setVisible(show);
+    for (const o of [this.comboLiquid, this.comboCount, this.rushLiquid, this.rushState]) o.setVisible(show);
+    if (!show) this.comboSurface.setVisible(false);
+    if (!show && this.rushBubbles.emitting) this.rushBubbles.stop();
+    if (!show && this.rushEruption.emitting) this.rushEruption.stop();
+  }
+
+  /** D-125 Sandbox: switch scoring feedback on or off, and update the spells, while paused. */
+  setPracticeOptions(o: { scoring: boolean; unlimited: readonly SpellId[]; charges: Partial<SpellCharges> }): void {
+    if (!this.setup.practice) return;
+    this.setup = { ...this.setup, practice: { scoring: o.scoring, unlimited: [...o.unlimited] } };
+    this.engine.setPracticeSpells(o.unlimited, o.charges);
+    this.applyScoreVisibility();
+    this.refreshRack();
+  }
+
+  /** D-125: scoring is switched off in the Sandbox. */
+  private get quietScore(): boolean {
+    return this.setup.practice?.scoring === false;
+  }
+
+  /** D-125 Sandbox: leave the frozen start (or a pause) and run. */
+  startPractice(): void {
+    if (!this.setup.practice) return;
+    this.paused = false;
+    this.acc = 0;
+    this.input.keyboard?.enableGlobalCapture();
+  }
+
+  /** D-125 Sandbox: apply changed settings (future spawns). */
+  updatePractice(config: DifficultyConfig): void {
+    this.engine.updatePracticeConfig(config);
+  }
+
+  get isPaused(): boolean {
+    return this.paused;
+  }
+
+  /** D-125 Sandbox panel: the live state and statistics (null before the scene has an engine). */
+  get engineState(): Readonly<GameState> | null {
+    return this.engine?.state ?? null;
+  }
+
+  get engineStats(): GameStats | null {
+    return this.engine ? this.engine.stats() : null;
   }
 
   /** Shrink a text until it fits its engraved space. */
@@ -679,11 +742,12 @@ export class TypeLPlayScene extends Phaser.Scene {
       this.lastCapture = at;
       this.stopTrail(word.id);
       this.collectView(word.id, false);
-      sound.capture(combo, volley ?? 1, perfect === true);
-      this.captureBurst(at.x, at.y, word.text, combo);
+      const quiet = this.quietScore;
+      sound.capture(quiet ? 0 : combo, quiet ? 1 : volley ?? 1, perfect === true);
+      this.captureBurst(at.x, at.y, word.text, quiet ? 0 : combo);
       const base = (word.originalLength ?? word.text.length) * 10;
-      this.tally(base, 1 + Math.floor(combo / 10), volley ?? 1, this.engine.wardInfo.allInMultiplier, points);
-      if (this.setup.showSequenceScore) this.floatPoints(at.x, at.y, points);
+      if (!quiet) this.tally(base, 1 + Math.floor(combo / 10), volley ?? 1, this.engine.wardInfo.allInMultiplier, points);
+      if (this.setup.showSequenceScore && !quiet) this.floatPoints(at.x, at.y, points);
       this.wizard.captured(points >= 300);
       if (points >= 1000) gw.impressed();
       if (word.plunge) {
@@ -805,7 +869,7 @@ export class TypeLPlayScene extends Phaser.Scene {
       // Harvest SPENDS the Rush: that ending keeps its celebration, not the fade.
       if ((volley ?? 1) > 1) this.rushSpentTick = this.engine.state.tick;
       words.forEach((w, i) => this.time.delayedCall(i * 45, () => (this.stopTrail(w.id), this.collectView(w.id, true))));
-      const parts = [this.setup.showSequenceScore ? `HARVEST +${points}` : 'HARVEST', volley && volley > 1 ? `RUSH ×${volley.toFixed(1)} SPENT` : ''].filter(Boolean);
+      const parts = [this.setup.showSequenceScore && !this.quietScore ? `HARVEST +${points}` : 'HARVEST', volley && volley > 1 && !this.quietScore ? `RUSH ×${volley.toFixed(1)} SPENT` : ''].filter(Boolean);
       this.callout(cx, 400, parts.join('  ·  '), '#ffd35a', 44, '#4a2a00');
       this.confetti(60);
       if (!this.reduced) this.cameras.main.flash(180, 255, 200, 80, false);
@@ -838,6 +902,7 @@ export class TypeLPlayScene extends Phaser.Scene {
       if (!active && reason === 'expired') this.callout(cx, 400, 'All-In fades', '#ffffff', 30, '#1a0630');
     });
     ev.on('runeAwarded', ({ id, name, points }) => {
+      if (this.quietScore) return; // Runes pay points: silent when scoring is off
       const tier = RUNE_BY_ID.get(id)?.tier ?? 1;
       sound.rune(tier);
       prefs.noteRune(id);
@@ -906,6 +971,8 @@ export class TypeLPlayScene extends Phaser.Scene {
   private bindInput(): void {
     const kb = this.input.keyboard!;
     kb.addCapture('BACKSPACE,ENTER,SPACE,TAB');
+    // D-125: a frozen Sandbox shows a settings panel; let its inputs receive those keys.
+    if (this.paused) kb.disableGlobalCapture();
     kb.on('keydown', (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (!this.ended) this.pause();
@@ -951,12 +1018,14 @@ export class TypeLPlayScene extends Phaser.Scene {
   pause(): void {
     if (this.paused) return;
     this.paused = true;
+    if (this.setup.practice) this.input.keyboard?.disableGlobalCapture();
     this.setup.onPause();
   }
 
   resume(): void {
     this.paused = false;
     this.acc = 0;
+    this.input.keyboard?.enableGlobalCapture();
   }
 
   continueEndless(config: DifficultyConfig, title: string): void {
@@ -999,7 +1068,9 @@ export class TypeLPlayScene extends Phaser.Scene {
     const e = this.engine;
     const s = e.state;
     const goal = (this.setup.scoreOffset ?? 0) + s.score;
-    if (this.shownScore !== goal) {
+    // D-125 scoring off: the score, Combo and Rush displays are hidden and their callouts and sounds suppressed below.
+    const quiet = this.quietScore;
+    if (this.shownScore !== goal && !quiet) {
       this.shownScore += Math.max(1, Math.ceil((goal - this.shownScore) * Math.min(1, delta / 140)));
       if (this.shownScore > goal) this.shownScore = goal;
       this.setDrums(this.shownScore);
@@ -1013,7 +1084,7 @@ export class TypeLPlayScene extends Phaser.Scene {
     this.comboSurface.setVisible(ch > 4).setY(ct.bottom - ch);
     this.comboCount.setText(`${s.combo}`);
     this.plates.combo.setText(`×COMBO: ${mult}`);
-    if (mult > this.lastMult) this.comboUp(mult);
+    if (mult > this.lastMult && !quiet) this.comboUp(mult);
     this.lastMult = mult;
     // Arcane Rush tube (internally the Arcane Volley multiplier)
     const v = e.volleyMultiplier;
@@ -1036,7 +1107,9 @@ export class TypeLPlayScene extends Phaser.Scene {
     this.rushLiquid.setAlpha(hot ? 0.85 + 0.15 * Math.sin(this.time0 / 90) : 1);
     this.plates.rush.setText(`×RUSH: ${v.toFixed(1)}`);
     this.rushState.setText(v >= 5 ? 'MASTERY!' : hot ? 'RUSHING!' : v > 1 ? 'BUILDING' : armed > 0 ? 'LINK NEXT!' : '');
-    if (v > this.lastRush + 0.05) {
+    if (quiet) {
+      // no Rush feedback when scoring is off
+    } else if (v > this.lastRush + 0.05) {
       sound.volleyStep(v);
       if (v >= 2 && this.lastRush < 2) this.ignite('ARCANE RUSH!');
       if (v >= 5 && this.lastRush < 5) this.ignite('RUSH MASTERY!');
@@ -1048,7 +1121,7 @@ export class TypeLPlayScene extends Phaser.Scene {
     if (v > 1) this.rushPeak = Math.max(this.rushPeak, v);
     this.lastRush = v;
     this.rushLevel = level;
-    if (!this.reduced) {
+    if (!this.reduced && !quiet) {
       if (v > 1 && !this.rushBubbles.emitting) this.rushBubbles.start();
       if (v <= 1 && this.rushBubbles.emitting) this.rushBubbles.stop();
       this.rushBubbles.frequency = Math.max(20, 120 - v * 18);
@@ -1057,7 +1130,7 @@ export class TypeLPlayScene extends Phaser.Scene {
       this.rushEruption.frequency = Math.max(18, 90 - (v - 2) * 20);
     }
     // the painted green wisps around the Ward brighten with Rush; gold at Mastery
-    const wisp = v >= 5 ? 0.9 : hot ? 0.45 + (v - 2) * 0.12 : v > 1 ? 0.22 : 0.08;
+    const wisp = quiet ? 0.08 : v >= 5 ? 0.9 : hot ? 0.45 + (v - 2) * 0.12 : v > 1 ? 0.22 : 0.08;
     this.world.wisps.setAlpha(wisp * (0.85 + 0.15 * Math.sin(this.time0 / 140))).setTint(v >= 5 ? 0xffe08a : 0xffffff);
     // the engine's gear turns faster as power builds
     this.world.gear.rotation += (delta / 1000) * (0.35 + (v - 1) * 0.9 + (s.combo % 10) * 0.04);
@@ -1077,7 +1150,7 @@ export class TypeLPlayScene extends Phaser.Scene {
       const crowded = Math.max(0, Math.min(1, (crowd - 0.45) / 0.55));
       const hurt = 1 - ward.stability / 100;
       const stress = Math.min(1, Math.max(near * 0.55 + crowded * 0.45, hurt * 1.1));
-      sound.setPressure(stress, hurt, hot ? Math.min(1, (v - 1) / 4) : 0);
+      sound.setPressure(stress, hurt, hot && !quiet ? Math.min(1, (v - 1) / 4) : 0);
     }
   }
 
@@ -1185,7 +1258,10 @@ export class TypeLPlayScene extends Phaser.Scene {
       this.stageText.setText(stage);
       this.fit(this.stageText, 17, KA.banner.w);
     }
-    const line = `${this.setup.hardcore ? 'Hardcore' : 'Normal'} · ${progress}`;
+    const sc = e.state.spellsCast;
+    const line = this.setup.practice
+      ? `${this.paused ? 'Paused · ' : ''}${e.state.completed} captured · ${e.state.missed} lost · ${Object.values(sc).reduce((a, b) => a + b, 0)} spells`
+      : `${this.setup.hardcore ? 'Hardcore' : 'Normal'} · ${progress}`;
     if (this.progressText.text !== line) {
       this.progressText.setText(line);
       this.fit(this.progressText, 13, KA.banner.w);
@@ -1198,7 +1274,8 @@ export class TypeLPlayScene extends Phaser.Scene {
     for (const [id, slot] of this.rack) {
       const n = s.spells[id] ?? 0;
       held += n;
-      slot.count.setText(slot.learned ? `x${n}` : '');
+      const infinite = this.setup.practice?.unlimited.includes(id) === true;
+      slot.count.setText(slot.learned ? (infinite ? '∞' : `x${n}`) : '');
       if (!slot.learned) continue;
       // an empty spell's scroll greys and sinks into the shelf's shadow
       if (n > 0) slot.sprite.clearTint().setAlpha(1);

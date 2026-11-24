@@ -129,6 +129,12 @@ Questions for the owner's first play of the Crosswind Trial:
 - Does the ending feel like surviving a trial rather than finishing a quota?
 - Should challenge tiers serve 160 WPM players (D-121, Deferred)?
 
+**Q-35 · Practice suite playtest checks** (D-125, D-126)
+- Free Type: do the 10-second window and 5-second pause threshold feel right? Should the live value show "paused", or keep the last value?
+- Sandbox: are the setting ranges right (spawn every 0.3–4 s, fall time 3–20 s, 1–16 scrolls), and the three length profiles?
+- Sandbox: should settings be remembered between game sessions? They currently last for the session only.
+- Read & Type: is a 5-second rolling window right for its peak and lowest values in 15-second trials?
+
 ## Resolved
 
 - **Q-29 · Should Arcane Trials adapt?** Fixed, seeded authored difficulty is the baseline; adaptation stays experimental (D-121).

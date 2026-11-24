@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-125
+Decision log current through: D-126
 
 ## Current state (2026-11-23)
 
@@ -198,4 +198,4 @@ First implementation: D-124 (Experimental; simulation-verified, not human-playte
 
 
 ## Practice suite (D-125)
-Owner-approved, implementation pending: Play houses Academy and Arcane Trials; Arcade unchanged; Practice houses Free Type, Read & Type and no-defeat configurable Sandbox. See D-125 for full acceptance criteria. Spell-themed reset cosmetics deferred.
+Owner-approved (D-125) and implemented (D-126): Play houses Academy and Arcane Trials; Arcade unchanged; Practice houses Free Type, Read & Type and the no-defeat configurable Sandbox. Values Experimental; not human-playtested. Spell-themed reset cosmetics deferred.
