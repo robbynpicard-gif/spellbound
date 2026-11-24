@@ -11,6 +11,16 @@ scope, Endless entry).
 
 ## Open
 
+**Q-29 · Arcane Trials 1.0 feasibility and production scope** (D-120)
+The owner wants a complete 1.0 package with at least one strong Trial for each of the eight spells and flexible additional ladder depth. After two contrasting vertical slices, what feasible content count, production budget, acceptance criteria and release milestone can be committed? This is a conditional scope ambition, not authorization to build all eight now.
+
+**Q-30 · Encounter discovery and Trial scoring** (D-119, D-120)
+Which existing director/spawn knobs can be exposed safely for reproducible scenario testing? Which seeded profiles, synthetic typists, metrics and human playtest rubric will establish distinct typing-first challenges? How should Arcade scoring/seed comparability be protected, and what is the final Trial duration target? No new framework or numerical target approved.
+
+**Q-31 · Arcane Trial unlocks and optional relics** (D-120)
+Implement optional spell-focused Trial unlock after Normal apprenticeship exam without confusing existing Hardcore unlock (D-115/D-118). Confirm trial selection, retry/records and how the earlier RELIC-001 expectation is deferred without altering current Rune functionality.
+
+
 **Q-1 · Repository name and URLs** (found 2026-11-22 audit)
 D-099 says the repository became `robbynpicard-gif/TypeL` with the site at
 `/TypeL/`. GitHub still reports `robbynpicard-gif/spellbound` at

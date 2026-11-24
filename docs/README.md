@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-118
+Decision log current through: D-120
 
 ## Current state (2026-11-23)
 
@@ -47,6 +47,7 @@ Decision log current through: D-118
   audio split, and the desktop (Tauri) path. Typing-only input (D-111), the
   Opening Trial (D-112) and the Academy unlocks (D-118) are built.
 - **Where each mechanic lives:** [`system-map.md`](system-map.md).
+- **Approved new design direction (D-119–D-120):** typing mastery remains paramount; TypeL 1.0 aims for Academy, Arcade, Practice and feasibility-gated flexible spell-focused Arcane Trial ladders. Arcane Trials are not implemented; encounter experiments and duration are provisional. See decisions and Q-29–Q-31.
 - **Waiting on the owner:** [`open-questions.md`](open-questions.md).
 
 ## How conflicts are resolved
