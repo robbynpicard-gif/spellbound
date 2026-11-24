@@ -114,3 +114,8 @@ of Q-16 (D-109). Still open, in [`open-questions.md`](open-questions.md):
 ### D-120 — Arcane Trials prototype override (2026-11-23)
 
 Where this reconciliation plan or historical sources specify a 15–20 minute default or mandatory three-phase encounter, **D-120 supersedes those requirements**. The first prototype should test ~8–12 minute continuous encounters with dynamic pressure/release, no mandatory phase breaks, and distinctive authored tactical identity. Duration is experimental; the mode remains Yellow. Future longer or phased variants are separate exploration, not required for the first slice.
+
+
+## D-123 — immediate gratification, progressive mastery
+
+Approved design, implementation pending. Audit and tune `src/difficulty/DifficultyDirector.ts`, `src/typel/apprenticeship.ts`, `src/gameplay/WordGenerator.ts` and the word bank; preserve existing scoring, spell rules and mode boundaries. See GAME-009 and D-123 for acceptance criteria. No deployment claimed.
