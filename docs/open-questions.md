@@ -166,3 +166,6 @@ Barrier and Wind lifetimes are the right design remains in D-103's list.
 **Q-18 · How the Academy opening fits the continuous run:** resolved for the
 MVP by D-112. It is a separate, finite, spell-free stage with its own
 results; falling still moves you on; score doesn't carry over.
+
+**Q-33 · Arcade-first menu prototype validation (D-122)**
+Validate the new menu in the experimental branch: actual endless run termination, adaptive Casual with no spells and with earned spells, graduation gate, Ranked fixed Director and standard spell economy, local record separation, Practice navigation, and continued access to developer tools. Decide curated Ranked presets, fair seed policy and full Free Type implementation before marking these systems complete.
