@@ -82,3 +82,8 @@ by anything.
 ## Arcade-first menu experiment (D-122; 2026-11-23)
 
 **Experimental, unverified:** branch `dev/arcade-menu-alignment-20261123` modifies `src/typel/app.ts` to expose Academy, Arcade, Practice and experimental Arcane Trials as primary destinations. Arcade currently reuses `apprenticeshipEndless` with adaptive Casual or fixed Ranked and stores separate local bests; this is not final competitive implementation. Practice routes Read & Type to `typingTrial.ts` and Battlefield Lab to Sandbox; Free Type remains a clearly labeled design preview. Developer unlocks and spell-cap controls remain in Options. Tests and browser verification pending; no `main` changes.
+
+
+## D-123 — immediate gratification, progressive mastery
+
+Approved design, implementation pending. Audit and tune `src/difficulty/DifficultyDirector.ts`, `src/typel/apprenticeship.ts`, `src/gameplay/WordGenerator.ts` and the word bank; preserve existing scoring, spell rules and mode boundaries. See GAME-009 and D-123 for acceptance criteria. No deployment claimed.
