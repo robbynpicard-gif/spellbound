@@ -116,18 +116,95 @@ export class TypeLApp {
       'section', { class: 't-titlecard' },
       el('h1', { class: 't-logo' }, el('span', { class: 't-initial' }, 'T'), 'YPEL'),
       el('p', { class: 't-phonetic' }, '/ˈtaɪ.pəl/  ·  “tie-pull”'),
-      el('p', { class: 't-tagline' }, 'An arcane typing apprenticeship'),
+      el('p', { class: 't-tagline' }, 'Type. Cast. Survive.'),
       el('nav', { class: 't-menu' },
-        btn('Apprenticeship', () => this.showApprenticeship(), 'primary'),
-        btn('Typing Trials', () => this.showTypingSetup()),
-        btn('Sandbox', () => this.showSandboxSetup()),
-        btn('Arcane Trial · prototype', () => this.showArcaneTrial()),
+        btn('Academy', () => this.showApprenticeship(), 'primary'),
+        btn('Arcade', () => this.showArcade()),
+        btn('Practice', () => this.showPractice()),
+        btn('Arcane Trials · experimental', () => this.showArcaneTrial()),
         btn('Codex', () => this.showCodex('rules')),
-        btn('Options', () => this.showOptions()),
+        btn('Options & Dev Tools', () => this.showOptions()),
       ),
-      el('p', { class: 't-foot' }, 'Prototype · art cut from the key-art reference · placeholder music and voice · nothing here is final'),
+      el('p', { class: 't-foot' }, 'Development preview · Arcade and Practice are experimental integrations · art and audio are placeholders'),
     );
     this.show(menu);
+  }
+
+  /** One endless Arcade experience: adaptive Casual and fixed, graduate-only Ranked. */
+  private showArcade(): void {
+    this.run = null;
+    this.backdrop();
+    const graduated = prefs.data.completed.normal.includes(9) || prefs.data.unlockAll;
+    const earned = SPELL_ORDER.filter((_, i) => prefs.data.completed.normal.includes(i + 1) || prefs.data.unlockAll);
+    this.show(this.panel('Arcade',
+      el('p', null, 'TypeL without examinations: endless scrolls, spells, Combo and Arcane Rush. Survive and beat your score.'),
+      el('div', { class: 't-menu' },
+        btn('Casual · adaptive', () => this.startArcade(false), 'primary'),
+        graduated ? btn('Ranked · fixed prototype', () => this.startArcade(true)) : el('p', { class: 't-small' }, 'Ranked unlocks after Academy graduation.'),
+      ),
+      el('p', { class: 't-small' }, `Casual repertoire: ${earned.length} of 8 spells earned. Ranked currently uses one fixed prototype profile; curated presets and verified online rankings are not yet implemented.`),
+      el('p', { class: 't-small' }, `Casual best: ${(prefs.data.bestEndless['arcade:casual'] ?? 0).toLocaleString()} · Ranked prototype best: ${(prefs.data.bestEndless['arcade:ranked:prototype'] ?? 0).toLocaleString()}`),
+      el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
+    ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
+  }
+
+  private startArcade(ranked: boolean): void {
+    const graduated = prefs.data.completed.normal.includes(9) || prefs.data.unlockAll;
+    if (ranked && !graduated) return this.showArcade();
+    const spells = ranked ? [...SPELL_ORDER] : SPELL_ORDER.filter((_, i) => prefs.data.completed.normal.includes(i + 1) || prefs.data.unlockAll);
+    // Reuse the existing endless Director and standard charge economy. This is
+    // a test integration, not the final authored Arcade balance profile.
+    const config = apprenticeshipEndless(ranked ? 'hardcore' : 'normal', ranked ? 9 : Math.max(1, spells.length), spells);
+    const key = ranked ? 'arcade:ranked:prototype' : 'arcade:casual';
+    this.startPlay({
+      config,
+      seed: Math.floor(Math.random() * 2 ** 31),
+      hardcore: false,
+      initialSpells: {},
+      spells,
+      title: 'Arcade',
+      subtitle: ranked ? 'Ranked · fixed prototype · local record only' : 'Casual · adaptive · earned spells',
+      trialName: 'Arcade',
+      onPause: () => this.pauseMenu(() => this.startArcade(ranked), () => this.showArcade()),
+      onEnd: (_result, stats) => {
+        const best = prefs.data.bestEndless[key] ?? 0;
+        if (stats.score > best) prefs.data.bestEndless[key] = stats.score;
+        this.record(stats, 0);
+        prefs.save();
+        this.show(this.panel('Arcade · the Ward has fallen',
+          el('div', { class: 't-bigscore' }, stats.score.toLocaleString()),
+          stats.score > best ? el('p', { class: 't-small' }, 'New personal best') : null,
+          el('div', { class: 't-stats' },
+            stat('Scrolls', String(stats.completed)),
+            stat('Accuracy', `${Math.round(stats.accuracy * 100)}%`),
+            stat('WPM', String(Math.round(stats.wpm))),
+            stat('Best Combo', String(stats.maxCombo))),
+          el('p', { class: 't-small' }, 'Prototype records are local only, not ranked community results.'),
+          el('div', { class: 't-row' }, btn('Again', () => this.startArcade(ranked), 'primary'), btn('Arcade', () => this.showArcade()), btn('Title', () => this.showTitle())),
+        ), { overlay: true });
+      },
+    });
+  }
+
+  private showPractice(): void {
+    this.backdrop();
+    this.show(this.panel('Practice',
+      el('p', null, 'Improve your typing or experiment with the battlefield. Practice results do not count toward ranked Arcade.'),
+      el('div', { class: 't-menu' },
+        btn('Free Type · coming soon', () => this.showFreeType()),
+        btn('Read & Type', () => this.showTypingSetup(), 'primary'),
+        btn('Battlefield Lab · prototype', () => this.showSandboxSetup()),
+      ),
+      el('div', { class: 't-row' }, btn('Back', () => this.showTitle())),
+    ), { onKey: (e) => e.key === 'Escape' && this.showTitle() });
+  }
+
+  private showFreeType(): void {
+    this.backdrop();
+    this.show(this.panel('Free Type · design preview',
+      el('p', null, 'A spontaneous writing-speed test is planned, but has not been implemented. Unlike Read & Type, there is no reference passage, so accuracy cannot be measured against a target.'),
+      el('div', { class: 't-row' }, btn('Practice', () => this.showPractice(), 'primary')),
+    ));
   }
 
   // ───────────────────────── apprenticeship ─────────────────────────

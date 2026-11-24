@@ -1838,3 +1838,10 @@ _2026-11-23 · Owner decision after reviewing PR #23 and its simulations · Desi
   - that staggered arrivals are readable and fair in real play;
   - that the ending feels like surviving a trial, not finishing a word quota.
 - **Scope:** no further Arcane Trials feature expansion until the owner has played the trial and given feedback.
+
+### D-122 — Arcade-first menu prototype and mode separation
+_2026-11-23 · Approved direction; implementation Experimental, not verified_
+
+Owner approved a simplified player-facing menu: Academy, Arcade, Practice, and experimental Arcane Trials. Arcade is endless only, with adaptive Casual using Academy-earned spells and fixed Ranked unlocked after graduation. Arcade prioritizes baseline scrolls (plus spell scrolls), full scoring, and seed-fair competition. Casual has no difficulty selector. Practice is Free Type, Read & Type, and Battlefield Lab. Keep developer controls accessible without making them primary game modes.
+
+The menu prototype in `dev/arcade-menu-alignment-20261123` is deliberately partial: Arcade uses existing apprenticeship Endless configurations, Ranked has one fixed local-record test profile rather than finalized presets or verified online leaderboards, Read & Type reuses Typing Trials, Battlefield Lab reuses Sandbox, and Free Type is visibly not implemented. No production deployment is claimed. Run `npm run check` and `npm run docs:check` before merge; audit balance and menu flow in browser.
