@@ -4,7 +4,7 @@ This is the single entry point for anyone working on TypeL, human or AI.
 It says which documents are current, which are historical, and how
 conflicts are settled. The working rules are in [`AGENTS.md`](../AGENTS.md).
 
-Decision log current through: D-122
+Decision log current through: D-124
 
 ## Current state (2026-11-23)
 
@@ -102,6 +102,7 @@ Every Markdown file in the repository root and `docs/` is listed here;
 |---|---|
 | `docs/academy-campaign-canonical-gameplay-2026-11-22.md` | D-103 Academy and teacher-examination detail. Its Arcade Campaign and "Headmaster" are superseded by the Bible (D-106) |
 | `docs/continuous-apprenticeship-2026-11-22.md` | The implemented continuous run, Director and Endless (D-102) |
+| `docs/immediate-gratification-report-2026-11-23.md` | Dated report: D-123 vocabulary and pressure tuning, the word-bank audit and before/after simulations (D-124) |
 | `docs/arcane-trial-prototype-report-2026-11-23.md` | Dated report: Arcane Trials audit, the Crosswind Trial prototype, the adaptation comparison and simulations (D-119, D-120) |
 | `docs/controlled-chaos-report-2026-11-23.md` | Dated report: D-115/D-116 implementation audit, removed legacy mechanics and controlled-chaos simulations (D-118) |
 | `docs/battlefield-pressure-report-2026-11-23.md` | Dated report: battlefield-pressure audit, first tuning pass and before/after simulations (D-113, D-114) |
@@ -188,3 +189,9 @@ The initial Arcane Trials prototype targets **~8–12 minutes experimentally**, 
 ## Experimental menu integration (2026-11-23)
 
 Branch `dev/arcade-menu-alignment-20261123` is an **unverified experimental** Arcade-first menu integration (D-122). Primary destinations are Academy, Arcade, Practice, and Arcane Trials. Arcade is an early playable integration using existing Endless configurations; Ranked online infrastructure and presets, Free Type, and detailed Battlefield Lab controls are not implemented. Merged into the development preview for owner playtesting; production `main` remains unchanged. Interactive verification is pending.
+
+
+## Foundational difficulty refinement (D-123)
+
+**Immediate gratification, progressive mastery (GAME-009, D-123).** Easy to type, hard to keep up, satisfying to master. Short words are legitimate gameplay at every difficulty. Opening Trial and early Academy should predominantly use familiar two- and three-letter words, with occasional four-letter words; establish frequent captures, Combo and Arcane Rush early through ordinary successful typing, not artificial reward grants. Build intensity primarily through spawn frequency, descent-speed variation, density and overlapping urgency, within readable and fair bounds. Gradually introduce longer words and jointly retune spawn rate and speed (including easing either when length increases); do not require all three levers to rise together. Retain short words for rhythm and recovery even in advanced play. Exact distributions, pressure envelopes and compensation are Experimental. Preserve scoring, spell identities, typing-only input, reserved spell-name prefix exclusions, deterministic replay, and mode-specific adaptation rules. Do not bias word choice toward reward triggers.
+First implementation: D-124 (Experimental; simulation-verified, not human-playtested). Results: [`immediate-gratification-report-2026-11-23.md`](immediate-gratification-report-2026-11-23.md).

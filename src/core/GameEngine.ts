@@ -1174,7 +1174,7 @@ export class GameEngine {
     const plan = this.director ? this.director.next({ ...this.directorContext(), opening: startY > 0 }) : null;
     this.lastPlan = plan;
     const easy = s.easyTicks > 0 && this.easyGenerator;
-    const text = easy ? this.easyGenerator!.next() : plan ? this.generator.nextOfLength(plan.length) : this.generator.next();
+    const text = easy ? this.easyGenerator!.next() : plan ? this.generator.nextOfLength(plan.length, s.words.map((w) => w.match)) : this.generator.next();
     const halfWidth = (text.length * this.field.approxCharWidth) / 2;
     const [minX, maxX] = SpawnFormation.band(step?.side ?? null, this.field.sideMargin + halfWidth, this.field.width - this.field.sideMargin - halfWidth, this.formationSpec?.band ?? 1);
     const H = this.field.height;

@@ -296,7 +296,8 @@ export function sandboxRunConfig(mode: Mode, tier: number): DifficultyConfig {
 /** EXPERIMENTAL prototype values (D-112): [apprenticeship, checkpoint level, words to capture]. */
 export const OPENING_TUNING = {
   path: [
-    [1, 1, 14], [2, 4, 12], [3, 6, 12], [5, 4, 12], [6, 6, 12], [7, 6, 13], [8, 8, 15],
+    // D-123: short words resolve faster, so the climax checkpoints hold more scrolls (it must last long enough to bite).
+    [1, 1, 14], [2, 4, 12], [3, 6, 14], [5, 4, 14], [6, 6, 16], [7, 6, 20], [8, 8, 26],
   ] as ReadonlyArray<readonly [number, number, number]>,
   /** From this segment on, the HUD calls it Phase II ("the pressure deepens"). */
   masterFrom: 4,

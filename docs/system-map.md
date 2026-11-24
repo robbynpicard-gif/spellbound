@@ -82,3 +82,14 @@ by anything.
 ## Arcade-first menu experiment (D-122; 2026-11-23)
 
 **Experimental, unverified:** branch `dev/arcade-menu-alignment-20261123` modifies `src/typel/app.ts` to expose Academy, Arcade, Practice and experimental Arcane Trials as primary destinations. Arcade currently reuses `apprenticeshipEndless` with adaptive Casual or fixed Ranked and stores separate local bests; this is not final competitive implementation. Practice routes Read & Type to `typingTrial.ts` and Battlefield Lab to Sandbox; Free Type remains a clearly labeled design preview. Developer unlocks and spell-cap controls remain in Options. Tests and browser verification pending; no `main` changes.
+
+
+## D-123 — immediate gratification, progressive mastery
+
+**Implemented (D-124), Verified by tests and simulation; values Experimental; not human-playtested.**
+- Length model: `src/difficulty/DifficultyDirector.ts` (`DIRECTOR_TUNING.lengths`: start/harvest/end windows, `availability`, `belowDecay`, `tiltShare`; `letterRateMatch`).
+- Opening climax quotas: `src/typel/apprenticeship.ts` (`OPENING_TUNING.path`).
+- On-field duplicate and prefix exclusion: `src/gameplay/WordGenerator.ts` `nextOfLength(length, active)`, called from `GameEngine.spawn()`.
+- Crosswind vocabulary 0.52: `src/typel/arcaneTrials.ts`.
+- Tests: `tests/immediate-gratification.test.ts`, the vocabulary tests in `tests/continuous-run.test.ts`.
+- Simulation tool: `tools/gratification-report.ts`. Report: `immediate-gratification-report-2026-11-23.md`.

@@ -1845,3 +1845,28 @@ _2026-11-23 · Approved direction; implementation Experimental, not verified_
 Owner approved a simplified player-facing menu: Academy, Arcade, Practice, and experimental Arcane Trials. Arcade is endless only, with adaptive Casual using Academy-earned spells and fixed Ranked unlocked after graduation. Arcade prioritizes baseline scrolls (plus spell scrolls), full scoring, and seed-fair competition. Casual has no difficulty selector. Practice is Free Type, Read & Type, and Battlefield Lab. Keep developer controls accessible without making them primary game modes.
 
 The menu prototype in `dev/arcade-menu-alignment-20261123` is deliberately partial: Arcade uses existing apprenticeship Endless configurations, Ranked has one fixed local-record test profile rather than finalized presets or verified online leaderboards, Read & Type reuses Typing Trials, Battlefield Lab reuses Sandbox, and Free Type is visibly not implemented. No production deployment is claimed. Run `npm run check` and `npm run docs:check` before merge; audit balance and menu flow in browser.
+
+
+### D-123 — Immediate gratification, progressive mastery (GAME-009)
+_2026-11-23 · Owner-approved foundational principle · Implementation pending · Numerical tuning Experimental · Refines D-113, D-119 and GAME-002/GAME-005._
+
+**Immediate gratification, progressive mastery (GAME-009, D-123).** Easy to type, hard to keep up, satisfying to master. Short words are legitimate gameplay at every difficulty. Opening Trial and early Academy should predominantly use familiar two- and three-letter words, with occasional four-letter words; establish frequent captures, Combo and Arcane Rush early through ordinary successful typing, not artificial reward grants. Build intensity primarily through spawn frequency, descent-speed variation, density and overlapping urgency, within readable and fair bounds. Gradually introduce longer words and jointly retune spawn rate and speed (including easing either when length increases); do not require all three levers to rise together. Retain short words for rhythm and recovery even in advanced play. Exact distributions, pressure envelopes and compensation are Experimental. Preserve scoring, spell identities, typing-only input, reserved spell-name prefix exclusions, deterministic replay, and mode-specific adaptation rules. Do not bias word choice toward reward triggers.
+
+**Acceptance:** audit actual word bank, reserved prefixes, duplicate active words and generator fallback; ensure early vocabulary is predominantly 2–3 letters with occasional 4, measure time to first Combo/Rush, capture cadence, effective keystroke workload including Enter, urgency, idle time, spell opportunities and survival across skill levels. Compare seeded simulations and human play against current preview. Tune existing Director rather than adding mechanics; preserve Academy easing, fixed competitive/trial baselines and Endless escalation. Check save/replay compatibility and regression tests. Deploy only to dev preview after checks pass; main remains untouched.
+
+
+### D-124 — Implementing D-123 in the Director and vocabulary (2026-11-23)
+_2026-11-23 · Implementation record under the owner's D-123 assignment · Design authority: D-123 (GAME-009) · Every number: **Experimental** · Branch `dev/immediate-gratification-20261123` · Report: `immediate-gratification-report-2026-11-23.md`_
+
+- **Supersedes:** D-098/D-101's Slow window ("about 3–6 letters"), and the Harvest "at most 3% of words at 4 letters or fewer" test, wherever D-123 differs. Harvest stays dominated by 6+ letters. The recognizable progression of D-101 is kept, just shorter early.
+- **Length model (`DIRECTOR_TUNING.lengths`):**
+  - Early window 2.2–3.7 letters (was 3–6), rising to 5.5–8 by Harvest and 6–9 at the end (were 6–9 and 6–10). `earlyCurve` 1.3.
+  - New `availability` 0.35: library size counts as count^0.35 instead of √count, so the big 4–5-letter buckets no longer crowd out 2–3-letter words.
+  - Pressure no longer tilts early words longer (`tiltShare` 0 → 1).
+  - Short "rhythm" words stay in late play: the below-window tail is 3% → 20% of words, with its own `belowDecay` 0.85.
+- **Coupled levers:** `letterRateMatch` 0.6 → 0.9. Spawn timing follows expected word length more closely: short words spawn more often, and spawning eases as words lengthen. Fall speeds and the D-116 controller are unchanged.
+- **Opening Trial:** its last checkpoints hold more scrolls (14, 14, 16, 20, 26 instead of 12, 12, 12, 13, 15), so the climax still lasts about as long now that short words resolve faster. Its path and vocabulary are unchanged.
+- **Fairness (D-123 audit):** the generator now skips any word equal to, or in a prefix relation with, a scroll on the field. Before, 0.04–0.5% of spawns duplicated an on-field word; now 0%. Reserved spell names were already excluded from the bank (verified by test).
+- **Crosswind Trial (D-121 calibration kept):** vocabulary 0.35 → 0.52, so its word lengths (mean about 4.7) and its 90 WPM calibration stay as approved.
+- **Unchanged:** scoring, Combo, Arcane Rush, spells, typing-only input, mode adaptation rules, and Endless escalation. Replays stay deterministic, but generation changed, so runs saved before this change replay differently.
+- **Save compatibility:** the run ruleset is now `run-4`, so older checkpoint saves are discarded rather than replayed wrongly. Records start a new table; old ones are kept.

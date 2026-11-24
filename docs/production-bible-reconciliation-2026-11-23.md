@@ -114,3 +114,14 @@ of Q-16 (D-109). Still open, in [`open-questions.md`](open-questions.md):
 ### D-120 — Arcane Trials prototype override (2026-11-23)
 
 Where this reconciliation plan or historical sources specify a 15–20 minute default or mandatory three-phase encounter, **D-120 supersedes those requirements**. The first prototype should test ~8–12 minute continuous encounters with dynamic pressure/release, no mandatory phase breaks, and distinctive authored tactical identity. Duration is experimental; the mode remains Yellow. Future longer or phased variants are separate exploration, not required for the first slice.
+
+
+## D-123 — immediate gratification, progressive mastery
+
+**Implemented (D-124), Verified by tests and simulation; values Experimental; not human-playtested.**
+- Length model: `src/difficulty/DifficultyDirector.ts` (`DIRECTOR_TUNING.lengths`: start/harvest/end windows, `availability`, `belowDecay`, `tiltShare`; `letterRateMatch`).
+- Opening climax quotas: `src/typel/apprenticeship.ts` (`OPENING_TUNING.path`).
+- On-field duplicate and prefix exclusion: `src/gameplay/WordGenerator.ts` `nextOfLength(length, active)`, called from `GameEngine.spawn()`.
+- Crosswind vocabulary 0.52: `src/typel/arcaneTrials.ts`.
+- Tests: `tests/immediate-gratification.test.ts`, the vocabulary tests in `tests/continuous-run.test.ts`.
+- Simulation tool: `tools/gratification-report.ts`. Report: `immediate-gratification-report-2026-11-23.md`.

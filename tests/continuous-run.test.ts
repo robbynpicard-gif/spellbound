@@ -297,28 +297,42 @@ describe('D-102 living difficulty', () => {
   });
 });
 
-describe('D-101 vocabulary identity in the continuous run', () => {
+describe('Vocabulary identity in the continuous run (D-101, refined by D-123)', () => {
   const lengths = (trial: number, mode: 'normal' | 'hardcore', phase: string, seeds = 4) =>
     Array.from({ length: seeds }, (_, i) => simulate({ plan: apprenticeshipRun(mode, trial), words: WORDS, seed: 400 + i, typist: PERFECT, maxSeconds: 900 }))
       .flatMap((r) => r.spawns.filter((s) => s.phase === phase).map((s) => s.length));
   const share = (ls: number[], f: (l: number) => boolean) => ls.filter(f).length / ls.length;
 
-  it('Slow opens in its familiar 3–6 range; 7+ stays extremely rare', () => {
+  // D-123 (GAME-009) supersedes D-098/D-101's Slow window: easy to type, hard to keep up.
+  it('Slow opens with predominantly 2–3-letter words and occasional 4s (D-123)', () => {
     for (const mode of ['normal', 'hardcore'] as const) {
       const ls = lengths(1, mode, 'learn');
       expect(ls.length).toBeGreaterThan(300);
-      expect(share(ls, (l) => l >= 3 && l <= 6)).toBeGreaterThanOrEqual(0.95);
-      expect(share(ls, (l) => l >= 7)).toBeLessThanOrEqual(0.02);
+      expect(share(ls, (l) => l <= 3)).toBeGreaterThanOrEqual(0.8);
+      expect(share(ls, (l) => l === 4)).toBeGreaterThan(0.02);
+      expect(share(ls, (l) => l === 4)).toBeLessThanOrEqual(0.2);
+      expect(share(ls, (l) => l >= 5)).toBeLessThanOrEqual(0.03);
     }
   });
 
-  it('Harvest is dominated by 6+ letters with occasional shorter relief', () => {
+  it('Harvest is dominated by 6+ letters and keeps short rhythm words (D-123)', () => {
     for (const mode of ['normal', 'hardcore'] as const) {
       const ls = lengths(8, mode, 'master', 2);
-      expect(share(ls, (l) => l >= 6)).toBeGreaterThanOrEqual(0.85);
-      expect(share(ls, (l) => l <= 4)).toBeLessThanOrEqual(0.03);
-      expect(share(ls, (l) => l <= 5)).toBeGreaterThan(0.01);
+      expect(share(ls, (l) => l >= 6)).toBeGreaterThanOrEqual(0.6);
+      expect(share(ls, (l) => l <= 4)).toBeGreaterThan(0.03);
+      expect(share(ls, (l) => l <= 4)).toBeLessThanOrEqual(0.25);
     }
+  });
+
+  it('longer words arrive gradually across the Academy (D-123)', () => {
+    const means = [1, 3, 5, 7, 9].map((t) => {
+      const ls = Array.from({ length: 2 }, (_, i) => simulate({ plan: apprenticeshipRun('normal', t), words: WORDS, seed: 500 + i, typist: PERFECT, maxSeconds: 900 }))
+        .flatMap((r) => r.spawns.map((x) => x.length));
+      return ls.reduce((a, b) => a + b, 0) / ls.length;
+    });
+    for (let i = 1; i < means.length; i++) expect(means[i]!).toBeGreaterThan(means[i - 1]!);
+    expect(means[0]!).toBeLessThan(3.2);
+    expect(means[1]! - means[0]!).toBeLessThan(1.5); // no sudden jump
   });
 
   it('all four length × speed combinations appear in the first apprenticeship, far from equally often', () => {
