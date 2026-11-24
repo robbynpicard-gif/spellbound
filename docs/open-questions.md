@@ -173,3 +173,6 @@ Validate the new menu in the experimental branch: actual endless run termination
 
 **Q-34 · D-123 vocabulary and pressure calibration (Experimental)**
 Which short-word distributions and coupled speed/spawn envelopes produce immediate Combo/Rush satisfaction while sustaining fair pressure across skill levels? Validate actual word availability, first reward timing, spell cadence, and human play. The principle itself is approved, not open.
+*First pass (D-124, simulations only):* early play is 83–91% 2–3-letter words with 9–15% 4s. Combo ×2 arrives 2.5–4× sooner, captures per minute rise 25–40%, and the keystroke workload is unchanged. Open for playtesting:
+- Are 2-letter words (≈45% in apprenticeship 1) too many or too odd (the bank includes "aw", "eh", "um")?
+- Slower typists now clear more: the Opening Trial at 35 WPM (with adaptation) sometimes clears, where it never did before, and apprenticeship 8 at 60 WPM clears every time instead of half the time. Is that the intended accessibility, or should spawn and speed rise more?

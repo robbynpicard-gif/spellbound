@@ -118,4 +118,10 @@ Where this reconciliation plan or historical sources specify a 15–20 minute de
 
 ## D-123 — immediate gratification, progressive mastery
 
-Approved design, implementation pending. Audit and tune `src/difficulty/DifficultyDirector.ts`, `src/typel/apprenticeship.ts`, `src/gameplay/WordGenerator.ts` and the word bank; preserve existing scoring, spell rules and mode boundaries. See GAME-009 and D-123 for acceptance criteria. No deployment claimed.
+**Implemented (D-124), Verified by tests and simulation; values Experimental; not human-playtested.**
+- Length model: `src/difficulty/DifficultyDirector.ts` (`DIRECTOR_TUNING.lengths`: start/harvest/end windows, `availability`, `belowDecay`, `tiltShare`; `letterRateMatch`).
+- Opening climax quotas: `src/typel/apprenticeship.ts` (`OPENING_TUNING.path`).
+- On-field duplicate and prefix exclusion: `src/gameplay/WordGenerator.ts` `nextOfLength(length, active)`, called from `GameEngine.spawn()`.
+- Crosswind vocabulary 0.52: `src/typel/arcaneTrials.ts`.
+- Tests: `tests/immediate-gratification.test.ts`, the vocabulary tests in `tests/continuous-run.test.ts`.
+- Simulation tool: `tools/gratification-report.ts`. Report: `immediate-gratification-report-2026-11-23.md`.

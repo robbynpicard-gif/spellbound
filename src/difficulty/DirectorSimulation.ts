@@ -99,6 +99,11 @@ export interface RunReport {
   spellPoints: number;
   /** Rune points (fixed awards). */
   runePoints: number;
+  /** D-123: capture times (s), and when the first capture, Combo ×2 (Combo 10) and Arcane Rush happened (null = never). */
+  captureTimes: number[];
+  firsts: { capture: number | null; combo2: number | null; rush: number | null };
+  /** D-123: keystrokes the player made, Enter included (letters + slips + submissions). */
+  keystrokes: number;
   spawns: SpawnSample[];
   timeline: SecondSample[];
   failure: FailureCause;
@@ -176,6 +181,16 @@ export function simulate(o: SimOptions): RunReport {
   });
   engine.events.on('spellCollected', () => spellsCollected.push(engine.state.tick / SIMULATION_HZ));
   engine.events.on('spellCast', ({ spell }) => casts.push({ t: engine.state.tick / SIMULATION_HZ, spell }));
+  const captureTimes: number[] = [];
+  const firsts: RunReport['firsts'] = { capture: null, combo2: null, rush: null };
+  engine.events.on('wordCompleted', ({ combo }) => {
+    const t = engine.state.tick / SIMULATION_HZ;
+    captureTimes.push(t);
+    firsts.capture ??= t;
+    if (combo >= 10) firsts.combo2 ??= t;
+    if (engine.volleyMultiplier > 1) firsts.rush ??= t;
+  });
+  let submits = 0;
   let spellPoints = 0;
   engine.events.on('wordsShocked', ({ points }) => (spellPoints += points));
   engine.events.on('wordsHarvested', ({ points }) => (spellPoints += points));
@@ -230,6 +245,7 @@ export function simulate(o: SimOptions): RunReport {
         budget--;
         if (s.input === casting) {
           engine.submit();
+          submits++;
           casting = null;
           budget = 0;
           wait = ticks(T.switchMs);
@@ -267,6 +283,7 @@ export function simulate(o: SimOptions): RunReport {
       budget--;
       if (s.input === aimed.match) {
         engine.submit();
+        submits++;
         currentAim = null;
         budget = 0;
         wait = ticks(T.switchMs);
@@ -282,7 +299,8 @@ export function simulate(o: SimOptions): RunReport {
     endedIn: lost ? phase() : engine.status === 'won' ? 'cleared' : `${phase()} (time cap)`,
     seconds, endlessSeconds: endlessStart === null ? 0 : (engine.state.tick - endlessStart) / SIMULATION_HZ,
     score: engine.state.score, captured: st.completed, missed: st.missed, maxCombo: st.maxCombo, peakRush,
-    checkpoints, spellScrolls, spellsCollected, casts, spellPoints, runePoints: st.runePoints ?? 0, spawns, timeline, failure: lost ? classifyFailure(timeline.slice(-12), T) : 'none',
+    checkpoints, spellScrolls, spellsCollected, casts, spellPoints, runePoints: st.runePoints ?? 0, captureTimes, firsts,
+    keystrokes: st.correctChars + st.errors + submits, spawns, timeline, failure: lost ? classifyFailure(timeline.slice(-12), T) : 'none',
   };
 }
 

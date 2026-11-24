@@ -77,22 +77,28 @@ export class WordGenerator {
    * nearest available length if none), with the same fairness rules as
    * next(). Only called when a level has a director; next() is unchanged.
    */
-  nextOfLength(length: number): string {
+  /**
+   * `active`: the texts on the field now (lower case). D-123: a new word is
+   * never equal to one of them or a prefix of one (or vice versa), so short
+   * words never create two identical or overlapping targets.
+   */
+  nextOfLength(length: number, active: readonly string[] = []): string {
     let len = length;
     if (!this.byLength.has(len)) {
       const lengths = [...this.byLength.keys()].sort((a, b) => Math.abs(a - length) - Math.abs(b - length) || a - b);
       len = lengths[0]!;
     }
-    return this.choose(() => len);
+    return this.choose(() => len, active);
   }
 
   next(): string {
     return this.choose(() => Number(this.rng.weighted(this.lengthWeights)));
   }
 
-  private choose(pickLength: () => number): string {
+  private choose(pickLength: () => number, active: readonly string[] = []): string {
     // All comparisons ignore case ("Merlin" and "merlin" are the same word).
     const usedText = new Set(this.recent);
+    const clashes = (lower: string) => active.some((a) => a.startsWith(lower) || lower.startsWith(a));
     const usedFirst = new Set(this.recent.map((w) => w[0]));
     let chosen: string | null = null;
     let fallback: string | null = null;
@@ -101,14 +107,20 @@ export class WordGenerator {
       const length = pickLength();
       const word = this.rng.pick(this.byLength.get(length)!);
       const lower = word.toLowerCase();
-      if (usedText.has(lower)) continue;
+      if (usedText.has(lower) || clashes(lower)) continue;
       if (!usedFirst.has(lower[0])) chosen = word;
       else fallback ??= word;
     }
     // Crowded first letters: accept a shared first letter.
     // Exhausted attempts must still respect the configured length distribution.
     // Previously this always fell back to the shortest bucket (often 2 letters).
-    const word = chosen ?? fallback ?? this.rng.pick(this.byLength.get(pickLength())!);
+    let word = chosen ?? fallback;
+    // Rare: every attempt clashed. Draw on until a non-clashing word (bounded), else accept the last draw.
+    for (let i = 0; !word && i < MAX_ATTEMPTS * 4; i++) {
+      const candidate = this.rng.pick(this.byLength.get(pickLength())!);
+      if (!clashes(candidate.toLowerCase())) word = candidate;
+    }
+    word ??= this.rng.pick(this.byLength.get(pickLength())!);
     this.recent.push(word.toLowerCase());
     if (this.recent.length > this.window) this.recent.shift();
     return word;

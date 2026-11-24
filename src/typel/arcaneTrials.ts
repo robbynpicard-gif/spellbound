@@ -45,7 +45,7 @@ export const CROSSWIND: ArcaneTrialDef = {
   title: 'The Crosswind Trial',
   identity: 'The sky leans one way, then the other. Some scrolls drop in halfway down. Read the wind; type through it.',
   quota: 560,
-  vocabulary: 0.35,
+  vocabulary: 0.52,
   position: 0.8,
   profile: {
     baseline: [0.35, 0.9],

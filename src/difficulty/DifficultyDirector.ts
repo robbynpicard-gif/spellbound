@@ -206,6 +206,14 @@ export interface DirectorTuning {
     mediumWeight: Range;
     /** D-113: share of the pressure-to-length tilt, first → last vocabulary. */
     tiltShare: Range;
+    /**
+     * D-123: how much a length's library size counts (count^exponent). Lower
+     * = less pull toward the big 4–5-letter buckets, so 2-letter words can be
+     * common early.
+     */
+    availability: number;
+    /** D-123: per-letter decay of the below-window relief tail (closer to 1 = shorter rhythm words stay common late). */
+    belowDecay: number;
     above: { start: Range; harvest: Range };
     below: Range;
     tailDecay: number;
@@ -269,11 +277,12 @@ export const DIRECTOR_TUNING: DirectorTuning = {
   reliefEvery: 8,
   spikeGap: [6, 2],
   lengths: {
-    start: [3, 6], harvest: [6, 9], end: [6, 10], harvestAt: 7 / 8, levelDrift: 0.5, edge: 1.5, bandSpread: 0.35,
-    earlyCurve: 1.5, longWeight: [0.5, 1], mediumWeight: [0.85, 1], tiltShare: [0.3, 1],
+    start: [2.2, 3.7], harvest: [5.5, 8], end: [6, 9], harvestAt: 7 / 8, levelDrift: 0.5, edge: 1.5, bandSpread: 0.35,
+    earlyCurve: 1.3, longWeight: [0.5, 1], mediumWeight: [0.85, 1], tiltShare: [0, 1], availability: 0.35,
     above: { start: [0.003, 0.02], harvest: [0.03, 0.06] },
-    below: [0.01, 0.07],
+    below: [0.03, 0.2],
     tailDecay: 0.3,
+    belowDecay: 0.85,
     library: [2, 12],
   },
   lengthTilt: 1,
@@ -283,7 +292,7 @@ export const DIRECTOR_TUNING: DirectorTuning = {
   },
   speedTilt: 1,
   density: [1.12, 0.9],
-  letterRateMatch: 0.6,
+  letterRateMatch: 0.9,
   academyDensity: [1, 0.72],
   burstShare: [0.55, 1],
   endlessBurst: { perLevel: 0.2, max: 0.8, spawnCap: 0.75 },
@@ -470,7 +479,7 @@ function lengthWeights(band: LengthBand, win: LengthWindow, pressure: number, co
     if (m <= 0.001) continue;
     const pos = (len - win.lo) / width;
     const affinity = Math.exp(-(((pos - BAND_PEAK[band]) / t.lengths.bandSpread) ** 2));
-    const w = Math.sqrt(n) * m * affinity * Math.exp(t.lengthTilt * win.tilt * clamp01(pressure) * clamp01(pos));
+    const w = Math.pow(n, t.lengths.availability) * m * affinity * Math.exp(t.lengthTilt * win.tilt * clamp01(pressure) * clamp01(pos));
     if (w > 1e-6) out.push([len, w]);
   }
   return out;
@@ -483,7 +492,7 @@ function tailWeights(side: 'above' | 'below', win: LengthWindow, counts: Readonl
   for (let k = 1; k <= 3; k++) {
     const len = side === 'above' ? win.dominant[1] + k : win.dominant[0] - k;
     if (len < minLen || len > maxLen || (counts[len] ?? 0) <= 0) continue;
-    out.push([len, Math.sqrt(counts[len]!) * t.lengths.tailDecay ** (k - 1)]);
+    out.push([len, Math.pow(counts[len]!, t.lengths.availability) * (side === 'below' ? t.lengths.belowDecay : t.lengths.tailDecay) ** (k - 1)]);
   }
   return out;
 }
