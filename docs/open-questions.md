@@ -169,3 +169,7 @@ results; falling still moves you on; score doesn't carry over.
 
 **Q-33 · Arcade-first menu prototype validation (D-122)**
 Validate the new menu in the experimental branch: actual endless run termination, adaptive Casual with no spells and with earned spells, graduation gate, Ranked fixed Director and standard spell economy, local record separation, Practice navigation, and continued access to developer tools. Decide curated Ranked presets, fair seed policy and full Free Type implementation before marking these systems complete.
+
+
+**Q-34 · D-123 vocabulary and pressure calibration (Experimental)**
+Which short-word distributions and coupled speed/spawn envelopes produce immediate Combo/Rush satisfaction while sustaining fair pressure across skill levels? Validate actual word availability, first reward timing, spell cadence, and human play. The principle itself is approved, not open.
